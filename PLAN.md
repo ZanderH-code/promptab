@@ -1,123 +1,512 @@
-# 极简浏览器桌面：产品与实施计划
+# Minimal New Tab：产品与实施计划 v2
 
-日期：2026-10-31  
-项目暂名：Minimal New Tab（名称可调整）
+日期：2026-10-31（取代同日的 v1 计划）  
+项目暂名：Minimal New Tab  
+配套文档：[docs/DESIGN.md](docs/DESIGN.md)（美学设计指南）
 
-## 目标
+---
 
-为 Microsoft Edge 创建一个极简、有质感、可高度自定义且以本地数据为主的新标签页扩展，让用户把常用网站和组件组织成自己的浏览器桌面。
+## 0. 目标
 
-## 架构
+做一个**以本地数据为主、能高度自定义的 Edge/Chrome 新标签页扩展**。功能广度参考 [nightTab](https://github.com/zombieFox/nightTab)：布局、主题、背景、书签分组都可调。在此之上加一条 nightTab 没有的路径：**用户可以用自己的 AI 助手（ChatGPT、Claude、Kimi、DeepSeek、Copilot 等）生成布局、主题和 CSS，粘贴或拖入扩展后，校验、预览、一键应用，并且随时可以撤销。**
 
-采用 Chromium Manifest V3 扩展，通过 `chrome_url_overrides.newtab` 加载本地构建的页面。桌面由可配置的快捷方式、组件和外观设置组成；配置保存在 `chrome.storage.local`，本地壁纸文件保存在 IndexedDB，导入导出包含版本信息与本地图片资源。先支持 Edge，再验证 Chrome；Firefox 兼容留到后续阶段。
+三层自定义，满足不同用户：
 
-配置界面作为页面内的设置抽屉，编辑模式下才显示布局控制；桌面与编辑器共享同一套状态和校验逻辑。首版离线可用，不要求账号或服务器；联网只发生在用户访问网站或使用自选网络资源时。
-
-## 技术栈
-
-- React、TypeScript、Vite：构建交互界面和静态扩展页面。
-- CSS 自定义属性与原生 CSS：主题、视觉层次和响应式布局。
-- `@dnd-kit/core`、`@dnd-kit/sortable`：快捷方式拖拽排序；提供键盘操作。
-- `idb`：封装 IndexedDB 中的用户壁纸存储。
-- Vitest、Testing Library：配置校验、迁移与关键交互测试。
-- npm：依赖管理与构建；具体版本实施时固定并提交锁文件。
-
-## GitHub 项目调研
-
-| 项目 | 借鉴点 | 许可证与使用边界 |
+| 层级 | 面向谁 | 手段 |
 | --- | --- | --- |
-| [nightTab](https://github.com/zombieFox/nightTab) | 自定义排列、颜色、背景和书签，适合参考桌面设置的覆盖范围。 | GPL-3.0；借鉴交互思路，直接复用代码前须核对许可证义务。 |
-| [Anori](https://github.com/OlegWock/anori) | 组件和文件夹组织、主题切换，适合参考可扩展组件模型。 | 当前仓库标示 AGPL-3.0，部分历史版本许可证不同；复用前须核对具体版本。 |
-| [Tabliss](https://github.com/joelshepherd/tabliss) | 新标签页中的背景与组件组合，适合参考轻量化体验。 | GPL-3.0；以产品体验为参考。 |
+| ① 开箱即用 | 不想折腾的人 | 9 套精选预设、首次使用引导、合理默认值 |
+| ② 可视化调整 | 喜欢动手的人 | 设置面板（对标 nightTab 的覆盖面）、编辑模式拖放、主题包自带的可调参数 |
+| ③ 声明式扩展 | 会用 AI 或懂 CSS 的人 | 主题包（Theme Pack）JSON 和受限的自定义 CSS，配合 AI 提示包、错误回传、预览和历史版本 |
 
-以上依据仓库公开说明整理；没有验证其内部实现、性能或近期维护状态。计划独立实现，后续若引入代码、图片或字体，先核实对应版本许可证和署名要求。
+---
 
-## 产品设计
+## 1. 当前进度（2026-10-31 审查）
 
-### 视觉方向
+**验证结果**：`vitest` 2 个文件、10 个测试全部通过；`tsc -b` 无错误；在开发服务器中以 1440×900 与 400px 宽两种窗口实测，页面正常渲染，设置抽屉可用。
 
-- 默认深色、低饱和背景，辅以柔和的光影、细边框与少量半透明材质；避免过度磨砂和持续动态效果。
-- 中央或略偏上的时间与搜索，下面是留白充足的网站图标；设置入口放在边缘，平时保持安静。
-- 字体优先使用系统字体，保证中文显示和无需联网；时间、标题和辅助文字形成清晰层次。
-- 同时提供浅色主题、减少动画选项，窄窗口自动调整排列；文字对比度和键盘焦点始终可辨。
+| 模块 | 状态 | 说明 |
+| --- | --- | --- |
+| MV3 扩展骨架、构建 | ✅ 完成 | `chrome_url_overrides.newtab`，权限 `storage`、`favicon` |
+| 时钟、日期、搜索 | ✅ 完成 | 12/24 小时制；Google/Bing/百度/自定义模板；`/` 聚焦 |
+| 快捷方式 | ✅ 完成 | 增删改、dnd-kit 拖拽与键盘排序、自动 favicon、文字或上传图标 |
+| 外观与布局 | ✅ 基础 | 深浅主题、强调色、背景色、列数、图标尺寸与形状、对齐、上下或左右布局 |
+| 壁纸 | ✅ 基础 | 本地图片存 IndexedDB，可调遮罩 |
+| 右键菜单、中英文界面 | ✅ 完成 | |
+| 备份导出 / 导入 | ❌ 未做 | README 已提示用户「不要依赖当前版本保存数据」，**最优先补齐** |
+| 分组、组件系统、主题预设、自定义 CSS、AI 导入 | ❌ 未做 | 本计划的主体 |
 
-### 首版功能与验收
+**技术债**（不处理会阻碍后续开发）：
 
-1. **搜索**：默认一个搜索引擎；可切换预置引擎或填写带 `{query}` 占位符的自定义搜索地址，正确编码输入。搜索框支持快捷键聚焦，空输入不跳转。
-2. **快捷方式**：新增、编辑、删除、拖拽及键盘排序；配置名称、HTTP(S) 地址、颜色和文字图标；列表在重新打开新标签页后保留。确认后才删除。
-3. **外观**：深浅色、强调色、背景色或本地图片、遮罩透明度、图标尺寸及列数可调。默认视觉简洁，设置即时预览并保存。
-4. **桌面组件**：可显示或隐藏时钟、日期和搜索框；允许切换 12/24 小时制。快捷方式区域支持开关标题和调整对齐方式。
-5. **数据管理**：本地保存；导出带版本的 JSON 备份，包含本地图片数据；导入前校验结构、版本、图片大小与类型并显示覆盖确认，失败时保留旧数据。提供恢复默认配置的确认操作。
-6. **扩展交付**：构建后可在 Edge 开发者模式加载 `dist`，新标签页正常打开；设置数据与壁纸在重启浏览器后保留。提供安装与卸载说明，并提醒启用后浏览器可能要求确认新标签页更改。
+1. `App.tsx` 只有 47 行，但每行很长，状态、渲染、设置面板全挤在一个组件里。扩展到几十个选项前必须拆分。
+2. `model.ts` 的 `validate` 是手写的长条件链，报错只有「布局配置无效」，无法定位到字段，AI 也无法据此修正。→ 改用 schema 库，按路径报错。
+3. 配置是扁平结构（schemaVersion 1），没有分组、组件、主题概念。→ v2 结构加迁移（§5）。
+4. i18n 以中文原文作为键，报错文案写死在逻辑中。→ 改为键值字典。
+5. 样式中存在硬编码颜色，Unicode 符号当图标，设置与编辑模式耦合（详见 DESIGN.md §2）。
+6. `Settings.wallpaper` 允许 data URL，但实际壁纸存在 IndexedDB 中，两条路径并存。→ 统一走资源库（§5.2）。
 
-### 后续迭代，不阻塞首版
+---
 
-- 快捷方式文件夹、多桌面和更自由的组件布局。
-- 自定义上传图标、更多小组件、壁纸轮换与在线壁纸来源。
-- 从浏览器书签或 Infinity 导入：先确认其导出格式与授权范围；书签权限只在功能实际需要时申请。
-- 天气、待办与便签；天气服务需明确 API、数据来源和网络请求。
-- 跨设备同步、Firefox 兼容、扩展商店发布。同步需单独设计容量、冲突与隐私策略。
+## 2. 产品原则
 
-## 文件规划
+1. **本地优先**：无账号、无服务器；只有用户主动访问网站或主动启用联网功能时才产生网络请求。
+2. **声明式，不执行用户脚本**：主题包只能包含数据和受限 CSS，绝不包含 JS。这样 MV3 远程代码政策、商店审核和安全风险都可控。
+3. **任何改动可预览、可撤销**：导入先预览；应用前自动存快照；每次设置改动都可以撤销。
+4. **永远能回来**：即使 CSS 写坏了，设置入口也不会消失，另有安全模式（§4.6）。
+5. **默认好看，改了也不容易变丑**：设计令牌、对比度护栏、质量检查（DESIGN.md §3 与 §8）。
+6. **对 AI 友好的数据格式**：所有配置都有 JSON Schema、稳定的 CSS API、示例和中英文说明，任何 AI 读完都能写出合法的主题包。
 
-以下均相对于项目根目录；首版实施时创建，计划文档之外当前尚未创建。
+---
 
-- `package.json`、`package-lock.json`：依赖、脚本和锁文件。
-- `tsconfig.json`、`tsconfig.node.json`、`vite.config.ts`：TypeScript 和构建配置。
-- `index.html`、`public/manifest.json`、`public/icons/`：页面入口、MV3 清单、扩展图标。
-- `src/main.tsx`、`src/App.tsx`：应用入口与桌面组合。
-- `src/styles/global.css`、`src/styles/theme.css`：基础样式、主题变量及响应式规则。
-- `src/model/types.ts`、`src/model/defaults.ts`、`src/model/validate.ts`、`src/model/migrate.ts`：配置类型、默认值、输入校验和版本迁移。
-- `src/storage/settings.ts`、`src/storage/wallpapers.ts`、`src/storage/backup.ts`：配置读写、壁纸数据和备份导入导出。
-- `src/components/Clock.tsx`、`Search.tsx`、`ShortcutGrid.tsx`、`ShortcutEditor.tsx`、`SettingsDrawer.tsx`：桌面组件及编辑界面。
-- `src/hooks/useSettings.ts`：加载与更新配置，处理保存失败。
-- `src/test/setup.ts`、`src/**/*.test.ts(x)`：测试环境与对应功能测试。
-- `README.md`：环境要求、开发、构建、Edge 安装、备份与权限说明。
+## 3. 参考项目调研
 
-## 实施步骤
+### 3.1 nightTab 深度对照
 
-每一步完成后运行相应检查；如测试或手动验证未通过，先修复再进入下一步。
+nightTab（GPL-3.0，约 2.1k stars，主分支最近一次推送为 2024-10，未归档，近期不活跃）。我读了它 `src/component/state/index.js` 中的默认状态和 `bookmarkDefault`，按模块对照如下：
 
-### 1. 初始化可加载扩展
+| nightTab 能力 | 我们的对应设计 | 里程碑 |
+| --- | --- | --- |
+| `layout`：九宫格 alignment、direction、order、size 整体缩放、width、padding、gutter、区域宽度和对齐、滚动条样式 | 区域网格布局（`areas` + 断点覆盖）、`--mnt-scale`、内容宽度、间距、九宫格对齐 | M3 |
+| `header`：greeting、transitional（「现在是…」）、clock（时分秒分别开关、文字或数字显示、分隔符）、date（各部分开关、序数词、周起始）、search（宽度、引擎、新标签打开），各项可单独缩放、换行、排序 | 组件系统：clock、date、greeting、search 等组件，各自带 `size` 和属性，放进任意布局区域 | M3 |
+| `bookmark`：block 或 list 样式、显示网址、阴影、悬停放大、新标签打开；单个书签可调字母、图标、图片、颜色、旋转、位移、宽或高形状 | 网站样式变体 tile、list、minimal、card；单个网站可调图标类型、颜色、宽卡片 | M3 |
+| `group`：分组名、折叠、分组工具栏 | 书签分组（可折叠、可拖动、分组内排序） | M3 |
+| `toolbar`：位置、强调色快捷切换 | 设置入口位置可选；编辑模式浮动工具栏 | M2、M3 |
+| `theme.color`：主色 + 对比度区间 + 阶数生成色阶 | 5 个基础色在 OKLCH 中推导完整色阶 | M2 |
+| `theme.accent`：随机或循环强调色 | 「随机强调色」作为一个按钮；循环色只作为实验项 | M2 |
+| `theme.font`：display 与 ui 两套字体，可调字重和样式 | `--mnt-font-display`、`--mnt-font-ui`，加本地字体上传 | M2 |
+| `theme.background`：theme、accent、color、gradient、image、video，可调模糊、灰度、缩放、透明度、晕影 | 同等覆盖（视频延后）；图片和视频走本地资源库 | M2 |
+| `radius`、`shadow`、`shade`、各区域颜色和透明度 | 全局 radius、shadow、glass 令牌，以及区域级覆盖 | M2 |
+| 45 套预设主题 + 自定义主题保存 | 9 套精选预设，主题包可导入导出，「保存当前为我的主题」 | M2、M4 |
+| 数据备份与恢复，可只恢复 setup 或 theme | 完整备份 + 主题包两种文件，导入时可勾选应用哪些部分 | M1、M4 |
+| `stagedCustomTheme` 等「暂存后再提交」模式 | 所有编辑先进入草稿，预览后提交 | M1 |
+| — （无自定义 CSS，无 AI） | **自定义 CSS、AI 工作台、可调变量** | M4、M5 |
 
-- 创建 `package.json`、锁文件、TS/Vite 配置、`index.html`、`public/manifest.json`、`src/main.tsx`、`src/App.tsx` 和测试配置。清单使用 MV3、`chrome_url_overrides.newtab`，先只声明实际需要的 `storage` 权限；将清单和静态图标复制到 `dist`。
-- 配置 `npm run dev`、`npm run build`、`npm run test`；构建产物包含 `dist/manifest.json` 和入口页面。
-- 验证：运行 `npm install`、`npm run build`、`npm run test -- --run`，均成功；在 Edge 的 `edge://extensions` 开启开发人员模式并加载 `dist`，新标签页显示占位页面。
+**许可证边界**：nightTab 是 GPL-3.0。本计划只借鉴功能范围和交互思路，独立实现；若决定直接移植其代码或预设数据，本项目也必须采用 GPL-3.0（见 §9 待决事项）。
 
-### 2. 建立配置和持久化
+### 3.2 其他参考
 
-- 在 `src/model/` 定义带 `schemaVersion` 的配置与合理默认值，在 `src/storage/settings.ts` 封装 `chrome.storage.local`；`src/hooks/useSettings.ts` 提供加载、更新与保存错误状态。
-- 先为缺失字段、非法 URL、未知版本和损坏数据编写失败测试；实现严格校验与已知版本迁移，读取失败时提示并保留原始数据，不悄悄覆盖。
-- 验证：`npm run test -- --run` 通过；Edge 中修改配置、关闭并重开浏览器后数据仍在。
+以下依据各项目公开说明整理，没有验证其内部实现；复用任何代码或素材前须核对具体版本的许可证。
 
-### 3. 完成桌面视觉与基本组件
+| 项目 | 类型 | 借鉴点 |
+| --- | --- | --- |
+| [Bonjourr](https://github.com/victrme/Bonjourr) | 开源，GPL-3.0 | 自定义 CSS 和社区 CSS 片段文档；配置档（profiles）；emoji 作为图标 |
+| [Anori](https://github.com/OlegWock/anori) | 开源 | 组件 + 文件夹的组织模型 |
+| [Tabliss](https://github.com/joelshepherd/tabliss) | 开源，GPL-3.0 | 背景与组件可组合的轻量体验 |
+| [Ultra New Tab](https://github.com/gunjit-gyawali/Chrome-Tab-Inhancer) | 开源 | 带版本的设置 schema、导入前预览与警告、部分导出、可导入 Bonjourr 配置 |
+| Homepage、Dashy、Glance 等自托管仪表盘 | 开源 | **用 YAML 或 JSON 声明布局与组件**，这种格式天然适合 AI 生成，是本项目主题包的主要灵感 |
+| VS Code 主题 | 开源生态 | 令牌化主题 + `$schema` 字段让编辑器和 AI 都能校验和补全 |
+| Obsidian CSS 片段 + Style Settings 插件 | 闭源 + 社区插件 | CSS 中声明的变量会自动生成设置界面的控件，对应本计划的「可调变量」（§4.8） |
+| Stylus / UserCSS | 开源 | CSS 带元数据头、版本号，便于分享和更新 |
+| Infinity 新标签页、iTab、WeTab | 闭源 | 图标网格 + 小组件 + 云同步的大众市场形态；宽卡片组件尺寸 |
+| Momentum | 闭源 | 极简的「时钟 + 问候 + 每日焦点」 |
+| Chrome「Create with AI」主题 | 闭源 | 按主题、风格、情绪、颜色生成主题，参数化程度高，但不支持 CSS |
+| [AI New Tab](https://chromeainewtab.com/) | 闭源 | 一句话描述，AI 生成完整的 HTML/CSS/JS 页面。是我们**不采用**的路线，见 §4.1 |
 
-- 实现 `Clock.tsx`、`Search.tsx`、全局与主题样式，支持时钟格式、日期和搜索显示开关。设置合理的宽屏和窄窗口布局及减少动态效果偏好。
-- 先测试搜索 URL 的编码、自定义模板和空值；实现预置与自定义引擎，拒绝非 HTTP(S) 模板。
-- 验证：`npm run test -- --run`、`npm run build` 成功；在 Edge 中检查中英文输入、键盘聚焦、深浅色及窄窗口排版。
+---
 
-### 4. 实现快捷方式管理
+## 4. AI 自定义方案（核心差异化）
 
-- 创建 `ShortcutGrid.tsx` 和 `ShortcutEditor.tsx`，支持新增、修改、删除确认、鼠标拖拽和键盘排序；限制网址为 HTTP(S)。
-- 先测试新增、非法网址、排序与删除后的配置结果，再实现交互；交互控件提供可访问名称与焦点状态。
-- 验证：`npm run test -- --run`、`npm run build` 成功；在 Edge 新标签页中手动测试鼠标和键盘排序、刷新后保留以及链接跳转。
+### 4.1 方案比较与选择
 
-### 5. 完成设置和壁纸
+| 方案 | 做法 | 优点 | 问题 | 结论 |
+| --- | --- | --- | --- | --- |
+| A. AI 生成整页 | 用户让 AI 写完整的 HTML、CSS、JS，扩展加载它 | 自由度最高 | MV3 禁止执行远程代码，过商店审核困难；任意 JS 有安全风险；生成的页面和扩展功能（设置、书签、备份）脱节；扩展一更新就可能失效 | ❌ 不采用 |
+| **B. 声明式主题包 + 受限 CSS** | AI 按公开的 schema 输出 JSON，可附带 CSS；扩展负责校验、预览和应用 | 适用于**任何** AI 助手，不需要 API key 或服务器；安全；结构化的部分能参与所有原生功能；CSS 补足 schema 表达不了的效果 | AI 需要先了解格式（由提示包解决）；输出可能有错（由容错解析和错误回传解决） | ✅ **核心方案** |
+| C. 扩展内置 AI | 用户填自己的 API key，在扩展内直接对话生成 | 体验最顺滑 | 需要管理密钥、额外的网络权限、各家接口差异；要在 B 稳定后才有意义 | ⏳ 可选增强（M6），底层复用 B 的格式 |
 
-- 实现 `SettingsDrawer.tsx`、主题变量和 `src/storage/wallpapers.ts`；设置变更立即反映到桌面，本地图片按类型和大小限制读取并写入 IndexedDB，保存失败展示错误。
-- 为外观值边界和壁纸存储错误编写测试；删除或替换壁纸时只清理不再引用的资源，避免残留及丢失。
-- 验证：`npm run test -- --run`、`npm run build` 成功；在 Edge 中分别测试深浅色、遮罩、列数、图片更换与浏览器重启后的恢复。
+**选择 B 作为核心**：主题包格式是唯一的「真相」，A 被排除，C 只是 B 的另一个入口。用户自己的 AI 助手生成主题包，扩展负责把关。
 
-### 6. 备份、恢复与交付
+### 4.2 主题包（Theme Pack）格式
 
-- 实现 `src/storage/backup.ts`：导出版本化 JSON 与图片数据，导入前完整校验并预览覆盖提示；将图片和配置提交过程设计为可回滚，失败保留旧配置及原壁纸。
-- 先测试导入导出往返、损坏 JSON、未知版本、超大图片及写入失败回滚；实现恢复默认配置时的确认。
-- 编写 `README.md`：Node 版本、安装/开发/构建命令、Edge 加载步骤、扩展权限、备份恢复和卸载注意事项。
-- 验证：`npm run test -- --run`、`npm run build` 成功；在 Edge 中从一套配置导出、修改后导回，确认快捷方式、外观与壁纸恢复；检查离线打开、错误提示、键盘访问与窗口缩放。
+一个主题包可以只包含部分内容（例如只有颜色，或只有 CSS），未包含的部分保持用户当前设置不变。
 
-## 设计与实施约定
+```json
+{
+  "$schema": "https://<待定域名>/schema/theme-pack.v1.json",
+  "kind": "mnt.theme-pack",
+  "packVersion": 1,
+  "meta": {
+    "name": "暮色书房",
+    "author": "可选",
+    "description": "温暖的深紫渐变，衬线时钟，左右分区。",
+    "createdWith": "Claude",
+    "notes": "建议搭配一张暖色调的书房照片作为壁纸。"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": { "bg": "#1b1626", "surface": "#251e33", "text": "#efe7dc", "accent": "#f2a07b" },
+    "font": { "display": "serif", "ui": "system" },
+    "radius": 16, "shadow": 40, "glass": 0, "density": "comfortable", "scale": 1
+  },
+  "background": {
+    "type": "gradient",
+    "gradient": { "angle": 160, "stops": ["#2a1f3d", "#12101c"] },
+    "vignette": 30
+  },
+  "layout": {
+    "contentWidth": 1080,
+    "align": "center-center",
+    "gap": 48,
+    "areas": ["clock links", "search links"],
+    "columns": ["1fr", "1.4fr"],
+    "breakpoints": { "narrow": { "areas": ["clock", "search", "links"], "columns": ["1fr"] } }
+  },
+  "widgets": [
+    { "id": "clock", "type": "clock", "area": "clock", "props": { "hour12": false, "seconds": false, "size": 1.2 } },
+    { "id": "date", "type": "date", "area": "clock", "props": { "format": "weekday-month-day" } },
+    { "id": "search", "type": "search", "area": "search", "props": { "engine": "default" } },
+    { "id": "links", "type": "bookmarks", "area": "links", "props": { "source": "all-groups", "style": "tile", "maxColumns": 5, "showGroupTitles": true } }
+  ],
+  "variables": [
+    { "name": "--glow", "label": { "zh-CN": "光晕强度", "en": "Glow" }, "type": "range", "min": 0, "max": 40, "unit": "px", "default": 12 }
+  ],
+  "css": ".mnt-clock { text-shadow: 0 0 var(--glow) color-mix(in oklch, var(--mnt-accent) 40%, transparent); }"
+}
+```
 
-- 先做独立配置的桌面快捷方式，不默认读取浏览器书签、历史记录或联网获取图标，减少权限和外部依赖。
-- 默认配置仅使用示例网站，用户可全部修改或删除；不预装推广链接。
-- 资源限制及具体尺寸在实现时写入校验代码和设置提示，并覆盖测试；不要将大图直接写入 `chrome.storage.sync`。
-- 开发过程中如需改变首版范围或引入收费 API，先记录方案及影响；实际 UI 和安装效果需在 Edge 验证，不能仅凭构建成功判断。
+要点：
+
+- **默认不含个人数据**：主题包里没有书签，`bookmarks` 组件只通过 `source` 引用用户自己的分组。主题包可以放心分享。
+- 完整备份是另一种文件：`kind: "mnt.backup"`，包含书签、所有配置、资源和历史（§5.3）。
+- `$schema` 让 VS Code 等编辑器直接校验和补全，人手写主题包也方便。
+- schema 用代码定义（zod），由它生成 JSON Schema 和 TypeScript 类型，保证文档、校验器和类型三者一致。
+
+### 4.3 用户流程：「AI 与主题包」面板
+
+```
+① 描述需求          ② 复制提示包          ③ 在 AI 助手里对话           ④ 带回结果
+「想要像 Kindle 那种   → [复制给 AI]  ───→  （ChatGPT / Claude / Kimi …） ─→ 粘贴回复全文 / 拖入 .json .css
+ 纸质感的主页」         可勾选：附带当前主题     可附参考图片                       │
+                                                                               ▼
+⑦ 应用 → 存快照 → 可撤销      ⑥ 预览（暂存态，顶部横幅：应用 / 放弃）   ⑤ 解析 → 校验 → 质量检查
+                                       ▲                                       │ 有错误
+                                       └─────── 修正后重新粘贴 ←── [复制错误给 AI] ┘
+```
+
+1. **描述需求**（可选）：一个文本框，加上风格标签（极简、温暖、复古、赛博、自然、商务……）和「保留我当前的布局」「只改颜色」等勾选项。这些会写进提示包。
+2. **复制提示包**：一键复制一段完整的 Markdown 提示词，内容见 §4.4。也可以「下载为 .md」，上传给支持文件的 AI。
+3. **用户在自己的 AI 助手中对话**：不限平台，可以多轮修改，可以附截图或参考图。
+4. **带回结果**：
+   - 粘贴 AI 的**整段回复**即可，不需要用户自己挑出代码块；
+   - 或拖入或选择 `.json`、`.css`、`.md` 文件；
+   - 纯 CSS 也接受，会自动包装为只含 `css` 的主题包。
+5. **解析、校验、质量检查**（§4.5），结果分为三级：错误（不能应用）、警告（可以应用但建议修改）、通过。
+6. **预览**：应用到暂存态，桌面立即呈现效果；顶部固定横幅显示「预览中：暮色书房 · 应用 / 放弃 / 比较原版」。在预览状态下打开的新标签页不受影响。
+7. **应用**：写入配置前自动存快照（保留最近 30 个版本，见 §5.3），toast 提供「撤销」。
+
+**部分应用**：导入面板列出主题包包含的部分（主题、背景、布局、组件、CSS、可调变量），默认全选，用户可以只要其中一部分，例如「只要配色，不要布局」。这一点借鉴 nightTab 分别恢复 setup 和 theme 的做法。
+
+### 4.4 AI 提示包内容
+
+提示包由扩展在本地离线生成，中英文两版，控制在约 6–8k tokens，内容依次为：
+
+1. **角色与任务**：「你在为 Minimal New Tab 新标签页扩展设计一个主题包……」
+2. **输出约定**：只输出**一个** ```json 代码块，`kind` 必须是 `mnt.theme-pack`；不确定的字段省略，不要编造；需要图片时在 `meta.notes` 中说明。
+3. **精简 schema**：从 zod 生成的字段说明，包括类型、范围、可选值和一行用途描述。比完整 JSON Schema 省 token，也更好读。
+4. **CSS API 参考**：稳定的类名、`data-*` 属性和 `--mnt-*` 变量列表（§4.7）。
+5. **设计约束**：DESIGN.md §10 原文。
+6. **2 个示例主题包**：一个只改配色，一个使用完整的布局、CSS 和变量。
+7. **用户当前配置**（勾选时附带）：当前的主题、背景、布局和组件，**不含书签网址**。
+8. **用户需求**：第 ① 步填写的内容。
+
+同时把这些文档放进仓库，供能读取文件的 AI（Claude Code、Cursor 等编码代理）直接使用：
+
+- `docs/ai/llms.txt`：入口索引；
+- `docs/ai/theme-pack.schema.json`：构建时生成；
+- `docs/ai/css-api.md`、`docs/ai/examples/*.json`。
+
+### 4.5 容错解析、校验与错误回传
+
+**解析**（尽量接受 AI 的不规范输出）：
+
+- 从回复中提取代码块，优先 `json`，其次 `css`；有多个时让用户选择；
+- 使用 `jsonc-parser` 容忍注释和尾逗号；
+- 常见小错误自动修复并告诉用户：颜色写成 `#abc` 时扩展为 6 位；数值写成字符串 `"16px"` 时转为数字；字段名大小写或常见别名（如 `accentColor` 改为 `accent`）。
+
+**校验**：zod 按路径报错，例如 `theme.color.accent：需要 #RRGGBB 格式，收到 "teal"`。未知字段给出警告，不阻断应用。
+
+**质量检查**（只产生警告）：
+
+- 文字与背景、强调色与背景的对比度；
+- 布局 `areas` 引用了不存在的组件，或组件放在不存在的区域；
+- CSS 体积、规则数、选择器是否命中 CSS API 之外的结构（可能在扩展升级后失效）；
+- 使用了未安装的本地字体。
+
+**错误回传**：点击「复制错误给 AI」，生成一段可直接发回 AI 的文字：
+
+> 你上一次输出的主题包有以下问题：  
+> 1. `theme.color.accent`：需要 #RRGGBB 格式，收到 "teal"  
+> 2. `layout.areas[1]`：区域 "weather" 没有对应的组件  
+> 请修正后，在一个 json 代码块中重新输出**完整的**主题包。
+
+### 4.6 自定义 CSS：安全与稳定
+
+**级联层**：全站样式使用 CSS cascade layers：
+
+```css
+@layer guard, reset, tokens, base, widgets, theme, user;
+```
+
+- 用户和主题包的 CSS 经过解析后，**由扩展包进 `@layer user`**。语法错误或括号不平衡的 CSS 在解析阶段就被拒绝，所以不可能「逃出」这一层。普通声明中，越晚声明的层优先级越高，所以 user 层能覆盖所有内置样式。
+- `guard` 层只包含带 `!important` 的规则，保证设置入口、安全模式横幅和预览横幅可见、可点。`!important` 声明的优先级与层的顺序相反，越早声明的层越优先，所以 `guard` 声明在最前。这样 user 层即使写了 `!important` 也覆盖不了 guard。实现时用测试验证这一行为。
+
+**过滤规则**（基于 `css-tree` 解析出的 AST，按白名单处理）：
+
+- 禁止 `@import`、`@namespace`、`@charset`；
+- `url()` 只允许 `data:image/*` 和 `mnt-asset:<id>`（即用户自己上传的图片或字体，渲染时替换为 blob URL）。**禁止任何外部网址**，防止通过 CSS 加载第三方资源或泄露用户输入；
+- `@font-face` 的 `src` 只能使用 `mnt-asset:`；
+- 禁止 `-moz-binding`、`behavior`、`expression()`；
+- 体积上限 64 KB，规则数上限 2000。
+
+**内容安全策略**：在 manifest 中设置 `content_security_policy.extension_pages`，`script-src 'self'; object-src 'none'`，并显式写出 `font-src 'self' data: blob:`。作为第二道防线。
+
+**安全模式**：
+
+- 打开 `newtab#safe`，或在页面上连按 3 次 `Esc`，即进入安全模式：本次会话禁用用户 CSS、可调变量和主题包里的 CSS，并显示横幅「安全模式：自定义样式已暂停 · 编辑 CSS / 回滚到上一版本 / 退出」；
+- 应用新 CSS 后，自动检测设置入口是否可见（通过 `getBoundingClientRect` 和计算样式）。若检测失败，自动回滚并提示。
+
+### 4.7 CSS API（稳定约定）
+
+想让 AI 写出的 CSS 在扩展升级后仍然有效，就要把「可依赖的部分」写成文档，并对它做版本管理：
+
+- **类名**：只有带 `mnt-` 前缀的类名属于公开 API，例如 `.mnt-root`、`.mnt-area`、`.mnt-widget`、`.mnt-clock`、`.mnt-date`、`.mnt-search`、`.mnt-search-input`、`.mnt-group`、`.mnt-group-title`、`.mnt-link`、`.mnt-link-icon`、`.mnt-link-name`、`.mnt-settings-entry`。内部实现使用 CSS Modules 或其他不承诺稳定的类名。
+- **数据属性**：`[data-widget="clock"]`、`[data-area="links"]`、`[data-group="工作"]`、`[data-link-host="github.com"]`（可以按网站定制样式）、`[data-theme-mode="dark"]`、`[data-edit-mode]`。
+- **变量**：所有 `--mnt-*` 令牌（DESIGN.md §3）。
+- **版本**：`cssApiVersion` 写在主题包和文档中。删除或重命名任何公开类名都需要提升主版本，并提供迁移说明。CI 中用快照测试防止公开类名被意外删除。
+
+### 4.8 可调变量
+
+借鉴 Obsidian 的 Style Settings：主题包可以声明 `variables`，扩展会在设置面板「当前主题」分区自动生成对应控件。支持的类型有 `range`、`color`、`toggle`（映射为 0/1）、`select`（枚举值）。用户调整后的值单独保存，**重新导入同一主题包的新版本时会保留**。
+
+这样，AI 写的不再是一份「死的」CSS，而是带旋钮的主题，不懂代码的用户也能继续微调。
+
+---
+
+## 5. 数据模型 v2
+
+### 5.1 结构概要
+
+```ts
+type ProfileV2 = {
+  schemaVersion: 2
+  meta: { id: string; name: string; createdAt: string; updatedAt: string }
+  prefs: { language: 'system' | 'zh-CN' | 'en'; openIn: 'same-tab' | 'new-tab'; reduceMotion: 'system' | 'on' | 'off'; reduceTransparency: 'system' | 'on' | 'off' }
+  theme: { preset?: string; mode: 'dark' | 'light' | 'system'; color: BaseColors; colorLight?: BaseColors; font: { display: FontRef; ui: FontRef }; radius: number; shadow: number; glass: number; density: 'compact' | 'comfortable' | 'spacious'; scale: number; iconShape: 'circle' | 'rounded' | 'square'; iconSize: number }
+  background: { type: 'theme' | 'color' | 'gradient' | 'image' | 'accent'; color?: string; gradient?: { angle: number; stops: string[] }; image?: { asset: AssetId; blur: number; dim: number; grayscale: number; scale: number; vignette: number; position: string } }
+  layout: { contentWidth: number; align: NineGrid; gap: number; areas: string[]; columns?: string[]; breakpoints?: Partial<Record<'narrow' | 'medium', { areas: string[]; columns?: string[] }>> }
+  widgets: Widget[]          // { id, type, area, order, props, hidden? }
+  bookmarks: { groups: Group[] } // Group { id, name, collapsed, items: Link[] }；Link 是现有 Shortcut 的扩展版本
+  search: { engines: Engine[]; defaultEngineId: string }
+  custom: { css: string; cssEnabled: boolean; variables: VariableDecl[]; values: Record<string, string | number>; sourcePack?: { name: string; importedAt: string } }
+}
+```
+
+组件类型首批包括：`clock`、`date`、`greeting`、`search`、`bookmarks`、`text`（自定义文字或名言）、`spacer`。之后增加 `todo`、`note`、`weather`（需要联网，单独征求同意）。
+
+### 5.2 存储分布
+
+| 位置 | 内容 | 说明 |
+| --- | --- | --- |
+| `chrome.storage.local` | `profiles.index`、`profile:<id>`、`history:<id>`、`ui-state` | 申请 `unlimitedStorage`，避免历史快照触到 10 MB 配额 |
+| IndexedDB `assets` 库 | 壁纸、上传的图标和字体 | 以内容 SHA-256 为 id 去重；配置中只存 `mnt-asset:<id>` |
+| 内存 | 草稿或预览态 | 不落盘，关闭标签页即丢弃 |
+
+资源采用引用计数：保存配置或删除历史时，清理不再被任何配置或快照引用的资源。
+
+**多配置档**（Profiles，借鉴 Bonjourr）：例如「工作」「个人」「极简」，一键切换；每个配置档有独立的历史记录。
+
+### 5.3 备份与历史
+
+- **完整备份** `kind: "mnt.backup"`：包含所有配置档和资源（base64），不含历史。导入流程为：完整校验 → 显示差异摘要 → 确认 → 原子写入（先写临时键，成功后再切换）。失败时保留原数据。
+- **历史快照**：应用主题包、导入、重置、切换预设前自动存快照；普通设置改动则按 30 秒合并一次。每个配置档保留最近 30 个快照，可命名和「钉住」（钉住的快照不会被淘汰）。设置面板中的「数据 → 历史版本」可预览并恢复任意版本。
+- **从 v1 迁移**：首次加载 v1 数据时，先把原数据另存为 `backup:v1-original`，再迁移到 v2：快捷方式进入名为「常用」的分组；`layout`、`reverse`、`alignment` 转换为 `areas` 和 `align`；`showClock` 等开关转换为对应组件是否存在；内联 data URL 壁纸转存为资源。迁移必须有往返测试。
+
+### 5.4 导入来源
+
+1. 本扩展的主题包或完整备份（JSON）；
+2. 纯 CSS 文件；
+3. 浏览器书签（**运行时**用 `optional_permissions: ["bookmarks"]` 申请，只读，导入时可选择文件夹）；
+4. nightTab 备份 JSON（映射其 bookmark、group，以及可映射的 theme 字段），方便 nightTab 用户迁移；
+5. 后续：Bonjourr 配置、浏览器导出的 HTML 书签文件。
+
+---
+
+## 6. 功能范围（按模块）
+
+### 6.1 主题
+
+9 套预设（DESIGN.md §9）；5 个基础色加自动色阶；跟随系统深浅色；字体（系统、衬线、等宽、圆体、本地上传）；圆角、阴影、玻璃、密度、整体缩放；随机强调色；对比度警告与一键修正；「保存当前为我的主题」并导出为主题包。
+
+### 6.2 背景
+
+纯色、渐变（2–3 色标、角度）、强调色、本地图片（模糊、暗化、灰度、缩放、晕影、焦点位置）；根据壁纸亮度建议深色或浅色文字。本地视频和在线壁纸源（需要联网，单独开关）延后。
+
+### 6.3 布局
+
+- 布局 = 区域网格（`grid-template-areas`）+ 列宽比例 + 每个断点的覆盖。
+- 内置布局模板：「居中堆叠」（默认）、「左右分区」、「顶栏 + 网格」、「仅网站」、「仅时钟（禅模式）」、「仪表盘（三栏）」。
+- 编辑模式下可以拖动组件到其他区域、调整顺序；区域的增删和合并在「布局」分区用可视化的网格编辑器完成。高级用户可以直接编辑 `areas` 文本。
+- **不做自由像素定位**：区域网格对响应式、AI 生成和可维护性都更友好。如果日后有需求，再加「自由画布」组件作为一个区域内的子布局。
+
+### 6.4 组件
+
+每个组件都有统一的外框（`.mnt-widget`），统一支持 `size` 缩放、对齐、是否显示，并有各自的属性面板。时钟和日期覆盖 nightTab 中各部分的独立开关和格式选项；搜索支持多引擎快速切换、在新标签页打开、输入网址时直接跳转。
+
+### 6.5 网站与分组
+
+分组的增删、改名、折叠和拖动；网站可以在分组之间拖动；样式变体 tile、list、minimal、card；单个网站可调图标（自动 favicon、文字、emoji、上传图片）、颜色、宽卡片；批量操作（多选后移动或删除）；可选在新标签页打开。
+
+### 6.6 设置面板与编辑模式
+
+按 DESIGN.md §5.5 和 §5.6 重做：分区标签、设置项搜索、每区重置、撤销 toast、与设置分开的编辑模式、浮动工具栏。
+
+### 6.7 国际化与无障碍
+
+键值化 i18n，覆盖中文和英文，日期和数字使用 `Intl`。无障碍要求见 DESIGN.md §8。
+
+### 6.8 键盘快捷键
+
+`/` 聚焦搜索，`E` 进入编辑模式，`,` 打开设置，`Ctrl+Z` 撤销上一次设置改动，连按 3 次 `Esc` 进入安全模式，`1–9` 打开前 9 个网站（可关闭）。
+
+---
+
+## 7. 架构
+
+### 7.1 目录规划
+
+```
+src/
+  app/            App.tsx（只负责组合）、providers、快捷键
+  core/
+    schema/       zod 定义：profile.ts、themePack.ts、widgets/*.ts；导出 TS 类型
+    migrate/      v1→v2 等迁移和测试
+    tokens/       基础色 → 完整令牌（OKLCH 推导、对比度工具）
+    css/          sanitize.ts（css-tree）、layer 包装、资源 url 替换
+    pack/         parse.ts（容错提取）、validate.ts、quality.ts、apply.ts（部分应用）
+    prompt/       提示包生成（读 schema 描述 + css-api + 示例）
+  store/          zustand：profile、draft/preview、history、undo
+  storage/        chrome.storage 适配器、assets（IndexedDB）、backup
+  widgets/        clock/ date/ greeting/ search/ bookmarks/ text/ spacer/，各含 View + Settings + schema
+  features/
+    settings/     抽屉、分区、设置项搜索
+    edit-mode/    工具栏、拖放、区域轮廓
+    ai-studio/    AI 与主题包面板（§4.3）
+    data/         备份、历史、导入来源
+  ui/             Button、Dialog、Menu、Toast、Slider、ColorField、Select（Radix）、Icon（Lucide）
+  styles/         layers.css、reset.css、tokens.css、base.css
+  i18n/           zh-CN.ts、en.ts
+  presets/        9 套预设主题包（JSON）
+docs/
+  DESIGN.md
+  ai/             llms.txt、theme-pack.schema.json（构建生成）、css-api.md、examples/
+scripts/
+  gen-schema.ts   由 zod 生成 JSON Schema 和提示包中的字段说明
+```
+
+### 7.2 技术栈增补
+
+现有：React 19、TypeScript、Vite、dnd-kit、Radix Select、idb、Vitest。计划新增以下依赖，版本实施时固定；许可证为预期值，安装时以 npm 实际信息为准：
+
+| 依赖 | 用途 | 许可证 |
+| --- | --- | --- |
+| `zod`（v4） | schema、校验、生成 JSON Schema | MIT |
+| `zustand` | 状态、草稿和撤销 | MIT |
+| `css-tree` | CSS 解析与过滤 | MIT |
+| `jsonc-parser` | 容错解析 JSON | MIT |
+| `culori` | OKLCH 色彩运算、对比度 | MIT |
+| `lucide-react` | 图标 | ISC |
+| Radix 的 Dialog、Popover、Tabs、Slider、Toast | 无障碍基础组件 | MIT |
+| `@playwright/test` | 端到端测试：加载 dist 扩展、截图对比 | Apache-2.0 |
+
+### 7.3 权限
+
+- 常驻：`storage`、`favicon`、`unlimitedStorage`；
+- 可选（运行时申请）：`bookmarks`（导入书签）。M6 的 BYOK AI 和在线主题画廊使用 `optional_host_permissions`，只对用户确认的域名申请。
+
+---
+
+## 8. 里程碑
+
+每个里程碑结束时：`npm run test -- --run` 与 `npm run build` 通过；在 Edge 中加载 `dist` 手动验证；对照 DESIGN.md §11 设计验收清单逐项检查。
+
+### M0：整顿地基（约 1 周）
+
+- 按 §7.1 拆分 `App.tsx`；引入 `styles/` 分层与令牌，替换所有硬编码颜色；换用 Lucide 图标；修复 DESIGN.md §2 中的 1–3 和 8（宽屏比例、硬编码颜色、图标、时钟抖动）。
+- i18n 改为键值字典。
+- **先做最小可用的完整备份导出和导入**（v1 格式），尽早消除 README 中「不要依赖当前版本」的风险。
+- 引入 Playwright，生成 4 种窗口尺寸的基准截图。
+- 验收：功能与现状一致，视觉按设计指南改进；导出 → 清空 → 导入后数据完全恢复。
+
+### M1：数据模型 v2 与可靠性（约 1–2 周）
+
+- 用 zod 定义 v2 schema，实现 v1→v2 迁移（保留原始数据）；按路径报错。
+- zustand store：草稿和预览态、撤销栈、历史快照、多配置档。
+- 资源库（SHA-256 去重、引用计数）；壁纸迁移进资源库。
+- 完整备份 v2，导入时显示差异摘要，原子写入。
+- 测试先行：迁移往返、损坏数据、未知版本、超大资源、写入失败回滚、快照淘汰与钉住。
+- 验收：从 v1 数据升级无损；任何设置改动都可撤销；历史中任一版本可恢复。
+
+### M2：主题系统与设置面板（约 2 周）
+
+- 令牌推导（OKLCH）、9 套预设（以主题包形式内置）、字体（含本地上传）、背景（渐变、图片滤镜、晕影）、对比度护栏。
+- 按 DESIGN.md §5.5 重做设置面板：分区标签、搜索、每区重置、撤销 toast。
+- **自定义 CSS 编辑器（基础版）**：文本框，加上过滤、级联层、guard 层、安全模式。
+- **AI 工作台 v1**：只覆盖 theme、background、css，包括提示包、粘贴解析、校验、错误回传、预览和应用。
+- 验收：9 套预设对比度达标；粘贴一段带错误的 AI 回复能定位错误，修正后能应用；写坏的 CSS 无法遮挡设置入口；`#safe` 有效。
+
+### M3：布局引擎、组件与分组（约 2–3 周）
+
+- 区域网格布局与断点覆盖、6 个布局模板、可视化网格编辑器。
+- 组件框架与首批 7 个组件；把时钟、日期、搜索的选项扩展到 nightTab 的覆盖面。
+- 书签分组、网站样式变体、跨组拖动、批量操作。
+- 编辑模式（与设置分离、浮动工具栏、区域轮廓、悬停工具条、键盘拖放）；首次使用引导卡片。
+- 浏览器书签导入（运行时申请权限）、nightTab 备份导入。
+- **AI 工作台 v2**：主题包覆盖 layout 和 widgets；提示包加入布局示例。
+- 验收：仅用编辑模式和设置面板即可复现 nightTab 默认主页与另外两种布局；AI 生成的左右分区布局可直接应用，并且窄屏时自动堆叠。
+
+### M4：CSS API 与主题包生态（约 1–2 周）
+
+- 发布 CSS API v1 文档和公开类名快照测试；`[data-link-host]` 等数据属性。
+- 可调变量（§4.8），用户值在重新导入时保留。
+- 构建时生成 `docs/ai/` 下的全部文件；`$schema` 托管（GitHub Pages 或仓库 raw 地址）。
+- 主题包导出（「保存当前为我的主题」）、部分应用、预览中的「比较原版」。
+- CSS 编辑器升级：语法高亮（轻量的 CodeMirror 6，按需加载）、实时错误提示、`--mnt-*` 变量自动补全。
+- 验收：一个从未见过本项目的 AI（至少测试 3 家）仅凭提示包，一次生成合法主题包的成功率 ≥ 80%，经过一轮错误回传后 ≥ 95%。这一数字作为发布门槛，测试记录写入 `docs/ai/eval.md`。
+
+### M5：打磨与发布（约 1–2 周）
+
+- 性能：首帧 < 100ms（壁纸与 favicon 懒加载，同步读取缓存的令牌 CSS 以避免闪烁）；包体检查。
+- 隐私说明、权限说明、商店素材；Edge 加载项商店与 Chrome 应用商店上架；Firefox 兼容性评估。
+- README 和用户文档：「5 分钟用 AI 做一个主页」教程，附带示例对话。
+
+### M6：可选增强（不阻塞发布）
+
+- **内置 AI（BYOK）**：用户填写 API key（只存本地），支持 Anthropic、OpenAI 兼容接口；对话直接产出主题包，走相同的校验和预览流程。可附当前页面截图作为视觉参考。
+- **主题画廊**：GitHub 仓库收集社区主题包（PR 提交，CI 自动校验 schema 和 CSS 规则），扩展内按网址导入（`optional_host_permissions` 只申请该仓库的 raw 域名）。
+- 更多组件：待办、便签、天气（需明确数据来源与网络请求）、倒计时。
+- 本地视频背景、壁纸轮换。
+- 跨设备同步：`storage.sync` 只同步配置不同步资源，或使用用户自己的 WebDAV 或 Gist；需单独设计冲突处理与隐私。
+
+---
+
+## 9. 风险与待决事项
+
+| 事项 | 影响 | 建议 |
+| --- | --- | --- |
+| **项目许可证** | 决定能否直接移植 nightTab 的代码和 45 套预设 | **待你决定**。推荐独立实现，许可证可选 MIT；若希望直接移植 nightTab 资源，则采用 GPL-3.0 |
+| AI 输出质量参差 | 用户第一次尝试失败就会流失 | 容错解析、错误回传、提示包中的示例；M4 的成功率门槛 |
+| CSS API 变动导致社区主题失效 | 生态信任 | 公开类名快照测试、版本号、迁移说明 |
+| 存储容量 | 历史快照和资源膨胀 | `unlimitedStorage`、资源去重、快照数量上限 |
+| 商店审核 | 「自定义 CSS」与「远程代码」的界定 | 只接受 CSS 和数据，不接受 JS；CSP；在审核说明中写清楚 |
+| 新标签页被浏览器提示「是否保留更改」 | 首次安装体验 | README 和首次使用引导中说明 |
+| 范围膨胀 | 迟迟发布不了 | M0–M3 构成可发布的核心；M4 是差异化；M6 全部可选 |
+
+---
+
+## 10. 设计与实施约定
+
+- 默认配置中没有推广链接和任何真实网站之外的预置内容；首次使用由引导卡片取代示例网站。
+- 不默认读取浏览器书签和历史记录，不联网获取图标之外的资源；所有联网功能单独开关并说明去向。
+- 不把大图写进 `chrome.storage`；资源一律进入 IndexedDB 资源库。
+- 新增任何配置字段都要同时更新：zod schema、默认值、迁移（如需要）、i18n 文案、提示包字段说明、测试。由 `scripts/gen-schema.ts` 和 CI 检查保证 schema 与文档同步。
+- 视觉改动必须对照 DESIGN.md；新增颜色、尺寸必须先成为令牌。
+- 实际 UI 和安装效果需要在 Edge 中验证，不能只凭构建成功判断。
