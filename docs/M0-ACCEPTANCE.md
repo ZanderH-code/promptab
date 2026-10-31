@@ -44,6 +44,12 @@ Latest verification: 31 unit tests and 11 Playwright tests pass, as do TypeScrip
 | Chinese / English without truncation or jumps | Switching and overflow checked at 400px; exhaustive settings-text inspection remains unverified |
 | Local first visible frame under 100ms | Not measured; performance work belongs to M5 |
 
+## Outstanding issues
+
+- **M2 — light-theme accent contrast:** The default accent `#90d5cd` has insufficient contrast when used for text and icons in light mode, including the eyebrow, search icon and example text icon. Use a mode-specific accent or automatically darken `--mnt-accent` in light mode, and include it in the contrast guardrails.
+- **M2 — light-theme background control:** The background-color setting remains visible in light mode but has no effect. Store background colors per mode using the v2 `colorLight` model; until then, the control can be hidden or disabled in light mode to avoid confusion.
+- **M1 — recovery language:** The recovery screen for damaged settings currently always uses Chinese. Make it follow the system language.
+
 Edge loading of the unpacked extension, browser favicon API behavior and manual pointer/keyboard drag-and-drop have not been verified in a real extension context. Production browser preview checks use localStorage and IndexedDB. Screenshot baselines reflect Windows font rendering and may need platform-specific handling elsewhere.
 
 The M0 work is local on `feat/m0-foundations` and has not been pushed.
