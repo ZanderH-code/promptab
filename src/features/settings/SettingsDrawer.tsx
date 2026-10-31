@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { searchUrl, type Settings } from '../../core/model'
 import type { MessageRef, Translate } from '../../i18n'
 import { Dropdown } from '../../ui/Dropdown'
+import { BackupSection } from './BackupSection'
 
 type Props = {
   settings: Settings
@@ -123,6 +124,7 @@ export function SettingsDrawer({ settings: s, t, onPatch, onClose, onWallpaperFi
 
         <h3>{t('settings.shortcuts')}</h3>
         <p>{t('settings.shortcutsHint')}</p>
+        <BackupSection settings={s} t={t} onError={onError} />
         <button className="reset" onClick={() => { if (confirm(t('settings.confirmReset'))) onReset() }}>{t('settings.reset')}</button>
       </aside>
     </>

@@ -114,6 +114,7 @@ export const zhCN = {
   'error.backupSettings': '备份中的配置无效：{detail}',
   'error.backupWallpaper': '备份中的壁纸无效或超过 5 MB。',
   'error.backupWrite': '导入失败，已恢复原有配置。',
+  'error.backupRollback': '导入失败，部分原有数据未能恢复。请保留备份文件并检查浏览器存储权限。',
   'error.export': '导出失败。',
 } as const
 

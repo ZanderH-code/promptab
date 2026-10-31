@@ -116,5 +116,6 @@ export const en: Record<MessageKey, string> = {
   'error.backupSettings': 'The settings in the backup are invalid: {detail}',
   'error.backupWallpaper': 'The wallpaper in the backup is invalid or larger than 5 MB.',
   'error.backupWrite': 'Import failed. Your previous setup was restored.',
+  'error.backupRollback': 'Import failed and some previous data could not be restored. Keep your backup file and check browser storage permissions.',
   'error.export': 'Export failed.',
 }

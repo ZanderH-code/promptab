@@ -12,7 +12,9 @@ A quiet, customizable new tab extension for Edge (Chromium, Manifest V3). Requir
 - Local wallpaper with an adjustable overlay
 - Right-click menus on widgets and the background
 - English and Simplified Chinese interface
-- Backup export/import is not implemented yet. Don't rely on this version to store data you can't replace.
+- Complete JSON backup export/import, including settings, shortcuts, local icons and wallpaper
+
+In Settings → Data, choose **Export backup** to save a file. Choose **Import backup** to validate a file and review its website count, wallpaper status and export date before replacing your setup. Wallpaper supports PNG, JPEG and WebP up to 5 MB. If an import write fails, the extension attempts to restore both previous settings and wallpaper. Keep a backup outside the browser before uninstalling.
 
 ## Development
 

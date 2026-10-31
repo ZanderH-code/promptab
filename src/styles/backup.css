@@ -1,0 +1,20 @@
+@layer widgets {
+  .backup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--mnt-space-2);
+  }
+
+  .backup-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--mnt-space-2);
+    margin-top: 0;
+  }
+
+  .backup-actions button:disabled {
+    opacity: .5;
+    cursor: wait;
+  }
+}
