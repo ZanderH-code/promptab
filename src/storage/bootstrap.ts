@@ -4,13 +4,15 @@ import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
 import { createHistory, type History } from '../store/history'
 import type { ProfileCollection } from '../store/profile'
 import { createAssetLibrary } from './assets'
-import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, type AsyncKeyValueBackend, type ProfileSnapshot } from './profiles'
+import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, type AsyncKeyValueBackend, type ProfileLock, type ProfileSnapshot } from './profiles'
 import { readRawSettings, type RawSettings } from './settings'
 import { readWallpaper } from './wallpaper'
 
 export type BootstrapSnapshot = { revision: number; profiles: ProfileCollection; history: History<ProfileV2> }
 export type BootstrapOptions = {
   backend?: AsyncKeyValueBackend
+  /** Must serialize bootstrap calls across every context sharing this storage. */
+  lock?: ProfileLock
   profiles?: Pick<ReturnType<typeof createProfileStorage>, 'read' | 'write'>
   assets?: Pick<ReturnType<typeof createAssetLibrary>, 'add'>
   readRawSettings?: () => Promise<RawSettings>
@@ -40,6 +42,14 @@ function validateSnapshot(snapshot: ProfileSnapshot): BootstrapSnapshot {
 
 /** Initialize profiles from legacy settings, or validate the already published generation. */
 export async function bootstrap(options: BootstrapOptions = {}): Promise<BootstrapSnapshot> {
+  const lock: ProfileLock | undefined = options.lock ?? (typeof navigator !== 'undefined' && navigator.locks
+    ? async task => await navigator.locks.request('profiles:v2:bootstrap', task)
+    : undefined)
+  if (!lock) throw new Error('Bootstrap requires a cross-context lock')
+  return lock(() => bootstrapLocked(options))
+}
+
+async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnapshot> {
   const backend = options.backend ?? (window.chrome?.storage
     ? createChromeStorageBackend(window.chrome.storage.local)
     : createLocalStorageBackend(localStorage))

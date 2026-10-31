@@ -19,7 +19,13 @@ function setup(raw: RawSettings = { backend: 'local', value: JSON.stringify(defa
   const profiles = createProfileStorage(backend)
   const assets = createAssetLibrary(store)
   const wallpaper = new Blob(['wallpaper'], { type: 'image/png' })
-  const options = { backend, profiles, assets, readRawSettings: async () => raw, readWallpaper: async () => wallpaper, id: () => 'profile-id', now: () => '2026-01-01T00:00:00.000Z' }
+  let queue = Promise.resolve()
+  const lock = async <T>(task: () => Promise<T>): Promise<T> => {
+    const result = queue.then(task)
+    queue = result.then(() => {}, () => {})
+    return result
+  }
+  const options = { backend, profiles, assets, lock, readRawSettings: async () => raw, readWallpaper: async () => wallpaper, id: () => 'profile-id', now: () => '2026-01-01T00:00:00.000Z' }
   return { data, records, profiles, options, fail: (key: string) => { fail = key } }
 }
 
@@ -60,6 +66,22 @@ describe('bootstrap', () => {
     await expect(bootstrap({ ...db.options, assets: { add: async () => { throw new Error('asset failed') } } })).rejects.toThrow('asset failed')
     expect(await db.profiles.read()).toBeNull()
     expect((await bootstrap(db.options)).revision).toBe(1)
+  })
+
+  it('serializes concurrent bootstrap calls using the shared lock', async () => {
+    const db = setup()
+    let reads = 0
+    const options = { ...db.options, readRawSettings: async () => { reads++; await Promise.resolve(); return { backend: 'local' as const, value: JSON.stringify(defaults) } } }
+    const [first, second] = await Promise.all([bootstrap(options), bootstrap(options)])
+    expect(first).toEqual(second)
+    expect(reads).toBe(1)
+    expect(first.revision).toBe(1)
+  })
+
+  it('rejects without a cross-context lock before reading or writing', async () => {
+    const db = setup()
+    await expect(bootstrap({ ...db.options, lock: undefined })).rejects.toThrow(/lock/i)
+    expect(db.data.size).toBe(0)
   })
 
   it('does not replace an existing backup', async () => {
