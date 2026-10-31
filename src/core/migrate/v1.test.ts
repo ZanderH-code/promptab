@@ -22,6 +22,7 @@ describe('v1 migration', () => {
     const profile = await migrateV1(settings, deps)
     expect(profile.meta).toMatchObject({ id: 'profile-id', createdAt: deps.now(), updatedAt: deps.now() })
     expect((await projectV1(profile, deps)).settings).toEqual(settings)
+    expect(profile.background.dim).toBe(68)
   })
 
   it.each([
@@ -35,6 +36,39 @@ describe('v1 migration', () => {
     expect(profile.layout.breakpoints?.narrow?.areas).toEqual(narrow)
     expect(profile.widgets.filter(widget => ['clock', 'date', 'search'].includes(widget.id)).every(widget => widget.area === 'overview')).toBe(true)
     expect(profile.bookmarks.groups[0].name).toBe('常用')
+    expect(profile.widgets.find(widget => widget.id === 'bookmarks')!.props).toEqual({ maxColumns: 6 })
+    expect((await projectV1(profile, dependencies())).settings).toMatchObject({ layout, reverse })
+  })
+
+  it('derives order from areas: split reads left to right and stacked reversed is bookmarks first', async () => {
+    const split = await migrateV1({ ...defaults, layout: 'split', reverse: false }, dependencies())
+    expect(split.layout.areas).toEqual(['bookmarks overview'])
+    const reversed = await migrateV1({ ...defaults, layout: 'split', reverse: true }, dependencies())
+    expect(reversed.layout.areas).toEqual(['overview bookmarks'])
+    expect((await migrateV1({ ...defaults, reverse: true }, dependencies())).layout.areas).toEqual(['bookmarks', 'overview'])
+  })
+
+  it('writes formal v2 fields instead of custom values', async () => {
+    const profile = await migrateV1({ ...defaults, overlay: 50, columns: 8, theme: 'light' as const }, dependencies())
+    expect(profile.custom.values).toEqual({})
+    expect(profile.background).toMatchObject({ type: 'theme', dim: 50 })
+    expect(profile.layout).toMatchObject({ contentWidth: 960, align: 'center-center' })
+    expect(profile.theme).toMatchObject({ mode: 'light', radius: 14, shadow: 40, color: { text: '#eeeae5' }, colorLight: { bg: '#eeeae4', text: '#302d29' } })
+    expect(profile.widgets.find(widget => widget.type === 'bookmarks')!.props).toEqual({ maxColumns: 8 })
+    expect((await migrateV1(defaults, dependencies())).theme.colorLight).toBeUndefined()
+  })
+
+  it('localizes generated names and recognizes search engines from the template', async () => {
+    const zh = await migrateV1(defaults, dependencies())
+    expect([zh.meta.name, zh.bookmarks.groups[0].name, zh.search.engines[0].name]).toEqual(['默认', '常用', 'Google'])
+    const en = await migrateV1({ ...defaults, language: 'en', searchTemplate: 'https://www.baidu.com/s?wd={query}' }, dependencies())
+    expect([en.meta.name, en.bookmarks.groups[0].name, en.search.engines[0].name]).toEqual(['Default', 'Quick links', 'Baidu'])
+    const override = await migrateV1({ ...defaults, searchTemplate: 'https://www.baidu.com/s?wd={query}' }, { ...dependencies(), language: 'en' })
+    expect([override.meta.name, override.search.engines[0].name]).toEqual(['Default', 'Baidu'])
+    expect((await migrateV1({ ...defaults, searchTemplate: 'https://www.baidu.com/s?wd={query}' }, dependencies())).search.engines[0].name).toBe('百度')
+    expect((await migrateV1({ ...defaults, searchTemplate: 'https://bing.com/search?q={query}' }, dependencies())).search.engines[0].name).toBe('Bing')
+    expect((await migrateV1({ ...defaults, searchTemplate: 'https://example.com/?q={query}' }, dependencies())).search.engines[0].name).toBe('自定义')
+    expect((await migrateV1({ ...defaults, language: 'en', searchTemplate: 'https://example.com/?q={query}' }, dependencies())).search.engines[0].name).toBe('Custom')
   })
 
   it('uses legacy validation defaults for missing fields', async () => {
@@ -46,16 +80,25 @@ describe('v1 migration', () => {
     await expect(migrateV1(input, dependencies())).rejects.toThrow()
   })
 
-  it('migrates images and preserves both wallpaper sources with supplied blob taking precedence', async () => {
+  it('migrates images and keeps only the effective wallpaper, the supplied blob taking precedence', async () => {
     const deps = dependencies()
     const settings = { ...defaults, wallpaper: image, shortcuts: [{ ...defaults.shortcuts[0], image }] }
     const supplied = new Blob(['separate'], { type: 'image/webp' })
     const profile = await migrateV1(settings, { ...deps, wallpaper: supplied })
     expect(profile.bookmarks.groups[0].items[0].image).toMatch(/^mnt-asset:[a-f0-9]{64}$/)
     expect(deps.blobs.get(profile.background.image!.asset)).toBe(supplied)
+    expect(deps.blobs.size).toBe(2)
+    expect(profile.custom.values).toEqual({})
     const projected = await projectV1(profile, deps)
-    expect(projected.settings).toEqual(settings)
+    expect(projected.settings).toEqual({ ...settings, wallpaper: undefined })
     expect(projected.wallpaper).toBe(supplied)
+  })
+
+  it('stores the inline wallpaper as the effective one when no separate wallpaper exists', async () => {
+    const deps = dependencies()
+    const profile = await migrateV1({ ...defaults, wallpaper: image }, deps)
+    expect(deps.blobs.size).toBe(1)
+    expect((await projectV1(profile, deps)).wallpaper).toBe(deps.blobs.get(profile.background.image!.asset))
   })
 
   it('rejects malformed inline data and missing assets', async () => {

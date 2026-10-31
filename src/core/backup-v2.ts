@@ -41,7 +41,7 @@ function checkProfiles(value: unknown, active: unknown): ProfileV2[] {
 function checkReferences(profiles: ProfileV2[], ids: Set<string>): void {
   function visit(value: unknown): void {
     if (typeof value === 'string') {
-      for (const match of value.matchAll(/mnt-asset:([a-f0-9]{64})(?![a-zA-Z0-9])/gi)) {
+      for (const match of value.matchAll(/mnt-asset:([a-f0-9]{64})(?![a-zA-Z0-9])/g)) {
         if (!ids.has(match[1])) throw new Error(`Missing asset: ${match[1]}`)
       }
     } else if (value && typeof value === 'object') {
