@@ -1,17 +1,24 @@
 import { openDB, type DBSchema } from 'idb'
+import type { GenerationCollection } from './profiles'
 
 interface AssetDatabase extends DBSchema {
   assets: { key: string; value: AssetRecord }
 }
 
 export const DEFAULT_MAX_ASSET_BYTES = 5 * 1024 * 1024
+/** Unreferenced assets younger than this survive collection, covering adds made outside a session. */
+export const DEFAULT_ASSET_GRACE_MS = 24 * 60 * 60 * 1000
+export const ASSET_LIFECYCLE_LOCK = 'assets:v1:lifecycle'
 const prefix = 'mnt-asset:'
 const idPattern = /^[a-f0-9]{64}$/
 
 export interface AssetRecord {
   id: string
   blob: Blob
+  /** References from stored profile generations, as of the last collection. */
   refCount: number
+  /** Last time the asset was added; absent on records written before collection existed. */
+  addedAt?: number
 }
 
 export interface AssetTransaction {
@@ -24,6 +31,14 @@ export interface AssetTransaction {
 export interface AssetStore {
   transaction<T>(mode: 'readonly' | 'readwrite', run: (tx: AssetTransaction) => Promise<T>): Promise<T>
 }
+
+export type AssetLocks = Pick<LockManager, 'request'>
+export type GenerationCollector = { collectGenerations<T>(use: (collection: GenerationCollection) => Promise<T>): Promise<T> }
+export type AssetCollection =
+  | { status: 'collected'; deleted: string[]; retained: number; missing: string[]; prunedGenerations: number }
+  | { status: 'skipped'; reason: 'busy' | 'uncommitted' }
+  | { status: 'failed'; error: unknown }
+export type AssetSession = { collection: AssetCollection; close(): void }
 
 /** An independent database avoids upgrading the existing wallpaper database. */
 export const indexedDbAssetStore: AssetStore = {
@@ -68,17 +83,48 @@ function countReferences(value: unknown, counts: Map<string, number>, ancestors 
   }
 }
 
-/** Reconcile only against a complete, committed view of all profiles and snapshots. */
-export function createAssetLibrary(store: AssetStore = indexedDbAssetStore, options: { maxBytes?: number } = {}) {
+/**
+ * Deletes assets that no stored generation references and that were not added recently.
+ * Only reachable through openSession, which holds the exclusive lifecycle lock and the
+ * publication lock, so no other context can hold live state or staged adds meanwhile.
+ */
+async function sweep(store: AssetStore, roots: unknown[], now: number, graceMs: number) {
+  const counts = new Map<string, number>()
+  countReferences(roots, counts)
+  return store.transaction('readwrite', async tx => {
+    const records = await tx.getAll()
+    const known = new Set(records.map(record => record.id))
+    const deleted: string[] = []
+    for (const record of records) {
+      const refCount = counts.get(record.id) ?? 0
+      if (refCount > 0) {
+        if (refCount !== record.refCount) await tx.put({ ...record, refCount })
+      } else if (record.addedAt === undefined) {
+        // The age of legacy records is unknown; start their grace period now.
+        await tx.put({ ...record, refCount, addedAt: now })
+      } else if (now - record.addedAt >= graceMs) {
+        await tx.delete(record.id)
+        deleted.push(record.id)
+      } else if (record.refCount !== 0) await tx.put({ ...record, refCount })
+    }
+    return { deleted, retained: records.length - deleted.length, missing: [...counts.keys()].filter(id => !known.has(id)) }
+  })
+}
+
+export function createAssetLibrary(store: AssetStore = indexedDbAssetStore, options: { maxBytes?: number; now?: () => number } = {}) {
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_ASSET_BYTES
+  const now = options.now ?? Date.now
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw new Error('Invalid asset size limit')
   return {
+    /** Adding an existing asset restarts its grace period, protecting it while it is staged again. */
     async add(blob: Blob): Promise<string> {
       if (blob.size > maxBytes) throw new Error('Asset exceeds size limit')
       const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
       const id = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+      const addedAt = now()
       await store.transaction('readwrite', async tx => {
-        if (!await tx.get(id)) await tx.put({ id, blob, refCount: 0 })
+        const existing = await tx.get(id)
+        await tx.put(existing ? { ...existing, addedAt } : { id, blob, refCount: 0, addedAt })
       })
       return prefix + id
     },
@@ -89,19 +135,35 @@ export function createAssetLibrary(store: AssetStore = indexedDbAssetStore, opti
     async list(): Promise<AssetRecord[]> {
       return store.transaction('readonly', tx => tx.getAll())
     },
-    async reconcile(owners: { profiles: readonly unknown[]; snapshots: readonly unknown[] }): Promise<void> {
-      const counts = new Map<string, number>()
-      countReferences(owners, counts)
-      await store.transaction('readwrite', async tx => {
-        const records = await tx.getAll()
-        const known = new Set(records.map(record => record.id))
-        for (const id of counts.keys()) if (!known.has(id)) throw new Error(`Missing asset: ${id}`)
-        for (const record of records) {
-          const refCount = counts.get(record.id) ?? 0
-          if (refCount === 0) await tx.delete(record.id)
-          else if (refCount !== record.refCount) await tx.put({ ...record, refCount })
-        }
+    /**
+     * Join the asset lifecycle for this context. Collection runs first, only when no other
+     * session exists; then a shared lifecycle lock is held until close() or the context ends,
+     * which blocks collection elsewhere. Open the session before reading profiles or adding
+     * assets, and keep it open while any profile, history, undo, draft or preview state is live.
+     */
+    async openSession(deps: { profiles: GenerationCollector; locks?: AssetLocks; graceMs?: number }): Promise<AssetSession> {
+      const locks = deps.locks ?? (typeof navigator !== 'undefined' ? navigator.locks : undefined)
+      if (!locks) throw new Error('Asset sessions require Web Locks')
+      const graceMs = deps.graceMs ?? DEFAULT_ASSET_GRACE_MS
+      if (!(graceMs >= 0)) throw new Error('Invalid asset grace period')
+      let collection: AssetCollection
+      try {
+        collection = await locks.request(ASSET_LIFECYCLE_LOCK, { mode: 'exclusive', ifAvailable: true }, async lock => {
+          if (!lock) return { status: 'skipped', reason: 'busy' } as const
+          return deps.profiles.collectGenerations<AssetCollection>(async ({ current, roots, pruned }) => {
+            if (!current) return { status: 'skipped', reason: 'uncommitted' }
+            return { status: 'collected', prunedGenerations: pruned.length, ...await sweep(store, roots, now(), graceMs) }
+          })
+        })
+      } catch (error) {
+        collection = { status: 'failed', error }
+      }
+      let close!: () => void
+      const held = new Promise<void>(resolve => { close = resolve })
+      await new Promise<void>((resolve, reject) => {
+        locks.request(ASSET_LIFECYCLE_LOCK, { mode: 'shared' }, () => { resolve(); return held }).catch(reject)
       })
+      return { collection, close }
     },
   }
 }

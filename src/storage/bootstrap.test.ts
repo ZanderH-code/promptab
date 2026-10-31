@@ -16,7 +16,9 @@ function setup(raw: RawSettings = { backend: 'local', value: JSON.stringify(defa
   }
   const records = new Map<string, AssetRecord>()
   const store: AssetStore = { async transaction(_mode, run) { return run({ get: async id => records.get(id), getAll: async () => [...records.values()], put: async record => { records.set(record.id, record) }, delete: async id => { records.delete(id) } }) } }
-  const profiles = createProfileStorage(backend)
+  let publication = Promise.resolve()
+  const publish = async <T>(task: () => Promise<T>): Promise<T> => { const r = publication.then(task); publication = r.then(() => {}, () => {}); return r }
+  const profiles = createProfileStorage(backend, { lock: publish })
   const assets = createAssetLibrary(store)
   const wallpaper = new Blob(['wallpaper'], { type: 'image/png' })
   let queue = Promise.resolve()

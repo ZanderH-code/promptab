@@ -25,7 +25,9 @@ async function setup() {
     return result
   } }
   const assets = createAssetLibrary(assetStore)
-  const profiles = createProfileStorage(backend)
+  let publication = Promise.resolve()
+  const publish = async <T>(task: () => Promise<T>): Promise<T> => { const r = publication.then(task); publication = r.then(() => {}, () => {}); return r }
+  const profiles = createProfileStorage(backend, { lock: publish })
   const old = await migrateV1(defaults, { id: () => 'old', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unexpected') } })
   const incoming = await migrateV1(defaults, { id: () => 'old', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unexpected') } })
   const oldRef = await assets.add(new Blob(['old'], { type: 'image/png' }))
