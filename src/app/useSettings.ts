@@ -123,7 +123,12 @@ export function useSettings() {
     let unsubscribe = () => {}
     const backend = window.chrome?.storage ? createChromeStorageBackend(window.chrome.storage.local) : createLocalStorageBackend(localStorage)
     const persistence = createProfileStorage(backend)
-    bootstrap({ backend, profiles: persistence, assets }).then(async snapshot => {
+    // One session per page, never closed: it blocks asset collection in other tabs while this one holds live state.
+    // It must be open before bootstrap so assets staged by migration are protected.
+    Promise.resolve().then(() => assets.openSession({ profiles: persistence }))
+      .then(session => { if (session.collection.status === 'failed' || ('missing' in session.collection && session.collection.missing.length)) console.warn('Asset collection', session.collection) })
+      .catch(error => console.warn('Asset session unavailable', error))
+      .then(() => bootstrap({ backend, profiles: persistence, assets })).then(async snapshot => {
       const initial = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
       const next = createProfileStore({ persistence, initialProfile: initial })
       await next.getState().initialize()
