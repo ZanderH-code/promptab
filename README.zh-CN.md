@@ -34,6 +34,26 @@ npm run test -- --run
 npm run build
 ```
 
+## 浏览器检查
+
+构建后启动生产预览：
+
+```bash
+npm run preview
+```
+
+在另一个终端首次安装 Chromium，然后执行测试：
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+npm run test:e2e
+```
+
+测试固定时钟并比对 `e2e/baselines/` 中四种窗口尺寸的截图，也检查备份往返、无效及取消导入、语言切换和下拉菜单主题色。基线在 Windows Chromium 下生成；其他平台的字体渲染可能不同。
+
 ## 在 Edge 中加载
 
 打开 `edge://extensions`，启用开发人员模式，选择“加载解压缩的扩展”，然后选择项目的 `dist` 文件夹。浏览器可能会要求确认新标签页更改。

@@ -53,6 +53,7 @@ describe('backup core', () => {
     const write = failed === 'settings' ? vi.mocked(boundary.saveSettings) : vi.mocked(boundary.writeWallpaper)
     write.mockRejectedValueOnce(new Error('write failed'))
     const backup = parseBackup(data('data:image/png;base64,bmV3'))
+    backup.settings = { ...backup.settings, accent: '#abcdef', shortcuts: [] }
     await expect(restoreBackup(backup, boundary)).rejects.toMatchObject({ key: 'error.backupWrite' })
     expect(boundary.saveSettings).toHaveBeenLastCalledWith(defaults)
     expect(boundary.writeWallpaper).toHaveBeenLastCalledWith(oldWallpaper)

@@ -34,6 +34,26 @@ npm run test -- --run
 npm run build
 ```
 
+## Browser checks
+
+After building, start the production preview:
+
+```bash
+npm run preview
+```
+
+In another terminal, install Chromium once and run the tests:
+
+```bash
+npx playwright install chromium
+```
+
+```bash
+npm run test:e2e
+```
+
+The tests freeze the clock and compare four viewport baselines stored in `e2e/baselines/`. They also cover backup round trips, rejected/cancelled imports, language switching and themed dropdowns. Baselines were generated with Chromium on Windows; font rendering can differ on other platforms.
+
 ## Load in Edge
 
 Open `edge://extensions`, turn on Developer mode, choose "Load unpacked", and select the project's `dist` folder. The browser may ask you to confirm the new tab change.
