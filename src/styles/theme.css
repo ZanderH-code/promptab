@@ -1,0 +1,71 @@
+@layer theme {
+  .app {
+    font-family: var(--mnt-font-ui);
+  }
+
+  .clock {
+    font-family: var(--mnt-font-display);
+  }
+
+  .desktop {
+    zoom: var(--mnt-scale);
+  }
+
+  .search {
+    margin-top: calc(54px * var(--mnt-density));
+  }
+
+  .shortcuts-heading {
+    margin-top: calc(58px * var(--mnt-density));
+  }
+
+  .grid {
+    row-gap: calc(var(--mnt-space-4) * var(--mnt-density));
+  }
+
+  .wallpaper {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .wallpaper-image {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+
+  .wallpaper-shade {
+    position: absolute;
+    inset: 0;
+    background: var(--mnt-wallpaper-shade);
+  }
+
+  .wallpaper-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent calc(100% - var(--vignette, 0%) * 1.4), color-mix(in oklch, var(--mnt-black) var(--vignette, 0%), transparent) 100%);
+  }
+
+  .app > header,
+  .app > .desktop {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Glass: translucent, blurred panels once the theme asks for it. */
+  :root[data-glass=on] :is(.drawer, .modal, .context-menu, .dropdown-content) {
+    background: color-mix(in oklch, var(--mnt-surface) calc(100% - var(--mnt-glass) * 0.6%), transparent);
+    backdrop-filter: blur(calc(var(--mnt-glass) * 0.24px));
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    :root[data-glass=on] :is(.drawer, .modal, .context-menu, .dropdown-content) {
+      background: var(--mnt-surface);
+      backdrop-filter: none;
+    }
+  }
+}

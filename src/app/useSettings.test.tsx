@@ -34,6 +34,17 @@ describe('v2 settings integration', () => {
     await waitFor(() => expect(hook.result.current.settings!.accent).toBe(defaults.accent))
   })
 
+  it('edits the light palette without changing the dark colors', async () => {
+    const hook = await setup()
+    act(() => hook.result.current.patch({ theme: 'light' }))
+    await waitFor(() => expect(hook.result.current.settings!.theme).toBe('light'))
+    act(() => hook.result.current.patch({ background: '#faf4e8', accent: '#884422' }))
+    await waitFor(() => expect(hook.result.current.settings!.background).toBe('#faf4e8'))
+    expect(hook.result.current.profile!.theme.colorLight).toMatchObject({ bg: '#faf4e8', accent: '#884422' })
+    expect(hook.result.current.profile!.theme.color.bg).toBe(defaults.background)
+    expect(hook.result.current.profile!.theme.color.accent).toBe(defaults.accent)
+  })
+
   it('keeps migrated split order and changes reverse consistently', async () => {
     const hook = await setup(true)
     expect(hook.result.current.settings!.reverse).toBe(defaults.reverse)

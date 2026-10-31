@@ -1,0 +1,39 @@
+{
+  "id": "dusk",
+  "name": {
+    "zh-CN": "暮色",
+    "en": "Dusk"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#15111f",
+      "surface": "#2b2340",
+      "text": "#efe7dc",
+      "accent": "#f2a07b"
+    },
+    "colorLight": {
+      "bg": "#efe9f2",
+      "surface": "#faf7fb",
+      "text": "#2a2236",
+      "accent": "#b3472a"
+    },
+    "font": {
+      "display": "serif",
+      "ui": "system"
+    },
+    "radius": 16,
+    "shadow": 45,
+    "glass": 0
+  },
+  "background": {
+    "type": "gradient",
+    "gradient": {
+      "angle": 160,
+      "stops": [
+        "#2a1f3d",
+        "#12101c"
+      ]
+    }
+  }
+}

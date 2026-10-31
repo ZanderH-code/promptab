@@ -1,0 +1,32 @@
+{
+  "id": "tide",
+  "name": {
+    "zh-CN": "夜潮",
+    "en": "Tide"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#102932",
+      "surface": "#18343e",
+      "text": "#eeeae5",
+      "accent": "#90d5cd"
+    },
+    "colorLight": {
+      "bg": "#e8efed",
+      "surface": "#f5f9f8",
+      "text": "#1b2e33",
+      "accent": "#1e6f68"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 14,
+    "shadow": 40,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  }
+}

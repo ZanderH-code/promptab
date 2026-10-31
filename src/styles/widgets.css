@@ -25,7 +25,7 @@
   }
 
   .brandmark {
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     font-size: 19px;
     vertical-align: middle;
     margin-right: 9px;
@@ -53,7 +53,7 @@
   }
 
   .eyebrow {
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     font-size: 10px;
     letter-spacing: .2em;
     font-weight: 700;
@@ -96,7 +96,7 @@
 
   .search-icon {
     font-size: 28px;
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     line-height: 1;
   }
 
@@ -243,7 +243,7 @@
   }
 
   .drawer-head small {
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     font-size: 9px;
     letter-spacing: .18em;
   }
@@ -583,7 +583,7 @@
 
   .editor-kicker {
     font-size: 10px;
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     letter-spacing: .12em;
   }
 
@@ -669,7 +669,7 @@
 
   .auto-preview {
     background: var(--mnt-surface-hover);
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
   }
 
   .text-preview {
@@ -700,7 +700,7 @@
     background: none;
     border: 0;
     padding: 8px 2px;
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     font-size: 12px;
   }
 
@@ -789,7 +789,7 @@
   }
 
   .dropdown-chevron {
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
     font-size: 19px;
     line-height: 1;
     transition: transform .15s;
@@ -834,7 +834,7 @@
   }
 
   .dropdown-item[data-state=checked] {
-    color: var(--mnt-accent);
+    color: var(--mnt-accent-text);
   }
 
   .dropdown-check {

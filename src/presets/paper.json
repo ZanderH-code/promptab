@@ -1,0 +1,32 @@
+{
+  "id": "paper",
+  "name": {
+    "zh-CN": "纸本",
+    "en": "Paper"
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#1d1a17",
+      "surface": "#272320",
+      "text": "#ece6dc",
+      "accent": "#e08a63"
+    },
+    "colorLight": {
+      "bg": "#f1ede6",
+      "surface": "#faf8f4",
+      "text": "#2f2b27",
+      "accent": "#b04f26"
+    },
+    "font": {
+      "display": "serif",
+      "ui": "system"
+    },
+    "radius": 10,
+    "shadow": 12,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  }
+}

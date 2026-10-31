@@ -1,0 +1,33 @@
+{
+  "id": "terminal",
+  "name": {
+    "zh-CN": "终端",
+    "en": "Terminal"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#0b0f0b",
+      "surface": "#111811",
+      "text": "#c8f7c5",
+      "accent": "#4ade80"
+    },
+    "colorLight": {
+      "bg": "#eef3ee",
+      "surface": "#f8fbf8",
+      "text": "#14231a",
+      "accent": "#137a3a"
+    },
+    "font": {
+      "display": "mono",
+      "ui": "mono"
+    },
+    "radius": 0,
+    "shadow": 0,
+    "iconShape": "square",
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  }
+}

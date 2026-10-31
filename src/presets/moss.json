@@ -1,0 +1,32 @@
+{
+  "id": "moss",
+  "name": {
+    "zh-CN": "青苔",
+    "en": "Moss"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#18201a",
+      "surface": "#212b23",
+      "text": "#e7eadf",
+      "accent": "#a8c686"
+    },
+    "colorLight": {
+      "bg": "#eaeee3",
+      "surface": "#f6f8f1",
+      "text": "#1f2a1f",
+      "accent": "#44722a"
+    },
+    "font": {
+      "display": "rounded",
+      "ui": "rounded"
+    },
+    "radius": 18,
+    "shadow": 25,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  }
+}

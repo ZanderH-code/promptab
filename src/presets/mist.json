@@ -1,0 +1,32 @@
+{
+  "id": "mist",
+  "name": {
+    "zh-CN": "雾蓝",
+    "en": "Mist"
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#121b22",
+      "surface": "#1a252e",
+      "text": "#e3eaf0",
+      "accent": "#7fb0de"
+    },
+    "colorLight": {
+      "bg": "#e9eef2",
+      "surface": "#f6f8fa",
+      "text": "#22303c",
+      "accent": "#3d6f9e"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 16,
+    "shadow": 30,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  }
+}

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { openTab, setAccent } from './helpers'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
 test.beforeEach(async ({ page }) => {
@@ -72,7 +73,7 @@ test('migrates a real v1 IndexedDB wallpaper and legacy settings to v2', async (
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await expect(page.locator('.shortcut')).toHaveCount(2)
-  await expect(page.locator('.app')).toHaveCSS('background-image', /blob:/)
+  await expect(page.locator('.wallpaper-image')).toHaveCount(1)
   await expect(page.locator('html')).toHaveCSS('--mnt-accent', '#c0ffee')
 
   const snapshot = await readV2(page)
@@ -110,7 +111,7 @@ test('migrates a real v1 IndexedDB wallpaper and legacy settings to v2', async (
 test('Ctrl+Z undoes the last settings edit', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#112233')
+  await setAccent(page, '#112233')
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#112233')
   await expect(page.locator('html')).toHaveCSS('--mnt-accent', '#112233')
   await page.getByRole('button', { name: '关闭设置' }).click()
@@ -124,7 +125,7 @@ test('Ctrl+Z undoes the last settings edit', async ({ page }) => {
 test('undo notice button reverts the last edit', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#445566')
+  await setAccent(page, '#445566')
   await page.getByRole('button', { name: '关闭设置' }).click()
   await page.getByRole('status').getByRole('button', { name: '撤销' }).click()
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe(DEFAULT_ACCENT)
@@ -134,19 +135,22 @@ test('profiles can be created and switched with independent settings', async ({ 
   await open(page)
   const original = await activeProfile(page)
   await page.locator('.settings-button').click()
+  await openTab(page, 'data')
   page.once('dialog', dialog => dialog.accept('工作'))
   await page.getByRole('button', { name: '新建配置', exact: true }).click()
   await expect.poll(async () => Object.keys((await readV2(page)).profiles.profiles).length).toBe(2)
   const work = Object.values<any>((await readV2(page)).profiles.profiles).find(p => p.meta.name === '工作')
   expect(work.meta.id).not.toBe(original.meta.id)
 
+  await openTab(page, 'data')
   const select = page.getByLabel('当前配置', { exact: true })
   await select.selectOption({ label: '工作' })
   await expect.poll(async () => (await readV2(page)).profiles.activeProfileId).toBe(work.meta.id)
-  await page.locator('input[type=color]').first().fill('#334455')
+  await setAccent(page, '#334455')
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#334455')
   await expect(page.locator('html')).toHaveCSS('--mnt-accent', '#334455')
 
+  await openTab(page, 'data')
   await select.selectOption({ value: original.meta.id })
   await expect.poll(async () => (await readV2(page)).profiles.activeProfileId).toBe(original.meta.id)
   await expect(page.locator('html')).toHaveCSS('--mnt-accent', DEFAULT_ACCENT)
@@ -159,11 +163,13 @@ test('profiles can be created and switched with independent settings', async ({ 
 test('history preview, restore and pin', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
+  await openTab(page, 'data')
   await expect(page.getByText('暂无历史记录。', { exact: true })).toBeVisible()
-  await page.locator('input[type=color]').first().fill('#112233')
+  await setAccent(page, '#112233')
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#112233')
   const id = (await readV2(page)).profiles.activeProfileId
-  const entries = page.locator('section[aria-labelledby] li')
+  await openTab(page, 'data')
+  const entries = page.locator('.sd-panel').getByRole('list').last().locator('li')
   await expect(entries).toHaveCount(1)
   await expect(entries.first()).toContainText('编辑')
 
@@ -186,5 +192,5 @@ test('history preview, restore and pin', async ({ page }) => {
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe(DEFAULT_ACCENT)
   await expect(page.locator('html')).toHaveCSS('--mnt-accent', DEFAULT_ACCENT)
   await expect.poll(async () => (await readV2(page)).history.profiles[id].snapshots.map((s: any) => s.kind)).toContain('restore')
-  await expect(page.locator('section[aria-labelledby] li', { hasText: '恢复' }).first()).toBeVisible()
+  await expect(page.locator('.sd-panel li', { hasText: '恢复' }).first()).toBeVisible()
 })

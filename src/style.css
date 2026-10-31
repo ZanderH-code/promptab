@@ -4,4 +4,5 @@
 @import "./styles/base.css";
 @import "./styles/widgets.css";
 @import "./styles/layout.css";
+@import "./styles/theme.css";
 @import "./styles/backup.css";

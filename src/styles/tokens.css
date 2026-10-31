@@ -10,6 +10,8 @@
     --mnt-danger: #a23f43;
     --mnt-black: #000;
     --mnt-white: #fff;
+    --mnt-accent-text: var(--mnt-accent);
+    --mnt-glass: 0;
     --mnt-on-accent: #25221f;
     --mnt-on-danger: #fff;
     --mnt-bg-elevated: color-mix(in oklch, var(--mnt-bg), var(--mnt-white) 4%);

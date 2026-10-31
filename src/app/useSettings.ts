@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { defaults, type Settings, type Shortcut } from '../core/model'
 import { migrateV1 } from '../core/migrate/v1'
+import { DEFAULT_LIGHT, darkSurface, lightSurface } from '../core/schema/defaults'
 import type { ProfileV2 } from '../core/schema/profile'
 import { systemLanguage, toMessageRef, type MessageRef } from '../i18n'
 import { bootstrap } from '../storage/bootstrap'
@@ -46,7 +47,8 @@ async function project(profile: ProfileV2): Promise<Settings> {
   const reverse = split
     ? areas.some(row => row.includes('overview') && row.indexOf('overview') < row.indexOf('bookmarks'))
     : joined.includes('bookmarks') && joined.includes('overview') && joined.indexOf('bookmarks') < joined.indexOf('overview')
-  return { ...defaults, language, theme, accent: profile.theme.color.accent, background: profile.theme.color.bg,
+  const palette = theme === 'light' && profile.theme.colorLight ? profile.theme.colorLight : profile.theme.color
+  return { ...defaults, language, theme, accent: palette.accent, background: palette.bg,
     showClock: !!clock && !clock.hidden, showDate: !!date && !date.hidden, showSearch: !!search && !search.hidden,
     hour12: clock?.type === 'clock' && typeof clock.props.hour12 === 'boolean' ? clock.props.hour12 : defaults.hour12,
     searchTemplate: engine?.template ?? defaults.searchTemplate, shortcuts, columns: bookmarks?.type === 'bookmarks' && typeof bookmarks.props.maxColumns === 'number' ? bookmarks.props.maxColumns : defaults.columns,
@@ -62,8 +64,12 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Pro
   p.meta.updatedAt = new Date().toISOString()
   if (changes.language !== undefined) p.prefs.language = changes.language
   if (changes.theme !== undefined) p.theme.mode = changes.theme
-  if (changes.accent !== undefined) p.theme.color.accent = changes.accent
-  if (changes.background !== undefined) { p.theme.color.bg = changes.background; if (p.background.type === 'color') p.background.color = changes.background }
+  const mode = changes.theme ?? p.theme.mode
+  const light = mode === 'light' || (mode === 'system' && matchMedia('(prefers-color-scheme: light)').matches)
+  // Light edits go to colorLight so the dark palette is never overwritten.
+  const palette = () => light ? (p.theme.colorLight ??= { ...p.theme.color, ...DEFAULT_LIGHT }) : p.theme.color
+  if (changes.accent !== undefined) palette().accent = changes.accent
+  if (changes.background !== undefined) { const colors = palette(); colors.bg = changes.background; colors.surface = light ? lightSurface(changes.background) : darkSurface(changes.background, colors.text); if (!light && p.background.type === 'color') p.background.color = changes.background }
   if (changes.iconSize !== undefined) p.theme.iconSize = changes.iconSize
   if (changes.iconShape !== undefined) p.theme.iconShape = changes.iconShape
   if (changes.alignment !== undefined) p.layout.align = changes.alignment === 'left' ? 'center-left' : 'center-center'
@@ -146,12 +152,21 @@ export function useSettings() {
     }).catch(e => { if (alive) setError(toMessageRef(e, 'error.loadSettings')) })
     return () => { alive = false; unsubscribe(); clearTimeout(timer.current) }
   }, [])
+  const [scheme, setScheme] = useState(0)
+  const followSystem = profile?.theme.mode === 'system'
+  useEffect(() => {
+    if (!followSystem) return
+    const query = matchMedia('(prefers-color-scheme: light)')
+    const onChange = () => setScheme(value => value + 1)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [followSystem])
   useEffect(() => {
     if (!profile) return
     let alive = true
     project(profile).then(value => { if (alive) setSettings(value) }).catch(e => { if (alive) { setSettings(null); setError(toMessageRef(e, 'error.loadSettings')) } })
     return () => { alive = false }
-  }, [profile])
+  }, [profile, scheme])
   const run = useCallback((operation: (store: AppProfileStore, id: string) => Promise<void>, notice = true) => {
     if (!store) return
     const id = store.getState().activeProfileId

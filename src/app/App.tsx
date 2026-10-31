@@ -1,5 +1,7 @@
 import { Settings as SettingsIcon, X } from 'lucide-react'
-import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
+import type { ProfileV2 } from '../core/schema/profile'
+import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
 import { defaults, type Settings, type Shortcut } from '../core/model'
 import { BackupSection } from '../features/settings/BackupSection'
 import { finishShortcut } from '../core/shortcut'
@@ -19,13 +21,13 @@ type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut
 const MENU_MARGIN = 180
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
-function appStyle(s: Settings, wallpaper: string) {
+function appStyle(s: Settings, profile: ProfileV2 | null) {
   return {
     '--mnt-columns': s.columns,
     '--mnt-icon-size': `${s.iconSize}px`,
     '--mnt-icon-radius': ICON_RADIUS[s.iconShape],
     '--mnt-alignment': s.alignment,
-    backgroundImage: wallpaper ? `linear-gradient(var(--mnt-wallpaper-shade),var(--mnt-wallpaper-shade)),url("${wallpaper}")` : undefined,
+    ...(profile ? backgroundStyle(profile, s.theme) : {}),
   } as CSSProperties
 }
 
@@ -44,6 +46,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [undo])
   const [drawer, setDrawer] = useState(false)
+  const [drawerSection, setDrawerSection] = useState<string | undefined>()
   const [editing, setEditing] = useState<Shortcut | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -54,15 +57,7 @@ export default function App() {
     document.title = translate(settings.language, 'app.title')
   }, [settings?.language])
 
-  useLayoutEffect(() => {
-    if (!settings) return
-    const root = document.documentElement
-    root.dataset.theme = settings.theme
-    root.style.setProperty('--mnt-accent', settings.accent)
-    if (settings.theme === 'dark') root.style.setProperty('--mnt-bg', settings.background)
-    else root.style.removeProperty('--mnt-bg')
-    root.style.setProperty('--mnt-wallpaper-overlay', `${settings.overlay}%`)
-  }, [settings?.theme, settings?.accent, settings?.background, settings?.overlay])
+  useThemeTokens(profile, settings?.theme)
 
   if (!settings) {
     const language = systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
@@ -70,7 +65,8 @@ export default function App() {
   }
 
   const s = settings
-  const t = (key: MessageKey, params?: MessageParams) => translate(s.language, key, params)
+  const imageStyle = profile ? wallpaperStyle(profile, wallpaper.url) : null
+  const t =(key: MessageKey, params?: MessageParams) => translate(s.language, key, params)
 
   const openMenu = (event: MouseEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut } = {}) => {
     event.preventDefault()
@@ -81,8 +77,8 @@ export default function App() {
   }
 
   const openSettings = (section?: string) => {
+    setDrawerSection(section)
     setDrawer(true)
-    if (section) setTimeout(() => document.getElementById(section)?.scrollIntoView({ block: 'start' }), 0)
   }
 
   const newShortcut = (color: string): Shortcut => ({ id: crypto.randomUUID(), name: '', url: 'https://', color, icon: '' })
@@ -106,7 +102,7 @@ export default function App() {
     if (state.target === 'shortcut' && shortcut) {
       return [
         { label: t('shortcuts.edit'), onSelect: () => setEditing(shortcut) },
-        { label: t('shortcuts.reorder'), onSelect: () => setDrawer(true) },
+        { label: t('shortcuts.reorder'), onSelect: () => openSettings('shortcuts') },
         { label: t('shortcuts.delete'), onSelect: () => removeShortcut(shortcut) },
       ]
     }
@@ -120,13 +116,20 @@ export default function App() {
   return (
     <main
       className={'app ' + s.theme}
-      style={appStyle(s, wallpaper.url)}
+      style={appStyle(s, profile)}
       onClick={closeMenu}
       onContextMenu={event => openMenu(event, 'background', { clamp: true })}
     >
+      {imageStyle && (
+        <div className="wallpaper" aria-hidden="true">
+          <div className="wallpaper-image" style={imageStyle} />
+          <div className="wallpaper-shade" />
+          <div className="wallpaper-vignette" style={{ '--vignette': `${profile!.background.image!.vignette}%` } as CSSProperties} />
+        </div>
+      )}
       <header>
         <span className="brand">MINIMAL <span className="brandmuted">/ NEW TAB</span></span>
-        <button className="settings-button" onClick={() => setDrawer(true)} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
+        <button className="settings-button" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>
       <section className={`desktop layout-${s.layout} ${s.reverse ? 'layout-reverse' : ''}`}>
         <div className="overview">
@@ -152,6 +155,9 @@ export default function App() {
         <SettingsDrawer
           store={store}
           settings={s}
+          profile={profile!}
+          initialSection={drawerSection}
+          onProfileChange={(update, kind) => run((store, id) => store.getState().updateProfile(id, p => ({ ...update(p), meta: { ...p.meta, updatedAt: new Date().toISOString() } }), kind))}
           t={t}
           onPatch={patch}
           onClose={() => setDrawer(false)}

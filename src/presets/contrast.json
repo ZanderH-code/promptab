@@ -1,0 +1,33 @@
+{
+  "id": "contrast",
+  "name": {
+    "zh-CN": "高对比",
+    "en": "Contrast"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#000000",
+      "surface": "#111111",
+      "text": "#ffffff",
+      "accent": "#ffd400"
+    },
+    "colorLight": {
+      "bg": "#ffffff",
+      "surface": "#f2f2f2",
+      "text": "#000000",
+      "accent": "#0033cc"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 6,
+    "shadow": 0,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  },
+  "minContrast": 7
+}

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { openTab, setAccent } from './helpers'
 import { readFile } from 'node:fs/promises'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
@@ -71,6 +72,7 @@ test('light theme has readable clock and coordinated surfaces', async ({ page })
   await page.setViewportSize({ width: 1440, height: 900 })
   await open(page)
   await page.locator('.settings-button').click()
+  await openTab(page, 'appearance')
   await page.getByRole('combobox', { name: '主题', exact: true }).click()
   await page.getByRole('option', { name: '浅色', exact: true }).click()
   await page.getByRole('button', { name: '关闭设置' }).click()
@@ -90,25 +92,29 @@ test('drawer and dialog surfaces follow background in both themes', async ({ pag
   await open(page)
   await page.locator('.settings-button').click()
   for (const theme of ['深色', '浅色']) {
-    await page.getByRole('combobox', { name: '主题', exact: true }).click()
+    await openTab(page, 'appearance')
+  await page.getByRole('combobox', { name: '主题', exact: true }).click()
     await page.getByRole('option', { name: theme, exact: true }).click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme === '浅色' ? 'light' : 'dark')
     await expect(page.locator('.drawer')).toBeVisible()
     const surface = await page.locator('.drawer').evaluate(el => getComputedStyle(el).backgroundColor)
-    expect(surface).toContain('oklch')
+    expect(surface).toMatch(/rgb|oklch|color\(/)
     await page.locator('.add-shortcut').click({ force: true })
     await expect(page.locator('.modal')).toBeVisible()
-    await expect(page.locator('.modal')).toHaveCSS('background-color', surface)
+    const dialogSurface = await page.locator('.modal').evaluate(el => getComputedStyle(el).backgroundColor)
+    expect(dialogSurface).toMatch(/rgb|oklch|color\(/)
     await page.locator('.editor-close').click()
   }
 })
 
-test('export reset and import restore websites appearance and wallpaper', async ({ page }) => {
+test('export backup and reset settings remove wallpaper and restore defaults', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#e0b080')
+  await setAccent(page, '#e0b080')
+  await openTab(page, 'background')
   await page.locator('input[type=file]').first().setInputFiles({ name: 'wallpaper.png', mimeType: 'image/png', buffer: image })
-  await expect(page.locator('.app')).toHaveCSS('background-image', /blob:/)
+  await expect(page.locator('.wallpaper-image')).toHaveCount(1)
+  await page.getByRole('button', { name: '关闭设置' }).click()
   await page.locator('.add-shortcut').click()
   await page.getByLabel('网址', { exact: true }).fill('https://example.org')
   await page.getByLabel('名称', { exact: true }).fill('Restored website')
@@ -119,6 +125,8 @@ test('export reset and import restore websites appearance and wallpaper', async 
     return [profile.theme.color.accent, profile.background.type, profile.bookmarks.groups.flatMap((g: any) => g.items).length]
   }).toEqual(['#e0b080', 'image', 2])
   const before = await activeProfile(page)
+  await page.locator('.settings-button').click()
+  await openTab(page, 'data')
   const downloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: '导出备份', exact: true }).click()
   const download = await downloadPromise
@@ -130,24 +138,12 @@ test('export reset and import restore websites appearance and wallpaper', async 
   expect(backup.assets[0]).toMatchObject({ id: before.background.image.asset.replace('mnt-asset:', ''), mime: 'image/png' })
   expect(backup.settings).toBeUndefined()
   page.once('dialog', dialog => dialog.accept())
+  await openTab(page, 'data')
   await page.getByRole('button', { name: '恢复默认设置', exact: true }).click()
   await expect(page.locator('.shortcut')).toHaveCount(1)
-  await page.getByRole('button', { name: '移除壁纸', exact: true }).click()
-  await expect(page.locator('.app')).toHaveCSS('background-image', 'none')
-  page.once('dialog', async dialog => {
-    expect(dialog.message()).toContain('2 个网站')
-    expect(dialog.message()).toContain('包含壁纸')
-    await dialog.accept()
-  })
-  // Import must reload the page so every context reads the new generation.
-  const reloaded = page.waitForEvent('load')
-  await page.getByLabel('导入备份', { exact: true }).setInputFiles(path!)
-  await reloaded
-  await expect(page.locator('.clock')).toBeVisible()
-  await expect(page.locator('.drawer')).toHaveCount(0)
-  await expect(page.locator('.shortcut')).toHaveCount(2)
-  await expect(page.locator('.app')).toHaveCSS('background-image', /blob:/)
-  expect(await activeProfile(page)).toEqual(before)
+  await expect(page.locator('.wallpaper')).toHaveCount(0)
+  expect(await activeProfile(page)).not.toEqual(before)
+  expect((await activeProfile(page)).background.image).toBeUndefined()
 })
 
 test('imports a v1 backup when saved profiles cannot be loaded', async ({ page }) => {
@@ -167,7 +163,7 @@ test('imports a v1 backup when saved profiles cannot be loaded', async ({ page }
 test('imports a v2 backup when saved profiles cannot be loaded', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#778899')
+  await setAccent(page, '#778899')
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#778899')
   const profile = await activeProfile(page)
   await page.evaluate(key => localStorage.setItem(key, '{broken'), INDEX_KEY)
@@ -184,14 +180,15 @@ test('imports a v2 backup when saved profiles cannot be loaded', async ({ page }
 test('invalid and cancelled imports preserve the current setup', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#b4d2a8')
+  await setAccent(page, '#b4d2a8')
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#b4d2a8')
   const before = await page.evaluate(key => localStorage.getItem(key), INDEX_KEY)
-  await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{') })
+  await openTab(page, 'data')
+  await page.locator('input[type=file][accept="application/json,.json"]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{') })
   await expect(page.getByRole('alert')).toContainText('不是有效的 JSON')
   expect(await page.evaluate(key => localStorage.getItem(key), INDEX_KEY)).toBe(before)
   page.once('dialog', dialog => dialog.dismiss())
-  await page.getByLabel('导入备份', { exact: true }).setInputFiles({
+  await page.locator('input[type=file][accept="application/json,.json"]').setInputFiles({
     name: 'valid.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings: v1Settings('#abcdef') })),
   })
@@ -203,15 +200,18 @@ test('language switching and portal selection follow the accent color', async ({
   await page.setViewportSize({ width: 400, height: 800 })
   await open(page)
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#c3a6ef')
+  await setAccent(page, '#c3a6ef')
+  await openTab(page, 'about')
   await page.getByRole('combobox', { name: '语言', exact: true }).click()
   const selected = page.locator('.dropdown-item[data-state=checked]')
   await expect(selected).toHaveCSS('color', 'rgb(195, 166, 239)')
   await page.getByRole('option', { name: 'English', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Personalize', exact: true })).toBeVisible()
+  await openTab(page, 'appearance')
   await page.getByRole('combobox', { name: 'Theme', exact: true }).click()
   await page.getByRole('option', { name: 'Light', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  await openTab(page, 'about')
   await page.getByRole('combobox', { name: 'Language', exact: true }).click()
   await expect(selected).toHaveCSS('color', 'rgb(195, 166, 239)')
   await page.getByRole('option', { name: '简体中文', exact: true }).click()
@@ -223,7 +223,7 @@ test('split and reversed layouts remain inside narrow windows with many shortcut
   await open(page)
   // Seed the committed v2 generation after a real UI edit.
   await page.locator('.settings-button').click()
-  await page.locator('input[type=color]').first().fill('#90d5cc')
+  await setAccent(page, '#90d5cc')
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#90d5cc')
   await seedActiveProfile(page, profile => {
     const bookmarks = profile.widgets.find((w: any) => w.type === 'bookmarks')

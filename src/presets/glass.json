@@ -1,0 +1,36 @@
+{
+  "id": "glass",
+  "name": {
+    "zh-CN": "玻璃",
+    "en": "Glass"
+  },
+  "theme": {
+    "mode": "system",
+    "color": {
+      "bg": "#14181f",
+      "surface": "#1c222b",
+      "text": "#f0f3f7",
+      "accent": "#8fc1ff"
+    },
+    "colorLight": {
+      "bg": "#eef1f5",
+      "surface": "#fafbfd",
+      "text": "#1c2430",
+      "accent": "#2563b0"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 20,
+    "shadow": 50,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  },
+  "wallpaper": {
+    "glass": 60,
+    "dim": 40
+  }
+}

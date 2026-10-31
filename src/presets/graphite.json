@@ -1,0 +1,32 @@
+{
+  "id": "graphite",
+  "name": {
+    "zh-CN": "石墨",
+    "en": "Graphite"
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#16171a",
+      "surface": "#1f2024",
+      "text": "#e6e6e6",
+      "accent": "#8ab4f8"
+    },
+    "colorLight": {
+      "bg": "#eceef1",
+      "surface": "#f8f9fb",
+      "text": "#1d1f24",
+      "accent": "#2a5fc4"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 12,
+    "shadow": 30,
+    "glass": 0
+  },
+  "background": {
+    "type": "theme"
+  }
+}
