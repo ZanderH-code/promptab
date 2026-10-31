@@ -1,8 +1,12 @@
 import { createStore } from 'zustand/vanilla'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
-import { createHistory, recordChange, restoreSnapshot, setSnapshotPin, type ChangeKind, type History } from './history'
+import { createHistory, recordChange, restoreSnapshot, setSnapshotPin, type ChangeKind, type History, type HistoryOptions, type ProfileHistory } from './history'
 
-export type ProfileCollection = { activeProfileId: string; profiles: Record<string, ProfileV2> }
+/** A profile removed by deletion or import; kept with its history until restored. */
+export type ArchivedProfile = { profile: ProfileV2; history: ProfileHistory<ProfileV2>; archivedAt: number }
+/** `archived` is omitted when empty so older readers see an unchanged shape. */
+export type ProfileCollection = { activeProfileId: string; profiles: Record<string, ProfileV2>; archived?: Record<string, ArchivedProfile> }
+export type ImportCollection = { activeProfileId: string; profiles: ProfileV2[] }
 export interface ProfilePersistence {
   read(): Promise<{ revision: number; profiles: unknown; history: unknown } | null>
   write(data: { profiles: ProfileCollection; history: History<ProfileV2> }, expectedRevision: number | null): Promise<{ revision: number }>
@@ -12,6 +16,7 @@ export interface ProfileStore {
   profiles: Record<string, ProfileV2>
   activeProfileId: string
   history: History<ProfileV2>
+  archived: Record<string, ArchivedProfile>
   revision: number | null
   initialized: boolean
   draft: Transient
@@ -31,10 +36,14 @@ export interface ProfileStore {
   deleteProfile(id: string): Promise<void>
   resetProfile(id: string, profile: ProfileV2): Promise<void>
   importProfile(id: string, profile: ProfileV2): Promise<void>
+  /** Brings an archived profile and its history back; fails if the ID is live. The active profile is unchanged. */
+  restoreArchivedProfile(id: string): Promise<void>
+  /** Replaces the whole collection; omitted live profiles are archived, retained ones get a pre-import snapshot. */
+  importCollection(incoming: ImportCollection): Promise<void>
 }
 
 type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string }
-type Committed = Pick<ProfileStore, 'profiles' | 'activeProfileId' | 'history'>
+export type Committed = Pick<ProfileStore, 'profiles' | 'activeProfileId' | 'history' | 'archived'>
 
 function validateProfile(value: unknown, id?: string): ProfileV2 {
   const profile = parseProfileV2(value)
@@ -42,7 +51,17 @@ function validateProfile(value: unknown, id?: string): ProfileV2 {
   return profile
 }
 
-function validateStored(profilesValue: unknown, historyValue: unknown): Committed {
+function validateHistoryEntry(entry: ProfileHistory<ProfileV2>, id: string): ProfileHistory<ProfileV2> {
+  if (!entry || !Array.isArray(entry.snapshots) || !(entry.lastEditAt === null || (typeof entry.lastEditAt === 'number' && Number.isFinite(entry.lastEditAt)))) throw new Error('Invalid history entry')
+  const snapshots = entry.snapshots.map(snapshot => {
+    if (!snapshot || typeof snapshot.id !== 'string' || !snapshot.id || typeof snapshot.createdAt !== 'number' || !Number.isFinite(snapshot.createdAt) || typeof snapshot.pinned !== 'boolean' || !['edit', 'reset', 'import', 'restore', 'theme', 'preset'].includes(snapshot.kind)) throw new Error('Invalid snapshot')
+    return { ...snapshot, profile: validateProfile(snapshot.profile, id) }
+  })
+  return { lastEditAt: entry.lastEditAt, snapshots }
+}
+
+/** Validates persisted profile data, including the archive. Throws on any inconsistency. */
+export function validateStored(profilesValue: unknown, historyValue: unknown): Committed {
   if (!profilesValue || typeof profilesValue !== 'object' || !historyValue || typeof historyValue !== 'object') throw new Error('Invalid profile data')
   const collection = profilesValue as ProfileCollection
   if (!collection.profiles || typeof collection.profiles !== 'object' || Array.isArray(collection.profiles)) throw new Error('Invalid profiles')
@@ -51,15 +70,52 @@ function validateStored(profilesValue: unknown, historyValue: unknown): Committe
   const source = (historyValue as History<ProfileV2>).profiles
   if (!source || typeof source !== 'object' || Array.isArray(source)) throw new Error('Invalid history')
   const history: History<ProfileV2> = { profiles: Object.fromEntries(Object.entries(source).map(([id, entry]) => {
-    if (!Object.hasOwn(profiles, id) || !entry || !Array.isArray(entry.snapshots) || !(entry.lastEditAt === null || (typeof entry.lastEditAt === 'number' && Number.isFinite(entry.lastEditAt)))) throw new Error('Invalid history entry')
-    const snapshots = entry.snapshots.map(snapshot => {
-      if (!snapshot || typeof snapshot.id !== 'string' || !snapshot.id || typeof snapshot.createdAt !== 'number' || !Number.isFinite(snapshot.createdAt) || typeof snapshot.pinned !== 'boolean' || !['edit', 'reset', 'import', 'restore', 'theme', 'preset'].includes(snapshot.kind)) throw new Error('Invalid snapshot')
-      return { ...snapshot, profile: validateProfile(snapshot.profile, id) }
-    })
-    return [id, { lastEditAt: entry.lastEditAt, snapshots }]
+    if (!Object.hasOwn(profiles, id)) throw new Error('Invalid history entry')
+    return [id, validateHistoryEntry(entry, id)]
   })) }
-  return { profiles, activeProfileId: collection.activeProfileId, history }
+  const rawArchive = collection.archived ?? {}
+  if (!rawArchive || typeof rawArchive !== 'object' || Array.isArray(rawArchive)) throw new Error('Invalid archive')
+  const archived: Record<string, ArchivedProfile> = Object.fromEntries(Object.entries(rawArchive).map(([id, item]) => {
+    if (Object.hasOwn(profiles, id) || !item || typeof item.archivedAt !== 'number' || !Number.isFinite(item.archivedAt)) throw new Error('Invalid archived profile')
+    return [id, { profile: validateProfile(item.profile, id), history: validateHistoryEntry(item.history, id), archivedAt: item.archivedAt }]
+  }))
+  return { profiles, activeProfileId: collection.activeProfileId, history, archived }
 }
+
+/**
+ * Pure import planning shared by the store and the backup service.
+ * Retained live profiles gain a pre-import snapshot (subject to history limits); omitted ones move,
+ * with their history, to the archive; incoming IDs found in the archive take their history back.
+ */
+export function planImport(committed: Committed, incoming: ImportCollection, options: HistoryOptions): Committed {
+  const profiles: Record<string, ProfileV2> = {}
+  for (const item of incoming.profiles) {
+    const profile = validateProfile(item)
+    if (Object.hasOwn(profiles, profile.meta.id)) throw new Error('Duplicate profile id')
+    profiles[profile.meta.id] = profile
+  }
+  if (!Object.keys(profiles).length || !Object.hasOwn(profiles, incoming.activeProfileId)) throw new Error('Invalid active profile')
+  let history = structuredClone(committed.history)
+  for (const profile of Object.values(committed.profiles)) history = recordChange(history, profile, 'import', options)
+  const archived = structuredClone(committed.archived)
+  for (const [id, profile] of Object.entries(committed.profiles)) {
+    if (Object.hasOwn(profiles, id)) continue
+    archived[id] = { profile: structuredClone(profile), history: history.profiles[id], archivedAt: options.now() }
+    delete history.profiles[id]
+  }
+  for (const id of Object.keys(profiles)) {
+    if (!Object.hasOwn(archived, id)) continue
+    if (!Object.hasOwn(history.profiles, id)) history.profiles[id] = archived[id].history
+    delete archived[id]
+  }
+  return { profiles, activeProfileId: incoming.activeProfileId, history, archived }
+}
+
+const persistable = (next: Committed): ProfileCollection => ({
+  activeProfileId: next.activeProfileId,
+  profiles: next.profiles,
+  ...(Object.keys(next.archived).length ? { archived: next.archived } : {}),
+})
 
 /** Creates an independent vanilla Zustand store. Persistence and asset reconciliation are supplied by the caller. */
 export function createProfileStore(options: Options) {
@@ -81,12 +137,12 @@ export function createProfileStore(options: Options) {
     const transaction = (change: () => { next: Committed; after?: () => void }) => enqueue(async () => {
       if (!get().initialized) throw new Error('Store not initialized')
       const { next, after } = change()
-      const saved = await options.persistence.write(structuredClone({ profiles: { activeProfileId: next.activeProfileId, profiles: next.profiles }, history: next.history }), get().revision)
+      const saved = await options.persistence.write(structuredClone({ profiles: persistable(next), history: next.history }), get().revision)
       if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision returned by persistence')
       set({ ...next, revision: saved.revision })
       after?.()
     })
-    const current = (): Committed => ({ profiles: get().profiles, activeProfileId: get().activeProfileId, history: get().history })
+    const current = (): Committed => ({ profiles: get().profiles, activeProfileId: get().activeProfileId, history: get().history, archived: get().archived })
     const update = (id: string, fn: (p: ProfileV2) => ProfileV2, kind: ChangeKind = 'edit') => transaction(() => {
       const old = existing(id)
       const profile = validateProfile(fn(structuredClone(old)), id)
@@ -94,7 +150,7 @@ export function createProfileStore(options: Options) {
       return { next, after: () => { undos.set(id, [...(undos.get(id) ?? []), structuredClone(old)]) } }
     })
     return {
-      profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), revision: null, initialized: false, draft: null, preview: null,
+      profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), archived: {}, revision: null, initialized: false, draft: null, preview: null,
       initialize: () => enqueue(async () => {
         if (get().initialized) return
         const saved = await options.persistence.read()
@@ -122,7 +178,7 @@ export function createProfileStore(options: Options) {
       pinSnapshot: (id, snapshotId, pinned) => transaction(() => { existing(id); return { next: { ...current(), history: setSnapshotPin(get().history, id, snapshotId, pinned) } } }),
       createProfile: value => transaction(() => {
         const profile = validateProfile(value)
-        if (Object.hasOwn(get().profiles, profile.meta.id)) throw new Error('Profile already exists')
+        if (Object.hasOwn(get().profiles, profile.meta.id) || Object.hasOwn(get().archived, profile.meta.id)) throw new Error('Profile already exists')
         return { next: { ...current(), profiles: { ...get().profiles, [profile.meta.id]: profile } } }
       }),
       renameProfile: (id, name) => update(id, p => ({ ...p, meta: { ...p.meta, name } })),
@@ -133,10 +189,22 @@ export function createProfileStore(options: Options) {
         const ids = Object.keys(profiles)
         if (!ids.length) throw new Error('Cannot delete last profile')
         const histories = { ...get().history.profiles }; delete histories[id]
-        return { next: { profiles, activeProfileId: get().activeProfileId === id ? ids[0] : get().activeProfileId, history: { profiles: histories } }, after: () => { undos.delete(id); set(state => ({ draft: state.draft?.profileId === id ? null : state.draft, preview: state.preview?.profileId === id ? null : state.preview })) } }
+        const archived = { ...get().archived, [id]: { profile: structuredClone(get().profiles[id]), history: get().history.profiles[id] ?? { snapshots: [], lastEditAt: null }, archivedAt: historyOptions.now() } }
+        return { next: { profiles, activeProfileId: get().activeProfileId === id ? ids[0] : get().activeProfileId, history: { profiles: histories }, archived }, after: () => { undos.delete(id); set(state => ({ draft: state.draft?.profileId === id ? null : state.draft, preview: state.preview?.profileId === id ? null : state.preview })) } }
       }),
       resetProfile: (id, profile) => update(id, () => profile, 'reset'),
       importProfile: (id, profile) => update(id, () => profile, 'import'),
+      restoreArchivedProfile: id => transaction(() => {
+        const { archived, profiles, history } = get()
+        if (!Object.hasOwn(archived, id)) throw new Error('Archived profile not found')
+        if (Object.hasOwn(profiles, id)) throw new Error('Profile already exists')
+        const rest = { ...archived }; delete rest[id]
+        return { next: { ...current(), profiles: { ...profiles, [id]: structuredClone(archived[id].profile) }, history: { profiles: { ...history.profiles, [id]: structuredClone(archived[id].history) } }, archived: rest } }
+      }),
+      importCollection: incoming => transaction(() => ({
+        next: planImport(current(), incoming, historyOptions),
+        after: () => { undos.clear(); set({ draft: null, preview: null }) },
+      })),
     }
   })
 }
