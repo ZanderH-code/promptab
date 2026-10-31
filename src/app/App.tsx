@@ -1,3 +1,4 @@
+import { Settings as SettingsIcon, X } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import type { Settings, Shortcut } from '../core/model'
 import { finishShortcut } from '../core/shortcut'
@@ -111,7 +112,7 @@ export default function App() {
     >
       <header>
         <span className="brand">MINIMAL <span className="brandmuted">/ NEW TAB</span></span>
-        <button className="settings-button" onClick={() => setDrawer(true)} aria-label={t('settings.open')}>⚙ <span>{t('settings.button')}</span></button>
+        <button className="settings-button" onClick={() => setDrawer(true)} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>
       <section className={`desktop layout-${s.layout} ${s.reverse ? 'layout-reverse' : ''}`}>
         <div className="overview">
@@ -131,7 +132,7 @@ export default function App() {
       </section>
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
-      {error && <div className="error" role="alert">{t(error.key, error.params)}<button onClick={() => setError(null)}>×</button></div>}
+      {error && <div className="error" role="alert">{t(error.key, error.params)}<button aria-label={t('common.close')} onClick={() => setError(null)}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>}
       {drawer && (
         <SettingsDrawer
           settings={s}

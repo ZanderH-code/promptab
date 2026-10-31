@@ -1,0 +1,82 @@
+@layer widgets {
+  .desktop {
+    width: var(--mnt-content-width);
+    padding-bottom: var(--mnt-space-7);
+  }
+
+  .overview, .bookmarks {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search, .shortcuts-heading {
+    width: 100%;
+  }
+
+  .clock {
+    font-family: var(--mnt-font-display);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    --mnt-effective-icon: var(--mnt-icon-size);
+    --mnt-cell-width: calc(var(--mnt-effective-icon) + 2 * var(--mnt-space-4));
+    --mnt-grid-columns: min(var(--mnt-columns), var(--mnt-item-count));
+    width: min(100%, calc(var(--mnt-grid-columns) * var(--mnt-cell-width)));
+    margin-inline: auto;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mnt-cell-width)), var(--mnt-cell-width)));
+    justify-content: center;
+    justify-items: center;
+    column-gap: 0;
+    row-gap: var(--mnt-space-6);
+  }
+
+  .shortcut-wrap, .add-shortcut {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .shortcut > span:last-child {
+    max-width: calc(var(--mnt-cell-width) - var(--mnt-space-2));
+  }
+
+  .shortcut-icon, .add-shortcut > span {
+    width: var(--mnt-effective-icon, var(--mnt-icon-size));
+    height: var(--mnt-effective-icon, var(--mnt-icon-size));
+  }
+
+  .settings-button, .search button, .drawer-head button, .editor-close,
+  .shortcut-actions button, .drag-handle, .error button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    flex-shrink: 0;
+  }
+
+  .shortcut-actions {
+    flex-wrap: wrap;
+  }
+
+  .drag-handle {
+    display: flex;
+  }
+
+  .lucide {
+    flex-shrink: 0;
+  }
+
+  .error {
+    max-width: calc(100vw - 32px);
+    display: flex;
+    align-items: center;
+  }
+
+  @media (max-width: 639px) {
+    .grid {
+      --mnt-effective-icon: min(var(--mnt-icon-size), 64px);
+      --mnt-grid-columns: min(var(--mnt-columns), var(--mnt-item-count), 4);
+    }
+  }
+}

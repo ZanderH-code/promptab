@@ -1,3 +1,4 @@
+import { X } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { searchUrl, type Settings } from '../../core/model'
 import type { MessageRef, Translate } from '../../i18n'
@@ -45,7 +46,7 @@ export function SettingsDrawer({ settings: s, t, onPatch, onClose, onWallpaperFi
             <small>{t('settings.kicker')}</small>
             <h2>{t('settings.title')}</h2>
           </div>
-          <button onClick={onClose} aria-label={t('settings.close')}>×</button>
+          <button onClick={onClose} aria-label={t('settings.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button>
         </div>
         <p>{t('settings.intro')}</p>
 

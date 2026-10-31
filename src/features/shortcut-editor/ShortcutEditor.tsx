@@ -1,3 +1,4 @@
+import { Plus, X } from 'lucide-react'
 import { useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { validateImage } from '../../core/image'
 import type { Shortcut } from '../../core/model'
@@ -54,7 +55,7 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
             <span className="editor-kicker">{t('editor.kicker')}</span>
             <h2>{t('shortcuts.edit')}</h2>
           </div>
-          <button type="button" className="editor-close" onClick={onClose} aria-label={t('common.close')}>×</button>
+          <button type="button" className="editor-close" onClick={onClose} aria-label={t('common.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button>
         </div>
         <div className="editor-fields">
           <label className="stack">
@@ -78,7 +79,7 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
               <span>{t('editor.iconText')}</span>
             </button>
             <button type="button" className={'icon-choice ' + (selected === 'upload' ? 'selected' : '')} aria-pressed={selected === 'upload'} onClick={() => (localImage ? onChange({ ...shortcut, image: localImage }) : fileInput.current?.click())}>
-              <span className="icon-choice-preview upload-preview">{localImage ? <img src={localImage} alt="" /> : <span aria-hidden="true">＋</span>}</span>
+              <span className="icon-choice-preview upload-preview">{localImage ? <img src={localImage} alt="" /> : <Plus size={24} strokeWidth={1.5} aria-hidden="true" />}</span>
               <span>{t('editor.iconUpload')}</span>
             </button>
           </div>

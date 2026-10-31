@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight, Plus, X } from 'lucide-react'
 import type { CSSProperties, MouseEvent } from 'react'
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
@@ -41,24 +42,24 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={dragEnd}>
         <SortableContext items={shortcuts.map(item => item.id)} strategy={rectSortingStrategy}>
-          <div className="grid">
+          <div className="grid" style={{ '--mnt-item-count': shortcuts.length + 1 } as CSSProperties}>
             {shortcuts.map((item, index) => (
               <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
-                <a className="shortcut" href={item.url} onContextMenu={event => onContextMenu(event, item)}>
+                <a className="shortcut" title={item.name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
                   <span className="shortcut-icon" style={{ '--tile': item.color } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
                   <span>{item.name}</span>
                 </a>
                 {editing && (
                   <div className="shortcut-actions">
                     <button aria-label={t('shortcuts.editNamed', { name: item.name })} onClick={() => onEdit(item)}>{t('common.edit')}</button>
-                    <button aria-label={t('shortcuts.moveLeftNamed', { name: item.name })} disabled={index === 0} onClick={() => move(index, index - 1)}>←</button>
-                    <button aria-label={t('shortcuts.moveRightNamed', { name: item.name })} disabled={index === shortcuts.length - 1} onClick={() => move(index, index + 1)}>→</button>
-                    <button aria-label={t('shortcuts.deleteNamed', { name: item.name })} onClick={() => onRemove(item)}>×</button>
+                    <button aria-label={t('shortcuts.moveLeftNamed', { name: item.name })} disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowLeft size={16} strokeWidth={1.5} aria-hidden="true" /></button>
+                    <button aria-label={t('shortcuts.moveRightNamed', { name: item.name })} disabled={index === shortcuts.length - 1} onClick={() => move(index, index + 1)}><ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" /></button>
+                    <button aria-label={t('shortcuts.deleteNamed', { name: item.name })} onClick={() => onRemove(item)}><X size={16} strokeWidth={1.5} aria-hidden="true" /></button>
                   </div>
                 )}
               </SortableShortcut>
             ))}
-            <button className="add-shortcut" onClick={onAdd}><span>＋</span>{t('shortcuts.add')}</button>
+            <button className="add-shortcut" onClick={onAdd}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>
           </div>
         </SortableContext>
       </DndContext>

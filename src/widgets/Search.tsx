@@ -1,3 +1,4 @@
+import { Search as SearchIcon, ArrowUpRight } from 'lucide-react'
 import { useEffect, useState, type FormEvent, type MouseEvent } from 'react'
 import { searchUrl } from '../core/model'
 import { toMessageRef, type MessageRef, type Translate } from '../i18n'
@@ -34,10 +35,10 @@ export function Search({ template, t, onContextMenu, onError }: Props) {
 
   return (
     <form className="search" onContextMenu={onContextMenu} onSubmit={submit}>
-      <span className="search-icon">⌕</span>
+      <SearchIcon className="search-icon" size={20} strokeWidth={1.5} aria-hidden="true" />
       <input id="search" value={query} onChange={event => setQuery(event.target.value)} placeholder={t('search.placeholder')} aria-label={t('search.label')} />
       <kbd>/</kbd>
-      <button aria-label={t('search.submit')}>↗</button>
+      <button aria-label={t('search.submit')}><ArrowUpRight size={20} strokeWidth={1.5} aria-hidden="true" /></button>
     </form>
   )
 }

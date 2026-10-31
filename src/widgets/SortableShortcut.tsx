@@ -1,3 +1,4 @@
+import { GripVertical } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { CSSProperties, ReactNode } from 'react'
@@ -10,7 +11,7 @@ export function SortableShortcut({ id, enabled, children, dragLabel }: Props) {
   return (
     <div ref={setNodeRef} style={style} className="shortcut-wrap">
       {children}
-      {enabled && <button className="drag-handle" {...attributes} {...listeners} aria-label={dragLabel}>⠿</button>}
+      {enabled && <button className="drag-handle" {...attributes} {...listeners} aria-label={dragLabel}><GripVertical size={20} strokeWidth={1.5} aria-hidden="true" /></button>}
     </div>
   )
 }
