@@ -110,6 +110,7 @@ export const en: Record<MessageKey, string> = {
   'error.shortcutInvalid': 'Enter a name and a valid HTTP(S) URL.',
   'error.searchTemplate': 'The search URL must use HTTP(S) and contain {query}.',
   'error.settingsInvalid': 'The settings format or version is invalid.',
+  'error.profileValidation': 'Invalid value at {path}: expected {expected}; received {value}.',
   'error.backupFile': 'Could not read the backup file: it is not valid JSON.',
   'error.backupKind': 'This is not a Minimal New Tab backup file.',
   'error.backupVersion': 'This backup version is not supported. Update the extension and try again.',

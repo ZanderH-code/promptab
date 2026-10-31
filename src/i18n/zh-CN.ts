@@ -108,6 +108,7 @@ export const zhCN = {
   'error.shortcutInvalid': '请填写名称和有效的 HTTP(S) 地址。',
   'error.searchTemplate': '搜索地址须为 HTTP(S) 并包含 {query}',
   'error.settingsInvalid': '配置格式或版本无效',
+  'error.profileValidation': '路径 {path} 无效：期望 {expected}；实际值 {value}。',
   'error.backupFile': '无法读取备份文件：不是有效的 JSON。',
   'error.backupKind': '这不是 Minimal New Tab 的备份文件。',
   'error.backupVersion': '备份版本不受支持，请更新扩展后再试。',
