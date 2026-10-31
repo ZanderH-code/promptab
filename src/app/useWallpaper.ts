@@ -24,7 +24,7 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
     try {
       validateImage(file, MAX_WALLPAPER_BYTES)
       const asset = await assets.add(file)
-      run((store, id) => store.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: { ...p.background, type: 'image', image: { blur: 0, dim: typeof p.custom.values['v1.overlay'] === 'number' ? p.custom.values['v1.overlay'] : 35, grayscale: 0, scale: 1, vignette: 0, position: 'center', ...p.background.image, asset } } })))
+      run((store, id) => store.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: { ...p.background, type: 'image', image: { blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center', ...p.background.image, asset } } })))
     } catch (error) { console.error(error); onError(toMessageRef(error, 'error.saveWallpaper')) }
   }, [onError, run])
   const remove = useCallback(() => {

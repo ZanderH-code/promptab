@@ -6,7 +6,7 @@ const profile = (id = 'a'): ProfileV2 => ({
   schemaVersion: 2, meta: { id, name: id, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
   prefs: { language: 'system', openIn: 'same-tab', reduceMotion: 'system', reduceTransparency: 'off' },
   theme: { mode: 'dark', color: { bg: '#000000', surface: '#000000', text: '#ffffff', accent: '#ffffff' }, font: { display: 'serif', ui: 'system' }, radius: 1, shadow: 1, glass: 0, density: 'comfortable', scale: 1, iconShape: 'circle', iconSize: 72 },
-  background: { type: 'theme' }, layout: { contentWidth: 1000, align: 'center', gap: 1, areas: ['clock'] }, widgets: [], bookmarks: { groups: [] },
+  background: { type: 'theme', dim: 35 }, layout: { contentWidth: 1000, align: 'center-center', gap: 1, areas: ['clock'] }, widgets: [], bookmarks: { groups: [] },
   search: { engines: [{ id: 'g', name: 'Google', template: 'https://google.com/?q={query}' }], defaultEngineId: 'g' }, custom: { css: '', cssEnabled: false, variables: [], values: {} },
 })
 

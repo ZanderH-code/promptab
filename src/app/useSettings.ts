@@ -27,7 +27,8 @@ async function project(profile: ProfileV2): Promise<Settings> {
   const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async item => {
     if (!item.image) return item
     const blob = await assets.get(item.image)
-    if (!blob) throw new Error(`Missing asset: ${item.image}`)
+    // A missing asset degrades to the text/automatic icon instead of blocking the page.
+    if (!blob) { const { image: _missing, ...rest } = item; return rest }
     return { ...item, image: await dataUrl(blob) }
   }))
   const engine = profile.search.engines.find(item => item.id === profile.search.defaultEngineId)
@@ -42,12 +43,12 @@ async function project(profile: ProfileV2): Promise<Settings> {
     : joined.includes('bookmarks') && joined.includes('overview') && joined.indexOf('bookmarks') < joined.indexOf('overview')
   return { ...defaults, language, theme, accent: profile.theme.color.accent, background: profile.theme.color.bg,
     showClock: !!clock && !clock.hidden, showDate: !!date && !date.hidden, showSearch: !!search && !search.hidden,
-    hour12: typeof clock?.props.hour12 === 'boolean' ? clock.props.hour12 : defaults.hour12,
-    searchTemplate: engine?.template ?? defaults.searchTemplate, shortcuts, columns: typeof bookmarks?.props.columns === 'number' ? bookmarks.props.columns : defaults.columns,
+    hour12: clock?.type === 'clock' && typeof clock.props.hour12 === 'boolean' ? clock.props.hour12 : defaults.hour12,
+    searchTemplate: engine?.template ?? defaults.searchTemplate, shortcuts, columns: bookmarks?.type === 'bookmarks' && typeof bookmarks.props.maxColumns === 'number' ? bookmarks.props.maxColumns : defaults.columns,
     iconSize: profile.theme.iconSize, iconShape: profile.theme.iconShape,
     alignment: profile.layout.align.endsWith('left') ? 'left' : 'center', layout: split ? 'split' : 'stacked',
     reverse,
-    overlay: profile.background.image?.dim ?? (typeof profile.custom.values['v1.overlay'] === 'number' ? profile.custom.values['v1.overlay'] : defaults.overlay),
+    overlay: profile.background.dim,
   }
 }
 
@@ -60,17 +61,17 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Pro
   if (changes.background !== undefined) { p.theme.color.bg = changes.background; if (p.background.type === 'color') p.background.color = changes.background }
   if (changes.iconSize !== undefined) p.theme.iconSize = changes.iconSize
   if (changes.iconShape !== undefined) p.theme.iconShape = changes.iconShape
-  if (changes.alignment !== undefined) p.layout.align = changes.alignment === 'left' ? 'center-left' : 'center'
-  const widget = (type: ProfileV2['widgets'][number]['type']) => {
+  if (changes.alignment !== undefined) p.layout.align = changes.alignment === 'left' ? 'center-left' : 'center-center'
+  const widget = <T extends 'clock' | 'date' | 'search' | 'bookmarks'>(type: T) => {
     let item = p.widgets.find(w => w.type === type)
-    if (!item) { item = { id: crypto.randomUUID(), type, area: type === 'bookmarks' ? 'bookmarks' : 'overview', order: p.widgets.length, props: {} }; p.widgets.push(item) }
-    return item
+    if (!item) { const created = { id: crypto.randomUUID(), type, area: type === 'bookmarks' ? 'bookmarks' : 'overview', order: p.widgets.length, props: {} } as ProfileV2['widgets'][number]; p.widgets.push(created); item = created }
+    return item as Extract<ProfileV2['widgets'][number], { type: T }>
   }
   if (changes.showClock !== undefined) widget('clock').hidden = !changes.showClock
   if (changes.showDate !== undefined) widget('date').hidden = !changes.showDate
   if (changes.showSearch !== undefined) widget('search').hidden = !changes.showSearch
   if (changes.hour12 !== undefined) widget('clock').props.hour12 = changes.hour12
-  if (changes.columns !== undefined) widget('bookmarks').props.columns = changes.columns
+  if (changes.columns !== undefined) widget('bookmarks').props.maxColumns = changes.columns
   if (changes.layout !== undefined || changes.reverse !== undefined) {
     const current = await project(profile)
     const layout = changes.layout ?? current.layout, reverse = changes.reverse ?? current.reverse
@@ -79,15 +80,13 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Pro
     if (layout === 'split') p.layout.columns = ['minmax(0, 1fr)', 'minmax(280px, 0.7fr)']
     else delete p.layout.columns
     p.layout.breakpoints = { ...p.layout.breakpoints, narrow: { areas: stacked, columns: ['1fr'] } }
-    widget('bookmarks').props.layout = layout
-    widget('bookmarks').props.reverse = reverse
   }
   if (changes.searchTemplate !== undefined) {
     const engine = p.search.engines.find(item => item.id === p.search.defaultEngineId)
     if (engine) engine.template = changes.searchTemplate
     else { const id = crypto.randomUUID(); p.search.engines.push({ id, name: 'Search', template: changes.searchTemplate }); p.search.defaultEngineId = id }
   }
-  if (changes.overlay !== undefined) { p.custom.values['v1.overlay'] = changes.overlay; if (p.background.image) p.background.image.dim = changes.overlay }
+  if (changes.overlay !== undefined) p.background.dim = changes.overlay
   if (changes.shortcuts !== undefined) {
     const groups = p.bookmarks.groups
     if (!groups.length) groups.push({ id: crypto.randomUUID(), name: 'Bookmarks', collapsed: false, items: [] })

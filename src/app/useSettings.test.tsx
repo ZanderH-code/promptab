@@ -44,10 +44,10 @@ describe('v2 settings integration', () => {
 
   it('resets the full active profile, including wallpaper, with an undoable reset snapshot', async () => {
     const hook = await setup()
-    act(() => hook.result.current.run((store, id) => store.getState().updateProfile(id, p => ({ ...p, background: { type: 'image', image: { asset: `mnt-asset:${'a'.repeat(64)}`, blur: 0, dim: 35, grayscale: 0, scale: 1, vignette: 0, position: 'center' } } }))))
+    act(() => hook.result.current.run((store, id) => store.getState().updateProfile(id, p => ({ ...p, background: { type: 'image', dim: 35, image: { asset: `mnt-asset:${'a'.repeat(64)}`, blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' } } }))))
     await waitFor(() => expect(hook.result.current.profile!.background.type).toBe('image'))
     act(() => hook.result.current.reset())
-    await waitFor(() => expect(hook.result.current.profile!.background.type).toBe('color'))
+    await waitFor(() => expect(hook.result.current.profile!.background.type).toBe('theme'))
     expect(hook.result.current.store!.getState().history.profiles.main.snapshots[0].kind).toBe('reset')
     act(() => hook.result.current.undo())
     await waitFor(() => expect(hook.result.current.profile!.background.type).toBe('image'))
