@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import type { Settings, Shortcut } from '../core/model'
 import { finishShortcut } from '../core/shortcut'
 import { ShortcutEditor } from '../features/shortcut-editor/ShortcutEditor'
@@ -18,15 +18,12 @@ const MENU_MARGIN = 180
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
 function appStyle(s: Settings, wallpaper: string) {
-  const shade = s.overlay / 100
   return {
-    '--accent': s.accent,
-    '--background': s.background,
-    '--columns': s.columns,
-    '--icon-size': `${s.iconSize}px`,
-    '--radius': ICON_RADIUS[s.iconShape],
-    '--alignment': s.alignment,
-    backgroundImage: wallpaper ? `linear-gradient(rgba(0,0,0,${shade}),rgba(0,0,0,${shade})),url("${wallpaper}")` : undefined,
+    '--mnt-columns': s.columns,
+    '--mnt-icon-size': `${s.iconSize}px`,
+    '--mnt-icon-radius': ICON_RADIUS[s.iconShape],
+    '--mnt-alignment': s.alignment,
+    backgroundImage: wallpaper ? `linear-gradient(var(--mnt-wallpaper-shade),var(--mnt-wallpaper-shade)),url("${wallpaper}")` : undefined,
   } as CSSProperties
 }
 
@@ -43,6 +40,15 @@ export default function App() {
     document.documentElement.lang = settings.language
     document.title = translate(settings.language, 'app.title')
   }, [settings?.language])
+
+  useLayoutEffect(() => {
+    if (!settings) return
+    const root = document.documentElement
+    root.dataset.theme = settings.theme
+    root.style.setProperty('--mnt-accent', settings.accent)
+    root.style.setProperty('--mnt-bg', settings.background)
+    root.style.setProperty('--mnt-wallpaper-overlay', `${settings.overlay}%`)
+  }, [settings?.theme, settings?.accent, settings?.background, settings?.overlay])
 
   if (!settings) {
     return <main className="loading">{error ? translate('zh-CN', error.key, error.params) : translate('zh-CN', 'app.loading')}</main>

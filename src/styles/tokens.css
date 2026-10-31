@@ -1,0 +1,81 @@
+@layer tokens {
+  :root {
+    color-scheme: dark;
+    --mnt-bg: #102932;
+    --mnt-surface: #222428;
+    --mnt-text: #eeeae5;
+    --mnt-accent: #90d5cd;
+    --mnt-danger: #a23f43;
+    --mnt-black: #000;
+    --mnt-white: #fff;
+    --mnt-on-accent: #25221f;
+    --mnt-on-danger: #fff;
+    --mnt-bg-elevated: color-mix(in oklch, var(--mnt-bg), var(--mnt-white) 4%);
+    --mnt-surface-hover: color-mix(in oklch, var(--mnt-text) 8%, var(--mnt-surface));
+    --mnt-surface-active: color-mix(in oklch, var(--mnt-text) 14%, var(--mnt-surface));
+    --mnt-text-muted: color-mix(in oklch, var(--mnt-text) 55%, var(--mnt-bg));
+    --mnt-text-faint: color-mix(in oklch, var(--mnt-text) 35%, var(--mnt-bg));
+    --mnt-accent-soft: color-mix(in oklch, var(--mnt-accent) 12%, transparent);
+    --mnt-accent-strong: color-mix(in oklch, var(--mnt-accent) 85%, var(--mnt-text));
+    --mnt-danger-soft: color-mix(in oklch, var(--mnt-danger) 12%, transparent);
+    --mnt-border: color-mix(in oklch, var(--mnt-text) 12%, transparent);
+    --mnt-border-strong: color-mix(in oklch, var(--mnt-text) 22%, transparent);
+    --mnt-overlay: color-mix(in oklch, var(--mnt-black) 60%, transparent);
+    --mnt-wallpaper-shade: color-mix(in oklch, var(--mnt-black) var(--mnt-wallpaper-overlay, 25%), transparent);
+    --mnt-shadow-color: color-mix(in oklch, var(--mnt-black) 40%, transparent);
+    --mnt-elev-1: 0 4px 16px var(--mnt-shadow-color);
+    --mnt-elev-2: 0 12px 35px var(--mnt-shadow-color);
+    --mnt-elev-3: 0 28px 90px var(--mnt-shadow-color);
+    --mnt-shade-1: color-mix(in oklch, var(--mnt-text) 10%, var(--mnt-bg));
+    --mnt-shade-2: color-mix(in oklch, var(--mnt-text) 20%, var(--mnt-bg));
+    --mnt-shade-3: color-mix(in oklch, var(--mnt-text) 30%, var(--mnt-bg));
+    --mnt-shade-4: color-mix(in oklch, var(--mnt-text) 40%, var(--mnt-bg));
+    --mnt-shade-5: color-mix(in oklch, var(--mnt-text) 50%, var(--mnt-bg));
+    --mnt-shade-6: color-mix(in oklch, var(--mnt-text) 60%, var(--mnt-bg));
+    --mnt-shade-7: color-mix(in oklch, var(--mnt-text) 70%, var(--mnt-bg));
+    --mnt-shade-8: color-mix(in oklch, var(--mnt-text) 80%, var(--mnt-bg));
+    --mnt-shade-9: color-mix(in oklch, var(--mnt-text) 90%, var(--mnt-bg));
+    --mnt-font-ui: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mnt-font-display: var(--mnt-font-ui);
+    --mnt-font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    --mnt-scale: 1;
+    --mnt-density: 1;
+    --mnt-text-xs: 11px;
+    --mnt-text-sm: 12px;
+    --mnt-text-md: 14px;
+    --mnt-text-lg: 18px;
+    --mnt-text-xl: 24px;
+    --mnt-text-clock: clamp(64px, 10vw, 128px);
+    --mnt-space-1: 4px;
+    --mnt-space-2: 8px;
+    --mnt-space-3: 12px;
+    --mnt-space-4: 16px;
+    --mnt-space-5: 24px;
+    --mnt-space-6: 32px;
+    --mnt-space-7: 48px;
+    --mnt-space-8: 64px;
+    --mnt-space-9: 96px;
+    --mnt-radius: 14px;
+    --mnt-icon-size: 64px;
+    --mnt-icon-radius: 24%;
+    --mnt-columns: 6;
+    --mnt-content-width: min(960px, 88vw);
+    --mnt-alignment: center;
+    --mnt-dur-fast: 120ms;
+    --mnt-dur-base: 200ms;
+    --mnt-dur-slow: 320ms;
+    --mnt-ease: cubic-bezier(.2, .7, .2, 1);
+    --mnt-ease-exit: cubic-bezier(.4, 0, 1, 1);
+    --mnt-z-menu: 20;
+    --mnt-z-drawer: 30;
+    --mnt-z-dialog: 40;
+    --mnt-z-toast: 50;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --mnt-surface: #f2eee8;
+    --mnt-text: #302d29;
+    --mnt-shadow-color: color-mix(in oklch, var(--mnt-black) 16%, transparent);
+  }
+}

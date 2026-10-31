@@ -1,0 +1,20 @@
+@layer reset {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--mnt-font-ui);
+  }
+
+  button,input,select {
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+}
+
