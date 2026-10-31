@@ -1,6 +1,7 @@
 @import "./styles/layers.css";
 @import "./styles/reset.css";
 @import "./styles/tokens.css";
+@import "./styles/base.css";
 @import "./styles/widgets.css";
 @import "./styles/layout.css";
 @import "./styles/backup.css";

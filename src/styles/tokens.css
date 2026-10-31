@@ -2,7 +2,8 @@
   :root {
     color-scheme: dark;
     --mnt-bg: #102932;
-    --mnt-surface: #222428;
+    --mnt-surface: color-mix(in oklch, var(--mnt-bg), var(--mnt-text) 6%);
+    --mnt-search-surface: color-mix(in oklch, var(--mnt-surface) 60%, transparent);
     --mnt-text: #eeeae5;
     --mnt-accent: #90d5cd;
     --mnt-danger: #a23f43;
@@ -74,7 +75,8 @@
 
   :root[data-theme="light"] {
     color-scheme: light;
-    --mnt-surface: #f2eee8;
+    --mnt-bg: #eeeae4;
+    --mnt-surface: color-mix(in oklch, var(--mnt-bg), var(--mnt-white) 45%);
     --mnt-text: #302d29;
     --mnt-shadow-color: color-mix(in oklch, var(--mnt-black) 16%, transparent);
   }

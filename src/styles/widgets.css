@@ -5,6 +5,9 @@
     background: var(--mnt-bg);
     display: flex;
     flex-direction: column;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
   }
 
   .app header {
@@ -45,7 +48,6 @@
   }
 
   .desktop {
-    width: min(720px,86%);
     margin: auto;
     transform: translateY(-14px);
   }
@@ -85,8 +87,7 @@
     margin-top: 54px;
     height: 58px;
     border: 1px solid var(--mnt-border);
-    background: var(--mnt-surface-hover);
-    border-radius: 8px;
+    background: var(--mnt-search-surface);
     display: flex;
     align-items: center;
     padding: 0 16px;
@@ -150,8 +151,6 @@
 
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill,minmax(90px,1fr));
-    gap: 20px;
   }
 
   .shortcut,.add-shortcut {
@@ -166,9 +165,6 @@
   }
 
   .shortcut-icon,.add-shortcut span {
-    width: 58px;
-    height: 58px;
-    border-radius: 15px;
     display: grid;
     place-items: center;
     background: color-mix(in oklch,var(--tile) 20%,transparent);
@@ -302,9 +298,9 @@
     width: auto;
   }
 
-  .stack {
+  .drawer label.stack, .modal label.stack {
     flex-direction: column;
-    align-items: stretch !important;
+    align-items: stretch;
   }
 
   .stack input {
@@ -406,23 +402,7 @@
 
   }
 
-  @media (prefers-reduced-motion:reduce) {
-    * {
-      transition: none !important;
-    }
-
-  }
-
   /* Desktop layout controls */
-  .app {
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-  }
-
-  .desktop {
-    width: min(1200px,88%);
-  }
 
   .intro {
     text-align: var(--mnt-alignment);
@@ -433,21 +413,12 @@
   }
 
   .search {
-    width: min(620px,100%);
     margin-left: auto;
     margin-right: auto;
     border-radius: 32px;
   }
 
-  .grid {
-    grid-template-columns: repeat(var(--mnt-columns),minmax(0,1fr));
-    justify-items: center;
-    row-gap: 38px;
-  }
-
   .shortcut-icon,.add-shortcut span {
-    width: var(--mnt-icon-size);
-    height: var(--mnt-icon-size);
     border-radius: var(--mnt-icon-radius);
     overflow: hidden;
   }
@@ -468,19 +439,6 @@
   input[type=range] {
     accent-color: var(--mnt-accent);
     width: 120px;
-  }
-
-  @media (max-width:700px) {
-    .grid {
-      grid-template-columns: repeat(min(var(--mnt-columns),4),minmax(0,1fr));
-      gap: 24px 8px;
-    }
-
-    .shortcut-icon,.add-shortcut span {
-      width: min(var(--mnt-icon-size),64px);
-      height: min(var(--mnt-icon-size),64px);
-    }
-
   }
 
   .layout-stacked {

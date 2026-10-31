@@ -5,9 +5,9 @@ import type { Settings } from '../../core/model'
 import { toMessageRef, type MessageKey, type MessageRef, type Translate } from '../../i18n'
 import { readWallpaper } from '../../storage/wallpaper'
 
-type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void }
+type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean }
 
-export function BackupSection({ settings, t, onError }: Props) {
+export function BackupSection({ settings, t, onError, recovery = false }: Props) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<MessageKey | null>(null)
@@ -58,7 +58,7 @@ export function BackupSection({ settings, t, onError }: Props) {
       <h3 id="data-settings">{t('settings.data')}</h3>
       <p>{t('settings.dataHint')}</p>
       <div className="backup-actions">
-        <button className="reset" disabled={busy} onClick={() => void exportFile()}><Download size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.export')}</button>
+        {!recovery && <button className="reset" disabled={busy} onClick={() => void exportFile()}><Download size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.export')}</button>}
         <button className="reset" disabled={busy} onClick={() => fileInput.current?.click()}><Upload size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.import')}</button>
       </div>
       <input ref={fileInput} className="visually-hidden" type="file" accept="application/json,.json" aria-label={t('settings.import')} disabled={busy} onChange={event => void importFile(event.target.files?.[0])} />

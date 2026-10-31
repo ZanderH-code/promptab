@@ -31,6 +31,41 @@ for (const [width, height] of [[1440, 900], [1920, 1080], [800, 600], [400, 800]
   })
 }
 
+test('light theme has readable clock and coordinated surfaces', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  await page.locator('.settings-button').click()
+  await page.getByRole('combobox', { name: '主题', exact: true }).click()
+  await page.getByRole('option', { name: '浅色', exact: true }).click()
+  await page.getByRole('button', { name: '关闭设置' }).click()
+  const contrast = await page.evaluate(() => {
+    const rgb = (color: string) => color.match(/[\d.]+/g)!.slice(0, 3).map(Number)
+    const luminance = (color: number[]) => color.map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0)
+    const fg = luminance(rgb(getComputedStyle(document.querySelector('.clock')!).color))
+    const bg = luminance(rgb(getComputedStyle(document.querySelector('.app')!).backgroundColor))
+    return (Math.max(fg, bg) + .05) / (Math.min(fg, bg) + .05)
+  })
+  expect(contrast).toBeGreaterThanOrEqual(4.5)
+  await expect(page).toHaveScreenshot('light-1440x900.png', { fullPage: true })
+})
+
+test('drawer and dialog surfaces follow background in both themes', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  await page.locator('.settings-button').click()
+  for (const theme of ['深色', '浅色']) {
+    await page.getByRole('combobox', { name: '主题', exact: true }).click()
+    await page.getByRole('option', { name: theme, exact: true }).click()
+    await expect(page.locator('.drawer')).toBeVisible()
+    const surface = await page.locator('.drawer').evaluate(el => getComputedStyle(el).backgroundColor)
+    expect(surface).toContain('oklch')
+    await page.locator('.add-shortcut').click({ force: true })
+    await expect(page.locator('.modal')).toBeVisible()
+    await expect(page.locator('.modal')).toHaveCSS('background-color', surface)
+    await page.locator('.editor-close').click()
+  }
+})
+
 test('export reset and import restore websites appearance and wallpaper', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
@@ -64,6 +99,21 @@ test('export reset and import restore websites appearance and wallpaper', async 
   await expect(page.locator('.drawer')).toHaveCount(0)
   await expect(page.locator('.app')).toHaveCSS('background-image', /blob:/)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('settings')!))).toEqual(before)
+})
+
+test('imports a backup when saved settings cannot be loaded', async ({ page }) => {
+  await open(page)
+  await page.locator('.settings-button').click()
+  await page.locator('input[type=color]').first().fill('#aabbcc')
+  const settings = await page.evaluate(() => JSON.parse(localStorage.getItem('settings')!))
+  await page.evaluate(() => localStorage.setItem('settings', '{broken'))
+  await page.reload()
+  await expect(page.getByRole('alert')).toContainText('无法读取已保存的配置')
+  await expect(page.getByRole('button', { name: '导出备份' })).toHaveCount(0)
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'valid.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings })) })
+  await expect(page.locator('.clock')).toBeVisible()
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('settings')!))).toEqual(settings)
 })
 
 test('invalid and cancelled imports preserve the current setup', async ({ page }) => {

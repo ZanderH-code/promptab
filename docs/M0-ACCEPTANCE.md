@@ -26,6 +26,12 @@ Backup browser flow changes the accent, uploads wallpaper, adds a website, downl
 
 Language switching is exercised in a 400px viewport. Portal selected-item color is checked after accent changes in both dark and light themes.
 
+## Review corrections
+
+The M0 review fixes restore a paper-colored light background (the existing background setting applies in dark mode), derive panel and translucent search surfaces from the current background, and add recovery import when saved settings cannot be read. Rollback snapshots preserve the raw stored value, including invalid JSON or an absent entry. Component `!important` declarations and superseded layout rules have been removed.
+
+Latest verification: 31 unit tests and 11 Playwright tests pass, as do TypeScript and the production build. Four dark baselines were regenerated and `light-1440x900.png` was added; the light clock/background contrast is checked against 4.5:1. These results do not replace the unverified Edge and accessibility items below.
+
 ## DESIGN §11 coverage and limits
 
 | Checklist item | M0 status |

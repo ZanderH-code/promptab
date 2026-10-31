@@ -1,5 +1,5 @@
 import { MessageError, translate } from '../i18n'
-import { loadSettings, saveSettings } from '../storage/settings'
+import { loadSettings, saveSettings, readRawSettings, restoreRawSettings, type RawSettings } from '../storage/settings'
 import { readWallpaper, writeWallpaper } from '../storage/wallpaper'
 import { validate, type Settings } from './model'
 
@@ -10,11 +10,13 @@ export type ParsedBackup = { exportedAt: string; settings: Settings; wallpaper?:
 export type BackupStorage = {
   loadSettings: () => Promise<Settings>
   saveSettings: (settings: Settings) => Promise<void>
+  readRawSettings?: () => Promise<RawSettings>
+  restoreRawSettings?: (settings: RawSettings) => Promise<void>
   readWallpaper: () => Promise<Blob | undefined>
   writeWallpaper: (wallpaper: Blob | null) => Promise<void>
 }
 
-const defaultStorage: BackupStorage = { loadSettings, saveSettings, readWallpaper, writeWallpaper }
+const defaultStorage: BackupStorage = { loadSettings, saveSettings, readRawSettings, restoreRawSettings, readWallpaper, writeWallpaper }
 
 function decodeWallpaper(value: unknown): Blob {
   const invalid = () => new MessageError('error.backupWallpaper')
@@ -76,13 +78,18 @@ export async function serializeBackup(settings: Settings, wallpaper?: Blob): Pro
 }
 
 export async function restoreBackup(backup: ParsedBackup, storage: BackupStorage = defaultStorage): Promise<void> {
-  const [oldSettings, oldWallpaper] = await Promise.all([storage.loadSettings(), storage.readWallpaper()])
+  const rawStorage = storage.readRawSettings && storage.restoreRawSettings
+    ? { read: storage.readRawSettings, restore: storage.restoreRawSettings }
+    : undefined
+  const [oldSettings, oldWallpaper] = await Promise.all([
+    rawStorage ? rawStorage.read() : storage.loadSettings(), storage.readWallpaper(),
+  ])
   try {
     await storage.saveSettings(backup.settings)
     await storage.writeWallpaper(backup.wallpaper ?? null)
   } catch {
     const rollback = await Promise.allSettled([
-      Promise.resolve().then(() => storage.saveSettings(oldSettings)),
+      Promise.resolve().then(() => rawStorage ? rawStorage.restore(oldSettings as RawSettings) : storage.saveSettings(oldSettings as Settings)),
       Promise.resolve().then(() => storage.writeWallpaper(oldWallpaper ?? null)),
     ])
     if (rollback.some(result => result.status === 'rejected')) throw new MessageError('error.backupRollback')

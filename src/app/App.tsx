@@ -1,6 +1,7 @@
 import { Settings as SettingsIcon, X } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
-import type { Settings, Shortcut } from '../core/model'
+import { defaults, type Settings, type Shortcut } from '../core/model'
+import { BackupSection } from '../features/settings/BackupSection'
 import { finishShortcut } from '../core/shortcut'
 import { ShortcutEditor } from '../features/shortcut-editor/ShortcutEditor'
 import { SettingsDrawer } from '../features/settings/SettingsDrawer'
@@ -47,12 +48,13 @@ export default function App() {
     const root = document.documentElement
     root.dataset.theme = settings.theme
     root.style.setProperty('--mnt-accent', settings.accent)
-    root.style.setProperty('--mnt-bg', settings.background)
+    if (settings.theme === 'dark') root.style.setProperty('--mnt-bg', settings.background)
+    else root.style.removeProperty('--mnt-bg')
     root.style.setProperty('--mnt-wallpaper-overlay', `${settings.overlay}%`)
   }, [settings?.theme, settings?.accent, settings?.background, settings?.overlay])
 
   if (!settings) {
-    return <main className="loading">{error ? translate('zh-CN', error.key, error.params) : translate('zh-CN', 'app.loading')}</main>
+    return <main className="loading">{error ? <><p role="alert">{translate('zh-CN', error.key, error.params)}</p><BackupSection settings={defaults} t={(key, params) => translate('zh-CN', key, params)} onError={setError} recovery /></> : translate('zh-CN', 'app.loading')}</main>
   }
 
   const s = settings

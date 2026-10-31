@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { loadSettings, saveSettings } from '../storage/settings'
+import * as settingsStorage from '../storage/settings'
 import { defaults } from './model'
 import { parseBackup, restoreBackup, serializeBackup, type BackupStorage } from './backup'
 
@@ -14,6 +16,58 @@ function storage(): BackupStorage {
     writeWallpaper: vi.fn().mockResolvedValue(undefined),
   }
 }
+
+describe('raw settings during restore', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    localStorage.clear()
+  })
+
+  it.each(['success', 'failure'])('handles corrupt localStorage JSON on %s', async outcome => {
+    vi.stubGlobal('chrome', undefined)
+    const raw = '{ broken json'
+    localStorage.setItem('settings', raw)
+    const boundary = {
+      ...storage(), ...settingsStorage, loadSettings, saveSettings,
+      writeWallpaper: outcome === 'failure' ? vi.fn().mockRejectedValueOnce(new Error('write')) : vi.fn(),
+    }
+    const restoring = restoreBackup(parseBackup(data()), boundary)
+    if (outcome === 'failure') {
+      await expect(restoring).rejects.toMatchObject({ key: 'error.backupWrite' })
+      expect(localStorage.getItem('settings')).toBe(raw)
+    } else {
+      await restoring
+      expect(JSON.parse(localStorage.getItem('settings')!)).toEqual(defaults)
+    }
+  })
+
+  it.each(['local', 'chrome'])('restores an absent settings entry in %s storage', async backend => {
+    let stored: unknown = undefined
+    if (backend === 'chrome') {
+      vi.stubGlobal('chrome', { storage: { local: {
+        get: vi.fn(async () => stored === undefined ? {} : { settings: stored }),
+        set: vi.fn(async (value: { settings: unknown }) => { stored = value.settings }),
+        remove: vi.fn(async () => { stored = undefined }),
+      } } })
+    } else vi.stubGlobal('chrome', undefined)
+    const boundary = { ...storage(), ...settingsStorage, writeWallpaper: vi.fn().mockRejectedValueOnce(new Error('write')) }
+    await expect(restoreBackup(parseBackup(data()), boundary)).rejects.toMatchObject({ key: 'error.backupWrite' })
+    expect(backend === 'chrome' ? stored : localStorage.getItem('settings')).toBe(backend === 'chrome' ? undefined : null)
+  })
+
+  it('restores an invalid chrome storage value without normalization', async () => {
+    const original = { columns: 99, extra: 'preserve' }
+    let stored: unknown = original
+    vi.stubGlobal('chrome', { storage: { local: {
+      get: vi.fn(async () => ({ settings: stored })),
+      set: vi.fn(async (value: { settings: unknown }) => { stored = value.settings }),
+      remove: vi.fn(async () => { stored = undefined }),
+    } } })
+    const boundary = { ...storage(), ...settingsStorage, writeWallpaper: vi.fn().mockRejectedValueOnce(new Error('write')) }
+    await expect(restoreBackup(parseBackup(data()), boundary)).rejects.toMatchObject({ key: 'error.backupWrite' })
+    expect(stored).toEqual(original)
+  })
+})
 
 describe('backup core', () => {
   it('round trips settings and optional wallpaper', async () => {
