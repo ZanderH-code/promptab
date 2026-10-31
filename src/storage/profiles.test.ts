@@ -116,6 +116,23 @@ describe('profile persistence', () => {
     expect(db.data.has('profiles:v2:generation:leftover')).toBe(true)
   })
 
+  it('preserves corrupt index and generation values before resetting the publication pointer', async () => {
+    const db = memory()
+    const store = createProfileStorage(db.backend, { lock: queueLock() })
+    db.data.set('profiles:v2:index', '{broken-index')
+    await store.recover()
+    expect([...db.data.entries()].find(([key]) => key.startsWith('backup:profiles-v2-corrupt:'))?.[1]).toBe('{broken-index')
+    expect(await store.read()).toBeNull()
+    expect((await store.write(first, null)).revision).toBe(1)
+
+    const rawGeneration = '{broken-generation'
+    db.data.set('profiles:v2:index', JSON.stringify({ revision: 2, generation: 'bad' }))
+    db.data.set('profiles:v2:generation:bad', rawGeneration)
+    await store.recover()
+    expect([...db.data.entries()].some(([key, value]) => key.startsWith('backup:profiles-v2-corrupt:') && value === rawGeneration)).toBe(true)
+    expect(await store.read()).toBeNull()
+  })
+
   it('rejects stale revisions', async () => {
     const store = createProfileStorage(memory().backend, { lock: queueLock() })
     await store.write(first, null)

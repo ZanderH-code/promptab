@@ -1,6 +1,7 @@
 @layer tokens {
   :root {
     color-scheme: dark;
+    --mnt-scheme-bg: #102932;
     --mnt-bg: #102932;
     --mnt-surface: color-mix(in oklch, var(--mnt-bg), var(--mnt-text) 6%);
     --mnt-search-surface: color-mix(in oklch, var(--mnt-surface) 60%, transparent);
@@ -75,6 +76,7 @@
 
   :root[data-theme="light"] {
     color-scheme: light;
+    --mnt-scheme-bg: #eeeae4;
     --mnt-bg: #eeeae4;
     --mnt-surface: color-mix(in oklch, var(--mnt-bg), var(--mnt-white) 45%);
     --mnt-text: #302d29;

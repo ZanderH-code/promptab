@@ -85,6 +85,8 @@ export const en: Record<MessageKey, string> = {
   'profile.newPrompt': 'Name the new profile',
   'profile.renamePrompt': 'Rename this profile',
   'profile.confirmDelete': 'Delete profile “{name}” and its history?',
+  'profile.archived': 'Archived profiles',
+  'profile.restoreArchived': 'Restore profile',
   'profile.history': 'History',
   'profile.emptyHistory': 'No history yet.',
   'profile.preview': 'Preview',
@@ -121,6 +123,7 @@ export const en: Record<MessageKey, string> = {
   'backup.confirmImport': 'This replaces your current setup with the backup: {count} websites, {wallpaper}. Exported {date}. Continue?',
   'backup.withWallpaper': 'with wallpaper',
   'backup.withoutWallpaper': 'no wallpaper',
+  'backup.importSummary': 'Profiles: {added} added, {retained} retained, {archived} archived, {restored} restored; {assets} assets.',
   'backup.imported': 'Backup imported.',
   'backup.exported': 'Backup exported.',
 

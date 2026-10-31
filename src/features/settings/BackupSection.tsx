@@ -1,22 +1,25 @@
 import { useRef, useState } from 'react'
 import { Download, Upload } from 'lucide-react'
-import { parseBackup, restoreBackup, serializeBackup } from '../../core/backup'
 import type { Settings } from '../../core/model'
 import { toMessageRef, type MessageKey, type MessageRef, type Translate } from '../../i18n'
-import { readWallpaper } from '../../storage/wallpaper'
+import { createBackupV2Service } from '../../storage/backup-v2'
+import { assets } from '../../app/useSettings'
+import { createAppProfileStorage, type AppProfileStore } from '../../app/useSettings'
 
-type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean }
+type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean; store?: AppProfileStore }
 
-export function BackupSection({ settings, t, onError, recovery = false }: Props) {
+export function BackupSection({ settings, t, onError, recovery = false, store }: Props) {
   const fileInput = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<MessageKey | null>(null)
+  const revision = store?.getState().revision ?? null
 
   async function exportFile() {
     setBusy(true)
     setStatus(null)
     try {
-      const json = await serializeBackup(settings, await readWallpaper())
+      const { persistence } = createAppProfileStorage()
+      const json = await createBackupV2Service({ profiles: persistence, assets }).exportBackup()
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
       const link = document.createElement('a')
       link.href = url
@@ -36,14 +39,36 @@ export function BackupSection({ settings, t, onError, recovery = false }: Props)
     setBusy(true)
     setStatus(null)
     try {
-      const backup = parseBackup(await file.text())
+      const json = await file.text()
+      const { persistence } = createAppProfileStorage()
+      const service = createBackupV2Service({ profiles: persistence, assets })
+      const expectedRevision = recovery ? null : store?.getState().revision ?? revision
+      const analysis = await service.analyzeBackup(json, expectedRevision, recovery)
+      const count = analysis.format === 1
+        ? JSON.parse(json).settings.shortcuts.length
+        : profileCount(json, analysis.activeProfileId)
+      const wallpaper = analysis.format === 1
+        ? t(JSON.parse(json).wallpaper ? 'backup.withWallpaper' : 'backup.withoutWallpaper')
+        : t(hasWallpaper(json) ? 'backup.withWallpaper' : 'backup.withoutWallpaper')
       const accepted = confirm(t('backup.confirmImport', {
-        count: backup.settings.shortcuts.length,
-        wallpaper: t(backup.wallpaper ? 'backup.withWallpaper' : 'backup.withoutWallpaper'),
-        date: new Date(backup.exportedAt).toLocaleString(settings.language),
-      }))
+        count,
+        wallpaper,
+        date: new Date(exportedAt(json)).toLocaleString(settings.language),
+        added: analysis.incoming.filter(item => !analysis.retained.includes(item.id)).length,
+        retained: analysis.retained.length,
+        archived: analysis.archived.length,
+        restored: analysis.restored.length,
+        assets: analysis.assetCount,
+      }) + (analysis.format === 2 ? `\n${t('backup.importSummary', {
+        added: analysis.incoming.filter(item => !analysis.retained.includes(item.id)).length,
+        retained: analysis.retained.length,
+        archived: analysis.archived.length,
+        restored: analysis.restored.length,
+        assets: analysis.assetCount,
+      })}` : ''))
       if (!accepted) return
-      await restoreBackup(backup)
+      if (recovery) await persistence.recover()
+      await service.importBackup(json, expectedRevision)
       window.location.reload()
     } catch (error) {
       onError(toMessageRef(error, 'error.backupFile'))
@@ -65,4 +90,20 @@ export function BackupSection({ settings, t, onError, recovery = false }: Props)
       {status && <p role="status">{t(status)}</p>}
     </section>
   )
+}
+
+function exportedAt(json: string): string {
+  const value = JSON.parse(json)
+  return value.exportedAt
+}
+
+function hasWallpaper(json: string): boolean {
+  const value = JSON.parse(json)
+  return value.profiles.some((profile: { background?: { type?: string } }) => profile.background?.type === 'image')
+}
+
+function profileCount(json: string, id: string): number {
+  const value = JSON.parse(json)
+  const profile = value.profiles.find((item: { meta?: { id?: string } }) => item.meta?.id === id)
+  return profile?.bookmarks?.groups?.flatMap((group: { items?: unknown[] }) => group.items ?? []).length ?? 0
 }

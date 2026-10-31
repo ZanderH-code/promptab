@@ -129,7 +129,7 @@ export function SettingsDrawer({ store, settings: s, t, onPatch, onClose, onWall
         <h3>{t('settings.shortcuts')}</h3>
         <p>{t('settings.shortcutsHint')}</p>
         <ProfileSection store={store} t={t} language={s.language} />
-        <BackupSection settings={s} t={t} onError={onError} />
+        <BackupSection settings={s} t={t} onError={onError} store={store} />
         <button className="reset" onClick={() => { if (confirm(t('settings.confirmReset'))) onReset() }}>{t('settings.reset')}</button>
       </aside>
     </>

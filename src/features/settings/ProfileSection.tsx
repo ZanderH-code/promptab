@@ -7,7 +7,7 @@ import type { ProfileStore } from '../../store/profile'
 export type ProfileSectionProps = { store: StoreApi<ProfileStore>; t: Translate; language: Language }
 
 export function ProfileSection({ store, t, language }: ProfileSectionProps) {
-  const { profiles, activeProfileId, history, initialized } = useStore(store)
+  const { profiles, activeProfileId, history, archived = {}, initialized } = useStore(store)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
   const [previewId, setPreviewId] = useState<string | null>(null)
@@ -67,6 +67,13 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
           }
         }}>{t('profile.delete')}</button>
       </div>
+      {Object.keys(archived).length > 0 && <div>
+        <h4>{t('profile.archived')}</h4>
+        <ul>{Object.values(archived).map(item => <li key={item.profile.meta.id}>
+          <span>{item.profile.meta.name}</span>{' '}
+          <button type="button" disabled={busy || !initialized} onClick={() => void run(() => store.getState().restoreArchivedProfile(item.profile.meta.id))}>{t('profile.restoreArchived')}</button>
+        </li>)}</ul>
+      </div>}
       <h4>{t('profile.history')}</h4>
       {snapshots.length === 0 ? <p>{t('profile.emptyHistory')}</p> : <ul>
         {snapshots.map(snapshot => <li key={snapshot.id}>

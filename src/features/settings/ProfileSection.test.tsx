@@ -11,9 +11,9 @@ const t = (key: Parameters<typeof translate>[1], params?: Parameters<typeof tran
 
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
-function setup() {
-  const actions = { switchProfile: vi.fn().mockResolvedValue(undefined), createProfile: vi.fn().mockResolvedValue(undefined), renameProfile: vi.fn().mockResolvedValue(undefined), deleteProfile: vi.fn().mockResolvedValue(undefined), setPreview: vi.fn(), clearPreview: vi.fn(), restoreSnapshot: vi.fn().mockResolvedValue(undefined), pinSnapshot: vi.fn().mockResolvedValue(undefined) }
-  const store = createStore<ProfileStore>(() => ({ profiles: { a: profile, b: { ...profile, meta: { ...profile.meta, id: 'b', name: 'Beta' } } }, activeProfileId: 'a', history: { profiles: { a: { lastEditAt: null, snapshots: [{ id: 's1', createdAt: 1000, kind: 'edit', pinned: false, profile }] } } }, preview: null, initialized: true, ...actions } as unknown as ProfileStore))
+function setup(archived: Record<string, ProfileStore['archived'][string]> = {}) {
+  const actions = { switchProfile: vi.fn().mockResolvedValue(undefined), createProfile: vi.fn().mockResolvedValue(undefined), renameProfile: vi.fn().mockResolvedValue(undefined), deleteProfile: vi.fn().mockResolvedValue(undefined), setPreview: vi.fn(), clearPreview: vi.fn(), restoreSnapshot: vi.fn().mockResolvedValue(undefined), restoreArchivedProfile: vi.fn().mockResolvedValue(undefined), pinSnapshot: vi.fn().mockResolvedValue(undefined) }
+  const store = createStore<ProfileStore>(() => ({ profiles: { a: profile, b: { ...profile, meta: { ...profile.meta, id: 'b', name: 'Beta' } } }, activeProfileId: 'a', archived, history: { profiles: { a: { lastEditAt: null, snapshots: [{ id: 's1', createdAt: 1000, kind: 'edit', pinned: false, profile }] } } }, preview: null, initialized: true, ...actions } as unknown as ProfileStore))
   render(<ProfileSection store={store} t={t} language="en" />)
   return actions
 }
@@ -31,6 +31,14 @@ describe('ProfileSection', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(actions.deleteProfile).toHaveBeenCalledWith('a'))
+  })
+
+  it('shows archived profiles only when present and restores one', async () => {
+    const archived = { old: { profile: { ...profile, meta: { ...profile.meta, id: 'old', name: 'Old profile' } }, history: { lastEditAt: null, snapshots: [] }, archivedAt: 1 } }
+    const actions = setup(archived)
+    expect(screen.getByText('Archived profiles')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Restore profile' }))
+    await waitFor(() => expect(actions.restoreArchivedProfile).toHaveBeenCalledWith('old'))
   })
 
   it('previews, restores, and pins a snapshot', async () => {

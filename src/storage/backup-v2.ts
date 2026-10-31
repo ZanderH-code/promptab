@@ -56,8 +56,8 @@ export function createBackupV2Service(deps: {
 
   return {
     /** Read-only preview of what importing `json` would do; touches neither profiles nor assets. */
-    async analyzeBackup(json: string, expectedRevision: number | null): Promise<ImportAnalysis> {
-      const committed = await readCommitted(expectedRevision)
+    async analyzeBackup(json: string, expectedRevision: number | null, recovery = false): Promise<ImportAnalysis> {
+      const committed = recovery ? empty() : await readCommitted(expectedRevision)
       const format = backupFormat(json)
       let collection: ImportCollection
       let assetCount = 0

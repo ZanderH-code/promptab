@@ -79,7 +79,8 @@ function parseIndex(raw: string | null): Index | null {
   if (raw === null) return null
   try {
     const value: unknown = JSON.parse(raw)
-    if (typeof value !== 'object' || value === null) throw new Error()
+    if (value === null) return null
+    if (typeof value !== 'object') throw new Error()
     const index = value as Index
     if (!Number.isSafeInteger(index.revision) || index.revision < 1 || typeof index.generation !== 'string' || !index.generation) throw new Error()
     return index
@@ -173,10 +174,39 @@ export function createProfileStorage(backend: AsyncKeyValueBackend, options: { l
     })
   }
 
+  async function recover(): Promise<void> {
+    await locked(async () => {
+      const rawIndex = await backend.get(INDEX)
+      let generationRaw: string | null = null
+      let broken = false
+      try {
+        const index = parseIndex(rawIndex)
+        if (index) {
+          generationRaw = await backend.get(GENERATION + index.generation)
+          if (generationRaw === null) broken = true
+          else {
+            try { parseGeneration(generationRaw, index) } catch { broken = true }
+          }
+        }
+      } catch { broken = true }
+      if (!broken) throw new Error('Profile data is readable')
+      const timestamp = Date.now()
+      if (rawIndex !== null) await backend.set(`backup:profiles-v2-corrupt:${timestamp}`, rawIndex)
+      if (generationRaw !== null && broken) await backend.set(`backup:profiles-v2-corrupt:${timestamp}-generation`, generationRaw)
+      // Null means no published profile; the next write with expectedRevision null can replace it.
+      await backend.set(INDEX, 'null')
+    })
+  }
+
   return {
     async read() { return (await readCurrent())?.snapshot ?? null },
     write(data: ProfileData, expectedRevision: number | null) {
       return locked(() => publish(data, expectedRevision))
+    },
+    recover,
+    async readIndexRevision() {
+      const index = parseIndex(await backend.get(INDEX))
+      return index?.revision ?? null
     },
     collectGenerations,
   }

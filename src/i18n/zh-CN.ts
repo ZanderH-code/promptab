@@ -83,6 +83,8 @@ export const zhCN = {
   'profile.newPrompt': '输入新配置名称',
   'profile.renamePrompt': '重命名此配置',
   'profile.confirmDelete': '删除配置“{name}”及其历史记录？',
+  'profile.archived': '已归档配置',
+  'profile.restoreArchived': '恢复配置',
   'profile.history': '历史记录',
   'profile.emptyHistory': '暂无历史记录。',
   'profile.preview': '预览',
@@ -119,6 +121,7 @@ export const zhCN = {
   'backup.confirmImport': '将用备份覆盖当前配置：{count} 个网站，{wallpaper}。导出时间：{date}。继续？',
   'backup.withWallpaper': '包含壁纸',
   'backup.withoutWallpaper': '不含壁纸',
+  'backup.importSummary': '配置：新增 {added} 个、保留 {retained} 个、归档 {archived} 个、恢复 {restored} 个；资源 {assets} 个。',
   'backup.imported': '备份已导入。',
   'backup.exported': '备份已导出。',
 

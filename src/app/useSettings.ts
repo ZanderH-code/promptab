@@ -11,6 +11,11 @@ import { createProfileStore } from '../store/profile'
 export const assets = createAssetLibrary()
 export type AppProfileStore = ReturnType<typeof createProfileStore>
 
+export function createAppProfileStorage() {
+  const backend = window.chrome?.storage ? createChromeStorageBackend(window.chrome.storage.local) : createLocalStorageBackend(localStorage)
+  return { backend, persistence: createProfileStorage(backend) }
+}
+
 async function dataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -121,8 +126,7 @@ export function useSettings() {
   useEffect(() => {
     let alive = true
     let unsubscribe = () => {}
-    const backend = window.chrome?.storage ? createChromeStorageBackend(window.chrome.storage.local) : createLocalStorageBackend(localStorage)
-    const persistence = createProfileStorage(backend)
+    const { backend, persistence } = createAppProfileStorage()
     // One session per page, never closed: it blocks asset collection in other tabs while this one holds live state.
     // It must be open before bootstrap so assets staged by migration are protected.
     Promise.resolve().then(() => assets.openSession({ profiles: persistence }))

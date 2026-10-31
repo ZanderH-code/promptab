@@ -103,6 +103,12 @@ describe('backup storage service', () => {
     expect(Object.keys(store.getState().archived)).toEqual([])
   })
 
+  it('analyzes recovery imports without trying to read corrupt persisted profiles', async () => {
+    const s = await setup()
+    s.fail('index')
+    await expect(s.service.analyzeBackup(s.json, null, true)).resolves.toMatchObject({ format: 2, incoming: [{ id: 'old' }], retained: [], archived: [] })
+  })
+
   it('replaces only the active profile for a v1 backup, keeping its ID and other profiles', async () => {
     const s = await setup()
     const previous = s.initial.profiles as ProfileCollection
