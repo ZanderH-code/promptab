@@ -39,7 +39,7 @@ describe('profile v2 schema', () => {
     const backgroundProfile = (asset: string) => ({ ...profile, background: { type: 'image', image: { asset, blur: 0, dim: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' } } })
     expect(profileV2Schema.safeParse(linkProfile(valid)).success).toBe(true)
     expect(profileV2Schema.safeParse(backgroundProfile(valid)).success).toBe(true)
-    for (const bad of ['mnt-asset:abc', `mnt-asset:${'g'.repeat(64)}`, `mnt-asset:${'a'.repeat(64)}extra`, 'data:image/png;base64,AAAA']) {
+    for (const bad of ['mnt-asset:abc', `mnt-asset:${'A'.repeat(64)}`, `mnt-asset:${'g'.repeat(64)}`, `mnt-asset:${'a'.repeat(64)}extra`, 'data:image/png;base64,AAAA']) {
       expect(profileV2Schema.safeParse(linkProfile(bad)).success).toBe(false)
       expect(profileV2Schema.safeParse(backgroundProfile(bad)).success).toBe(false)
     }

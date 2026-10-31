@@ -5,7 +5,7 @@ import { isHttpUrl } from '../model'
 const nonempty = z.string().refine(value => value.trim().length > 0, { error: 'non-empty string' })
 const color = z.string().regex(/^#[\da-f]{6}$/i, { error: '#RRGGBB color' })
 const date = z.string().refine(value => Number.isFinite(Date.parse(value)), { error: 'valid date' })
-const asset = z.string().regex(/^mnt-asset:[\da-f]{64}$/i, { error: 'mnt-asset:<64 hex>' })
+const asset = z.string().regex(/^mnt-asset:[a-f0-9]{64}$/, { error: 'mnt-asset:<64 hex>' })
 const template = z.string().refine(value => value.includes('{query}') && isHttpUrl(value.replaceAll('{query}', 'test')), { error: 'HTTP(S) URL containing {query}' })
 
 export const baseColorsSchema = z.object({ bg: color, surface: color, text: color, accent: color })
