@@ -2,12 +2,13 @@ import { defaults } from '../core/model'
 import { migrateV1 } from '../core/migrate/v1'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
 import { createHistory, type History } from '../store/history'
+import type { ProfileCollection } from '../store/profile'
 import { createAssetLibrary } from './assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, type AsyncKeyValueBackend, type ProfileSnapshot } from './profiles'
 import { readRawSettings, type RawSettings } from './settings'
 import { readWallpaper } from './wallpaper'
 
-export type BootstrapSnapshot = { revision: number; profiles: ProfileV2[]; history: History<ProfileV2> }
+export type BootstrapSnapshot = { revision: number; profiles: ProfileCollection; history: History<ProfileV2> }
 export type BootstrapOptions = {
   backend?: AsyncKeyValueBackend
   profiles?: Pick<ReturnType<typeof createProfileStorage>, 'read' | 'write'>
@@ -19,17 +20,21 @@ export type BootstrapOptions = {
 }
 
 function validateSnapshot(snapshot: ProfileSnapshot): BootstrapSnapshot {
-  if (!Array.isArray(snapshot.profiles) || !snapshot.history || typeof snapshot.history !== 'object' || Array.isArray(snapshot.history)) throw new Error('Invalid profile data')
+  if (!snapshot.profiles || typeof snapshot.profiles !== 'object' || Array.isArray(snapshot.profiles) || !snapshot.history || typeof snapshot.history !== 'object' || Array.isArray(snapshot.history)) throw new Error('Invalid profile data')
+  const collection = snapshot.profiles as ProfileCollection
+  if (!collection.profiles || typeof collection.profiles !== 'object' || Array.isArray(collection.profiles) || typeof collection.activeProfileId !== 'string' || !Object.hasOwn(collection.profiles, collection.activeProfileId)) throw new Error('Invalid profiles')
+  for (const [id, value] of Object.entries(collection.profiles)) {
+    if (parseProfileV2(value).meta.id !== id) throw new Error('Invalid profile id')
+  }
   const history = snapshot.history as History<ProfileV2>
   if (!history.profiles || typeof history.profiles !== 'object' || Array.isArray(history.profiles)) throw new Error('Invalid profile history')
-  for (const entry of Object.values(history.profiles)) {
-    if (!entry || !Array.isArray(entry.snapshots) || !(entry.lastEditAt === null || typeof entry.lastEditAt === 'number' && Number.isFinite(entry.lastEditAt))) throw new Error('Invalid profile history')
+  for (const [id, entry] of Object.entries(history.profiles)) {
+    if (!Object.hasOwn(collection.profiles, id) || !entry || !Array.isArray(entry.snapshots) || !(entry.lastEditAt === null || typeof entry.lastEditAt === 'number' && Number.isFinite(entry.lastEditAt))) throw new Error('Invalid profile history')
     for (const item of entry.snapshots) {
       if (!item || typeof item.id !== 'string' || !item.id || typeof item.createdAt !== 'number' || !Number.isFinite(item.createdAt) || !['edit', 'reset', 'import', 'restore', 'theme', 'preset'].includes(item.kind) || typeof item.pinned !== 'boolean') throw new Error('Invalid profile history')
-      parseProfileV2(item.profile)
+      if (parseProfileV2(item.profile).meta.id !== id) throw new Error('Invalid history profile id')
     }
   }
-  snapshot.profiles.forEach(parseProfileV2)
   return snapshot as BootstrapSnapshot
 }
 
@@ -56,5 +61,5 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
     add: blob => assets.add(blob),
     wallpaper,
   })
-  return validateSnapshot(await profiles.write({ profiles: [profile], history: createHistory<ProfileV2>() }, null))
+  return validateSnapshot(await profiles.write({ profiles: { activeProfileId: profile.meta.id, profiles: { [profile.meta.id]: profile } }, history: createHistory<ProfileV2>() }, null))
 }

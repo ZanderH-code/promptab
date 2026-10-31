@@ -4,6 +4,7 @@ import { bootstrap } from './bootstrap'
 import { createProfileStorage, type AsyncKeyValueBackend } from './profiles'
 import { createAssetLibrary, type AssetRecord, type AssetStore } from './assets'
 import { defaults } from '../core/model'
+import { createProfileStore } from '../store/profile'
 import type { RawSettings } from './settings'
 
 function setup(raw: RawSettings = { backend: 'local', value: JSON.stringify(defaults) }) {
@@ -29,8 +30,14 @@ describe('bootstrap', () => {
     const snapshot = await bootstrap(db.options)
     expect(JSON.parse(db.data.get('backup:v1-original')!)).toEqual(raw)
     expect(snapshot.revision).toBe(1)
-    expect(snapshot.profiles[0].prefs.language).toBe('en')
-    expect(snapshot.profiles[0].background.image?.asset).toMatch(/^mnt-asset:/)
+    expect(snapshot.profiles.activeProfileId).toBe('profile-id')
+    expect(snapshot.profiles.profiles['profile-id'].prefs.language).toBe('en')
+    expect(snapshot.profiles.profiles['profile-id'].background.image?.asset).toMatch(/^mnt-asset:/)
+    const store = createProfileStore({ persistence: db.profiles, initialProfile: snapshot.profiles.profiles['profile-id'] })
+    await store.getState().initialize()
+    expect(store.getState().activeProfileId).toBe('profile-id')
+    expect(store.getState().profiles['profile-id']).toEqual(snapshot.profiles.profiles['profile-id'])
+    expect(store.getState().revision).toBe(1)
     expect(db.records.size).toBe(1)
     expect(snapshot.history).toEqual({ profiles: {} })
     expect(await db.profiles.read()).toEqual(snapshot)
@@ -83,7 +90,7 @@ describe('bootstrap', () => {
   it('uses defaults for absent settings and preserves the absent marker', async () => {
     const raw: RawSettings = { backend: 'chrome', present: false }
     const db = setup(raw)
-    expect((await bootstrap(db.options)).profiles[0].schemaVersion).toBe(2)
+    expect((await bootstrap(db.options)).profiles.profiles['profile-id'].schemaVersion).toBe(2)
     expect(JSON.parse(db.data.get('backup:v1-original')!)).toEqual(raw)
   })
 })
