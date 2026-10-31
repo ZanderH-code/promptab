@@ -60,4 +60,4 @@ Open `edge://extensions`, turn on Developer mode, choose "Load unpacked", and se
 
 ## Permissions and data
 
-The extension requests the `storage` and `favicon` permissions. `favicon` reads website icons cached by the browser. If the cache is unavailable, it requests the site's `/favicon.ico`, so the website may receive a connection request. Settings are stored locally in the browser, and uninstalling the extension may delete them.
+The extension requests `storage`, `unlimitedStorage`, and `favicon` permissions. `unlimitedStorage` supports local profiles and history without Chrome's standard local storage quota. `favicon` reads website icons cached by the browser. If the cache is unavailable, it requests the site's `/favicon.ico`, so the website may receive a connection request. Settings are stored locally in the browser, and uninstalling the extension may delete them.

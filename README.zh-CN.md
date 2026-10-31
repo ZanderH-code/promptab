@@ -60,4 +60,4 @@ npm run test:e2e
 
 ## 权限与数据
 
-扩展申请 `storage` 和 `favicon` 权限，后者用于读取浏览器缓存的网站图标；缓存不可用时会向网站请求其 `/favicon.ico`，因此网站可能收到连接请求。设置保存在浏览器本地存储中，卸载扩展可能删除其本地数据。
+扩展申请 `storage`、`unlimitedStorage` 和 `favicon` 权限。`unlimitedStorage` 供本地配置档和历史使用，避免触及 Chrome 的标准本地存储配额；`favicon` 用于读取浏览器缓存的网站图标；缓存不可用时会向网站请求其 `/favicon.ico`，因此网站可能收到连接请求。设置保存在浏览器本地存储中，卸载扩展可能删除其本地数据。
