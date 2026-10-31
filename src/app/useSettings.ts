@@ -1,26 +1,168 @@
-import { useCallback, useEffect, useState } from 'react'
-import { defaults, type Settings } from '../core/model'
-import type { MessageRef } from '../i18n'
-import { loadSettings, saveSettings } from '../storage/settings'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { defaults, type Settings, type Shortcut } from '../core/model'
+import { migrateV1 } from '../core/migrate/v1'
+import type { ProfileV2 } from '../core/schema/profile'
+import { systemLanguage, toMessageRef, type MessageRef } from '../i18n'
+import { bootstrap } from '../storage/bootstrap'
+import { createAssetLibrary } from '../storage/assets'
+import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage } from '../storage/profiles'
+import { createProfileStore } from '../store/profile'
+
+export const assets = createAssetLibrary()
+export type AppProfileStore = ReturnType<typeof createProfileStore>
+
+async function dataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Invalid image'))
+    reader.onerror = () => reject(reader.error)
+    reader.onabort = () => reject(new Error('Image read aborted'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function project(profile: ProfileV2): Promise<Settings> {
+  const widget = (type: string) => profile.widgets.find(item => item.type === type)
+  const clock = widget('clock'), date = widget('date'), search = widget('search'), bookmarks = widget('bookmarks')
+  const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async item => {
+    if (!item.image) return item
+    const blob = await assets.get(item.image)
+    if (!blob) throw new Error(`Missing asset: ${item.image}`)
+    return { ...item, image: await dataUrl(blob) }
+  }))
+  const engine = profile.search.engines.find(item => item.id === profile.search.defaultEngineId)
+  const language = profile.prefs.language === 'system' ? systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]) : profile.prefs.language
+  const theme = profile.theme.mode === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : profile.theme.mode
+  const areas = profile.layout.areas
+  const split = areas.some(row => row.includes('overview') && row.includes('bookmarks'))
+  const joined = areas.join(' ')
+  // Split rows read left to right: bookmarks first is the default, overview first is reversed.
+  const reverse = split
+    ? areas.some(row => row.includes('overview') && row.indexOf('overview') < row.indexOf('bookmarks'))
+    : joined.includes('bookmarks') && joined.includes('overview') && joined.indexOf('bookmarks') < joined.indexOf('overview')
+  return { ...defaults, language, theme, accent: profile.theme.color.accent, background: profile.theme.color.bg,
+    showClock: !!clock && !clock.hidden, showDate: !!date && !date.hidden, showSearch: !!search && !search.hidden,
+    hour12: typeof clock?.props.hour12 === 'boolean' ? clock.props.hour12 : defaults.hour12,
+    searchTemplate: engine?.template ?? defaults.searchTemplate, shortcuts, columns: typeof bookmarks?.props.columns === 'number' ? bookmarks.props.columns : defaults.columns,
+    iconSize: profile.theme.iconSize, iconShape: profile.theme.iconShape,
+    alignment: profile.layout.align.endsWith('left') ? 'left' : 'center', layout: split ? 'split' : 'stacked',
+    reverse,
+    overlay: profile.background.image?.dim ?? (typeof profile.custom.values['v1.overlay'] === 'number' ? profile.custom.values['v1.overlay'] : defaults.overlay),
+  }
+}
+
+async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Promise<ProfileV2> {
+  const p = structuredClone(profile)
+  p.meta.updatedAt = new Date().toISOString()
+  if (changes.language !== undefined) p.prefs.language = changes.language
+  if (changes.theme !== undefined) p.theme.mode = changes.theme
+  if (changes.accent !== undefined) p.theme.color.accent = changes.accent
+  if (changes.background !== undefined) { p.theme.color.bg = changes.background; if (p.background.type === 'color') p.background.color = changes.background }
+  if (changes.iconSize !== undefined) p.theme.iconSize = changes.iconSize
+  if (changes.iconShape !== undefined) p.theme.iconShape = changes.iconShape
+  if (changes.alignment !== undefined) p.layout.align = changes.alignment === 'left' ? 'center-left' : 'center'
+  const widget = (type: ProfileV2['widgets'][number]['type']) => {
+    let item = p.widgets.find(w => w.type === type)
+    if (!item) { item = { id: crypto.randomUUID(), type, area: type === 'bookmarks' ? 'bookmarks' : 'overview', order: p.widgets.length, props: {} }; p.widgets.push(item) }
+    return item
+  }
+  if (changes.showClock !== undefined) widget('clock').hidden = !changes.showClock
+  if (changes.showDate !== undefined) widget('date').hidden = !changes.showDate
+  if (changes.showSearch !== undefined) widget('search').hidden = !changes.showSearch
+  if (changes.hour12 !== undefined) widget('clock').props.hour12 = changes.hour12
+  if (changes.columns !== undefined) widget('bookmarks').props.columns = changes.columns
+  if (changes.layout !== undefined || changes.reverse !== undefined) {
+    const current = await project(profile)
+    const layout = changes.layout ?? current.layout, reverse = changes.reverse ?? current.reverse
+    const stacked = reverse ? ['bookmarks', 'overview'] : ['overview', 'bookmarks']
+    p.layout.areas = layout === 'split' ? [reverse ? 'overview bookmarks' : 'bookmarks overview'] : stacked
+    if (layout === 'split') p.layout.columns = ['minmax(0, 1fr)', 'minmax(280px, 0.7fr)']
+    else delete p.layout.columns
+    p.layout.breakpoints = { ...p.layout.breakpoints, narrow: { areas: stacked, columns: ['1fr'] } }
+    widget('bookmarks').props.layout = layout
+    widget('bookmarks').props.reverse = reverse
+  }
+  if (changes.searchTemplate !== undefined) {
+    const engine = p.search.engines.find(item => item.id === p.search.defaultEngineId)
+    if (engine) engine.template = changes.searchTemplate
+    else { const id = crypto.randomUUID(); p.search.engines.push({ id, name: 'Search', template: changes.searchTemplate }); p.search.defaultEngineId = id }
+  }
+  if (changes.overlay !== undefined) { p.custom.values['v1.overlay'] = changes.overlay; if (p.background.image) p.background.image.dim = changes.overlay }
+  if (changes.shortcuts !== undefined) {
+    const groups = p.bookmarks.groups
+    if (!groups.length) groups.push({ id: crypto.randomUUID(), name: 'Bookmarks', collapsed: false, items: [] })
+    const originals = new Map(groups.flatMap((group, index) => group.items.map(item => [item.id, { item, index }] as const)))
+    const converted = await Promise.all(changes.shortcuts.map(async (item: Shortcut) => {
+      const original = originals.get(item.id)
+      let image: string | undefined
+      if (item.image) {
+        if (original?.item.image) {
+          const blob = await assets.get(original.item.image)
+          if (!blob) throw new Error('Missing bookmark image')
+          if (await dataUrl(blob) === item.image) image = original.item.image
+        }
+        if (!image) image = await assets.add(await (await fetch(item.image)).blob())
+      }
+      return { index: original?.index ?? 0, item: { ...item, ...(image ? { image } : {}) } }
+    }))
+    if (converted.some((entry, i) => i > 0 && entry.index < converted[i - 1].index)) throw new Error('Cannot reorder bookmarks across groups')
+    groups.forEach((group, index) => { group.items = converted.filter(entry => entry.index === index).map(entry => entry.item) })
+  }
+  return p
+}
 
 export function useSettings() {
+  const [store, setStore] = useState<AppProfileStore | null>(null)
+  const [profile, setProfile] = useState<ProfileV2 | null>(null)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [error, setError] = useState<MessageRef | null>(null)
-
+  const [undoNotice, setUndoNotice] = useState(false)
+  const queue = useRef<Promise<void>>(Promise.resolve())
+  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
-    loadSettings().then(setSettings).catch(() => setError({ key: 'error.loadSettings' }))
+    let alive = true
+    let unsubscribe = () => {}
+    const backend = window.chrome?.storage ? createChromeStorageBackend(window.chrome.storage.local) : createLocalStorageBackend(localStorage)
+    const persistence = createProfileStorage(backend)
+    bootstrap({ backend, profiles: persistence, assets }).then(async snapshot => {
+      const initial = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+      const next = createProfileStore({ persistence, initialProfile: initial })
+      await next.getState().initialize()
+      if (!alive) return
+      const sync = () => {
+        const state = next.getState()
+        const preview = state.preview?.profileId === state.activeProfileId ? state.preview.profile : undefined
+        setProfile(preview ?? state.profiles[state.activeProfileId])
+      }
+      unsubscribe = next.subscribe(sync); sync(); setStore(next)
+    }).catch(e => { if (alive) setError(toMessageRef(e, 'error.loadSettings')) })
+    return () => { alive = false; unsubscribe(); clearTimeout(timer.current) }
   }, [])
-
-  const update = useCallback((next: Settings) => {
-    setSettings(next)
-    saveSettings(next).then(() => setError(null)).catch(() => setError({ key: 'error.saveSettings' }))
-  }, [])
-
-  const patch = useCallback((changes: Partial<Settings>) => {
-    if (settings) update({ ...settings, ...changes })
-  }, [settings, update])
-
-  const reset = useCallback(() => update(structuredClone(defaults)), [update])
-
-  return { settings, error, setError, update, patch, reset }
+  useEffect(() => {
+    if (!profile) return
+    let alive = true
+    project(profile).then(value => { if (alive) setSettings(value) }).catch(e => { if (alive) { setSettings(null); setError(toMessageRef(e, 'error.loadSettings')) } })
+    return () => { alive = false }
+  }, [profile])
+  const run = useCallback((operation: (store: AppProfileStore, id: string) => Promise<void>, notice = true) => {
+    if (!store) return
+    const id = store.getState().activeProfileId
+    const task = queue.current.then(() => operation(store, id)).then(() => {
+      if (notice) { setUndoNotice(true); clearTimeout(timer.current); timer.current = setTimeout(() => setUndoNotice(false), 6000) }
+    }).catch(e => { console.error(e); setError(toMessageRef(e, 'error.saveSettings')) })
+    queue.current = task
+  }, [store])
+  const patch = useCallback((changes: Partial<Settings>) => run(async (s, id) => {
+    const p = await applyChanges(s.getState().profiles[id], changes)
+    await s.getState().updateProfile(id, () => p)
+  }), [run])
+  const reset = useCallback(() => run(async (s, id) => {
+    const old = s.getState().profiles[id]
+    const now = new Date().toISOString()
+    const fresh = await migrateV1(defaults, { id: () => id, now: () => now, add: blob => assets.add(blob) })
+    fresh.meta = { ...old.meta, updatedAt: now }
+    await s.getState().resetProfile(id, fresh)
+  }), [run])
+  const undo = useCallback(() => { setUndoNotice(false); run((s, id) => s.getState().undo(id), false) }, [run])
+  return { settings, profile, store, error, setError, patch, reset, undo, undoNotice, run }
 }

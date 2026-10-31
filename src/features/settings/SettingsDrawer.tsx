@@ -3,9 +3,13 @@ import type { CSSProperties } from 'react'
 import { searchUrl, type Settings } from '../../core/model'
 import type { MessageRef, Translate } from '../../i18n'
 import { Dropdown } from '../../ui/Dropdown'
+import type { StoreApi } from 'zustand/vanilla'
+import type { ProfileStore } from '../../store/profile'
 import { BackupSection } from './BackupSection'
+import { ProfileSection } from './ProfileSection'
 
 type Props = {
+  store: StoreApi<ProfileStore>
   settings: Settings
   t: Translate
   onPatch: (changes: Partial<Settings>) => void
@@ -31,7 +35,7 @@ const WIDGET_FLAGS = [
 
 const fill = (value: number, min: number, max: number) => ({ '--fill': `${((value - min) / (max - min)) * 100}%` }) as CSSProperties
 
-export function SettingsDrawer({ settings: s, t, onPatch, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError }: Props) {
+export function SettingsDrawer({ store, settings: s, t, onPatch, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError }: Props) {
   const searchOptions = [
     ...SEARCH_ENGINES,
     { value: BAIDU, label: t('settings.engineBaidu') },
@@ -124,6 +128,7 @@ export function SettingsDrawer({ settings: s, t, onPatch, onClose, onWallpaperFi
 
         <h3>{t('settings.shortcuts')}</h3>
         <p>{t('settings.shortcutsHint')}</p>
+        <ProfileSection store={store} t={t} language={s.language} />
         <BackupSection settings={s} t={t} onError={onError} />
         <button className="reset" onClick={() => { if (confirm(t('settings.confirmReset'))) onReset() }}>{t('settings.reset')}</button>
       </aside>

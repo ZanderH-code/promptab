@@ -30,8 +30,19 @@ function appStyle(s: Settings, wallpaper: string) {
 }
 
 export default function App() {
-  const { settings, error, setError, patch, reset } = useSettings()
-  const wallpaper = useWallpaper(setError)
+  const { settings, profile, store, error, setError, patch, reset, undo, undoNotice, run } = useSettings()
+  const wallpaper = useWallpaper(profile, run, setError)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !target?.closest('input, textarea, select, [contenteditable="true"]')) {
+        event.preventDefault()
+        undo()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [undo])
   const [drawer, setDrawer] = useState(false)
   const [editing, setEditing] = useState<Shortcut | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
@@ -135,9 +146,11 @@ export default function App() {
       </section>
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
+      {undoNotice && <div role="status" style={{ position: 'fixed', bottom: 24, left: 24, zIndex: 100, padding: '12px 16px', background: 'var(--mnt-bg)', border: '1px solid var(--mnt-accent)', borderRadius: 8 }}><span>{s.language === 'en' ? 'Changes saved' : '更改已保存'}</span> <button onClick={undo}>{s.language === 'en' ? 'Undo' : '撤销'}</button></div>}
       {error && <div className="error" role="alert">{t(error.key, error.params)}<button aria-label={t('common.close')} onClick={() => setError(null)}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>}
-      {drawer && (
+      {drawer && store && (
         <SettingsDrawer
+          store={store}
           settings={s}
           t={t}
           onPatch={patch}
