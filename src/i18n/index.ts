@@ -9,6 +9,15 @@ export type Translate = (key: MessageKey, params?: MessageParams) => string
 
 const dictionaries: Record<Language, Record<MessageKey, string>> = { 'zh-CN': zhCN, en }
 
+export function systemLanguage(languages: readonly string[]): Language {
+  for (const language of languages) {
+    const prefix = language.toLowerCase().split('-')[0]
+    if (prefix === 'zh') return 'zh-CN'
+    if (prefix === 'en') return 'en'
+  }
+  return 'en'
+}
+
 export function interpolate(template: string, params?: MessageParams) {
   return template.replace(/\{(\w+)\}/g, (placeholder, name: string) => (params && name in params ? String(params[name]) : placeholder))
 }

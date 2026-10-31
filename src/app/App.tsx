@@ -5,7 +5,7 @@ import { BackupSection } from '../features/settings/BackupSection'
 import { finishShortcut } from '../core/shortcut'
 import { ShortcutEditor } from '../features/shortcut-editor/ShortcutEditor'
 import { SettingsDrawer } from '../features/settings/SettingsDrawer'
-import { translate, type MessageKey, type MessageParams } from '../i18n'
+import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { Clock } from '../widgets/Clock'
 import { Search } from '../widgets/Search'
@@ -54,7 +54,8 @@ export default function App() {
   }, [settings?.theme, settings?.accent, settings?.background, settings?.overlay])
 
   if (!settings) {
-    return <main className="loading">{error ? <><p role="alert">{translate('zh-CN', error.key, error.params)}</p><BackupSection settings={defaults} t={(key, params) => translate('zh-CN', key, params)} onError={setError} recovery /></> : translate('zh-CN', 'app.loading')}</main>
+    const language = systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
+    return <main className="loading">{error ? <><p role="alert">{translate(language, error.key, error.params)}</p><BackupSection settings={{ ...defaults, language }} t={(key, params) => translate(language, key, params)} onError={setError} recovery /></> : translate(language, 'app.loading')}</main>
   }
 
   const s = settings

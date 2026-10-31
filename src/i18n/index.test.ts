@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { en } from './en'
-import { interpolate, MessageError, toMessageRef, translate } from './index'
+import { interpolate, MessageError, systemLanguage, toMessageRef, translate } from './index'
 import { zhCN } from './zh-CN'
 
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort()
@@ -21,6 +21,13 @@ describe('i18n', () => {
     for (const key of Object.keys(zhCN) as (keyof typeof zhCN)[]) {
       expect(placeholders(en[key]), key).toEqual(placeholders(zhCN[key]))
     }
+  })
+
+  it('chooses a supported recovery language from system preferences', () => {
+    expect(systemLanguage(['zh-Hans-CN'])).toBe('zh-CN')
+    expect(systemLanguage(['en-GB', 'zh-CN'])).toBe('en')
+    expect(systemLanguage(['fr-FR', 'zh-TW'])).toBe('zh-CN')
+    expect(systemLanguage(['fr-FR'])).toBe('en')
   })
 
   it('stores message keys on errors and falls back for unknown errors', () => {
