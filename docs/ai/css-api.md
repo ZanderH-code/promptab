@@ -26,6 +26,7 @@ Removing or renaming a name here is a breaking change and raises the API version
 | `.mnt-search-input` | The search text field. |
 | `.mnt-group` | One bookmark group. |
 | `.mnt-group-title` | The title of a bookmark group. |
+| `.mnt-group-title-hidden` | The group title remains in the accessibility tree while its visual text is hidden. |
 | `.mnt-link` | One bookmark tile. Carries `data-link-host` with the site host. |
 | `.mnt-link-icon` | The tile icon. |
 | `.mnt-link-name` | The tile label. |

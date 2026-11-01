@@ -10,6 +10,7 @@ import { SettingsDrawer } from '../features/settings/SettingsDrawer'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
+import { moveBookmarks } from '../widgets/bookmarkGroups'
 import { Banners, PreviewBanner, SafeModeBanner } from '../features/banners/Banners'
 import { useSafeMode } from './safeMode'
 import { useSettings } from './useSettings'
@@ -19,6 +20,7 @@ import { useWallpaper } from './useWallpaper'
 
 type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut'
 type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut }
+type MoveState = { shortcut: Shortcut; groupId: string }
 
 const MENU_MARGIN = 180
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
@@ -53,6 +55,7 @@ export default function App() {
   const [editing, setEditing] = useState<Shortcut | null>(null)
   const addGroupId = useRef<string | undefined>(undefined)
   const [menu, setMenu] = useState<MenuState | null>(null)
+  const [moving, setMoving] = useState<MoveState | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
 
   useEffect(() => {
@@ -118,6 +121,23 @@ export default function App() {
     if (confirm(t('shortcuts.confirmDelete'))) patch({ shortcuts: s.shortcuts.filter(item => item.id !== shortcut.id) })
   }
 
+  const openMoveDialog = (shortcut: Shortcut) => {
+    const current = profile?.bookmarks.groups.find(group => group.items.some(item => item.id === shortcut.id))
+    const target = profile?.bookmarks.groups.find(group => group.id !== current?.id)
+    if (target) setMoving({ shortcut, groupId: target.id })
+  }
+
+  const moveShortcut = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!moving) return
+    run((st, id) => st.getState().updateProfile(id, p => ({
+      ...p,
+      meta: { ...p.meta, updatedAt: new Date().toISOString() },
+      bookmarks: { ...p.bookmarks, groups: moveBookmarks(p.bookmarks.groups, [moving.shortcut.id], moving.groupId) },
+    })))
+    setMoving(null)
+  }
+
   function saveShortcut(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!editing) return
@@ -135,6 +155,7 @@ export default function App() {
       return [
         { label: t('shortcuts.edit'), onSelect: () => setEditing(shortcut) },
         { label: t('shortcuts.reorder'), onSelect: () => setManagingGroups(true) },
+        { label: t('shortcuts.moveToGroup'), onSelect: () => openMoveDialog(shortcut) },
         { label: t('shortcuts.delete'), onSelect: () => removeShortcut(shortcut) },
       ]
     }
@@ -201,11 +222,20 @@ export default function App() {
         onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } })))}
         onEdit={setEditing}
         onRemove={removeShortcut}
+        onMove={openMoveDialog}
         onAdd={groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) }}
         onBookmarkContextMenu={(event: MouseEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
       />}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
+      {moving && profile && <div className="modal-backdrop" role="presentation">
+        <form className="modal" role="dialog" aria-modal="true" aria-labelledby="move-bookmark-title" onSubmit={moveShortcut} onKeyDown={event => { if (event.key === 'Escape') setMoving(null) }}>
+          <h2 id="move-bookmark-title">{t('shortcuts.moveDialog')}</h2>
+          <label>{t('groups.moveTo')}<select aria-label={t('groups.moveTo')} value={moving.groupId} onChange={event => setMoving({ ...moving, groupId: event.target.value })}>{profile.bookmarks.groups.filter(group => !group.items.some(item => item.id === moving.shortcut.id)).map(group => <option key={group.id} value={group.id}>{group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name}</option>)}</select></label>
+          <button type="button" onClick={() => setMoving(null)}>{t('common.cancel')}</button>
+          <button type="submit">{t('shortcuts.moveConfirm')}</button>
+        </form>
+      </div>}
       {undoNotice && <div className="undo-toast" role="status"><span>{s.language === 'en' ? 'Changes saved' : '更改已保存'}</span><button type="button" onClick={undo}>{s.language === 'en' ? 'Undo' : '撤销'}</button></div>}
       {error && <div className="error" role="alert">{t(error.key, error.params)}<button aria-label={t('common.close')} onClick={() => setError(null)}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>}
       {drawer && store && (

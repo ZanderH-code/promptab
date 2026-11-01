@@ -40,6 +40,10 @@ export const zhCN = {
   'shortcuts.deleteNamed': '删除 {name}',
   'shortcuts.delete': '删除网站',
   'shortcuts.reorder': '调整顺序',
+  'shortcuts.moveToGroup': '移动到分组…',
+  'shortcuts.moveToGroupNamed': '将{name}移动到分组…',
+  'shortcuts.moveDialog': '将网站移动到分组',
+  'shortcuts.moveConfirm': '移动',
   'shortcuts.drag': '拖动排序',
   'shortcuts.confirmDelete': '确定删除此快捷方式？',
 

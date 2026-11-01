@@ -8,7 +8,7 @@ export const CSS_API_CLASSES = [
   'mnt-root', 'mnt-header', 'mnt-settings-entry', 'mnt-area', 'mnt-widget',
   'mnt-clock', 'mnt-date',
   'mnt-search', 'mnt-search-input',
-  'mnt-group', 'mnt-group-title', 'mnt-link', 'mnt-link-icon', 'mnt-link-name',
+  'mnt-group', 'mnt-group-title', 'mnt-group-title-hidden', 'mnt-link', 'mnt-link-icon', 'mnt-link-name',
 ] as const
 
 /** Attribute selectors, as written in CSS. `github.com` is an example value of `data-link-host`. */

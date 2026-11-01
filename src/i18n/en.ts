@@ -41,6 +41,10 @@ export const en: Record<MessageKey, string> = {
   'shortcuts.deleteNamed': 'Delete {name}',
   'shortcuts.delete': 'Delete website',
   'shortcuts.reorder': 'Reorder',
+  'shortcuts.moveToGroup': 'Move to group…',
+  'shortcuts.moveToGroupNamed': 'Move {name} to group…',
+  'shortcuts.moveDialog': 'Move website to group',
+  'shortcuts.moveConfirm': 'Move',
   'shortcuts.drag': 'Drag to reorder',
   'shortcuts.confirmDelete': 'Delete this shortcut?',
 
