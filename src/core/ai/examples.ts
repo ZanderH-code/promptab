@@ -79,6 +79,7 @@ export const EXAMPLES: { id: string; pack: AiPack }[] = [
         { id: 'clock', type: 'clock', area: 'banner', order: 0, props: { hour12: false, pad: true, align: 'right' } },
         { id: 'date', type: 'date', area: 'banner', order: 1, props: { format: 'custom', weekday: true, day: true, month: true, order: ['weekday', 'day', 'month'], separator: ' / ', ordinal: true, uppercase: true, align: 'right' } },
         { id: 'bookmarks', type: 'bookmarks', area: 'websites', order: 2, props: { style: 'icon-only', maxColumns: 3 }, hidden: true },
+        { id: 'search', type: 'search', area: 'websites', order: 3, props: {}, hidden: true },
       ],
     },
   },

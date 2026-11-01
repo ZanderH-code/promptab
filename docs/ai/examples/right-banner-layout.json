@@ -112,6 +112,14 @@
         "maxColumns": 3
       },
       "hidden": true
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "websites",
+      "order": 3,
+      "props": {},
+      "hidden": true
     }
   ]
 }

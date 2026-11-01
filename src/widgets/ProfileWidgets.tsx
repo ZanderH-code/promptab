@@ -3,13 +3,14 @@ import type { ProfileV2, Widget } from '../core/schema/profile'
 import type { Settings, Shortcut } from '../core/model'
 import type { MessageRef, Translate } from '../i18n'
 import { widgetsIn } from '../core/layout/grid'
+import { detectTemplate } from '../core/layout/profile'
 import { BREAKPOINTS } from '../core/schema/defaults'
 import { gridStyle, areaStyle } from '../core/layout/styles'
 import { formatClock, formatDate, greetingPeriod } from '../core/layout/formats'
 import { Search } from './Search'
 import { ShortcutGrid } from './ShortcutGrid'
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -60,7 +61,7 @@ export function ProfileWidgets(props: Props) {
   const now = useNow('minute')
   const searchTemplate = profile.search.engines.find(e => e.id === profile.search.defaultEngineId)?.template ?? 'https://www.google.com/search?q={query}'
   const legacyStacked = profile.layout.areas.length === 2 && profile.layout.areas[0] === 'overview' && profile.layout.areas[1] === 'bookmarks'
-  return <section className={`desktop mnt-layout${legacyStacked ? ' layout-stacked' : ''}`} style={gridStyle(grid, profile.layout.contentWidth, profile.layout.gap)} data-breakpoint={breakpoint} data-edit-mode={editing ? '' : undefined}>
+  return <section className={`desktop mnt-layout${legacyStacked ? ' layout-stacked' : ''}`} data-layout-template={detectTemplate(profile)} style={gridStyle(grid, profile.layout.contentWidth, profile.layout.gap)} data-breakpoint={breakpoint} data-edit-mode={editing ? '' : undefined}>
     {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette) }}>
       {widgetsIn(profile.widgets, name).map(widget => {
         const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
@@ -76,6 +77,13 @@ export function ProfileWidgets(props: Props) {
           }
           case 'text': return frame(<div>{widget.props.text}</div>)
           case 'spacer': return frame(<div aria-hidden="true" style={{ height: widget.props.height ?? 40 }} />)
+          case 'toolbar': return frame(<div className="mnt-widget-toolbar" role="toolbar" aria-label={t('widgets.toolbar')}>
+            {(widget.props.actions ?? ['add', 'edit', 'settings']).map(action => action === 'add'
+              ? <button type="button" key={action} aria-label={t('shortcuts.add')} onClick={() => props.onAdd()}><span aria-hidden="true">＋</span></button>
+              : action === 'edit'
+                ? <button type="button" key={action} aria-label={t('edit.enter')} onClick={props.onEnterEditMode}><span aria-hidden="true">✎</span></button>
+                : <button type="button" key={action} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true">⚙</span></button>)}
+          </div>)
         }
       })}
     </div>)}

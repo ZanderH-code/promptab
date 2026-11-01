@@ -851,6 +851,66 @@
               "props"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "area": {
+                "type": "string"
+              },
+              "order": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hidden": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string",
+                "const": "toolbar"
+              },
+              "props": {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "number"
+                  },
+                  "align": {
+                    "type": "string",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  "actions": {
+                    "maxItems": 3,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "add",
+                        "edit",
+                        "settings"
+                      ]
+                    }
+                  }
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "id",
+              "area",
+              "order",
+              "type",
+              "props"
+            ],
+            "additionalProperties": false
           }
         ]
       }

@@ -25,12 +25,12 @@ export function layoutItems(ctx: Ctx): Item[] {
   const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string): Item => ({
     id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}</Row>,
   })
-  const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard' }
+  const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard', 'icon-split': 'settings.layoutIconSplit', banner: 'settings.layoutBanner' }
   const baseGrid = profile.layout
   const narrow = profile.layout.breakpoints?.narrow
   const areas = areaNames(ctx.layoutDrafts?.base?.areas !== undefined ? ctx.layoutDrafts.base.areas.split('\n').map(line => line.trim()).filter(Boolean) : baseGrid.areas)
   const areaLabel = (area: string) => area === 'overview' ? t('settings.areaOverview') : area === 'bookmarks' ? t('settings.shortcuts') : area
-  const widgetLabel = (widget: ProfileV2['widgets'][number]) => ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer') })[widget.type]
+  const widgetLabel = (widget: ProfileV2['widgets'][number]) => ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar') })[widget.type]
   type GridKey = 'areas' | 'columns' | 'rows'
   const parse = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean)
   const candidateFor = (current: ProfileV2, key: GridKey, value: string, narrowGrid: boolean) => {

@@ -245,6 +245,8 @@ export default function App() {
         onMove={openMoveDialog}
         onAdd={groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) }}
         onBookmarkContextMenu={(event: MouseEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
+        onOpenSettings={() => openSettings()}
+        onEnterEditMode={() => setEditMode(true)}
       />}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}

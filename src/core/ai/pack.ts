@@ -115,7 +115,7 @@ export const aiPackSchema = z.object({
       const namesByGrid = grids.map(areaNames)
       for (let i = 0; i < pack.widgets.length; i++) {
         const widget = pack.widgets[i]
-        if (!namesByGrid.every(names => names.includes(widget.area))) ctx.addIssue({ code: 'custom', path: ['widgets', i, 'area'], message: `widget area \\"${widget.area}\\" must exist in every configured grid` })
+        if (grids.length && !namesByGrid.every(names => names.includes(widget.area))) ctx.addIssue({ code: 'custom', path: ['widgets', i, 'area'], message: `widget area \\"${widget.area}\\" must exist in every configured grid` })
       }
     }
   }

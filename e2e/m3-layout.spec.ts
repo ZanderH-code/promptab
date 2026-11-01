@@ -8,6 +8,8 @@ const templates = [
   ['仅网站', '"bookmarks"'],
   ['仅时钟/禅模式', '"overview"'],
   ['仪表盘三栏', '"clock date links" "search search links"'],
+  ['左右分区 · 纯图标', '"bookmarks divider overview"'],
+  ['顶栏横幅', '"banner" "websites"'],
 ] as const
 
 async function chooseTemplate(page: Page, name: string) {
@@ -44,6 +46,48 @@ for (const [name, grid] of templates) {
     await expectGrid(page, initialGrid)
   })
 }
+
+test('icon split and banner templates match their 1440 by 900 baselines', async ({ page }) => {
+  await chooseTemplate(page, '左右分区 · 纯图标')
+  await page.getByRole('button', { name: '关闭设置' }).click()
+  await expect(page.locator('.mnt-layout')).toHaveScreenshot('layout-icon-split-1440x900.png')
+  await page.locator('.settings-button').click()
+  await openTab(page, 'layout')
+  await chooseTemplate(page, '顶栏横幅')
+  await page.getByRole('button', { name: '关闭设置' }).click()
+  await expect(page.locator('.mnt-layout')).toHaveScreenshot('layout-banner-1440x900.png')
+})
+
+test('layout controls can refine icon split and banner templates', async ({ page }) => {
+  const layout = page.locator('.mnt-layout')
+  await chooseTemplate(page, '左右分区 · 纯图标')
+  const baseAreas = page.getByRole('textbox', { name: '区域网格' })
+  const baseColumns = page.getByRole('textbox', { name: '列规格' }).first()
+  await baseAreas.fill('bookmarks divider overview')
+  await expectGrid(page, '"bookmarks divider overview"')
+  await baseColumns.fill('minmax(0, 1fr)\n1px\nminmax(280px, 0.7fr)')
+  const bookmarksControls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '快捷方式' }) }).first()
+  await bookmarksControls.getByRole('combobox', { name: '组件区域' }).click()
+  await page.getByRole('option', { name: '快捷方式', exact: true }).click()
+  await openTab(page, 'shortcuts')
+  await page.getByRole('combobox', { name: '网站样式' }).click()
+  await page.getByRole('option', { name: '仅图标', exact: true }).click()
+  await openTab(page, 'layout')
+  await expect(layout.locator('[data-area="divider"]')).toHaveCSS('width', '1px')
+  await expect(layout.locator('[data-area="bookmarks"] .grid')).toHaveCSS('grid-template-columns', '84px 84px 84px')
+
+  await chooseTemplate(page, '顶栏横幅')
+  const bannerControls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'banner' }) })
+  await bannerControls.getByRole('spinbutton', { name: '区域模糊' }).fill('18')
+  await bannerControls.getByRole('spinbutton', { name: '区域透明度' }).fill('68')
+  await bannerControls.getByLabel('区域通栏').check()
+  await bannerControls.getByRole('spinbutton', { name: '下边强调线' }).fill('1')
+  const dateControls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '显示日期' }) })
+  await dateControls.getByRole('combobox', { name: '组件区域' }).click()
+  await page.getByRole('option', { name: 'banner', exact: true }).click()
+  await expect(layout.locator('[data-area="banner"]')).toHaveCSS('backdrop-filter', 'blur(18px)')
+  await expect(layout.locator('[data-area="banner"]')).toHaveCSS('border-bottom-width', '1px')
+})
 
 test('stacked, split and dashboard arrangements respond to viewport width', async ({ page }) => {
   await expectGrid(page, '"overview" "bookmarks"')

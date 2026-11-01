@@ -35,13 +35,30 @@ describe('layout grids', () => {
     const widgets = [{ id: 'b', area: 'a', order: 2 }, { id: 'a', area: 'a', order: 1 }, { id: 'x', area: 'b', order: 0 }, { id: 'h', area: 'a', order: 0, hidden: true }] as any
     expect(widgetsIn(widgets, 'a').map(item => item.id)).toEqual(['a', 'b'])
     expect(templateGrid('dashboard').areas).toEqual(['clock date links', 'search search links'])
-    for (const id of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard'] as const) expect(templateGrid(id).areas.length).toBeGreaterThan(0)
+    for (const id of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard', 'icon-split', 'banner'] as const) expect(templateGrid(id).areas.length).toBeGreaterThan(0)
+  })
+
+  it('configures the two target templates with their required widgets and area styles', async () => {
+    const profile = await migrateV1({ ...defaults, shortcuts: [] }, { id: () => 'targets', now: () => '2026-01-01T00:00:00.000Z', add: () => Promise.reject(new Error('unused')) })
+    const a = applyTemplate(profile, 'icon-split')
+    expect(a.theme.mode).toBe('light')
+    expect(a.layout.areas).toEqual(['bookmarks divider overview'])
+    expect(a.layout.columns?.[1]).toBe('1px')
+    expect(a.widgets.find(item => item.type === 'bookmarks')?.props).toMatchObject({ style: 'icon-only', maxColumns: 3, showGroupTitles: false })
+    expect(a.widgets.find(item => item.type === 'toolbar')).toMatchObject({ area: 'overview', props: { actions: ['add', 'edit', 'settings'] } })
+    const b = applyTemplate(profile, 'banner')
+    expect(b.layout.areas).toEqual(['banner', 'websites'])
+    expect(b.layout.areaStyles?.banner).toMatchObject({ opacity: 68, blur: 18, bleed: true, border: { bottom: 1 } })
+    expect(b.widgets.find(item => item.type === 'bookmarks')?.hidden).toBe(true)
+    expect(b.theme.font.display).toBe('barlow-condensed')
+    expect(profileV2Schema.safeParse(a).success).toBe(true)
+    expect(profileV2Schema.safeParse(b).success).toBe(true)
   })
 
   it('applies every template to a styled profile with a valid resulting grid', async () => {
     const profile = await migrateV1(defaults, { id: () => 'test', now: () => '2026-01-01T00:00:00.000Z', add: () => Promise.reject(new Error('unused')) })
     profile.layout.areaStyles = { overview: { padding: 10 } }
-    for (const template of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard'] as const) {
+    for (const template of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard', 'icon-split', 'banner'] as const) {
       const result = applyTemplate(profile, template)
       expect(profileV2Schema.safeParse(result).success, template).toBe(true)
       expect(detectTemplate(result)).toBe(template)

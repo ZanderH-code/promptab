@@ -191,11 +191,11 @@ test('invalid and cancelled imports preserve the current setup', async ({ page }
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#b4d2a8')
   const before = await page.evaluate(key => localStorage.getItem(key), INDEX_KEY)
   await openTab(page, 'data')
-  await page.locator('input[type=file][accept="application/json,.json"]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{') })
+  await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{') })
   await expect(page.getByRole('alert')).toContainText('不是有效的 JSON')
   expect(await page.evaluate(key => localStorage.getItem(key), INDEX_KEY)).toBe(before)
   page.once('dialog', dialog => dialog.dismiss())
-  await page.locator('input[type=file][accept="application/json,.json"]').setInputFiles({
+  await page.getByLabel('导入备份', { exact: true }).setInputFiles({
     name: 'valid.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings: v1Settings('#abcdef') })),
   })

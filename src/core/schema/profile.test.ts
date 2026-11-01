@@ -119,7 +119,7 @@ describe('profile v2 schema', () => {
   it('validates widget props per type while keeping empty props valid', () => {
     const widgets = (...items: object[]) => mutate(d => { d.widgets = items; d.layout.areas = ['a'] })
     const w = (type: string, props: object) => ({ id: type, type, area: 'a', order: 0, props })
-    for (const type of ['date', 'search', 'bookmarks', 'clock', 'greeting', 'text', 'spacer']) expect(profileV2Schema.safeParse(widgets(w(type, {}))).success, type).toBe(true)
+    for (const type of ['date', 'search', 'bookmarks', 'clock', 'greeting', 'text', 'spacer', 'toolbar']) expect(profileV2Schema.safeParse(widgets(w(type, {}))).success, type).toBe(true)
     expect(profileV2Schema.safeParse(widgets(w('bookmarks', { maxColumns: 2 }), { ...w('clock', { hour12: true, extra: 1 }), id: 'c' })).success).toBe(true)
     expect(profileIssues(widgets(w('bookmarks', { maxColumns: 11 })))[0].path).toBe('widgets.0.props.maxColumns')
     expect(profileIssues(widgets(w('bookmarks', { maxColumns: 1 })))[0].path).toBe('widgets.0.props.maxColumns')

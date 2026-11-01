@@ -64,6 +64,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('spacer'), props: z.looseObject({ ...common, height: ranged({ min: 8, max: 400 }).optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('toolbar'), props: z.looseObject({ ...common, actions: z.array(z.enum(['add', 'edit', 'settings'])).max(3).optional() }) }),
 ])
 export type Widget = z.infer<typeof widgetSchema>
 

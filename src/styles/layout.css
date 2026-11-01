@@ -13,22 +13,9 @@
   .mnt-area[data-area="overview"] .intro { width: 100%; }
   .mnt-area[data-area="bookmarks"] { width: 100%; }
   .mnt-widget-frame { min-width: 0; zoom: var(--mnt-widget-size, 1); }
-
-  .overview, .bookmarks {
-    width: 100%;
-    min-width: 0;
-  }
-
-
-  .search, .shortcuts-heading {
-    width: 100%;
-  }
-
-  .clock {
-    font-family: var(--mnt-font-display);
-    font-variant-numeric: tabular-nums;
-  }
-
+  .overview, .bookmarks { width: 100%; min-width: 0; }
+  .search, .shortcuts-heading { width: 100%; }
+  .clock { font-family: var(--mnt-font-display); font-variant-numeric: tabular-nums; }
   .grid {
     --mnt-effective-icon: var(--mnt-icon-size);
     --mnt-cell-width: calc(var(--mnt-effective-icon) + 2 * var(--mnt-space-4));
@@ -36,62 +23,31 @@
     width: min(100%, calc(var(--mnt-grid-columns) * var(--mnt-cell-width)));
     margin-inline: auto;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mnt-cell-width)), var(--mnt-cell-width)));
-    justify-content: center;
-    justify-items: center;
-    column-gap: 0;
-    row-gap: var(--mnt-space-6);
+    justify-content: center; justify-items: center; column-gap: 0; row-gap: var(--mnt-space-6);
   }
+  .shortcut-wrap, .add-shortcut { width: 100%; min-width: 0; }
+  .shortcut > span:last-child { max-width: calc(var(--mnt-cell-width) - var(--mnt-space-2)); }
+  .shortcut-icon, .add-shortcut > span { width: var(--mnt-effective-icon, var(--mnt-icon-size)); height: var(--mnt-effective-icon, var(--mnt-icon-size)); }
+  .settings-button, .search button, .drawer-head button, .editor-close, .shortcut-actions button, .drag-handle, .error button { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; flex-shrink: 0; }
+  .shortcut-actions { flex-wrap: wrap; }
+  .drag-handle { display: flex; }
+  .lucide { flex-shrink: 0; }
+  .error { max-width: calc(100vw - 32px); display: flex; align-items: center; }
+  .mnt-widget-toolbar { display: flex; gap: 12px; align-items: center; justify-content: center; }
+  .mnt-widget-toolbar button { border: 0; background: transparent; color: var(--mnt-accent); cursor: pointer; font-size: 20px; width: 36px; height: 36px; border-radius: 50%; }
+  .mnt-widget-toolbar button:first-child::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .mnt-layout[data-layout-template="icon-split"] { min-height: 70vh; }
+  .mnt-layout[data-layout-template="icon-split"] [data-area="divider"] { width: 1px; min-height: 56vh; align-self: center; }
+  .mnt-layout[data-layout-template="icon-split"] [data-area="bookmarks"] .grid { --mnt-cell-width: 84px; grid-template-columns: repeat(3, 84px); justify-content: start; }
+  .mnt-layout[data-layout-template="icon-split"] [data-area="bookmarks"] .shortcut-icon { background: transparent; color: var(--mnt-accent); box-shadow: none; }
+  .mnt-layout[data-layout-template="icon-split"] [data-area="overview"] { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+  .mnt-layout[data-layout-template="icon-split"] [data-area="overview"] .mnt-widget-frame { width: 100%; text-align: left; }
+  .mnt-layout[data-layout-template="icon-split"] .clock { white-space: pre; }
+  .mnt-layout[data-layout-template="banner"] { width: 100vw; max-width: none; min-height: 100vh; padding: 0 0 var(--mnt-space-7); grid-template-columns: 1fr; grid-template-rows: minmax(220px, 34vh) 1fr; align-content: stretch; }
+  .mnt-layout[data-layout-template="banner"] [data-area="banner"] { width: 100%; }
+  .mnt-layout[data-layout-template="banner"] [data-area="banner"] .mnt-widget-frame { text-align: right; }
+  .mnt-layout[data-layout-template="banner"] [data-area="websites"] { display: grid; }
 
-  .shortcut-wrap, .add-shortcut {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .shortcut > span:last-child {
-    max-width: calc(var(--mnt-cell-width) - var(--mnt-space-2));
-  }
-
-  .shortcut-icon, .add-shortcut > span {
-    width: var(--mnt-effective-icon, var(--mnt-icon-size));
-    height: var(--mnt-effective-icon, var(--mnt-icon-size));
-  }
-
-  .settings-button, .search button, .drawer-head button, .editor-close,
-  .shortcut-actions button, .drag-handle, .error button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
-    flex-shrink: 0;
-  }
-
-  .shortcut-actions {
-    flex-wrap: wrap;
-  }
-
-  .drag-handle {
-    display: flex;
-  }
-
-  .lucide {
-    flex-shrink: 0;
-  }
-
-  .error {
-    max-width: calc(100vw - 32px);
-    display: flex;
-    align-items: center;
-  }
-
-  @media (max-width: 600px) {
-    .desktop { margin: 50px auto; }
-  }
-
-  @media (max-width: 639px) {
-    .grid {
-      --mnt-effective-icon: min(var(--mnt-icon-size), 64px);
-      --mnt-grid-columns: min(var(--mnt-columns), var(--mnt-item-count), 4);
-    }
-  }
+  @media (max-width: 600px) { .desktop { margin: 50px auto; } }
+  @media (max-width: 639px) { .grid { --mnt-effective-icon: min(var(--mnt-icon-size), 64px); --mnt-grid-columns: min(var(--mnt-columns), var(--mnt-item-count), 4); } }
 }
