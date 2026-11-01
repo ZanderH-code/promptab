@@ -20,6 +20,19 @@ describe('profile v2 schema', () => {
     expect(parseProfileV2(profile)).toEqual(profile)
   })
 
+  it.each(['tile', 'list', 'minimal', 'card', 'icon-only'])('preserves the %s bookmark style and group source', style => {
+    const candidate = { ...profile, widgets: [{ id: 'links', type: 'bookmarks', area: 'links', order: 0, props: { style, source: 'favorites', showGroupTitles: false, maxColumns: 4 } }] }
+    expect(parseProfileV2(candidate).widgets[0].props).toEqual(candidate.widgets[0].props)
+  })
+
+  it('preserves explicit icon metadata through parsing', () => {
+    for (const iconMode of ['brand', 'lucide', 'emoji']) {
+      const item = { ...profile.bookmarks.groups[0].items[0], iconMode, iconName: iconMode === 'emoji' ? '🚀' : 'github', iconColorMode: 'accent' }
+      const candidate = { ...profile, bookmarks: { groups: [{ ...profile.bookmarks.groups[0], items: [item] }] } }
+      expect(parseProfileV2(candidate).bookmarks.groups[0].items[0]).toEqual(item)
+    }
+  })
+
   it('reports nested validation paths and a localizable message', () => {
     const invalid = structuredClone(profile)
     invalid.bookmarks.groups[0].items[0].url = 'javascript:alert(1)'

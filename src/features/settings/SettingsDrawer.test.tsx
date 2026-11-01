@@ -341,6 +341,22 @@ describe('SettingsDrawer grid drafts', () => {
   })
 })
 
+describe('SettingsDrawer bookmark settings', () => {
+  it('changes a bookmark widget style and source without changing other widgets', () => {
+    const profile = structuredClone(base)
+    const bookmarks = profile.widgets.find(widget => widget.type === 'bookmarks')!
+    const props = setup({ profile, initialSection: 'shortcuts' })
+    fireEvent.click(screen.getByRole('combobox', { name: 'Website style' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Icons only' }))
+    const styled = lastUpdate(props).next
+    expect(styled.widgets.find(widget => widget.id === bookmarks.id)?.props.style).toBe('icon-only')
+    expect(styled.widgets.filter(widget => widget.type !== 'bookmarks')).toEqual(profile.widgets.filter(widget => widget.type !== 'bookmarks'))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Bookmark source' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Quick links' }))
+    expect(lastUpdate(props).next.widgets.find(widget => widget.id === bookmarks.id)?.props.source).toBe(profile.bookmarks.groups[0].id)
+  })
+})
+
 describe('SettingsDrawer restore defaults', () => {
   it('restores a section from the default profile and keeps unrelated fields', async () => {
     const custom = structuredClone(base)

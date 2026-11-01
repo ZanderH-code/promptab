@@ -25,6 +25,14 @@ describe('v1 migration', () => {
     expect(profile.background.dim).toBe(68)
   })
 
+  it('retains brand icon metadata during legacy projection and migration', async () => {
+    const deps = dependencies()
+    const shortcut = { ...defaults.shortcuts[0], id: 'brand', iconMode: 'brand' as const, iconName: 'github', iconColorMode: 'custom' as const }
+    const profile = await migrateV1({ ...defaults, shortcuts: [shortcut] }, deps)
+    expect(profile.bookmarks.groups[0].items[0]).toMatchObject(shortcut)
+    expect((await projectV1(profile, deps)).settings.shortcuts[0]).toEqual(shortcut)
+  })
+
   it.each([
     ['stacked', false, ['overview', 'bookmarks'], ['overview', 'bookmarks']],
     ['stacked', true, ['bookmarks', 'overview'], ['bookmarks', 'overview']],

@@ -29,7 +29,7 @@ export const variableDeclSchema = z.discriminatedUnion('type', [
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
-  image: asset.optional(), iconMode: z.enum(['auto', 'text']).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
+  image: asset.optional(), iconMode: z.enum(['auto', 'text', 'brand', 'lucide', 'emoji']).optional(), iconName: z.string().max(100).optional(), iconColorMode: z.enum(['brand', 'accent', 'custom']).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
 })
 
 // Known props are typed; unknown props are tolerated so newer or AI-written packs still load.
@@ -59,7 +59,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
-    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional() }),
+    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional() }),
   }),
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),

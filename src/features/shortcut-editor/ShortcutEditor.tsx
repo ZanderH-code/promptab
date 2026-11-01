@@ -1,9 +1,10 @@
 import { Plus, X } from 'lucide-react'
-import { useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { validateImage } from '../../core/image'
 import type { Shortcut } from '../../core/model'
 import { toMessageRef, type MessageKey, type Translate } from '../../i18n'
 import { WebsiteIcon } from '../../widgets/WebsiteIcon'
+import { emojis, genericIcons, loadBrands, type BrandIcon } from '../../widgets/iconCatalog'
 
 type Props = {
   shortcut: Shortcut
@@ -20,7 +21,21 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
   const fileInput = useRef<HTMLInputElement>(null)
   const [localImage, setLocalImage] = useState(shortcut.image)
   const [status, setStatus] = useState<'loading' | 'found' | 'missing'>('missing')
-  const selected = shortcut.image ? 'upload' : shortcut.iconMode === 'text' ? 'text' : 'auto'
+  const [brands, setBrands] = useState<BrandIcon[]>([])
+  const [brandError, setBrandError] = useState(false)
+  const [query, setQuery] = useState('')
+  const selected = shortcut.image ? 'upload' : shortcut.iconMode || 'auto'
+  useEffect(() => {
+    let active = true
+    if (selected === 'brand') void loadBrands().then(value => { if (active) setBrands(value) }).catch(() => { if (active) setBrandError(true) })
+    return () => { active = false }
+  }, [selected])
+  function selectIcon(iconMode: 'brand' | 'lucide' | 'emoji', iconName: string) {
+    const colorMode = iconMode === 'brand' ? shortcut.iconColorMode || 'brand' : shortcut.iconColorMode === 'custom' ? 'custom' : 'accent'
+    const next = { ...shortcut, image: undefined, iconMode, iconName, iconColorMode: colorMode }
+    delete next.builtinIcon
+    onChange(next)
+  }
   const automatic = { ...shortcut, image: undefined, iconMode: 'auto' as const }
   const textIcon = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || 'A'
 
@@ -97,11 +112,24 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
               <span className="icon-choice-preview upload-preview">{localImage ? <img src={localImage} alt="" /> : <Plus size={24} strokeWidth={1.5} aria-hidden="true" />}</span>
               <span>{t('editor.iconUpload')}</span>
             </button>
+            {(['brand', 'lucide', 'emoji'] as const).map(mode => <button key={mode} type="button" className={'icon-choice ' + (selected === mode ? 'selected' : '')} aria-pressed={selected === mode} onClick={() => selectIcon(mode, mode === 'brand' ? 'github' : mode === 'lucide' ? 'globe' : '🌐')}>
+              <span className="icon-choice-preview auto-preview">{mode === 'brand' ? '◇' : mode === 'lucide' ? '✧' : '🌐'}</span>
+              <span>{mode === 'brand' ? t('editor.iconBrand') : mode === 'lucide' ? t('editor.iconLucide') : t('editor.iconEmoji')}</span>
+            </button>)}
           </div>
           <input ref={fileInput} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" onChange={event => { upload(event.target.files?.[0]); event.target.value = '' }} />
           <p className="icon-hint">{hint}</p>
           {selected === 'upload' && <button type="button" className="editor-link" onClick={() => fileInput.current?.click()}>{t('editor.changeImage')}</button>}
         </fieldset>
+        {selected === 'brand' && <div className="icon-picker">
+          <label className="stack">{t('editor.searchBrands')}<input value={query} onChange={event => setQuery(event.target.value)} /></label>
+          {brandError ? <p>{t('editor.brandError')}</p> : !brands.length ? <p>{t('editor.brandLoading')}</p> : <div className="icon-picker-results">
+            {brands.filter(brand => `${brand.title} ${brand.slug}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60).map(brand => <button type="button" key={brand.slug} aria-label={brand.title} aria-pressed={shortcut.iconName === brand.slug} onClick={() => selectIcon('brand', brand.slug)}><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={brand.path} /></svg><span>{brand.title}</span></button>)}
+          </div>}
+        </div>}
+        {selected === 'lucide' && <div className="icon-picker-results">{Object.entries(genericIcons).map(([name, Icon]) => <button type="button" key={name} aria-label={name} aria-pressed={shortcut.iconName === name} onClick={() => selectIcon('lucide', name)}><Icon size={24} aria-hidden="true" /><span>{name}</span></button>)}</div>}
+        {selected === 'emoji' && <div className="icon-picker-results">{emojis.map(emoji => <button type="button" key={emoji} aria-label={emoji} aria-pressed={shortcut.iconName === emoji} onClick={() => selectIcon('emoji', emoji)}>{emoji}</button>)}<label className="stack">{t('editor.iconEmoji')}<input value={shortcut.iconName || ''} onChange={event => selectIcon('emoji', event.target.value)} /></label></div>}
+        {(selected === 'brand' || selected === 'lucide') && <div className="text-icon-controls"><label>{t('editor.iconColor')}<select value={shortcut.iconColorMode || (selected === 'brand' ? 'brand' : 'accent')} onChange={event => onChange({ ...shortcut, iconColorMode: event.target.value as 'brand' | 'accent' | 'custom' })}>{selected === 'brand' && <option value="brand">{t('editor.colorBrand')}</option>}<option value="accent">{t('editor.colorAccent')}</option><option value="custom">{t('editor.colorCustom')}</option></select></label>{shortcut.iconColorMode === 'custom' && <input aria-label={t('editor.colorCustom')} type="color" value={shortcut.color} onChange={event => onChange({ ...shortcut, color: event.target.value })} />}</div>}
         {selected === 'text' && (
           <div className="text-icon-controls">
             <label className="stack">
