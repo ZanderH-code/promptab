@@ -67,7 +67,39 @@ export const widgetSchema = z.discriminatedUnion('type', [
 ])
 export type Widget = z.infer<typeof widgetSchema>
 
-const grid = z.object({ areas: z.array(nonempty).min(1), columns: z.array(nonempty).optional(), rows: z.array(nonempty).optional() })
+// Parse a deliberately small track grammar, with limits on input and recursion.
+function safeGridTrack(value: string): boolean {
+  if (value.length > 512) return false
+  let index = 0
+  const whitespace = () => { while (/\s/.test(value[index] ?? '') && index < value.length) index++ }
+  const parseTrack = (depth: number): boolean => {
+    whitespace()
+    if (depth > 4) return false
+    const rest = value.slice(index)
+    const atom = /^(?:\d*\.\d+|\d+)(?:fr|px|%)|^0(?![\w.%-])|^(?:auto|min-content|max-content)(?![\w-])/.exec(rest)
+    if (atom) { index += atom[0].length; return true }
+    const fn = /^(minmax|repeat)\(/.exec(rest)
+    if (!fn) return false
+    index += fn[0].length
+    whitespace()
+    if (fn[1] === 'repeat') {
+      const count = /^\d+/.exec(value.slice(index))
+      if (!count || Number(count[0]) < 1 || Number(count[0]) > 100) return false
+      index += count[0].length
+    } else if (!parseTrack(depth + 1)) return false
+    whitespace()
+    if (value[index++] !== ',') return false
+    if (!parseTrack(depth + 1)) return false
+    whitespace()
+    if (value[index++] !== ')') return false
+    return true
+  }
+  const valid = parseTrack(0)
+  whitespace()
+  return valid && index === value.length
+}
+const track = z.string().refine(safeGridTrack, { error: 'valid grid track size' })
+const grid = z.object({ areas: z.array(nonempty).min(1), columns: z.array(track).optional(), rows: z.array(track).optional() })
 const nineGrid = z.enum(['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'])
 const sideWidth = ranged({ min: 0, max: 16 })
 /** Look of one layout area: panel background, blur, full-bleed width and accent divider lines. */

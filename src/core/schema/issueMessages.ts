@@ -3,6 +3,7 @@ import type { Language } from '../../i18n'
 export type SchemaExpectationKey =
   | 'range'
   | 'non-empty'
+  | 'grid-track'
   | 'color'
   | 'date'
   | 'asset'
@@ -32,6 +33,7 @@ const translations: Record<Language, Record<SchemaExpectationKey, Translation>> 
   en: {
     range: p => `${p.kind} ${p.min}-${p.max}`,
     'non-empty': () => 'non-empty string',
+    'grid-track': () => 'valid grid track size',
     color: () => '#RRGGBB color',
     date: () => 'valid date',
     asset: () => 'mnt-asset:<64 hex>',
@@ -55,6 +57,7 @@ const translations: Record<Language, Record<SchemaExpectationKey, Translation>> 
   'zh-CN': {
     range: p => `${p.kind === 'integer' ? '整数' : '数字'} ${p.min}-${p.max}`,
     'non-empty': () => '非空字符串',
+    'grid-track': () => '有效的网格轨道尺寸',
     color: () => '#RRGGBB 颜色',
     date: () => '有效日期',
     asset: () => 'mnt-asset:<64 位十六进制字符>',
@@ -79,6 +82,7 @@ const translations: Record<Language, Record<SchemaExpectationKey, Translation>> 
 
 const exact: Record<string, SchemaExpectation> = {
   'non-empty string': { key: 'non-empty' },
+  'valid grid track size': { key: 'grid-track' },
   '#RRGGBB color': { key: 'color' },
   'valid date': { key: 'date' },
   'mnt-asset:<64 hex>': { key: 'asset' },

@@ -134,6 +134,22 @@ describe('profile v2 schema', () => {
     expect(bad(d => { d.layout.breakpoints = { medium: { areas: ['links'] } } })[0].expected).toContain('breakpoints.medium')
   })
 
+  it('accepts safe grid tracks and rejects unsafe or malformed tracks at every grid level', () => {
+    const valid = ['1fr', '0', '12.5px', '50%', 'auto', 'min-content', 'max-content', 'minmax(0, 1fr)', 'repeat(2, minmax(10px, 1fr))', 'repeat(100, 1fr)']
+    for (const track of valid) {
+      expect(profileIssues(mutate(d => { d.layout.columns = [track, '1fr']; d.layout.rows = [track] })), track).toEqual([])
+    }
+    const invalid = ['', '1fr; color:red', 'url(https://example.com)', 'var(--x)', 'calc(1px + 2px)', '-1fr', '12', '1fr 2fr', 'minmax(1fr)', 'minmax(1fr, 2fr, 3fr)', 'repeat(0, 1fr)', 'repeat(101, 1fr)', 'repeat(2.5, 1fr)', 'repeat(2,)', 'minmax(minmax(minmax(minmax(minmax(0, 1fr), 1fr), 1fr), 1fr), 1fr)']
+    for (const track of invalid) {
+      const candidate = mutate(d => { d.layout.columns = [track, '1fr']; d.layout.breakpoints = { narrow: { areas: ['clock', 'links'], rows: [track] } } })
+      const issues = profileIssues(candidate, 'zh-CN')
+      expect(issues, track).toEqual(expect.arrayContaining([
+        expect.objectContaining({ path: 'layout.columns.0', expected: '有效的网格轨道尺寸', value: track }),
+        expect.objectContaining({ path: 'layout.breakpoints.narrow.rows.0', expected: '有效的网格轨道尺寸', value: track }),
+      ]))
+    }
+  })
+
   it('localizes validation expectations while preserving issue details', () => {
     const issues = profileIssues(mutate(d => { d.theme.color.bg = 'blue'; d.theme.radius = 99 }), 'zh-CN')
     expect(issues).toHaveLength(2)
