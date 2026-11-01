@@ -33,7 +33,7 @@ export const zhCN = {
   'settings.open': '打开设置',
   'settings.close': '关闭设置',
   'settings.button': '设置',
-  'settings.kicker': 'MAKE IT YOURS',
+  'settings.kicker': '打造你的空间',
   'settings.title': '个性化设置',
   'settings.intro': '让这个空间更适合你。',
   'settings.language': '语言',

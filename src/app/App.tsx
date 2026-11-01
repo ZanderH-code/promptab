@@ -183,7 +183,6 @@ export default function App() {
         </div>
       )}
       <header className="mnt-header">
-        <span className="brand">MINIMAL <span className="brandmuted">/ NEW TAB</span></span>
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>
       <section className={`desktop layout-${s.layout} ${s.reverse ? 'layout-reverse' : ''}`}>
