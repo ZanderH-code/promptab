@@ -1,5 +1,18 @@
 import { expect, type Page } from '@playwright/test'
 
+/** Seeds a pre-existing v1 user before the app bootstraps, preserving upgrade-path defaults. */
+export async function seedExistingUser(page: Page, settings: Record<string, unknown> = {}) {
+  const legacy = {
+    schemaVersion: 1, language: 'zh-CN', theme: 'dark', accent: '#90d5cd', background: '#102932',
+    showClock: true, showDate: true, showSearch: true, hour12: false,
+    searchTemplate: 'https://www.google.com/search?q={query}',
+    shortcuts: [{ id: 'example', name: '示例网站', url: 'https://example.com', color: '#90d5cd', icon: '例' }],
+    columns: 6, iconSize: 72, iconShape: 'circle', alignment: 'center', layout: 'stacked', reverse: false, overlay: 35,
+    ...settings,
+  }
+  await page.addInitScript(value => localStorage.setItem('settings', JSON.stringify(value)), legacy)
+}
+
 /** Opens a settings tab by its accessible name (the drawer shows one tab at a time). */
 const TAB_LABELS = {
   appearance: ['外观', 'Appearance'], background: ['背景', 'Background'], layout: ['布局', 'Layout'],

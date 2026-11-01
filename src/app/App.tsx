@@ -1,4 +1,4 @@
-import { Check, Edit3, Plus, Settings as SettingsIcon, X } from 'lucide-react'
+import { Check, Plus, Settings as SettingsIcon, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
@@ -216,7 +216,6 @@ export default function App() {
       )}
       <header className="mnt-header">
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
-        {!editMode && <button className="edit-entry mnt-edit-entry" onClick={() => setEditMode(true)} aria-label={t('edit.enter')}><Edit3 size={18} aria-hidden="true" /></button>}
       </header>
       {editMode && <nav className="edit-toolbar" aria-label={t('edit.toolbar')}>
         <button type="button" onClick={() => setEditing(newShortcut('#b0a092'))}><Plus size={18} aria-hidden="true" />{t('shortcuts.add')}</button>
@@ -224,20 +223,18 @@ export default function App() {
         <button type="button" onClick={() => openSettings('widgets')}><Plus size={18} aria-hidden="true" />{t('edit.addWidget')}</button>
         <button type="button" onClick={() => setEditMode(false)}><Check size={18} aria-hidden="true" />{t('groups.done')}</button>
       </nav>}
-      {profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && profile.bookmarks.groups.every(group => group.items.length === 0) && <section className="onboarding-card" aria-labelledby="onboarding-title">
-        <div><span className="editor-kicker">{t('onboarding.kicker')}</span><h2 id="onboarding-title">{t('onboarding.title')}</h2><p>{t('onboarding.description')}</p></div>
-        <div className="onboarding-actions">
-          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); setEditing(newShortcut('#b0a092')) }}>{t('onboarding.add')}</button>
-          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); openSettings('data') }}>{t('onboarding.import')}</button>
-          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); openSettings('appearance') }}>{t('onboarding.theme')}</button>
-          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); openSettings('ai') }}>{t('onboarding.ai')}</button>
-        </div>
-      </section>}
       {profile && <ProfileWidgets
         profile={profile}
         language={s.language}
         shortcuts={s.shortcuts}
         editing={editMode || managingGroups}
+        onboarding={!!profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && profile.bookmarks.groups.every(group => group.items.length === 0)}
+        onOnboardingAction={action => {
+          localStorage.setItem('mnt:onboarding:dismissed', 'true')
+          setOnboardingDismissed(true)
+          if (action === 'add') setEditing(newShortcut('#b0a092'))
+          else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
+        }}
         onManageDone={() => { setEditMode(false); setManagingGroups(false) }}
         t={t}
         onError={setError}

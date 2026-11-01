@@ -45,7 +45,7 @@ describe('guard layer', () => {
     expect(sanitizeCss('.mnt-settings-entry { display: none !important; }').layered).toMatch(/^@layer user\s*\{/)
   })
 
-  it.each(['.mnt-settings-entry', '.mnt-edit-entry', '.mnt-header', '.mnt-banners', '.mnt-banner'])('keeps %s visible, clickable and in flow', selector => {
+  it.each(['.mnt-settings-entry', '.mnt-header', '.mnt-banners', '.mnt-banner'])('keeps %s visible, clickable and in flow', selector => {
     const properties = new Set(guard.filter(rule => rule.selectors.includes(selector)).flatMap(rule => [...rule.important.keys()]))
     for (const property of ['visibility', 'opacity', 'pointer-events']) expect(properties).toContain(property)
   })

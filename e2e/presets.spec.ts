@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openTab } from './helpers'
+import { openTab, seedExistingUser } from './helpers'
 
 /** Deterministic gradient wallpaper so wallpaper-dependent presets (Glass) show their material. */
 async function gradientWallpaper(page: Page) {
@@ -25,6 +25,7 @@ const presets = [
 ] as const
 
 test.beforeEach(async ({ page }) => {
+  await seedExistingUser(page)
   await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
   await page.route('**/favicon.ico', route => route.abort())
   await page.setViewportSize({ width: 1440, height: 900 })

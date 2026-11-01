@@ -57,17 +57,6 @@
     pointer-events: auto !important;
   }
 
-  .mnt-edit-entry {
-    display: inline-flex !important;
-    position: relative !important;
-    z-index: 2147483001 !important;
-    min-width: 32px !important;
-    min-height: 32px !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-
   .mnt-settings-entry {
     display: inline-flex !important;
     position: relative !important;

@@ -1,8 +1,9 @@
 import { test, expect } from '@playwright/test'
-import { openTab } from './helpers'
+import { openTab, seedExistingUser } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
+  await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await page.locator('.settings-button').click()

@@ -12,20 +12,17 @@
   .edit-toolbar button:hover, .edit-entry:hover { background: var(--mnt-accent-soft); }
   .edit-entry { width: 36px; padding: 0; }
   .onboarding-card {
-    position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
-    gap: 24px; width: min(846px, calc(100% - 48px)); margin: 0 auto 20px; padding: 24px 28px;
-    border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: var(--mnt-surface);
-    box-shadow: var(--mnt-elev-1);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 14px; width: 100%;
+    padding: 20px 22px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius);
+    background: var(--mnt-surface); box-shadow: var(--mnt-elev-1);
   }
-  .onboarding-card h2 { margin: 4px 0 6px; font-size: clamp(20px, 3vw, 30px); }
+  .onboarding-card h2 { margin: 4px 0 6px; font-size: var(--mnt-text-xl); font-weight: 500; }
   .onboarding-card p { margin: 0; color: var(--mnt-text-muted); }
-  .onboarding-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+  .onboarding-actions { display: flex; flex-wrap: wrap; gap: 8px; }
   .onboarding-actions button { min-height: 36px; padding: 0 12px; border: 1px solid var(--mnt-border-strong); border-radius: 999px; background: transparent; color: var(--mnt-text); cursor: pointer; white-space: nowrap; }
+  .onboarding-actions button[data-primary] { border-color: var(--mnt-accent); background: var(--mnt-accent); color: var(--mnt-on-accent); }
   .onboarding-actions button:hover, .onboarding-actions button:focus-visible { border-color: var(--mnt-accent); background: var(--mnt-accent-soft); }
-  @media (max-width: 720px) {
-    .onboarding-card { align-items: stretch; flex-direction: column; width: calc(100% - 32px); padding: 20px; }
-    .onboarding-actions { justify-content: flex-start; }
-  }
+  .onboarding-actions button[data-primary]:hover, .onboarding-actions button[data-primary]:focus-visible { background: var(--mnt-accent-strong); color: var(--mnt-on-accent); }
   .mnt-layout[data-edit-mode] .mnt-area { outline: 1px dashed var(--mnt-border-strong); outline-offset: 8px; position: relative; }
   .mnt-layout[data-edit-mode] .mnt-area::before { content: attr(data-area); position: absolute; top: -22px; left: 0; color: var(--mnt-text-muted); font-size: 11px; }
   .shortcut-actions { position: absolute; top: 4px; right: 4px; z-index: 2; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mnt-surface); box-shadow: var(--mnt-elev-1); opacity: 0; }

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { expectLocalizedSurface, openTab } from './helpers'
+import { expectLocalizedSurface, openTab, seedExistingUser } from './helpers'
 
 const GOOD_PACK = {
   kind: 'mnt.theme-pack',
@@ -15,6 +15,7 @@ const BAD_PACK = {
 const BAD_REPLY = `\n\`\`\`json\n${JSON.stringify(BAD_PACK)}\n\`\`\``
 
 async function open(page: Page) {
+  await seedExistingUser(page)
   await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
   await page.route('**/favicon.ico', route => route.abort())
   await page.setViewportSize({ width: 1440, height: 900 })

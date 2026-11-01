@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readdir, stat } from 'node:fs/promises'
 import { join } from 'node:path'
+import { seedExistingUser } from './helpers'
 
 async function addShortcut(page: Page, name: string) {
   await page.locator('.add-shortcut').click()
@@ -19,6 +20,7 @@ test('saved brand icons render without requesting the brand catalog chunk', asyn
   const brandChunk = sized.sort((a, b) => b.size - a.size)[0]
   const requests: string[] = []
   page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/' + brandChunk.name)) requests.push(request.url()) })
+  await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await page.evaluate(() => {
@@ -50,6 +52,7 @@ test('brand catalog loads on demand and chosen icons survive reload', async ({ p
   expect(brandChunk.size).toBeGreaterThan(1_000_000)
   const requests: string[] = []
   page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/' + brandChunk.name)) requests.push(request.url()) })
+  await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await addShortcut(page, 'Brand test')

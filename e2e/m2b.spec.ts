@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openTab } from './helpers'
+import { openTab, seedExistingUser } from './helpers'
 
 const BAD_PACK = {
   kind: 'mnt.theme-pack',
@@ -23,6 +23,7 @@ test.beforeEach(async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.route('**/favicon.ico', route => route.abort())
   await page.setViewportSize({ width: 1440, height: 900 })
+  await seedExistingUser(page)
   await page.goto('/')
   await expect(settingsEntry(page)).toBeVisible()
 })

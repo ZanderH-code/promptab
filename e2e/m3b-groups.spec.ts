@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test'
+import { seedExistingUser } from './helpers'
 
 async function setup(page: Page) {
+  await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await page.evaluate(() => {

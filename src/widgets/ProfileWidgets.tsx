@@ -9,7 +9,7 @@ import { formatClock, formatDate, greetingPeriod } from '../core/layout/formats'
 import { Search } from './Search'
 import { ShortcutGrid } from './ShortcutGrid'
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -52,7 +52,7 @@ function DateBlock({ widget, language }: { widget: Extract<Widget, {type:'date'}
 }
 
 export function ProfileWidgets(props: Props) {
-  const { profile, language, shortcuts, editing, t } = props
+  const { profile, language, shortcuts, editing, onboarding, t } = props
   const breakpoint = useBreakpoint()
   const grid = breakpoint === 'wide' ? { areas: profile.layout.areas, columns: profile.layout.columns, rows: profile.layout.rows } : profile.layout.breakpoints?.[breakpoint] ?? (breakpoint === 'narrow' ? profile.layout.breakpoints?.medium : undefined) ?? { areas: profile.layout.areas, columns: profile.layout.columns, rows: profile.layout.rows }
   const names = [...new Set(grid.areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))]
@@ -69,7 +69,7 @@ export function ProfileWidgets(props: Props) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)
           case 'search': return frame(<Search template={searchTemplate} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
-          case 'bookmarks': return frame(<ShortcutGrid groups={profile.bookmarks.groups} shortcuts={shortcuts} editing={editing} onManageDone={props.onManageDone} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} onGroups={props.onGroups} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
+          case 'bookmarks': return frame(<ShortcutGrid groups={profile.bookmarks.groups} shortcuts={shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} onManageDone={props.onManageDone} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} onGroups={props.onGroups} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
           case 'greeting': {
             const greeting = t(`greeting.${greetingPeriod(now.getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
             return frame(<div>{widget.props.name ? <span data-user-content>{t('greeting.withName', { greeting, name: widget.props.name })}</span> : greeting}</div>)

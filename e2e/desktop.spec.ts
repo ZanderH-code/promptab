@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openTab, setAccent } from './helpers'
+import { openTab, seedExistingUser, setAccent } from './helpers'
 import { readFile } from 'node:fs/promises'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
@@ -51,6 +51,7 @@ const v1Settings = (accent: string) => ({
 })
 
 async function open(page: Page) {
+  await seedExistingUser(page)
   await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
   await page.route('**/favicon.ico', route => route.abort())
   await page.goto('/')

@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test'
+import { seedExistingUser } from './helpers'
 
 const styles = ['tile', 'list', 'minimal', 'card', 'icon-only'] as const
 
 test('bookmark styles have mixed icon visual baselines', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
+  await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await page.evaluate(() => {

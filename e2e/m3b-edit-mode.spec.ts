@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test'
 
 test('desktop edit mode is separate from settings and can be toggled with E', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await expect(page.locator('.onboarding-card')).toBeVisible()
+  await expect(page.locator('.bookmarks .shortcuts-heading')).toHaveCount(0)
+  await expect(page.locator('.bookmarks .add-shortcut')).toHaveCount(0)
   await expect(page.locator('.shortcut')).toHaveCount(0)
+  await expect(page).toHaveScreenshot('onboarding-fresh-1440x900.png')
 
   await page.keyboard.press('e')
   await expect(page.locator('.edit-toolbar')).toBeVisible()
