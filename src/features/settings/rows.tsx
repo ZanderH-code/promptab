@@ -15,6 +15,7 @@ import { AiWorkbench } from './AiWorkbench'
 import { CssEditor } from './CssEditor'
 import { FontUpload } from './FontUpload'
 import { ProfileSection } from './ProfileSection'
+import { WallpaperContrast } from './WallpaperContrast'
 import { FONT_KEYS, PRESETS, applyPreset, colorsFor, contrastIssues, editTheme, fixedColors, isFontKey, thumbnailTokens, withColors, type BaseColors, type ThemeMode } from './themeApi'
 
 export const TABS = ['appearance', 'background', 'layout', 'widgets', 'shortcuts', 'search', 'style', 'ai', 'data', 'about'] as const
@@ -134,6 +135,7 @@ export function appearanceItems(ctx: Ctx): Item[] {
               <ul>{issues.map(issue => <li key={issue.id}><TriangleAlert size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.contrastPair', { fg: t(colorName[issue.fg]), bg: t(colorName[issue.bg]), ratio: issue.ratio.toFixed(1), min: issue.min })}</li>)}</ul>
               <button type="button" className="sd-button" onClick={() => change(p => touch({ ...p, theme: withColors(p.theme, mode, fixedColors(p.theme, mode)) }))}>{t('settings.contrastFix')}</button>
             </>}
+          <WallpaperContrast t={t} profile={profile} mode={mode} />
         </div>
       ),
     },

@@ -102,6 +102,7 @@ export const zhCN = {
   'settings.contrast': '对比度',
   'settings.contrastOk': '{mode}配色对比度达标',
   'settings.contrastFix': '一键修正对比度',
+  'settings.contrastWallpaper': '文字与压暗后的壁纸平均色对比度约 {ratio}:1，至少需要 {min}:1，可调整遮罩强度或文字颜色',
   'settings.contrastPair': '“{fg}”与“{bg}”的对比度为 {ratio}:1，至少需要 {min}:1',
   'settings.colorMuted': '次要文字',
   'settings.colorOnAccent': '强调色上的文字',

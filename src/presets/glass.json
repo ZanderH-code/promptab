@@ -5,7 +5,7 @@
     "en": "Glass"
   },
   "theme": {
-    "mode": "system",
+    "mode": "dark",
     "color": {
       "bg": "#14181f",
       "surface": "#1c222b",

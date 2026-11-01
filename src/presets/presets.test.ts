@@ -62,6 +62,8 @@ describe('preset registry', () => {
     expect(getPreset('contrast')!.theme.radius).toBe(6)
     expect(getPreset('glass')!.wallpaper).toMatchObject({ glass: 60 })
     expect(getPreset('glass')!.theme.radius).toBe(20)
+    expect(getPreset('glass')!.theme.mode).toBe('dark')
+    expect(getPreset('glass')!.wallpaper).toMatchObject({ dim: 40 })
   })
 })
 
@@ -166,7 +168,7 @@ describe('applyPreset', () => {
     expect(out.background.image).toEqual(profile.background.image)
     expect(out.theme.glass).toBe(glass.wallpaper!.glass)
     expect(out.background.dim).toBe(glass.wallpaper!.dim)
-    expect(out.theme.mode).toBe('system')
+    expect(out.theme.mode).toBe('dark')
   })
 
   it('Glass falls back safely without a wallpaper: no image mode and no see-through panels', () => {

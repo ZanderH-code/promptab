@@ -103,6 +103,7 @@ export const en: Record<MessageKey, string> = {
   'settings.contrast': 'Contrast',
   'settings.contrastOk': 'Contrast passes for the {mode} palette',
   'settings.contrastFix': 'Fix contrast',
+  'settings.contrastWallpaper': 'Text on the dimmed wallpaper averages about {ratio}:1; at least {min}:1 is needed. Adjust the dim or the text colour',
   'settings.contrastPair': '{fg} on {bg} is {ratio}:1; at least {min}:1 is needed',
   'settings.colorMuted': 'Muted text',
   'settings.colorOnAccent': 'Text on accent',
