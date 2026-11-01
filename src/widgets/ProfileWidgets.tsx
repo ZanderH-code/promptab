@@ -1,3 +1,4 @@
+import { Settings as SettingsIcon } from 'lucide-react'
 import { useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
 import type { ProfileV2, Widget } from '../core/schema/profile'
 import type { Settings, Shortcut } from '../core/model'
@@ -82,7 +83,7 @@ export function ProfileWidgets(props: Props) {
               ? <button type="button" key={action} aria-label={t('shortcuts.add')} onClick={() => props.onAdd()}><span aria-hidden="true">＋</span></button>
               : action === 'edit'
                 ? <button type="button" key={action} aria-label={t('edit.enter')} onClick={props.onEnterEditMode}><span aria-hidden="true">✎</span></button>
-                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : 'mnt-settings-entry'} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true">⚙</span></button>)}
+                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : 'mnt-settings-entry'} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true"><SettingsIcon size={20} strokeWidth={1.5} /></span></button>)}
           </div>)
         }
       })}

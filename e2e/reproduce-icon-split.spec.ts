@@ -60,6 +60,16 @@ test('a fresh install can reproduce the icon-split template through the UI', asy
     await expect(links.locator('svg path:first-child')).toHaveCount(8)
 
     const toolbar = page.locator('.mnt-widget-toolbar')
+    const toolbarButtons = toolbar.locator('button')
+    await expect(toolbarButtons).toHaveCount(3)
+    const buttonStyles = await toolbarButtons.evaluateAll(buttons => buttons.map(button => {
+      const style = getComputedStyle(button)
+      const bounds = button.getBoundingClientRect()
+      return { color: style.color, fontSize: style.fontSize, width: bounds.width, height: bounds.height }
+    }))
+    expect(buttonStyles.every(style => style.color === buttonStyles[0].color && style.fontSize === '20px' && style.width === 32 && style.height === 32)).toBe(true)
+    await expect(toolbar.locator('.mnt-settings-entry svg')).toHaveAttribute('width', '20')
+    await expect(toolbar.locator('.mnt-settings-entry svg')).toHaveAttribute('height', '20')
     const centers = await toolbar.evaluate(element => {
       const bounds = element.getBoundingClientRect()
       const buttons = [...element.querySelectorAll('button')].map(button => {

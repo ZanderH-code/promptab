@@ -42,7 +42,7 @@ Latest verification: 31 unit tests and 11 Playwright tests pass, as do TypeScrip
 | Complete keyboard operation | Partial existing support; full keyboard acceptance and closing all overlays remain unverified, edit-mode work belongs to M3 |
 | Reduced motion / transparency | Existing reduced-motion CSS retained; no glass effect implemented; dedicated preference checks remain unverified |
 | Chinese / English without truncation or jumps | Switching and overflow checked at 400px; exhaustive settings-text inspection remains unverified |
-| Local first visible frame under 100ms | Not measured; performance work belongs to M5 |
+| Local first visible frame under 100ms | Measured in Playwright 1.64.1 on Windows 11 Chromium: fresh-profile app frame 103.5–122.5ms across three contexts; existing-profile cold/warm frames 46.5–52.4ms. The cold fresh-profile target remains unmet in this environment |
 
 ## Outstanding issues
 
