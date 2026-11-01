@@ -27,7 +27,7 @@ describe('profile v2 schema', () => {
 
   it('preserves explicit icon metadata through parsing', () => {
     for (const iconMode of ['brand', 'lucide', 'emoji']) {
-      const item = { ...profile.bookmarks.groups[0].items[0], iconMode, iconName: iconMode === 'emoji' ? '🚀' : 'github', iconColorMode: 'accent' }
+      const item = { ...profile.bookmarks.groups[0].items[0], iconMode, iconName: iconMode === 'emoji' ? '🚀' : 'github', iconColorMode: 'accent', ...(iconMode === 'brand' ? { brand: { slug: 'github', title: 'GitHub', path: 'M12 2 2 12 12 22 22 12Z', hex: '181717' } } : {}) }
       const candidate = { ...profile, bookmarks: { groups: [{ ...profile.bookmarks.groups[0], items: [item] }] } }
       expect(parseProfileV2(candidate).bookmarks.groups[0].items[0]).toEqual(item)
     }

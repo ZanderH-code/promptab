@@ -24,15 +24,18 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
   const [brands, setBrands] = useState<BrandIcon[]>([])
   const [brandError, setBrandError] = useState(false)
   const [query, setQuery] = useState('')
+  const [searchActive, setSearchActive] = useState(false)
   const selected = shortcut.image ? 'upload' : shortcut.iconMode || 'auto'
   useEffect(() => {
     let active = true
-    if (selected === 'brand') void loadBrands().then(value => { if (active) setBrands(value) }).catch(() => { if (active) setBrandError(true) })
+    if (selected === 'brand' && searchActive && brands.length === 0) void loadBrands().then(value => { if (active) setBrands(value) }).catch(() => { if (active) setBrandError(true) })
     return () => { active = false }
-  }, [selected])
-  function selectIcon(iconMode: 'brand' | 'lucide' | 'emoji', iconName: string) {
+  }, [selected, searchActive, brands.length])
+  function selectIcon(iconMode: 'brand' | 'lucide' | 'emoji', iconName: string, brand?: BrandIcon) {
     const colorMode = iconMode === 'brand' ? shortcut.iconColorMode || 'brand' : shortcut.iconColorMode === 'custom' ? 'custom' : 'accent'
     const next = { ...shortcut, image: undefined, iconMode, iconName, iconColorMode: colorMode }
+    if (brand) next.brand = { slug: brand.slug, title: brand.title, path: brand.path, hex: brand.hex }
+    else if (iconMode !== 'brand') delete next.brand
     delete next.builtinIcon
     onChange(next)
   }
@@ -122,9 +125,9 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
           {selected === 'upload' && <button type="button" className="editor-link" onClick={() => fileInput.current?.click()}>{t('editor.changeImage')}</button>}
         </fieldset>
         {selected === 'brand' && <div className="icon-picker">
-          <label className="stack">{t('editor.searchBrands')}<input value={query} onChange={event => setQuery(event.target.value)} /></label>
-          {brandError ? <p>{t('editor.brandError')}</p> : !brands.length ? <p>{t('editor.brandLoading')}</p> : <div className="icon-picker-results">
-            {brands.filter(brand => `${brand.title} ${brand.slug}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60).map(brand => <button type="button" key={brand.slug} aria-label={brand.title} aria-pressed={shortcut.iconName === brand.slug} onClick={() => selectIcon('brand', brand.slug)}><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={brand.path} /></svg><span>{brand.title}</span></button>)}
+          <label className="stack">{t('editor.searchBrands')}<input value={query} onFocus={() => setSearchActive(true)} onChange={event => { setQuery(event.target.value); setSearchActive(true) }} /></label>
+          {brandError ? <p>{t('editor.brandError')}</p> : !searchActive ? null : !brands.length ? <p>{t('editor.brandLoading')}</p> : <div className="icon-picker-results">
+            {brands.filter(brand => `${brand.title} ${brand.slug}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 60).map(brand => <button type="button" key={brand.slug} aria-label={brand.title} aria-pressed={shortcut.iconName === brand.slug} onClick={() => selectIcon('brand', brand.slug, brand)}><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={brand.path} /></svg><span>{brand.title}</span></button>)}
           </div>}
         </div>}
         {selected === 'lucide' && <div className="icon-picker-results">{Object.entries(genericIcons).map(([name, Icon]) => <button type="button" key={name} aria-label={name} aria-pressed={shortcut.iconName === name} onClick={() => selectIcon('lucide', name)}><Icon size={24} aria-hidden="true" /><span>{name}</span></button>)}</div>}

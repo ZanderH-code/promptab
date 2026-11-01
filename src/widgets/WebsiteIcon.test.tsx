@@ -11,9 +11,9 @@ it('renders a selected Lucide icon instead of its stored identifier', () => {
   expect(screen.queryByText('lucide:house')).toBeNull()
 })
 
-it('loads and renders a selected brand icon', async () => {
-  const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconName: 'github' } as never} />)
-  await waitFor(() => expect(container.querySelector('svg path')).toBeTruthy())
+it('renders a saved brand path without loading the catalog', async () => {
+  const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconName: 'github', brand: { slug: 'github', title: 'GitHub', path: 'M12 2 2 12 12 22 22 12Z', hex: '181717' } } as never} />)
+  expect(container.querySelector('svg path')?.getAttribute('d')).toBe('M12 2 2 12 12 22 22 12Z')
 })
 
 it('keeps plain text and emoji icons unchanged', () => {

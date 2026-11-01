@@ -10,6 +10,7 @@ export type Shortcut = {
   iconMode?: 'auto' | 'text' | 'brand' | 'lucide' | 'emoji'
   iconName?: string
   iconColorMode?: 'brand' | 'accent' | 'custom'
+  brand?: { slug: string; title: string; path: string; hex: string }
   /** Stable identities for generated built-in labels; absent means literal user content. */
   builtinName?: 'sample-website'
   builtinIcon?: 'sample-website'
@@ -93,6 +94,12 @@ function isValidShortcut(shortcut: Shortcut, seenIds: Set<string>) {
   if (shortcut.iconMode !== undefined && !['auto', 'text', 'brand', 'lucide', 'emoji'].includes(shortcut.iconMode)) return false
   if (shortcut.iconName !== undefined && (typeof shortcut.iconName !== 'string' || shortcut.iconName.length > 100)) return false
   if (shortcut.iconColorMode !== undefined && !['brand', 'accent', 'custom'].includes(shortcut.iconColorMode)) return false
+  if (shortcut.brand && (
+    typeof shortcut.brand.slug !== 'string' || shortcut.brand.slug.length > 100 || !shortcut.brand.slug.trim() ||
+    typeof shortcut.brand.title !== 'string' || shortcut.brand.title.length > 100 || !shortcut.brand.title.trim() ||
+    typeof shortcut.brand.path !== 'string' || !/^[MmZzLlHhVvCcSsQqTtAa0-9eE+.,\s-]{1,8192}$/.test(shortcut.brand.path) ||
+    typeof shortcut.brand.hex !== 'string' || !/^[\da-f]{6}$/i.test(shortcut.brand.hex)
+  )) return false
   if (shortcut.builtinName !== undefined && shortcut.builtinName !== 'sample-website') return false
   if (shortcut.builtinIcon !== undefined && shortcut.builtinIcon !== 'sample-website') return false
   if (shortcut.builtinGroup !== undefined && shortcut.builtinGroup !== 'quick-links') return false

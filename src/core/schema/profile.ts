@@ -29,7 +29,7 @@ export const variableDeclSchema = z.discriminatedUnion('type', [
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
-  image: asset.optional(), iconMode: z.enum(['auto', 'text', 'brand', 'lucide', 'emoji']).optional(), iconName: z.string().max(100).optional(), iconColorMode: z.enum(['brand', 'accent', 'custom']).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
+  image: asset.optional(), iconMode: z.enum(['auto', 'text', 'brand', 'lucide', 'emoji']).optional(), iconName: z.string().max(100).optional(), iconColorMode: z.enum(['brand', 'accent', 'custom']).optional(), brand: z.object({ slug: nonempty.max(100), title: nonempty.max(100), path: z.string().min(1).max(8192).regex(/^[MmZzLlHhVvCcSsQqTtAa0-9eE+.,\s-]+$/, { error: 'SVG path data' }), hex: z.string().regex(/^[\da-f]{6}$/i, { error: 'six-digit hex color' }) }).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
 })
 
 // Known props are typed; unknown props are tolerated so newer or AI-written packs still load.
