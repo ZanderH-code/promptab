@@ -86,9 +86,18 @@ describe('backup core', () => {
     key(() => parseBackup(JSON.stringify({ kind: 'mnt.backup', backupVersion: 2 })), 'error.backupVersion')
   })
 
+  it('keeps validation details localizable', () => {
+    try {
+      parseBackup(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, settings: { ...defaults, columns: 99 } }))
+      throw new Error('expected validation failure')
+    } catch (error) {
+      expect(error).toMatchObject({ key: 'error.settingsInvalid' })
+    }
+  })
+
   it('rejects invalid settings', () => {
-    key(() => parseBackup(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, settings: { ...defaults, columns: 99 } })), 'error.backupSettings')
-    key(() => parseBackup(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, settings: null })), 'error.backupSettings')
+    key(() => parseBackup(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, settings: { ...defaults, columns: 99 } })), 'error.settingsInvalid')
+    key(() => parseBackup(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, settings: null })), 'error.settingsInvalid')
   })
 
   it('rejects invalid wallpaper MIME, malformed base64 and oversized data', async () => {

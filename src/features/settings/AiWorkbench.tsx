@@ -34,7 +34,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
   const candidates = useMemo(() => extractCandidates(state.reply), [state.reply])
   const pick = Math.min(state.pick, Math.max(0, candidates.length - 1))
   const candidate = candidates[pick]
-  const analysis = useMemo(() => (candidate ? analyzeCandidate(candidate, active) : null), [candidate, active])
+  const analysis = useMemo(() => (candidate ? analyzeCandidate(candidate, active, ctx.s.language) : null), [candidate, active, ctx.s.language])
   const chosen = analysis?.pack ? PACK_PARTS.filter(part => analysis.parts[part] && !state.skip[part]) : []
   const canApply = !!analysis?.pack && chosen.length > 0
 
@@ -88,7 +88,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
       <section className="sd-ai-step" aria-labelledby="ai-step2">
         <h4 id="ai-step2">{t('ai.step2')}</h4>
         <textarea
-          className="sd-code" aria-label={t('ai.reply')} value={state.reply} rows={10} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off"
+          className="sd-code" data-user-content aria-label={t('ai.reply')} value={state.reply} rows={10} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off"
           placeholder={t('ai.replyPlaceholder')} onChange={event => edit({ reply: event.target.value, pick: 0 })}
         />
         <div className="sd-css-actions">
@@ -118,7 +118,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
               {analysis.problems.length > 0 && (
                 <div className="sd-ai-group" data-kind="problem" role="alert">
                   <strong>{t('ai.problems', { count: analysis.problems.length })}</strong>
-                  <ul>{analysis.problems.map((problem, index) => <li key={index}>{problemText(t, problem)}</li>)}</ul>
+                  <ul>{analysis.problems.map((problem, index) => <li key={index}>{problemText(t, problem, ctx.s.language)}</li>)}</ul>
                 </div>
               )}
               {analysis.warnings.length > 0 && (
@@ -140,7 +140,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
 
               <div className="sd-css-actions">
                 {analysis.problems.length > 0 && (
-                  <button type="button" className="sd-button" onClick={() => void copy(buildErrorFeedback(t, analysis.problems), 'ai.copied')}>{t('ai.copyErrors')}</button>
+                  <button type="button" className="sd-button" onClick={() => void copy(buildErrorFeedback(t, analysis.problems, ctx.s.language), 'ai.copied')}>{t('ai.copyErrors')}</button>
                 )}
                 {analysis.pack && (
                   <>

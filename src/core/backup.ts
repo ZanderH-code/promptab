@@ -1,4 +1,4 @@
-import { MessageError, translate } from '../i18n'
+import { MessageError } from '../i18n'
 import { loadSettings, saveSettings, readRawSettings, restoreRawSettings, type RawSettings } from '../storage/settings'
 import { readWallpaper, writeWallpaper } from '../storage/wallpaper'
 import { validate, type Settings } from './model'
@@ -42,8 +42,7 @@ function checkedSettings(value: unknown): Settings {
   try {
     settings = validate(value)
   } catch (error) {
-    const detail = error instanceof MessageError ? translate('en', error.key, error.params) : translate('en', 'error.settingsInvalid')
-    throw new MessageError('error.backupSettings', { detail })
+    throw error instanceof MessageError ? error : new MessageError('error.settingsInvalid')
   }
   if (settings.wallpaper !== undefined) decodeWallpaper(settings.wallpaper)
   return settings
@@ -56,7 +55,7 @@ export function parseBackup(json: string): ParsedBackup {
   if (!('backupVersion' in value) || value.backupVersion !== 1) throw new MessageError('error.backupVersion')
   const record = value as Record<string, unknown>
   const settings = checkedSettings(record.settings)
-  if (typeof record.exportedAt !== 'string' || !Number.isFinite(Date.parse(record.exportedAt))) throw new MessageError('error.backupFile')
+  if (typeof record.exportedAt !== 'string' || !Number.isFinite(Date.parse(record.exportedAt))) throw new MessageError('error.settingsInvalid')
   const wallpaper = record.wallpaper === undefined ? undefined : decodeWallpaper(record.wallpaper)
   return { exportedAt: record.exportedAt, settings, wallpaper }
 }

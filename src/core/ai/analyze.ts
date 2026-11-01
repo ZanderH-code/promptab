@@ -1,8 +1,10 @@
 import type { z } from 'zod'
+import type { Language } from '../../i18n'
 import { CSS_API_CLASSES } from '../css/api'
 import { sanitizeCss, type CssIssue } from '../css/sanitize'
 import { isAssetFont, isFontKey } from '../font'
 import { profileIssues, type ProfileIssue, type ProfileV2 } from '../schema/profile'
+import { localizeIssue } from '../schema/issueMessages'
 import { themeColorsFor, type ThemeMode } from '../tokens/derive'
 import { checkTheme, type CheckId } from '../tokens/quality'
 import { applyPack } from './apply'
@@ -84,14 +86,17 @@ function themeWarnings(merged: ProfileV2, pack: AiPack): Warning[] {
  * Reads one candidate from an AI reply and judges it against the current profile: repairs small slips,
  * validates field by field, checks the stylesheet, then adds quality warnings. Pure, so it can re-run on every edit.
  */
-export function analyzeCandidate(candidate: Candidate, profile: ProfileV2): Analysis {
+export function analyzeCandidate(candidate: Candidate, profile: ProfileV2, language?: Language): Analysis {
   const reading = readCandidate(candidate)
   if (!reading.ok) return { fixes: [], problems: reading.problems.map(problem => ({ kind: 'syntax', ...problem })), warnings: [], parts: NO_PARTS }
 
   const { value, fixes } = autoFix(reading.value)
   const warnings: Warning[] = unknownKeys(value).map(path => ({ kind: 'unknown-key', path }))
   const parsed = aiPackSchema.safeParse(value)
-  if (!parsed.success) return { fixes, problems: parsed.error.issues.map(issue => fieldProblem(describe(value, issue))), warnings, parts: NO_PARTS }
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map(issue => describe(value, issue))
+    return { fixes, problems: (language ? issues.map(issue => localizeIssue(issue, language)) : issues).map(fieldProblem), warnings, parts: NO_PARTS }
+  }
 
   const pack = parsed.data
   const parts = partsOf(pack)
@@ -102,7 +107,7 @@ export function analyzeCandidate(candidate: Candidate, profile: ProfileV2): Anal
     for (const issue of result.errors) problems.push({ kind: 'css', issue })
   }
   const merged = applyPack(profile, pack)
-  if (!problems.length) for (const issue of profileIssues(merged)) problems.push(fieldProblem(issue))
+  if (!problems.length) for (const issue of profileIssues(merged, language)) problems.push(fieldProblem(issue))
   if (problems.length) return { fixes, problems, warnings, parts }
   return { fixes, problems, warnings: [...warnings, ...themeWarnings(merged, pack), ...cssWarnings(pack)], pack, parts }
 }

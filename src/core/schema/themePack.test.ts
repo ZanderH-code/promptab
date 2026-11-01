@@ -45,8 +45,18 @@ describe('themePackSchema', () => {
     expect(themePackSchema.safeParse({ ...pack, minContrast: 3 }).success).toBe(false)
   })
 
-  it('lists issues with paths for feedback', () => {
-    const issues = themePackIssues({ ...pack, theme: { ...pack.theme, radius: 99 } })
-    expect(issues[0].path).toBe('theme.radius')
+  it('localizes every expectation without changing paths or values', () => {
+    const invalid = {
+      ...pack,
+      id: 'Bad ID',
+      theme: { ...pack.theme, radius: 99, color: { ...pack.theme.color, bg: 'red' } },
+      background: { type: 'gradient' },
+    }
+    const english = themePackIssues(invalid, 'en')
+    const chinese = themePackIssues(invalid, 'zh-CN')
+    expect(chinese).toHaveLength(english.length)
+    expect(chinese.map(issue => ({ path: issue.path, value: issue.value }))).toEqual(english.map(issue => ({ path: issue.path, value: issue.value })))
+    expect(chinese.map(issue => issue.expected)).not.toEqual(english.map(issue => issue.expected))
+    expect(chinese.find(issue => issue.path === 'theme.radius')?.expected).toContain('数字')
   })
 })

@@ -24,6 +24,11 @@ describe('v2 backups', () => {
     expect(await result.assets[0].blob.arrayBuffer()).toEqual(await input.assets[0].blob.arrayBuffer())
   })
 
+  it('distinguishes malformed JSON from invalid backup structure', async () => {
+    await expect(parseBackupV2('{')).rejects.toMatchObject({ key: 'error.backupFile' })
+    await expect(parseBackupV2('{}')).rejects.toMatchObject({ key: 'error.settingsInvalid' })
+  })
+
   it('rejects corrupted files, unknown fields and versions', async () => {
     const value = JSON.parse(await serializeBackupV2(await fixture()))
     for (const bad of ['{', JSON.stringify({ ...value, backupVersion: 3 }), JSON.stringify({ ...value, history: [] }), JSON.stringify({ ...value, kind: 'other' }), JSON.stringify({ ...value, exportedAt: 'no' })]) await expect(parseBackupV2(bad)).rejects.toThrow()
@@ -46,6 +51,6 @@ describe('v2 backups', () => {
     await expect(serializeBackupV2({ ...(await fixture()), assets: [{ id, blob: new Blob([new Uint8Array(MAX_BACKUP_ASSET_BYTES + 1)], { type: 'image/png' }) }] })).rejects.toThrow()
     const full = 'A'.repeat(MAX_BACKUP_ASSET_BYTES / 3 * 4 + 4 - (MAX_BACKUP_ASSET_BYTES / 3 * 4 + 4) % 4)
     const many = Array.from({ length: Math.floor(MAX_BACKUP_TOTAL_ASSET_BYTES / MAX_BACKUP_ASSET_BYTES) + 1 }, (_, i) => ({ id: i.toString(16).padStart(64, '0'), mime: 'image/png', base64: full }))
-    await expect(parseBackupV2(JSON.stringify({ ...value, assets: many }))).rejects.toThrow(/total size/)
+    await expect(parseBackupV2(JSON.stringify({ ...value, assets: many }))).rejects.toMatchObject({ key: 'error.settingsInvalid' })
   })
 })

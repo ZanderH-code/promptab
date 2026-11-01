@@ -98,6 +98,16 @@ describe('analyzeCandidate', () => {
     expect(fixed.pack).toBeDefined()
   })
 
+  it('localizes every schema expectation while preserving field paths and values', () => {
+    const faulty = fence('json', JSON.stringify({ kind: 'mnt.theme-pack', theme: { mode: 'sepia', radius: 400, color: { bg: 'not-a-colour' } }, background: { type: 'gradient' } }))
+    const english = analyzeCandidate(extractCandidates(faulty)[0], profile, 'en')
+    const chinese = analyzeCandidate(extractCandidates(faulty)[0], profile, 'zh-CN')
+    expect(chinese.problems).toHaveLength(english.problems.length)
+    expect(chinese.problems.map(problem => problem.kind === 'field' ? { path: problem.path, value: problem.value } : problem)).toEqual(english.problems.map(problem => problem.kind === 'field' ? { path: problem.path, value: problem.value } : problem))
+    const radiusProblem = chinese.problems.find(problem => problem.kind === 'field' && problem.path === 'theme.radius')
+    expect(radiusProblem && radiusProblem.kind === 'field' ? radiusProblem.expected : '').toContain('数字')
+  })
+
   it('rejects stylesheets the sanitizer rejects, with a position', () => {
     const analysis = analyze(fence('json', JSON.stringify({ kind: 'mnt.theme-pack', css: '@import url(https://evil.example/x.css);\n.mnt-clock { color: red }' })))
     expect(analysis.problems.some(p => p.kind === 'css')).toBe(true)

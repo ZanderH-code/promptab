@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { MessageError } from '../../i18n'
+import { MessageError, type Language } from '../../i18n'
+import { localizeIssue } from './issueMessages'
 import { isHttpUrl } from '../model'
 import { DEFAULT_DIM, RANGES } from './defaults'
 
@@ -27,7 +28,7 @@ export const variableDeclSchema = z.discriminatedUnion('type', [
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
-  image: asset.optional(), iconMode: z.enum(['auto', 'text']).optional(),
+  image: asset.optional(), iconMode: z.enum(['auto', 'text']).optional(), builtinName: z.literal('sample-website').optional(),
 })
 
 // Known props are typed; unknown props are tolerated so newer or AI-written packs still load.
@@ -52,7 +53,7 @@ const backgroundImage = z.object({
 
 export const profileV2Schema = z.object({
   schemaVersion: z.literal(2),
-  meta: z.object({ id: nonempty, name: nonempty, createdAt: date, updatedAt: date }),
+  meta: z.object({ id: nonempty, name: nonempty, builtinName: z.literal('default-profile').optional(), createdAt: date, updatedAt: date }),
   prefs: z.object({ language: z.enum(['system', 'zh-CN', 'en']), openIn: z.enum(['same-tab', 'new-tab']), reduceMotion: z.enum(['system', 'on', 'off']), reduceTransparency: z.enum(['system', 'on', 'off']) }),
   theme: z.object({
     preset: nonempty.optional(), mode: z.enum(['dark', 'light', 'system']), color: baseColorsSchema, colorLight: baseColorsSchema.optional(),
@@ -117,14 +118,20 @@ function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
 }
 
 /** Every validation problem in a candidate profile (empty when valid), for feedback to a person or an AI. */
-export function profileIssues(value: unknown): ProfileIssue[] {
+export function profileIssues(value: unknown, language?: Language): ProfileIssue[] {
   const result = profileV2Schema.safeParse(value)
-  return result.success ? [] : result.error.issues.map(issue => describe(value, issue))
+  return result.success ? [] : result.error.issues.map(issue => {
+    const described = describe(value, issue)
+    return language ? localizeIssue(described, language) : described
+  })
 }
 
 /** Parse a profile or throw a localizable error with the first invalid path. */
-export function parseProfileV2(value: unknown): ProfileV2 {
+export function parseProfileV2(value: unknown, language?: Language): ProfileV2 {
   const result = profileV2Schema.safeParse(value)
-  if (!result.success) throw new MessageError('error.profileValidation', { ...describe(value, result.error.issues[0]) })
+  if (!result.success) {
+    const described = describe(value, result.error.issues[0])
+    throw new MessageError('error.profileValidation', { ...(language ? localizeIssue(described, language) : described) })
+  }
   return result.data
 }
