@@ -8,6 +8,10 @@ export type Shortcut = {
   icon: string
   image?: string
   iconMode?: 'auto' | 'text'
+  /** Stable identities for generated built-in labels; absent means literal user content. */
+  builtinName?: 'sample-website'
+  builtinIcon?: 'sample-website'
+  builtinGroup?: 'quick-links'
 }
 
 export type Settings = {
@@ -85,6 +89,9 @@ function isValidShortcut(shortcut: Shortcut, seenIds: Set<string>) {
   if (typeof shortcut.color !== 'string' || !HEX_COLOR.test(shortcut.color)) return false
   if (typeof shortcut.url !== 'string' || !isHttpUrl(shortcut.url)) return false
   if (shortcut.iconMode !== undefined && !['auto', 'text'].includes(shortcut.iconMode)) return false
+  if (shortcut.builtinName !== undefined && shortcut.builtinName !== 'sample-website') return false
+  if (shortcut.builtinIcon !== undefined && shortcut.builtinIcon !== 'sample-website') return false
+  if (shortcut.builtinGroup !== undefined && shortcut.builtinGroup !== 'quick-links') return false
   if (shortcut.image !== undefined) {
     return typeof shortcut.image === 'string' && IMAGE_DATA_URL.test(shortcut.image) && shortcut.image.length <= MAX_ICON_DATA_URL
   }

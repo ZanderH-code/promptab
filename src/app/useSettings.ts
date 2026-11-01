@@ -94,7 +94,10 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Pro
   }
   if (changes.searchTemplate !== undefined) {
     const engine = p.search.engines.find(item => item.id === p.search.defaultEngineId)
-    if (engine) engine.template = changes.searchTemplate
+    if (engine) {
+      engine.template = changes.searchTemplate
+      delete engine.builtinName
+    }
     else { const id = crypto.randomUUID(); p.search.engines.push({ id, name: 'Search', template: changes.searchTemplate }); p.search.defaultEngineId = id }
   }
   if (changes.overlay !== undefined) p.background.dim = changes.overlay

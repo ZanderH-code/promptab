@@ -38,11 +38,13 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
     if (!file) return
     setBusy(true)
     setStatus(null)
+    let fallback: MessageKey = 'error.backupFile'
     try {
       const json = await file.text()
       const { persistence } = createAppProfileStorage()
       const service = createBackupV2Service({ profiles: persistence, assets })
       const expectedRevision = recovery ? null : store?.getState().revision ?? revision
+      fallback = 'error.loadSettings'
       const analysis = await service.analyzeBackup(json, expectedRevision, recovery)
       const count = analysis.format === 1
         ? JSON.parse(json).settings.shortcuts.length
@@ -67,11 +69,12 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
         assets: analysis.assetCount,
       })}` : ''))
       if (!accepted) return
+      fallback = 'error.saveSettings'
       if (recovery) await persistence.recover()
       await service.importBackup(json, expectedRevision)
       window.location.reload()
     } catch (error) {
-      onError(toMessageRef(error, 'error.backupFile'))
+      onError(toMessageRef(error, fallback))
     } finally {
       setBusy(false)
       if (fileInput.current) fileInput.current.value = ''

@@ -45,6 +45,13 @@ describe('v2 settings integration', () => {
     expect(hook.result.current.profile!.theme.color.accent).toBe(defaults.accent)
   })
 
+  it('clears the migrated custom engine label when its template is edited', async () => {
+    const hook = await setup()
+    act(() => hook.result.current.patch({ searchTemplate: 'https://another.example/?q={query}' }))
+    await waitFor(() => expect(hook.result.current.profile!.search.engines[0].template).toBe('https://another.example/?q={query}'))
+    expect(hook.result.current.profile!.search.engines[0].builtinName).toBeUndefined()
+  })
+
   it('keeps migrated split order and changes reverse consistently', async () => {
     const hook = await setup(true)
     expect(hook.result.current.settings!.reverse).toBe(defaults.reverse)

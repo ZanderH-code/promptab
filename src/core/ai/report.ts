@@ -1,4 +1,5 @@
-import type { MessageKey, Translate } from '../../i18n'
+import type { Language, MessageKey, Translate } from '../../i18n'
+import { localizeIssue } from '../schema/issueMessages'
 import { cssIssueText } from '../css/messages'
 import type { Problem, Warning } from './analyze'
 import type { Fix } from './fix'
@@ -6,7 +7,8 @@ import type { Fix } from './fix'
 const SHOWN_VALUE = 60
 const short = (value: string) => (value.length > SHOWN_VALUE ? value.slice(0, SHOWN_VALUE - 1) + '…' : value)
 
-export function problemText(t: Translate, problem: Problem): string {
+export function problemText(t: Translate, problem: Problem, language?: Language): string {
+  if (language && problem.kind === 'field') problem = { ...problem, ...localizeIssue(problem, language) }
   switch (problem.kind) {
     case 'syntax': return t('ai.problem.syntax', { line: problem.line, column: problem.column, message: problem.message })
     case 'field': return t('ai.problem.field', { path: problem.path, expected: problem.expected, value: short(problem.value) })
@@ -38,7 +40,7 @@ export function fixText(t: Translate, fix: Fix): string {
 }
 
 /** The message a person pastes back to the AI so it can repair its own reply: every problem, numbered, then the ask. */
-export function buildErrorFeedback(t: Translate, problems: readonly Problem[]): string {
-  const lines = problems.map((problem, index) => `${index + 1}. ${problemText(t, problem)}`)
+export function buildErrorFeedback(t: Translate, problems: readonly Problem[], language?: Language): string {
+  const lines = problems.map((problem, index) => `${index + 1}. ${problemText(t, problem, language)}`)
   return [t('ai.feedback.intro'), '', ...lines, '', t('ai.feedback.outro')].join('\n') + '\n'
 }

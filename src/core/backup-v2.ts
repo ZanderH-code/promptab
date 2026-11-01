@@ -1,3 +1,4 @@
+import { MessageError } from '../i18n'
 import { DEFAULT_MAX_ASSET_BYTES } from '../storage/assets'
 import { parseProfileV2, type ProfileV2 } from './schema/profile'
 
@@ -71,8 +72,18 @@ function decode(value: unknown): Uint8Array<ArrayBuffer> {
 
 /** Validate a complete backup without modifying storage. */
 export async function parseBackupV2(json: string): Promise<ParsedBackupV2> {
-  if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new Error('Backup exceeds size limit')
-  const raw = record(JSON.parse(json), ['kind', 'backupVersion', 'exportedAt', 'activeProfileId', 'profiles', 'assets'])
+  if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new MessageError('error.settingsInvalid')
+  let value: unknown
+  try { value = JSON.parse(json) } catch { throw new MessageError('error.backupFile') }
+  try {
+  return await parseBackupV2Value(value)
+  } catch {
+    throw new MessageError('error.settingsInvalid')
+  }
+}
+
+async function parseBackupV2Value(value: unknown): Promise<ParsedBackupV2> {
+  const raw = record(value, ['kind', 'backupVersion', 'exportedAt', 'activeProfileId', 'profiles', 'assets'])
   if (raw.kind !== 'mnt.backup' || raw.backupVersion !== 2 || typeof raw.exportedAt !== 'string' || !Number.isFinite(Date.parse(raw.exportedAt))) throw new Error('Invalid backup header')
   const profiles = checkProfiles(raw.profiles, raw.activeProfileId)
   if (!Array.isArray(raw.assets)) throw new Error('Invalid assets')

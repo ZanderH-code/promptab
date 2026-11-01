@@ -80,14 +80,15 @@ export async function migrateV1(input: unknown, options: MigrationOptions): Prom
   // The separate wallpaper wins over the inline one; only the effective image is stored (the raw v1 backup keeps the other).
   const effective = options.wallpaper ?? wallpaper
   const activeWallpaper = effective ? await add(effective) : undefined
-  const items = await Promise.all(v.shortcuts.map(async (item, i) => ({ ...item, color: item.color.toLowerCase(), ...(iconBlobs[i] ? { image: await add(iconBlobs[i]!) } : {}) })))
+  const items = await Promise.all(v.shortcuts.map(async (item, i) => ({ ...item, ...(item.id === 'example' && item.name === defaults.shortcuts[0].name && item.icon === defaults.shortcuts[0].icon ? { builtinName: 'sample-website' as const, builtinIcon: 'sample-website' as const, builtinGroup: 'quick-links' as const } : {}), color: item.color.toLowerCase(), ...(iconBlobs[i] ? { image: await add(iconBlobs[i]!) } : {}) })))
   const timestamp = options.now()
   const bg = v.background.toLowerCase(), accent = v.accent.toLowerCase()
   const stacked = v.reverse ? [BOOKMARKS, OVERVIEW] : [OVERVIEW, BOOKMARKS]
   const engine = recognizeEngine(v.searchTemplate, language)
+  const engineMetadata = engine.id === 'custom' ? { builtinName: 'custom-search' as const } : {}
   return parseProfileV2({
     schemaVersion: 2,
-    meta: { id: options.id(), name: names.profile[language], createdAt: timestamp, updatedAt: timestamp },
+    meta: { id: options.id(), name: names.profile[language], builtinName: 'default-profile', createdAt: timestamp, updatedAt: timestamp },
     prefs: { language: v.language, openIn: 'same-tab', reduceMotion: 'system', reduceTransparency: 'system' },
     theme: {
       mode: v.theme,
@@ -108,8 +109,9 @@ export async function migrateV1(input: unknown, options: MigrationOptions): Prom
       { id: 'search', type: 'search', area: OVERVIEW, order: 2, props: {}, hidden: !v.showSearch },
       { id: 'bookmarks', type: 'bookmarks', area: BOOKMARKS, order: 3, props: { maxColumns: v.columns } },
     ],
-    bookmarks: { groups: [{ id: 'default', name: names.group[language], collapsed: false, items }] },
-    search: { engines: [{ ...engine, template: v.searchTemplate }], defaultEngineId: engine.id },
+    bookmarks: { groups: [{ id: 'default', name: names.group[language], builtinName: 'quick-links', collapsed: false, items: items.map(item => ({ ...item, ...(item.builtinName ? { builtinGroup: 'quick-links' as const } : {}) })) }] },
+    search: { engines: [{ ...engine, ...engineMetadata, template: v.searchTemplate }], defaultEngineId: engine.id },
+
     custom: { css: '', cssEnabled: false, variables: [], values: {} },
   })
 }
@@ -131,7 +133,10 @@ export async function projectV1(profile: ProfileV2, reader: AssetReader): Promis
   const rows = p.layout.areas.map(row => row.trim().split(/\s+/))
   const split = rows.length === 1 && rows[0].length === 2
   const reverse = split ? rows[0][0] !== bookmarks.area : rows[0][0] === bookmarks.area
-  const shortcuts = await Promise.all(p.bookmarks.groups.flatMap(group => group.items).map(async item => ({ ...item, ...(item.image ? { image: await encodeImage(await readAsset(reader, item.image)) } : {}) })))
+  const shortcuts = await Promise.all(p.bookmarks.groups.flatMap(group => group.items).map(async item => {
+    const { builtinName: _builtinName, builtinIcon: _builtinIcon, builtinGroup: _builtinGroup, ...literal } = item
+    return { ...literal, ...(item.image ? { image: await encodeImage(await readAsset(reader, item.image)) } : {}) }
+  }))
   const settings = validate({
     schemaVersion: 1, language: p.prefs.language === 'system' ? defaults.language : p.prefs.language, theme: p.theme.mode === 'light' ? 'light' : 'dark',
     accent: p.theme.color.accent, background: p.theme.color.bg,

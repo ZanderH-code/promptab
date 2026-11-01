@@ -13,6 +13,9 @@ const SAMPLE_COLOR = '#90d5cd'
 /** Hostname for `[data-link-host]` selectors in custom CSS. */
 const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
 const tileColor = (item: Shortcut) => item.id === SAMPLE_ID && item.color.toLowerCase() === SAMPLE_COLOR ? 'var(--mnt-accent)' : item.color
+const shortcutName = (item: Shortcut, t: Translate) => item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
+const shortcutIcon = (item: Shortcut, t: Translate) => item.builtinIcon === 'sample-website' ? t('builtin.sampleWebsiteIcon') : item.icon
+const groupName = (item: Shortcut | undefined, t: Translate) => item?.builtinGroup === 'quick-links' ? t('builtin.quickLinks') : undefined
 
 type Props = {
   shortcuts: Shortcut[]
@@ -43,29 +46,32 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
   return (
     <div className="bookmarks mnt-group">
       <div className="shortcuts-heading mnt-group-title">
-        <span>{t('shortcuts.heading')}</span>
+        <span>{groupName(shortcuts[0], t) ?? t('shortcuts.heading')}</span>
         <span className="line" />
         <span className="count">{String(shortcuts.length).padStart(2, '0')}</span>
       </div>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={dragEnd}>
         <SortableContext items={shortcuts.map(item => item.id)} strategy={rectSortingStrategy}>
           <div className="grid" style={{ '--mnt-item-count': shortcuts.length + 1 } as CSSProperties}>
-            {shortcuts.map((item, index) => (
-              <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
-                <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={item.name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
-                  <span className="shortcut-icon mnt-link-icon" style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
-                  <span className="mnt-link-name">{item.name}</span>
+            {shortcuts.map((item, index) => {
+              const name = shortcutName(item, t)
+              return (
+                <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
+                <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
+                  <span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon: shortcutIcon(item, t) }} /></span>
+                  <span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span>
                 </a>
                 {editing && (
                   <div className="shortcut-actions">
-                    <button aria-label={t('shortcuts.editNamed', { name: item.name })} onClick={() => onEdit(item)}>{t('common.edit')}</button>
-                    <button aria-label={t('shortcuts.moveLeftNamed', { name: item.name })} disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowLeft size={16} strokeWidth={1.5} aria-hidden="true" /></button>
-                    <button aria-label={t('shortcuts.moveRightNamed', { name: item.name })} disabled={index === shortcuts.length - 1} onClick={() => move(index, index + 1)}><ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" /></button>
-                    <button aria-label={t('shortcuts.deleteNamed', { name: item.name })} onClick={() => onRemove(item)}><X size={16} strokeWidth={1.5} aria-hidden="true" /></button>
+                    <button aria-label={t('shortcuts.editNamed', { name })} onClick={() => onEdit(item)}>{t('common.edit')}</button>
+                    <button aria-label={t('shortcuts.moveLeftNamed', { name })} disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowLeft size={16} strokeWidth={1.5} aria-hidden="true" /></button>
+                    <button aria-label={t('shortcuts.moveRightNamed', { name })} disabled={index === shortcuts.length - 1} onClick={() => move(index, index + 1)}><ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" /></button>
+                    <button aria-label={t('shortcuts.deleteNamed', { name })} onClick={() => onRemove(item)}><X size={16} strokeWidth={1.5} aria-hidden="true" /></button>
                   </div>
                 )}
               </SortableShortcut>
-            ))}
+              )
+            })}
             <button className="add-shortcut" onClick={onAdd}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>
           </div>
         </SortableContext>

@@ -134,6 +134,14 @@ describe('profile v2 schema', () => {
     expect(bad(d => { d.layout.breakpoints = { medium: { areas: ['links'] } } })[0].expected).toContain('breakpoints.medium')
   })
 
+  it('localizes validation expectations while preserving issue details', () => {
+    const issues = profileIssues(mutate(d => { d.theme.color.bg = 'blue'; d.theme.radius = 99 }), 'zh-CN')
+    expect(issues).toHaveLength(2)
+    expect(issues[0]).toMatchObject({ path: 'theme.color.bg', expected: '#RRGGBB 颜色', value: 'blue' })
+    expect(issues[1]).toMatchObject({ path: 'theme.radius', expected: '数字 0-28', value: '99' })
+    expect(() => parseProfileV2(mutate(d => { d.theme.color.bg = 'blue' }), 'zh-CN')).toThrow('error.profileValidation')
+  })
+
   it('lists every issue with path, expected and value', () => {
     expect(profileIssues(profile)).toEqual([])
     const issues = bad(d => { d.theme.color.accent = 'teal'; d.theme.radius = 99; d.bookmarks.groups[0].items[0].url = 'javascript:x' })

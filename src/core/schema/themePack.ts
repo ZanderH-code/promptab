@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { MessageError } from '../../i18n'
+import type { Language } from '../../i18n'
+import { localizeIssue } from './issueMessages'
 import type { ProfileIssue } from './profile'
 import { profileV2Schema } from './profile'
 
@@ -64,9 +66,11 @@ function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
 }
 
 /** Every validation problem in a candidate pack (empty when valid). */
-export function themePackIssues(value: unknown): ProfileIssue[] {
+export function themePackIssues(value: unknown, language?: Language): ProfileIssue[] {
   const result = themePackSchema.safeParse(value)
-  return result.success ? [] : result.error.issues.map(issue => describe(value, issue))
+  if (result.success) return []
+  const issues = result.error.issues.map(issue => describe(value, issue))
+  return language ? issues.map(issue => localizeIssue(issue, language)) : issues
 }
 
 /** Parse a pack or throw a localizable error with the first invalid path. */

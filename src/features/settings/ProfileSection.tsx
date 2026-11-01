@@ -18,6 +18,7 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
   const headingId = useId()
   const selectId = useId()
   const active = profiles[activeProfileId]
+  const profileName = (profile: ProfileStore['profiles'][string]) => profile.meta.builtinName === 'default-profile' ? t('builtin.defaultProfile') : profile.meta.name
   const snapshots = history.profiles[activeProfileId]?.snapshots ?? []
 
   function clearPreview() {
@@ -55,13 +56,13 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
         clearPreview()
         void run(() => store.getState().switchProfile(id))
       }}>
-        {Object.values(profiles).map(profile => <option key={profile.meta.id} value={profile.meta.id}>{profile.meta.name}</option>)}
+        {Object.values(profiles).map(profile => <option key={profile.meta.id} value={profile.meta.id}>{profileName(profile)}</option>)}
       </select>
       <div className="backup-actions">
         <button type="button" className="reset" disabled={busy || !initialized || !active} onClick={create}>{t('profile.new')}</button>
         <button type="button" className="reset" disabled={busy || !initialized || !active} onClick={rename}>{t('profile.rename')}</button>
         <button type="button" className="reset" disabled={busy || !initialized || Object.keys(profiles).length <= 1} onClick={() => {
-          if (active && window.confirm(t('profile.confirmDelete', { name: active.meta.name }))) {
+          if (active && window.confirm(t('profile.confirmDelete', { name: profileName(active) }))) {
             clearPreview()
             void run(() => store.getState().deleteProfile(activeProfileId))
           }
@@ -70,7 +71,7 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
       {Object.keys(archived).length > 0 && <div>
         <h4>{t('profile.archived')}</h4>
         <ul>{Object.values(archived).map(item => <li key={item.profile.meta.id}>
-          <span>{item.profile.meta.name}</span>{' '}
+          <span>{profileName(item.profile)}</span>{' '}
           <button type="button" disabled={busy || !initialized} onClick={() => void run(() => store.getState().restoreArchivedProfile(item.profile.meta.id))}>{t('profile.restoreArchived')}</button>
         </li>)}</ul>
       </div>}
