@@ -1,8 +1,8 @@
-# Minimal New Tab Privacy Policy
+# Promptab Privacy Policy
 
 **Effective date: 2026-11-01**
 
-Minimal New Tab is a browser new-tab extension. It is designed to keep user data in the browser and does not include an account system, advertising SDK, analytics, telemetry, or a remote application server.
+Promptab is a browser new-tab extension. It is designed to keep user data in the browser and does not include an account system, advertising SDK, analytics, telemetry, or a remote application server.
 
 ## Data stored on your device
 
@@ -35,7 +35,7 @@ You can remove extension data through the extension's reset or delete controls, 
 
 ## Changes and contact
 
-This policy may be updated when the extension's data practices change. The repository that distributes Minimal New Tab is the source for the current policy and project contact details.
+This policy may be updated when the extension's data practices change. The repository that distributes Promptab is the source for the current policy and project contact details.
 
 This policy is informational and is not legal advice.
 
@@ -43,6 +43,6 @@ This policy is informational and is not legal advice.
 
 ## 中文摘要
 
-Minimal New Tab 不包含账号、广告 SDK、分析或遥测服务。设置、配置文件、书签/快捷方式、主题、自定义 CSS 以及本地图片和字体保存在浏览器扩展存储中。`bookmarks` 权限为可选权限，仅在你主动选择导入浏览器书签时请求；拒绝后仍可使用其他功能。
+Promptab 不包含账号、广告 SDK、分析或遥测服务。设置、配置文件、书签/快捷方式、主题、自定义 CSS 以及本地图片和字体保存在浏览器扩展存储中。`bookmarks` 权限为可选权限，仅在你主动选择导入浏览器书签时请求；拒绝后仍可使用其他功能。
 
 自动网站图标会优先使用浏览器的 favicon 接口，并可能回退请求相应网站 origin 的 `/favicon.ico`。搜索提交会把查询发送到你配置的搜索服务，打开快捷方式会访问对应网站；远程壁纸或远程图片导入也会向相应地址发起请求。这些请求由你主动使用的功能触发，并受目标服务的隐私政策约束。扩展本身不通过这些请求进行分析或出售个人信息。

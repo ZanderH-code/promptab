@@ -1,6 +1,6 @@
-# Minimal New Tab
+# Promptab
 
-> A minimal browser new-tab extension whose look is controlled by a JSON theme pack and an optional stylesheet. This folder tells an AI assistant how to write them.
+> Promptab is your new tab, designed by your AI. This folder explains how to write a theme pack; Promptab has no built-in AI service.
 
 A theme pack is one JSON object with `"kind": "mnt.theme-pack"` and `"packVersion": 2`. Every other field is optional: `theme`, `background`, `layout`, `widgets` and `css`. Reply with one `json` code block.
 

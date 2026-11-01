@@ -3,7 +3,7 @@ export const aiZh = {
   'settings.tab.ai': 'AI',
 
   'ai.title': 'AI 工作台',
-  'ai.intro': '让你自己的 AI 助手（ChatGPT、Claude、Kimi、DeepSeek……）设计主题：复制提示包发给它，再把它的回复整段粘贴回来，校验后预览并应用。',
+  'ai.intro': '把提示包交给你正在使用的 AI（ChatGPT、Claude、Kimi、DeepSeek 等），再粘贴回复。无需账号、API key 或额外额度；Promptab 本地校验，预览后应用，随时可撤销。',
   'ai.step1': '第 1 步：复制提示包',
   'ai.request': '想要什么样的主页（可选）',
   'ai.requestPlaceholder': '例如：像 Kindle 那样的纸质感，衬线时钟，低饱和暖色',
@@ -78,7 +78,7 @@ export const aiEn: Record<keyof typeof aiZh, string> = {
   'settings.tab.ai': 'AI',
 
   'ai.title': 'AI workbench',
-  'ai.intro': 'Let your own AI assistant (ChatGPT, Claude, Kimi, DeepSeek, ...) design a theme: copy the prompt pack to it, paste its whole reply back here, then check, preview and apply.',
+  'ai.intro': 'Give the prompt pack to any AI you already use (ChatGPT, Claude, Kimi, DeepSeek, and more), then paste its reply here. No account, API key or extra credits needed; Promptab validates locally so you can preview, apply and undo anytime.',
   'ai.step1': 'Step 1: copy the prompt pack',
   'ai.request': 'What kind of home page do you want (optional)',
   'ai.requestPlaceholder': 'e.g. a paper feel like an e-reader, serif clock, low-saturation warm colours',

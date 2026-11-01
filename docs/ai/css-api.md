@@ -1,7 +1,7 @@
-# Minimal New Tab CSS API (version 1)
+# Promptab CSS API (version 1)
 
 Custom CSS may rely on exactly the names below. Anything else (other class names, DOM structure) can change in any release.
-Removing or renaming a name here is a breaking change and raises the API version.
+The `mnt` prefix is historical and will remain stable long-term. Removing or renaming a name here is a breaking change and raises the API version.
 
 ## How custom CSS is applied
 

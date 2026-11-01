@@ -272,7 +272,7 @@ export const zhCN = {
   'settings.restoreSection': '恢复本区默认',
   'settings.languageSystem': '跟随系统',
   'settings.about': '关于',
-  'settings.aboutText': 'Minimal New Tab 是一个安静的新标签页，所有设置只保存在这台设备的浏览器中。',
+  'settings.aboutText': 'Promptab 是由你的 AI 设计的新标签页。修改可以预览、随时撤销，数据只保存在这台设备。',
 
   'profile.heading': '配置',
   'profile.active': '当前配置',
@@ -346,7 +346,7 @@ export const zhCN = {
   'error.settingsInvalid': '配置格式或版本无效',
   'error.profileValidation': '路径 {path} 无效：期望 {expected}；实际值 {value}。',
   'error.backupFile': '无法读取备份文件：不是有效的 JSON。',
-  'error.backupKind': '这不是 Minimal New Tab 的备份文件。',
+  'error.backupKind': '这不是 Promptab 的备份文件。',
   'error.backupVersion': '备份版本不受支持，请更新扩展后再试。',
   'error.backupSettings': '备份中的配置无效：{detail}',
   'error.backupWallpaper': '备份中的壁纸无效或超过 5 MB。',

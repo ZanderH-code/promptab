@@ -66,7 +66,7 @@ const json = (value: unknown) => '```json\n' + JSON.stringify(value, null, 2) + 
 
 const COPY = {
   'zh-CN': {
-    role: '你在为「Minimal New Tab」浏览器新标签页扩展设计一个主题包。用户会把你的回复粘贴进扩展，由扩展校验、预览并应用。',
+    role: '你在为 Promptab 设计一个新标签页主题包。用户会把你的回复粘贴进扩展，由扩展校验、预览并应用。Promptab 只在本地处理数据；用户可以用自己已经在用的任何 AI，不需要账号、API key 或额外额度。',
     output: '输出约定',
     outputRules: [
       `只输出**一个** \`json\` 代码块，\`kind\` 必须是 \`${PACK_KIND}\`。代码块之外可以用一两句话说明设计思路。`,
@@ -113,7 +113,7 @@ const COPY = {
     none: '（用户没有写具体需求，请给出一个克制、好看的方案。）',
   },
   en: {
-    role: 'You are designing a theme pack for the "Minimal New Tab" browser new-tab extension. The user will paste your reply into the extension, which validates, previews and applies it.',
+    role: 'You are designing a new-tab theme pack for Promptab. The user will paste your reply into the extension, which validates, previews and applies it. Promptab processes data locally; the user can use any AI they already use, with no Promptab account, API key or extra AI credits required.',
     output: 'Output rules',
     outputRules: [
       `Reply with exactly **one** \`json\` code block whose \`kind\` is \`${PACK_KIND}\`. You may add a sentence or two outside the block about the design idea.`,

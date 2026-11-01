@@ -85,8 +85,8 @@ export async function setAccent(page: Page, value: string) {
  * Keep this list narrow: adding a word here hides a missing translation from the scan.
  */
 const ZH_ENGLISH_WORD_WHITELIST = new Set([
-  'aa', 'ai', 'baidu', 'bing', 'chatgpt', 'claude', 'css', 'data', 'deepseek', 'english', 'google', 'http', 'https', 'image', 'jpeg', 'json', 'jsonc', 'kb',
-  'kimi', 'kindle', 'markdown', 'mb', 'md', 'mnt', 'nighttab', 'oklch', 'otf', 'png', 'prefers-reduced-motion', 'px', 'query', 'rgb', 'rrggbb', 'svg', 'ttf', 'url', 'user', 'webp', 'woff2', 'xml',
+  'aa', 'ai', 'api', 'baidu', 'bing', 'chatgpt', 'claude', 'css', 'data', 'deepseek', 'english', 'google', 'http', 'https', 'image', 'jpeg', 'json', 'jsonc', 'key', 'kb',
+  'kimi', 'kindle', 'markdown', 'mb', 'md', 'mnt', 'nighttab', 'oklch', 'otf', 'png', 'prefers-reduced-motion', 'promptab', 'px', 'query', 'rgb', 'rrggbb', 'svg', 'ttf', 'url', 'user', 'webp', 'woff2', 'xml',
   // Kimi appears in the AI introduction; Kindle appears in the Chinese AI request placeholder; Aa is the preset preview sample. RRGGBB names the fixed color format in validation guidance.
 ])
 

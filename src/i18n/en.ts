@@ -273,7 +273,7 @@ export const en: Record<MessageKey, string> = {
   'settings.restoreSection': 'Restore section defaults',
   'settings.languageSystem': 'Follow system',
   'settings.about': 'About',
-  'settings.aboutText': 'Minimal New Tab is a quiet new-tab page. Settings stay in this browser on this device.',
+  'settings.aboutText': 'Promptab is your new tab, designed by your AI. Preview changes, undo anytime, and keep your data on this device.',
 
   'profile.heading': 'Profiles',
   'profile.active': 'Active profile',
@@ -347,7 +347,7 @@ export const en: Record<MessageKey, string> = {
   'error.settingsInvalid': 'The settings format or version is invalid.',
   'error.profileValidation': 'Invalid value at {path}: expected {expected}; received {value}.',
   'error.backupFile': 'Could not read the backup file: it is not valid JSON.',
-  'error.backupKind': 'This is not a Minimal New Tab backup file.',
+  'error.backupKind': 'This is not a Promptab backup file.',
   'error.backupVersion': 'This backup version is not supported. Update the extension and try again.',
   'error.backupSettings': 'The settings in the backup are invalid: {detail}',
   'error.backupWallpaper': 'The wallpaper in the backup is invalid or larger than 5 MB.',

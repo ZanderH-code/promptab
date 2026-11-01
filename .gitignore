@@ -1,6 +1,6 @@
 node_modules/
 dist/
-store/minimal-new-tab-*.zip
+store/promptab-*.zip
 *.tsbuildinfo
 .claude/
 test-results/

@@ -1,8 +1,12 @@
-# Minimal New Tab
+# Promptab
 
 English | [简体中文](README.zh-CN.md)
 
-A quiet, customizable new tab extension for Edge (Chromium, Manifest V3). Still under development.
+**Describe it. Paste it. Done.**
+
+Your new tab, designed by your AI. Bring any AI you already use—ChatGPT, Claude, Kimi, DeepSeek, and more. No Promptab account, API key, or AI credits required. Preview changes, undo anytime, and keep your data on this device.
+
+<!-- Demo recording will be added at docs/assets/demo.gif. -->
 
 ## Features
 

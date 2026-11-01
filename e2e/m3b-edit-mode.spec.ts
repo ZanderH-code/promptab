@@ -9,6 +9,8 @@ test('desktop edit mode is separate from settings and can be toggled with E', as
   await expect(page.locator('.bookmarks .shortcuts-heading')).toHaveCount(0)
   await expect(page.locator('.bookmarks .add-shortcut')).toHaveCount(0)
   await expect(page.locator('.shortcut')).toHaveCount(0)
+  await expect(page.locator('.onboarding-actions button[data-primary]')).toHaveText('用 AI 创建')
+  await expect(page.locator('.onboarding-actions button').filter({ hasText: '添加第一个网站' })).not.toHaveAttribute('data-primary')
   await expect(page).toHaveScreenshot('onboarding-fresh-1440x900.png')
 
   await page.keyboard.press('e')

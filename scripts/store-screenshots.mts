@@ -9,7 +9,7 @@ test('generate five store screenshots', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.clock.install({ time: new Date('2026-08-01T19:17:00Z') })
-  await seedExistingUser(page, { language: 'en', theme: 'light', accent: '#3a5a80', shortcuts: templateBookmarks.slice(0, 7), columns: 4 })
+  await seedExistingUser(page, { language: 'en', theme: 'light', accent: '#3a5a80', shortcuts: templateBookmarks.slice(0, 3), columns: 2 })
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
@@ -32,7 +32,19 @@ test('generate five store screenshots', async ({ page }) => {
     await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', id)
   }
 
+  await settings()
+  await openTab(page, 'ai')
+  await expect(page.locator('.sd-ai-request')).toBeVisible()
+  await page.locator('.sd-ai-request').fill('A calm paper-inspired page with a warm terracotta accent.')
+  await page.getByRole('textbox', { name: "The AI's reply" }).fill(JSON.stringify({ kind: 'mnt.theme-pack', packVersion: 2, theme: { mode: 'light', colorLight: { bg: '#f3ecdf', surface: '#faf5ea', text: '#2f2a24', accent: '#9a4a28' }, font: { display: 'cormorant', ui: 'system' }, radius: 6 } }, null, 2))
+  await expect(page.getByRole('button', { name: 'Preview', exact: true })).toBeEnabled()
+  await page.getByRole('button', { name: 'Preview', exact: true }).click()
+  await page.locator('.drawer').evaluate(element => { element.scrollTop = 0 })
+  const splitView = await page.addStyleTag({ content: '.scrim { background: transparent !important; } .drawer { left: 0 !important; right: auto !important; width: 50vw !important; overflow: hidden !important; } .drawer .sd-ai { height: calc(100vh - 190px); overflow: auto; } .drawer .sd-ai-step[aria-labelledby="ai-step3"] { display: none !important; } .app { width: 50vw !important; margin-left: 50vw !important; overflow: hidden !important; } .desktop { width: calc(50vw - 48px) !important; } .app header { display: none !important; } .mnt-banners { left: 50vw !important; width: 50vw !important; }' })
   await capture('01-default')
+  await splitView.evaluate(element => element.remove())
+  await page.getByRole('button', { name: 'Close settings' }).click()
+  await page.getByRole('button', { name: 'Discard', exact: true }).click()
   await template('Side split · icons only', 'icon-split')
   await capture('02-template-a')
   // Reset storage and reuse the existing locally generated wallpaper fixture for the banner.

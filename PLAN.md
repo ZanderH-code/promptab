@@ -1,7 +1,7 @@
-# Minimal New Tab：产品与实施计划 v2
+# Promptab：产品与实施计划 v2
 
 日期：2026-10-31（取代同日的 v1 计划）  
-项目暂名：Minimal New Tab  
+产品名：Promptab  
 配套文档：[docs/DESIGN.md](docs/DESIGN.md)（美学设计指南）
 
 ---

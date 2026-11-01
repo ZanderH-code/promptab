@@ -87,10 +87,10 @@ export function ShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
     {onboarding && <section className="onboarding-card" aria-labelledby="onboarding-title">
       <div><span className="editor-kicker">{t('onboarding.kicker')}</span><h2 id="onboarding-title">{t('onboarding.title')}</h2><p>{t('onboarding.description')}</p></div>
       <div className="onboarding-actions">
-        <button type="button" data-primary onClick={() => onOnboardingAction('add')}>{t('onboarding.add')}</button>
+        <button type="button" data-primary onClick={() => onOnboardingAction('ai')}>{t('onboarding.ai')}</button>
+        <button type="button" onClick={() => onOnboardingAction('add')}>{t('onboarding.add')}</button>
         <button type="button" onClick={() => onOnboardingAction('import')}>{t('onboarding.import')}</button>
         <button type="button" onClick={() => onOnboardingAction('theme')}>{t('onboarding.theme')}</button>
-        <button type="button" onClick={() => onOnboardingAction('ai')}>{t('onboarding.ai')}</button>
       </div>
     </section>}
     {editing && <div className="bookmark-edit-tools">

@@ -71,10 +71,10 @@ function cssApiDoc(): string {
   const classes = CSS_API_CLASSES.map(name => `| \`.${name}\` | ${CLASS_NOTES[name]} |`)
   const attributes = CSS_API_ATTRIBUTES.map(name => `| \`${name}\` | ${ATTRIBUTE_NOTES[name]} |`)
   return [
-    `# Minimal New Tab CSS API (version ${CSS_API_VERSION})`,
+    `# Promptab CSS API (version ${CSS_API_VERSION})`,
     '',
     'Custom CSS may rely on exactly the names below. Anything else (other class names, DOM structure) can change in any release.',
-    'Removing or renaming a name here is a breaking change and raises the API version.',
+    'The `mnt` prefix is historical and will remain stable long-term. Removing or renaming a name here is a breaking change and raises the API version.',
     '',
     '## How custom CSS is applied',
     '',
@@ -115,9 +115,9 @@ function cssApiDoc(): string {
 
 function llmsTxt(): string {
   return [
-    '# Minimal New Tab',
+    '# Promptab',
     '',
-    '> A minimal browser new-tab extension whose look is controlled by a JSON theme pack and an optional stylesheet. This folder tells an AI assistant how to write them.',
+    '> Promptab is your new tab, designed by your AI. This folder explains how to write a theme pack; Promptab has no built-in AI service.',
     '',
     `A theme pack is one JSON object with \`"kind": "${PACK_KIND}"\` and \`"packVersion": ${PACK_VERSION}\`. Every other field is optional: \`theme\`, \`background\`, \`layout\`, \`widgets\` and \`css\`. Reply with one \`json\` code block.`,
     '',
@@ -145,7 +145,7 @@ function llmsTxt(): string {
 export function buildDocs(): Record<string, string> {
   const schema = z.toJSONSchema(aiPackSchema, { unrepresentable: 'any' })
   return {
-    'theme-pack.schema.json': json({ title: 'Minimal New Tab theme pack', ...schema }),
+    'theme-pack.schema.json': json({ title: 'Promptab theme pack', ...schema }),
     'css-api.md': cssApiDoc(),
     'llms.txt': llmsTxt(),
     ...Object.fromEntries(EXAMPLES.map(example => [`examples/${example.id}.json`, json(example.pack)])),
