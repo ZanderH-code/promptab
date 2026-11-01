@@ -135,8 +135,9 @@ export const profileV2Schema = z.object({
     const problem = areaGridProblem(areas)
     if (problem) issue(path, problem)
   }
-  for (const grid of [profile.layout, ...Object.entries(profile.layout.breakpoints ?? {}).map(([, value]) => value)]) {
-    if (grid?.columns && grid.columns.length !== (grid.areas[0]?.trim().split(/\s+/).length ?? 0)) issue(['layout', 'columns'], 'one column size per area column')
+  const sizedGrids = [{ grid: profile.layout, path: ['layout', 'columns'] }, ...Object.entries(profile.layout.breakpoints ?? {}).map(([key, grid]) => ({ grid, path: ['layout', 'breakpoints', key, 'columns'] }))]
+  for (const { grid, path } of sizedGrids) {
+    if (grid?.columns && grid.columns.length !== (grid.areas[0]?.trim().split(/\s+/).length ?? 0)) issue(path, 'one column size per area column')
   }
   for (const name of Object.keys(profile.layout.areaStyles ?? {})) {
     if (!names(profile.layout.areas).has(name)) issue(['layout', 'areaStyles', name], 'area listed in layout.areas')

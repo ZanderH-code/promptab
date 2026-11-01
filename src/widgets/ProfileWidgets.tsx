@@ -57,8 +57,10 @@ export function ProfileWidgets(props: Props) {
   const grid = breakpoint === 'wide' ? { areas: profile.layout.areas, columns: profile.layout.columns, rows: profile.layout.rows } : profile.layout.breakpoints?.[breakpoint] ?? (breakpoint === 'narrow' ? profile.layout.breakpoints?.medium : undefined) ?? { areas: profile.layout.areas, columns: profile.layout.columns, rows: profile.layout.rows }
   const names = [...new Set(grid.areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))]
   const palette = profile.theme.color
+  const now = useNow('minute')
   const searchTemplate = profile.search.engines.find(e => e.id === profile.search.defaultEngineId)?.template ?? 'https://www.google.com/search?q={query}'
-  return <section className="desktop mnt-layout" style={gridStyle(grid, profile.layout.contentWidth, profile.layout.gap)} data-breakpoint={breakpoint}>
+  const legacyStacked = profile.layout.areas.length === 2 && profile.layout.areas[0] === 'overview' && profile.layout.areas[1] === 'bookmarks'
+  return <section className={`desktop mnt-layout${legacyStacked ? ' layout-stacked' : ''}`} style={gridStyle(grid, profile.layout.contentWidth, profile.layout.gap)} data-breakpoint={breakpoint}>
     {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette) }}>
       {widgetsIn(profile.widgets, name).map(widget => {
         const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
@@ -69,7 +71,7 @@ export function ProfileWidgets(props: Props) {
           case 'search': return frame(<Search template={searchTemplate} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
           case 'bookmarks': return frame(<ShortcutGrid shortcuts={shortcuts} editing={editing} t={t} onReorder={props.onReorder} onEdit={props.onEdit} onRemove={props.onRemove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
           case 'greeting': {
-            const greeting = t(`greeting.${greetingPeriod(new Date().getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
+            const greeting = t(`greeting.${greetingPeriod(now.getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
             return frame(<div>{widget.props.name ? <span data-user-content>{t('greeting.withName', { greeting, name: widget.props.name })}</span> : greeting}</div>)
           }
           case 'text': return frame(<div>{widget.props.text}</div>)

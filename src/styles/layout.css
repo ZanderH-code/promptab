@@ -12,7 +12,6 @@
   .mnt-area[data-area="overview"] .mnt-widget-frame { width: 100%; text-align: var(--mnt-alignment); }
   .mnt-area[data-area="overview"] .intro { width: 100%; }
   .mnt-area[data-area="bookmarks"] { width: 100%; }
-  .mnt-area[data-area="bookmarks"] .shortcuts-heading { margin-top: 58px; }
   .mnt-widget-frame { min-width: 0; zoom: var(--mnt-widget-size, 1); }
 
   .overview, .bookmarks {
@@ -83,6 +82,10 @@
     max-width: calc(100vw - 32px);
     display: flex;
     align-items: center;
+  }
+
+  @media (max-width: 600px) {
+    .desktop { margin: 50px auto; }
   }
 
   @media (max-width: 639px) {

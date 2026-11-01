@@ -3,7 +3,7 @@ import type { ProfileV2 } from '../schema/profile'
 type ClockProps = Extract<ProfileV2['widgets'][number], { type: 'clock' }>['props']
 type DateProps = Extract<ProfileV2['widgets'][number], { type: 'date' }>['props']
 
-export const GREETING_BOUNDARIES = { morning: 5, afternoon: 12, evening: 18 } as const
+export const GREETING_BOUNDARIES = { afternoon: 12, evening: 18 } as const
 
 export type GreetingPeriod = 'morning' | 'afternoon' | 'evening'
 

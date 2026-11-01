@@ -101,7 +101,7 @@ export async function migrateV1(input: unknown, options: MigrationOptions): Prom
       areas: v.layout === 'split' ? [v.reverse ? `${OVERVIEW} ${BOOKMARKS}` : `${BOOKMARKS} ${OVERVIEW}`] : stacked,
       ...(v.layout === 'split' ? { columns: ['minmax(0, 1fr)', 'minmax(280px, 0.7fr)'] } : {}),
       breakpoints: { narrow: { areas: stacked, columns: ['1fr'] } },
-      contentWidth: DEFAULT_CONTENT_WIDTH, align: v.alignment === 'left' ? 'center-left' : 'center-center', gap: DEFAULT_GAP,
+      contentWidth: DEFAULT_CONTENT_WIDTH, align: v.alignment === 'left' ? 'center-left' : 'center-center', gap: v.layout === 'stacked' ? 0 : DEFAULT_GAP,
     },
     widgets: [
       { id: 'clock', type: 'clock', area: OVERVIEW, order: 0, props: { hour12: v.hour12 }, hidden: !v.showClock },

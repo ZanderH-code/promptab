@@ -58,6 +58,8 @@ const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled):not([typ
 export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError, initialSection, safeMode = false, onApplyPreview = () => {} }: Props) {
   const [tab, setTab] = useState<TabId>(() => initialTab(initialSection))
   const [query, setQuery] = useState('')
+  const [layoutDrafts, setLayoutDrafts] = useState<NonNullable<Ctx['layoutDrafts']>>({})
+  const [movedWidgets, setMovedWidgets] = useState<string[]>([])
   const drawer = useRef<HTMLElement>(null)
   const tabRefs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({})
   const search = useRef<HTMLInputElement>(null)
@@ -78,6 +80,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const ctx: Ctx = {
     t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
     change: (update, kind) => onProfileChange(update, kind),
+    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, movedWidgets, onMovedWidgets: setMovedWidgets,
   }
 
   const restore = async (target: ResettableTab) => {
@@ -90,7 +93,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     return visible.map(id => ({ id, items: itemsFor(id, ctx) }))
     // ctx is rebuilt each render from the props listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searching, tab, s, profile, t, store])
+  }, [searching, tab, s, profile, t, store, layoutDrafts, movedWidgets])
 
   const results = searching
     ? sections.map(section => ({
