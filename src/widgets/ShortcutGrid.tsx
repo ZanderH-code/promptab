@@ -7,6 +7,11 @@ import type { Translate } from '../i18n'
 import { SortableShortcut } from './SortableShortcut'
 import { WebsiteIcon } from './WebsiteIcon'
 
+/** The seeded sample site carries the default teal; it follows the accent colour instead of staying fixed. */
+const SAMPLE_ID = 'example'
+const SAMPLE_COLOR = '#90d5cd'
+const tileColor = (item: Shortcut) => item.id === SAMPLE_ID && item.color.toLowerCase() === SAMPLE_COLOR ? 'var(--mnt-accent)' : item.color
+
 type Props = {
   shortcuts: Shortcut[]
   editing: boolean
@@ -46,7 +51,7 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
             {shortcuts.map((item, index) => (
               <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
                 <a className="shortcut" title={item.name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
-                  <span className="shortcut-icon" style={{ '--tile': item.color } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
+                  <span className="shortcut-icon" style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
                   <span>{item.name}</span>
                 </a>
                 {editing && (

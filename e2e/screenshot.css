@@ -1,0 +1,2 @@
+/* Transient UI must not leak into full-page baselines; the toast has its own test. */
+.undo-toast:not([data-shot]) { visibility: hidden !important; }

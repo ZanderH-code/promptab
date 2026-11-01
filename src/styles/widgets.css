@@ -371,6 +371,37 @@
     margin-left: 15px;
   }
 
+  .undo-toast {
+    position: fixed;
+    bottom: var(--mnt-space-5);
+    left: var(--mnt-space-5);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: var(--mnt-space-3);
+    padding: var(--mnt-space-2) var(--mnt-space-2) var(--mnt-space-2) var(--mnt-space-4);
+    background: var(--mnt-bg-elevated);
+    color: var(--mnt-text);
+    border: 1px solid var(--mnt-border-strong);
+    border-radius: var(--mnt-radius);
+    box-shadow: var(--mnt-elev-1);
+    font-size: var(--mnt-text-sm);
+  }
+
+  .undo-toast button {
+    min-height: 28px;
+    padding: 0 var(--mnt-space-3);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--mnt-accent-soft);
+    color: var(--mnt-accent-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .undo-toast button:hover { border-color: var(--mnt-accent); }
+  .undo-toast button:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
+
   .loading {
     padding: 30px;
   }
