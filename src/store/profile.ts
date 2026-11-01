@@ -181,7 +181,11 @@ export function createProfileStore(options: Options) {
         if (Object.hasOwn(get().profiles, profile.meta.id) || Object.hasOwn(get().archived, profile.meta.id)) throw new Error('Profile already exists')
         return { next: { ...current(), profiles: { ...get().profiles, [profile.meta.id]: profile } } }
       }),
-      renameProfile: (id, name) => update(id, p => ({ ...p, meta: { ...p.meta, name } })),
+      renameProfile: (id, name) => update(id, p => {
+        const meta = { ...p.meta, name }
+        delete meta.builtinName
+        return { ...p, meta }
+      }),
       switchProfile: id => transaction(() => { existing(id); return { next: { ...current(), activeProfileId: id } } }),
       deleteProfile: id => transaction(() => {
         existing(id)

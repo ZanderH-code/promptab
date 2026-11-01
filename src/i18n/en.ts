@@ -35,6 +35,8 @@ export const en: Record<MessageKey, string> = {
   'settings.close': 'Close settings',
   'settings.button': 'Settings',
   'settings.kicker': 'MAKE IT YOURS',
+  'builtin.defaultProfile': 'Default',
+  'builtin.sampleWebsite': 'Example website',
   'settings.title': 'Personalize',
   'settings.intro': 'Make this space your own.',
   'settings.language': 'Language',

@@ -24,6 +24,12 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
   const automatic = { ...shortcut, image: undefined, iconMode: 'auto' as const }
   const textIcon = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || 'A'
 
+  function changeName(name: string) {
+    const next = { ...shortcut, name }
+    delete next.builtinName
+    onChange(next)
+  }
+
   function upload(file?: File) {
     if (!file) return
     try {
@@ -64,7 +70,7 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
           </label>
           <label className="stack">
             {t('editor.name')}
-            <input required value={shortcut.name} placeholder={t('editor.namePlaceholder')} onChange={event => onChange({ ...shortcut, name: event.target.value })} />
+            <input required value={shortcut.name} placeholder={t('editor.namePlaceholder')} onChange={event => changeName(event.target.value)} />
           </label>
         </div>
         <fieldset className="icon-choices">

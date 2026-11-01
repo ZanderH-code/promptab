@@ -34,6 +34,8 @@ export const zhCN = {
   'settings.close': '关闭设置',
   'settings.button': '设置',
   'settings.kicker': '打造你的空间',
+  'builtin.defaultProfile': '默认',
+  'builtin.sampleWebsite': '示例网站',
   'settings.title': '个性化设置',
   'settings.intro': '让这个空间更适合你。',
   'settings.language': '语言',
