@@ -38,7 +38,7 @@ export function ProfileWidgets(props: Props) {
   return <section className="desktop mnt-layout" style={gridStyle(grid, profile.layout.contentWidth, profile.layout.gap)} data-breakpoint={breakpoint}>
     {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette) }}>
       {widgetsIn(profile.widgets, name).map(widget => {
-        const common = { '--mnt-widget-size': widget.props.size ?? 1, textAlign: widget.props.align ?? 'inherit' } as CSSProperties
+        const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
         const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} style={common}>{child}</div>
         switch (widget.type) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} />)

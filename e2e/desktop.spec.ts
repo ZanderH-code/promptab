@@ -57,6 +57,12 @@ async function open(page: Page) {
   await expect(page.locator('.clock')).toBeVisible()
 }
 
+test('default widgets remain visible at a narrow viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 400, height: 800 })
+  await open(page)
+  for (const selector of ['.mnt-clock', '.mnt-date', '.mnt-search', '.mnt-group']) await expect(page.locator(selector)).toBeVisible()
+})
+
 for (const [width, height] of [[1440, 900], [1920, 1080], [800, 600], [400, 800]]) {
   test(`desktop baseline ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height })

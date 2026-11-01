@@ -9,8 +9,8 @@
 
   .mnt-area { min-width: 0; }
   .mnt-area[data-area="overview"] { display: flex; flex-direction: column; align-items: center; }
+  .mnt-area[data-area="overview"] .mnt-widget-frame { width: 100%; text-align: var(--mnt-alignment); }
   .mnt-area[data-area="overview"] .intro { width: 100%; }
-  .mnt-area[data-area="overview"] .search { max-width: 560px; }
   .mnt-area[data-area="bookmarks"] { width: 100%; }
   .mnt-area[data-area="bookmarks"] .shortcuts-heading { margin-top: 58px; }
   .mnt-widget-frame { min-width: 0; zoom: var(--mnt-widget-size, 1); }
