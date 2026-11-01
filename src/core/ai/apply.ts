@@ -2,16 +2,9 @@ import type { ProfileV2 } from '../schema/profile'
 import { darkSurface, lightSurface } from '../schema/defaults'
 import { areaNames } from '../layout/grid'
 import { PACK_KIND, PACK_VERSION, PACK_PARTS, type AiPack, type PackPart } from './pack'
+import { variableValue } from './variable'
 
 type Variable = ProfileV2['custom']['variables'][number]
-export function variableValue(variable: Variable, value: unknown): string | number {
-  if (variable.type === 'range' && typeof value === 'number' && Number.isFinite(value) && value >= variable.min && value <= variable.max) return value
-  if (variable.type === 'toggle' && (value === 0 || value === 1)) return value
-  if (variable.type === 'color' && typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)) return value
-  if (variable.type === 'select' && typeof value === 'string' && variable.options.includes(value)) return value
-  return variable.default
-}
-
 type PackColors = NonNullable<NonNullable<AiPack['theme']>['color']>
 
 /** Fills in the surface colour a pack may leave out, the same way the settings panel derives it. */

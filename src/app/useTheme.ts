@@ -1,4 +1,4 @@
-import { variableValue } from '../core/ai/apply'
+import { variableValue } from '../core/ai/variable'
 import { useLayoutEffect, type CSSProperties } from 'react'
 import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/derive'
 import { assetFontFamily, isAssetFont } from '../core/font'

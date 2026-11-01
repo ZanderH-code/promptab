@@ -1,4 +1,4 @@
-import { variableValue } from '../../../core/ai/apply'
+import { variableValue } from '../../../core/ai/variable'
 import { Check, TriangleAlert } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { isAssetFont } from '../../../core/font'
