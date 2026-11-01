@@ -41,6 +41,19 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
   const { t, store, onError } = ctx
   const [state, set] = useAiState()
   const [notice, setNotice] = useState<MessageKey | null>(null)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [excludeCss, setExcludeCss] = useState(false)
+  const exportButton = useRef<HTMLButtonElement>(null)
+  const cancelExport = useRef<HTMLButtonElement>(null)
+  useEffect(() => { if (exportOpen) cancelExport.current?.focus() }, [exportOpen])
+  const closeExport = () => { setExportOpen(false); exportButton.current?.focus() }
+  function downloadTheme() {
+    const pack = exportThemePack(active)
+    if (excludeCss) delete pack.css
+    const url = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' }))
+    const link = document.createElement('a'); link.href = url; link.download = 'theme-pack.json'; link.click(); URL.revokeObjectURL(url)
+    closeExport()
+  }
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const file = useRef<HTMLInputElement>(null)
   useEffect(() => () => clearTimeout(timer.current), [])
@@ -112,10 +125,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
         />
         <div className="sd-css-actions">
           <input ref={file} type="file" hidden accept=".json,.jsonc,.css,.md,.txt,application/json,text/css,text/plain,text/markdown" aria-label={t('ai.openFile')} onChange={event => { void readFile(event.target.files?.[0]); event.target.value = '' }} />
-          <button type="button" className="sd-button" onClick={() => {
-            const url = URL.createObjectURL(new Blob([JSON.stringify(exportThemePack(active), null, 2)], { type: 'application/json' }))
-            const link = document.createElement('a'); link.href = url; link.download = 'theme-pack.json'; link.click(); URL.revokeObjectURL(url)
-          }}>{ctx.s.language === 'zh-CN' ? '导出主题包' : 'Export theme pack'}</button>
+          <button ref={exportButton} type="button" className="sd-button" onClick={() => { setExcludeCss(false); setExportOpen(true) }}>{t('ai.exportTitle')}</button>
           <button type="button" className="sd-button" onClick={() => file.current?.click()}>{t('ai.openFile')}</button>
         </div>
         {candidates.length > 1 && (
@@ -126,6 +136,24 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
         )}
       </section>
 
+      {exportOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) closeExport() }}>
+        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="theme-export-title" onKeyDown={event => {
+          if (event.key === 'Escape') { event.stopPropagation(); closeExport() }
+          if (event.key === 'Tab') {
+            const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('input:not(:disabled), button:not(:disabled)'))
+            if (event.shiftKey && document.activeElement === controls[0]) { event.preventDefault(); controls.at(-1)?.focus() }
+            else if (!event.shiftKey && document.activeElement === controls.at(-1)) { event.preventDefault(); controls[0]?.focus() }
+          }
+        }}>
+          <h3 id="theme-export-title">{t('ai.exportTitle')}</h3>
+          {active.custom.css.trim() !== '' && <p className="sd-hint">{t('ai.exportCssWarning')}</p>}
+          <Toggle label={t('ai.exportExcludeCss')} checked={excludeCss} onChange={setExcludeCss} />
+          <div className="sd-css-actions">
+            <button ref={cancelExport} type="button" className="sd-button" onClick={closeExport}>{t('ai.exportCancel')}</button>
+            <button type="button" className="sd-button sd-primary" onClick={downloadTheme}>{t('ai.exportConfirm')}</button>
+          </div>
+        </div>
+      </div>}
       {state.reply.trim() !== '' && (
         <section className="sd-ai-step" aria-labelledby="ai-step3">
           <h4 id="ai-step3">{t('ai.step3')}</h4>

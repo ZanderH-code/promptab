@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { checkSettingsEntry, type EntryCheck } from '../core/css/reach'
-import { resolveCssAssets, sanitizeCss } from '../core/css/sanitize'
 import type { ProfileV2 } from '../core/schema/profile'
 import { assets } from './useSettings'
 
@@ -37,13 +36,15 @@ export function useUserCss({ profile, safe, ready, onUnreachable, onReachable }:
 
   useEffect(() => {
     if (!ready || safe || !enabled || !css.trim()) return
-    const result = sanitizeCss(css)
-    if (!result.ok || !result.layered) return
     let alive = true
     const objectUrls: string[] = []
     const style = document.createElement('style')
     style.id = USER_CSS_ID
     void (async () => {
+      const { resolveCssAssets, sanitizeCss } = await import('../core/css/sanitize')
+      if (!alive) return
+      const result = sanitizeCss(css)
+      if (!result.ok || !result.layered) return
       const resolved = new Map<string, string>()
       for (const reference of result.assets) {
         const blob = await assets.get(reference).catch(() => undefined)

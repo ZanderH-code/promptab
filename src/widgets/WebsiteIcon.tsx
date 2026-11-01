@@ -24,5 +24,5 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     if (GenericIcon) return <GenericIcon size={24} color={color} aria-hidden="true" />
     return <>{shortcut.iconMode === 'emoji' ? shortcut.iconName || shortcut.icon : shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'}</>
   }
-  return <img src={source} alt="" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => { setLoaded(false); setAttempt(n => n + 1) }} />
+  return <img src={source} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onLoad={() => setLoaded(true)} onError={() => { setLoaded(false); setAttempt(n => n + 1) }} />
 }

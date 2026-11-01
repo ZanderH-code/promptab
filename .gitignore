@@ -1,5 +1,6 @@
 node_modules/
 dist/
+store/minimal-new-tab-*.zip
 *.tsbuildinfo
 .claude/
 test-results/

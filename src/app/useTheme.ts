@@ -45,16 +45,25 @@ function themeProperties(profile: ProfileV2, mode: ThemeMode): Record<string, st
 }
 
 /** Writes the resolved theme tokens onto <html>. */
-export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | undefined) {
+export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | undefined, cache = true) {
   useLayoutEffect(() => {
     if (!profile || !mode) return
     const root = document.documentElement
     const properties = themeProperties(profile, mode)
+    const background = profile.background.type === 'color' && profile.background.color
+      ? profile.background.color
+      : profile.background.type === 'gradient' && mode === 'dark' && profile.background.gradient
+        ? `linear-gradient(${profile.background.gradient.angle}deg, ${profile.background.gradient.stops.join(', ')})`
+        : undefined
     root.dataset.theme = mode
     root.dataset.glass = profile.theme.glass > 0 ? 'on' : 'off'
     for (const [name, value] of Object.entries(properties)) root.style.setProperty(name, value)
+    try {
+      if (cache) localStorage.setItem('mnt:theme-cache:v1', JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) }))
+      else localStorage.removeItem('mnt:theme-cache:v1')
+    } catch { /* Storage can be unavailable. */ }
     return () => { for (const name of Object.keys(properties)) root.style.removeProperty(name) }
-  }, [profile, mode])
+  }, [profile, mode, cache])
 }
 
 /** Inline styles for the page background (colour, gradient or accent wash); images use <Wallpaper>. */

@@ -1,12 +1,9 @@
 import { Check, Plus, Settings as SettingsIcon, X } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
 import { defaults, type Settings, type Shortcut } from '../core/model'
-import { BackupSection } from '../features/settings/BackupSection'
 import { finishShortcut } from '../core/shortcut'
-import { ShortcutEditor } from '../features/shortcut-editor/ShortcutEditor'
-import { SettingsDrawer } from '../features/settings/SettingsDrawer'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
@@ -18,6 +15,10 @@ import { useSettings } from './useSettings'
 import { useAssetFonts } from './useAssetFonts'
 import { useUserCss } from './useUserCss'
 import { useWallpaper } from './useWallpaper'
+
+const SettingsDrawer = lazy(() => import('../features/settings/SettingsDrawer').then(m => ({ default: m.SettingsDrawer })))
+const BackupSection = lazy(() => import('../features/settings/BackupSection').then(m => ({ default: m.BackupSection })))
+const ShortcutEditor = lazy(() => import('../features/shortcut-editor/ShortcutEditor').then(m => ({ default: m.ShortcutEditor })))
 
 type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut'
 type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut }
@@ -70,7 +71,18 @@ export default function App() {
     document.title = translate(settings.language, 'app.title')
   }, [settings?.language])
 
-  useThemeTokens(profile, settings?.theme)
+  useEffect(() => {
+    if (!settings && error) {
+      try { localStorage.removeItem('mnt:theme-cache:v1') } catch { /* Storage can be unavailable. */ }
+      const root = document.documentElement
+      for (const name of Array.from(root.style)) if (name.startsWith('--mnt-')) root.style.removeProperty(name)
+      delete root.dataset.theme
+      delete root.dataset.glass
+      document.body.style.removeProperty('background')
+    }
+  }, [settings, error])
+
+  useThemeTokens(profile, settings?.theme, !store?.getState().preview)
   useAssetFonts(profile)
 
   const { safe, enter: enterSafe, exit: exitSafe } = useSafeMode()
@@ -101,7 +113,7 @@ export default function App() {
 
   if (!settings) {
     const language = systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
-    return <main className="loading">{error ? <><p role="alert">{translate(language, error.key, error.params)}</p><BackupSection settings={{ ...defaults, language }} t={(key, params) => translate(language, key, params)} onError={setError} recovery /></> : translate(language, 'app.loading')}</main>
+    return <main className="loading">{error ? <><p role="alert">{translate(language, error.key, error.params)}</p><Suspense fallback={null}><BackupSection settings={{ ...defaults, language }} t={(key, params) => translate(language, key, params)} onError={setError} recovery /></Suspense></> : translate(language, 'app.loading')}</main>
   }
 
   const s = settings
@@ -261,7 +273,7 @@ export default function App() {
       </div>}
       {undoNotice && <div className="undo-toast" role="status"><span>{s.language === 'en' ? 'Changes saved' : '更改已保存'}</span><button type="button" onClick={undo}>{s.language === 'en' ? 'Undo' : '撤销'}</button></div>}
       {error && <div className="error" role="alert">{t(error.key, error.params)}<button aria-label={t('common.close')} onClick={() => setError(null)}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>}
-      {drawer && store && (
+      <Suspense fallback={null}>{drawer && store && (
         <SettingsDrawer
           store={store}
           settings={s}
@@ -280,7 +292,7 @@ export default function App() {
           onError={setError}
         />
       )}
-      {editing && <ShortcutEditor key={editing.id} shortcut={editing} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}
+      {editing && <ShortcutEditor key={editing.id} shortcut={editing} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
     </main>
     </>
   )

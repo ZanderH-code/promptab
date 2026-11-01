@@ -6,6 +6,8 @@
   body {
     margin: 0;
     font-family: var(--mnt-font-ui);
+    background: var(--mnt-scheme-bg);
+    color: var(--mnt-text);
   }
 
   button,input,select {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { translate } from '../../i18n'
 import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES } from '../css/api'
+import { applyTemplate } from '../layout/profile'
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
 import { aiPackSchema, partsOf } from './pack'
@@ -233,6 +234,16 @@ describe('applyPack', () => {
     expect(next.layout).toMatchObject({ areas: ['clock search', 'links links'], gap: 10 })
     expect(next.widgets[0]).toMatchObject({ id: 'clock', props: { hour12: true } })
     expect(next.widgets).toHaveLength(profile.widgets.length)
+  })
+
+  it('retains unmatched widgets in a valid area when importing a different layout', () => {
+    const source = applyTemplate(profile, 'icon-split')
+    const destination = applyTemplate(profile, 'banner')
+    const pack = aiPackSchema.parse(exportThemePack(source))
+    const result = applyPack(destination, pack, ['layout', 'widgets'])
+    const toolbar = result.widgets.find(widget => widget.id === 'layout-banner-toolbar')
+    expect(toolbar).toMatchObject({ type: 'toolbar', area: 'overview' })
+    expect(profileIssues(result)).toEqual([])
   })
 
   it('applies only the chosen parts, and nothing when none apply', () => {

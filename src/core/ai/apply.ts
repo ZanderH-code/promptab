@@ -1,5 +1,6 @@
 import type { ProfileV2 } from '../schema/profile'
 import { darkSurface, lightSurface } from '../schema/defaults'
+import { areaNames } from '../layout/grid'
 import { PACK_KIND, PACK_VERSION, PACK_PARTS, type AiPack, type PackPart } from './pack'
 
 type Variable = ProfileV2['custom']['variables'][number]
@@ -85,6 +86,12 @@ export function applyPack(profile: ProfileV2, pack: AiPack, parts: Iterable<Pack
       const incoming = byId.get(widget.id)
       return incoming && incoming.type === widget.type ? { ...incoming, props: { ...widget.props, ...incoming.props } } as typeof widget : widget
     }), ...pack.widgets.filter(widget => !existingIds.has(widget.id)).map(portableWidget)] }
+    if (chosen.has('layout') && pack.layout && Object.keys(pack.layout).length) {
+      const grids = [next.layout.areas, ...Object.values(next.layout.breakpoints ?? {}).map(grid => grid.areas)]
+      const common = areaNames(grids[0]).filter(area => grids.every(grid => areaNames(grid).includes(area)))
+      const fallback = common.includes('overview') ? 'overview' : common[0]
+      if (fallback) next = { ...next, widgets: next.widgets.map(widget => common.includes(widget.area) ? widget : { ...widget, area: fallback }) }
+    }
     touched = true
   }
 

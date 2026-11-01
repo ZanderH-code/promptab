@@ -13,11 +13,11 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
   useEffect(() => {
     let alive = true, objectUrl = ''
     setUrl('')
-    if (reference) void assets.get(reference).then(blob => {
+    const timer = reference ? setTimeout(() => { void assets.get(reference).then(blob => {
       if (!blob) throw new Error(`Missing wallpaper asset: ${reference}`)
       if (alive) { objectUrl = URL.createObjectURL(blob); setUrl(objectUrl) }
-    }).catch(error => { console.error(error); if (alive) onError(toMessageRef(error, 'error.readWallpaper')) })
-    return () => { alive = false; if (objectUrl) URL.revokeObjectURL(objectUrl) }
+    }).catch(error => { console.error(error); if (alive) onError(toMessageRef(error, 'error.readWallpaper')) }) }, 0) : undefined
+    return () => { alive = false; clearTimeout(timer); if (objectUrl) URL.revokeObjectURL(objectUrl) }
   }, [reference, onError])
   const choose = useCallback(async (file?: File) => {
     if (!file) return
