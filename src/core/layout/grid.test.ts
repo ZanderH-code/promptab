@@ -3,6 +3,9 @@ import { areaGridProblem, areaNames, breakpointFor, columnCount, resolveGrid, wi
 import { templateGrid } from './templates'
 import { BREAKPOINTS } from '../schema/defaults'
 import { profileV2Schema } from '../schema/profile'
+import { applyTemplate, detectTemplate } from './profile'
+import { migrateV1 } from '../migrate/v1'
+import { defaults } from '../model'
 
 describe('layout grids', () => {
   it('lists unique named areas in order and counts columns', () => {
@@ -33,6 +36,16 @@ describe('layout grids', () => {
     expect(widgetsIn(widgets, 'a').map(item => item.id)).toEqual(['a', 'b'])
     expect(templateGrid('dashboard').areas).toEqual(['clock date links', 'search search links'])
     for (const id of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard'] as const) expect(templateGrid(id).areas.length).toBeGreaterThan(0)
+  })
+
+  it('applies every template to a styled profile with a valid resulting grid', async () => {
+    const profile = await migrateV1(defaults, { id: () => 'test', now: () => '2026-01-01T00:00:00.000Z', add: () => Promise.reject(new Error('unused')) })
+    profile.layout.areaStyles = { overview: { padding: 10 } }
+    for (const template of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard'] as const) {
+      const result = applyTemplate(profile, template)
+      expect(profileV2Schema.safeParse(result).success, template).toBe(true)
+      expect(detectTemplate(result)).toBe(template)
+    }
   })
 
   it('validates grid rectangles, column counts and area styles', () => {

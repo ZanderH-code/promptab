@@ -22,6 +22,7 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
   else delete next.layout.rows
   next.layout.breakpoints = grid.breakpoints
   const names = new Set(grid.areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))
+  if (next.layout.areaStyles) next.layout.areaStyles = Object.fromEntries(Object.entries(next.layout.areaStyles).filter(([name]) => names.has(name)))
   const fallback = names.has('overview') ? 'overview' : names.has('bookmarks') ? 'bookmarks' : [...names][0]
   next.widgets = next.widgets.map(widget => ({ ...widget, area: names.has(widget.area) ? widget.area : fallback }))
   return next
