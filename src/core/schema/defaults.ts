@@ -5,6 +5,8 @@
  * `defaults.test.ts` reads the stylesheet and fails if they drift. Ranges are shared with the profile schema.
  */
 
+export const BREAKPOINTS = { narrowMax: 639, mediumMax: 1024 } as const
+
 export const RANGES = {
   radius: { min: 0, max: 28 },
   shadow: { min: 0, max: 100 },

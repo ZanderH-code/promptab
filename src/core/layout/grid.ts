@@ -1,11 +1,12 @@
 import type { ProfileV2 } from '../schema/profile'
+import { BREAKPOINTS } from '../schema/defaults'
 
 export type Breakpoint = 'narrow' | 'medium' | 'wide'
 export type Grid = { areas: string[]; columns?: string[]; rows?: string[] }
 
 /** `narrow` is below 640px, `medium` up to 1024px, `wide` above (DESIGN §4). */
-export const NARROW_MAX = 639
-export const MEDIUM_MAX = 1024
+export const NARROW_MAX = BREAKPOINTS.narrowMax
+export const MEDIUM_MAX = BREAKPOINTS.mediumMax
 
 export const breakpointFor = (width: number): Breakpoint => width <= NARROW_MAX ? 'narrow' : width <= MEDIUM_MAX ? 'medium' : 'wide'
 

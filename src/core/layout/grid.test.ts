@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { areaGridProblem, areaNames, breakpointFor, columnCount, resolveGrid, widgetsIn } from './grid'
 import { templateGrid } from './templates'
+import { BREAKPOINTS } from '../schema/defaults'
 import { profileV2Schema } from '../schema/profile'
 
 describe('layout grids', () => {
@@ -23,8 +24,8 @@ describe('layout grids', () => {
     expect(resolveGrid({ areas: ['base'], breakpoints: { medium: { areas: ['mid'] } } } as any, 'narrow').areas).toEqual(['mid'])
   })
 
-  it('classifies breakpoint boundaries', () => {
-    expect([breakpointFor(639), breakpointFor(640), breakpointFor(1024), breakpointFor(1025)]).toEqual(['narrow', 'medium', 'medium', 'wide'])
+  it('classifies breakpoint boundaries from shared defaults', () => {
+    expect([breakpointFor(BREAKPOINTS.narrowMax), breakpointFor(BREAKPOINTS.narrowMax + 1), breakpointFor(BREAKPOINTS.mediumMax), breakpointFor(BREAKPOINTS.mediumMax + 1)]).toEqual(['narrow', 'medium', 'medium', 'wide'])
   })
 
   it('orders visible widgets and exposes six named templates', () => {
