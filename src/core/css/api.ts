@@ -5,7 +5,8 @@
 export const CSS_API_VERSION = 1
 
 export const CSS_API_CLASSES = [
-  'mnt-root', 'mnt-header', 'mnt-settings-entry', 'mnt-area', 'mnt-widget',
+  'mnt-root', 'mnt-header', 'mnt-settings-entry', 'mnt-layout', 'mnt-area', 'mnt-widget', 'mnt-widget-frame', 'mnt-widget-toolbar',
+  'mnt-bookmark-tile', 'mnt-bookmark-list', 'mnt-bookmark-minimal', 'mnt-bookmark-card', 'mnt-bookmark-icon-only',
   'mnt-clock', 'mnt-date',
   'mnt-search', 'mnt-search-input',
   'mnt-group', 'mnt-group-title', 'mnt-group-title-hidden', 'mnt-link', 'mnt-link-icon', 'mnt-link-name',
@@ -13,8 +14,10 @@ export const CSS_API_CLASSES = [
 
 /** Attribute selectors, as written in CSS. `github.com` is an example value of `data-link-host`. */
 export const CSS_API_ATTRIBUTES = [
-  '[data-area="clock"]', '[data-area="overview"]', '[data-area="bookmarks"]',
-  '[data-widget="clock"]', '[data-widget="date"]', '[data-widget="search"]', '[data-widget="bookmarks"]', '[data-widget="greeting"]', '[data-widget="text"]', '[data-widget="spacer"]',
+  '[data-area="clock"]', '[data-area="overview"]', '[data-area="bookmarks"]', '[data-area="banner"]', '[data-area="websites"]', '[data-area="divider"]', '[data-area="date"]', '[data-area="search"]', '[data-area="links"]',
+  '[data-layout-template="stacked"]', '[data-layout-template="split"]', '[data-layout-template="top-grid"]', '[data-layout-template="websites"]', '[data-layout-template="zen"]', '[data-layout-template="dashboard"]', '[data-layout-template="icon-split"]', '[data-layout-template="banner"]',
+  '[data-breakpoint="wide"]', '[data-breakpoint="medium"]', '[data-breakpoint="narrow"]', '[data-edit-mode]', '[data-widget-id="clock"]',
+  '[data-widget="clock"]', '[data-widget="date"]', '[data-widget="search"]', '[data-widget="bookmarks"]', '[data-widget="greeting"]', '[data-widget="text"]', '[data-widget="spacer"]', '[data-widget="toolbar"]',
   '[data-link-host="github.com"]', '[data-theme-mode="dark"]', '[data-theme-mode="light"]',
 ] as const
 

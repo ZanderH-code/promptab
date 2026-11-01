@@ -46,6 +46,22 @@ describe('v2 settings integration', () => {
     await waitFor(() => expect(hook.result.current.settings!.accent).toBe(defaults.accent))
   })
 
+  it('compares a preview with the saved profile without losing the candidate', async () => {
+    const hook = await setup()
+    const preview = structuredClone(hook.profile)
+    preview.theme.color.accent = '#abcdef'
+    act(() => hook.result.current.store!.getState().setPreview('main', preview, 'Imported'))
+    await waitFor(() => expect(hook.result.current.settings!.accent).toBe('#abcdef'))
+    act(() => hook.result.current.store!.getState().setPreviewOriginal(true))
+    await waitFor(() => expect(hook.result.current.settings!.accent).toBe(defaults.accent))
+    expect(hook.result.current.store!.getState().preview!.profile.theme.color.accent).toBe('#abcdef')
+    expect(mocks.write).not.toHaveBeenCalled()
+    act(() => hook.result.current.store!.getState().setPreviewOriginal(false))
+    await waitFor(() => expect(hook.result.current.settings!.accent).toBe('#abcdef'))
+    act(() => hook.result.current.store!.getState().clearPreview())
+    await waitFor(() => expect(hook.result.current.settings!.accent).toBe(defaults.accent))
+  })
+
   it('edits the light palette without changing the dark colors', async () => {
     const hook = await setup()
     act(() => hook.result.current.patch({ theme: 'light' }))

@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+
+const CssCodeMirror = lazy(() => import('./CssCodeMirror'))
 import { cssIssueText } from '../../core/css/messages'
 import { sanitizeCss } from '../../core/css/sanitize'
 import { Toggle } from './controls'
@@ -26,10 +28,9 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
       <p className="sd-hint">{t('css.hint')}</p>
       {safeMode && <p className="sd-hint" role="note">{t('css.safeNote')}</p>}
       <Toggle label={t('css.enable')} checked={profile.custom.cssEnabled} onChange={value => change(p => ({ ...p, custom: { ...p.custom, cssEnabled: value } }), 'theme')} />
-      <textarea
-        className="sd-code" aria-label={t('css.editor')} value={text} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off" rows={12}
-        placeholder={'.mnt-clock {\n  letter-spacing: -0.05em;\n}'} onChange={event => setText(event.target.value)}
-      />
+      <Suspense fallback={<textarea className="sd-code" aria-label={t('css.editor')} value={text} onChange={event => setText(event.target.value)} spellCheck={false} rows={12} />}>
+        <CssCodeMirror value={text} onChange={setText} label={t('css.editor')} t={t} />
+      </Suspense>
       <div className="sd-css-status">
         <span className="sd-usage">{t('css.usage', { kb: (result.bytes / 1024).toFixed(1), rules: result.rules })}</span>
         <span data-state={result.ok ? (dirty ? 'dirty' : 'ok') : 'error'}>

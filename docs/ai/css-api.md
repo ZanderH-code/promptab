@@ -18,8 +18,16 @@ Removing or renaming a name here is a breaking change and raises the API version
 | `.mnt-root` | The page root. Theme variables and the background live here. |
 | `.mnt-header` | The top bar with the brand and the settings button. Protected. |
 | `.mnt-settings-entry` | The settings button. Protected: custom CSS cannot hide, move or cover it. |
+| `.mnt-layout` | The responsive layout grid; carries template, breakpoint and edit-mode attributes. |
 | `.mnt-area` | One named responsive layout area. Carries `data-area` with its area name. |
 | `.mnt-widget` | Every widget block. Combine with `data-widget` to pick one. |
+| `.mnt-widget-frame` | The outer frame for a profile widget; carries its type and ID. |
+| `.mnt-widget-toolbar` | The toolbar widget action container. |
+| `.mnt-bookmark-tile` | Bookmarks rendered in tile style. |
+| `.mnt-bookmark-list` | Bookmarks rendered in list style. |
+| `.mnt-bookmark-minimal` | Bookmarks rendered in minimal style. |
+| `.mnt-bookmark-card` | Bookmarks rendered in card style. |
+| `.mnt-bookmark-icon-only` | Bookmarks rendered in icon-only style. |
 | `.mnt-clock` | The time text. |
 | `.mnt-date` | The date line under the clock. |
 | `.mnt-search` | The search form. |
@@ -38,6 +46,25 @@ Removing or renaming a name here is a breaking change and raises the API version
 | `[data-area="clock"]` | A layout area named clock. |
 | `[data-area="overview"]` | The default clock and search area. |
 | `[data-area="bookmarks"]` | The default bookmarks area. |
+| `[data-area="banner"]` | The banner template’s banner area. |
+| `[data-area="websites"]` | The banner template’s websites area. |
+| `[data-area="divider"]` | The icon-split template’s divider area. |
+| `[data-area="date"]` | The dashboard date area. |
+| `[data-area="search"]` | The dashboard search area. |
+| `[data-area="links"]` | The dashboard links area. |
+| `[data-layout-template="stacked"]` | The stacked layout. |
+| `[data-layout-template="split"]` | The split layout. |
+| `[data-layout-template="top-grid"]` | The top-grid layout. |
+| `[data-layout-template="websites"]` | The websites layout. |
+| `[data-layout-template="zen"]` | The zen layout. |
+| `[data-layout-template="dashboard"]` | The dashboard layout. |
+| `[data-layout-template="icon-split"]` | The icon-split layout. |
+| `[data-layout-template="banner"]` | The banner layout. |
+| `[data-breakpoint="wide"]` | The wide viewport breakpoint. |
+| `[data-breakpoint="medium"]` | The medium viewport breakpoint. |
+| `[data-breakpoint="narrow"]` | The narrow viewport breakpoint. |
+| `[data-edit-mode]` | Present on the layout while editing bookmarks. |
+| `[data-widget-id="clock"]` | A widget frame by ID; replace `clock` with the configured ID. |
 | `[data-widget="clock"]` | The clock widget. |
 | `[data-widget="date"]` | The date widget. |
 | `[data-widget="search"]` | The search widget. |
@@ -45,6 +72,7 @@ Removing or renaming a name here is a breaking change and raises the API version
 | `[data-widget="greeting"]` | A greeting widget. |
 | `[data-widget="text"]` | A text widget. |
 | `[data-widget="spacer"]` | A spacing widget. |
+| `[data-widget="toolbar"]` | The toolbar widget. |
 | `[data-link-host="github.com"]` | A bookmark tile for one site; replace `github.com` with any host. |
 | `[data-theme-mode="dark"]` | The page while the dark palette is in use. |
 | `[data-theme-mode="light"]` | The page while the light palette is in use. |

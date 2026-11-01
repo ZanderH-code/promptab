@@ -11,7 +11,7 @@ export interface ProfilePersistence {
   read(): Promise<{ revision: number; profiles: unknown; history: unknown } | null>
   write(data: { profiles: ProfileCollection; history: History<ProfileV2> }, expectedRevision: number | null): Promise<{ revision: number }>
 }
-type Transient = { profileId: string; profile: ProfileV2; /** Shown in the preview banner; previews without one are driven by their own panel. */ label?: string } | null
+type Transient = { profileId: string; profile: ProfileV2; /** Shown in the preview banner; previews without one are driven by their own panel. */ label?: string; showingOriginal?: boolean } | null
 export interface ProfileStore {
   profiles: Record<string, ProfileV2>
   activeProfileId: string
@@ -26,6 +26,7 @@ export interface ProfileStore {
   undo(id: string): Promise<void>
   setDraft(id: string, profile: ProfileV2): void
   setPreview(id: string, profile: ProfileV2, label?: string): void
+  setPreviewOriginal(showingOriginal: boolean): void
   clearDraft(): void
   clearPreview(): void
   restoreSnapshot(id: string, snapshotId: string): Promise<void>
@@ -169,6 +170,7 @@ export function createProfileStore(options: Options) {
       }),
       setDraft: (id, value) => { existing(id); set({ draft: { profileId: id, profile: validateProfile(value, id) } }) },
       setPreview: (id, value, label) => { existing(id); set({ preview: { profileId: id, profile: validateProfile(value, id), ...(label ? { label } : {}) } }) },
+      setPreviewOriginal: showingOriginal => set(state => state.preview ? { preview: { ...state.preview, showingOriginal } } : state),
       clearDraft: () => set({ draft: null }), clearPreview: () => set({ preview: null }),
       restoreSnapshot: (id, snapshotId) => transaction(() => {
         const old = existing(id)

@@ -21,6 +21,8 @@ export function slimSchema(): string {
     '{',
     `  "kind": "${PACK_KIND}",                 // required text, always this value`,
     '  "packVersion": 2,',
+    '  "cssApiVersion": 1, // optional CSS API version',
+    '  "variables": [{ "name": "--glow", "label": { "en": "Glow", "zh-CN": "光晕" }, "type": "range", "min": 0, "max": 20, "unit": "px", "default": 4 }], // optional; range, color, toggle, select',
     '  "meta": { "name": "Short name", "description": "optional", "notes": "optional, e.g. which wallpaper would suit it" },',
     '  "theme": {                              // optional; include only what you change',
     '    "mode": "dark" | "light" | "system",',

@@ -1,11 +1,46 @@
 import type { ProfileV2 } from '../schema/profile'
 import { darkSurface, lightSurface } from '../schema/defaults'
-import { PACK_PARTS, type AiPack, type PackPart } from './pack'
+import { PACK_KIND, PACK_VERSION, PACK_PARTS, type AiPack, type PackPart } from './pack'
+
+type Variable = ProfileV2['custom']['variables'][number]
+export function variableValue(variable: Variable, value: unknown): string | number {
+  if (variable.type === 'range' && typeof value === 'number' && Number.isFinite(value) && value >= variable.min && value <= variable.max) return value
+  if (variable.type === 'toggle' && (value === 0 || value === 1)) return value
+  if (variable.type === 'color' && typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)) return value
+  if (variable.type === 'select' && typeof value === 'string' && variable.options.includes(value)) return value
+  return variable.default
+}
 
 type PackColors = NonNullable<NonNullable<AiPack['theme']>['color']>
 
 /** Fills in the surface colour a pack may leave out, the same way the settings panel derives it. */
 const withSurface = (colors: PackColors, derive: (bg: string, text: string) => string) => ({ ...colors, surface: colors.surface ?? derive(colors.bg, colors.text) })
+
+function portableWidget(widget: ProfileV2['widgets'][number]): ProfileV2['widgets'][number] {
+  const allowed: Record<string, string[]> = {
+    clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow'],
+    date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase'],
+    search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles'],
+    greeting: ['size', 'align'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
+  }
+  return { ...widget, props: Object.fromEntries(Object.entries(widget.props).filter(([key]) => allowed[widget.type].includes(key))) } as typeof widget
+}
+
+/** A shareable theme excludes personal content and wallpaper assets. */
+export function exportThemePack(profile: ProfileV2): AiPack {
+  const { mode, color, colorLight, radius, shadow, glass, density, scale, iconShape, iconSize } = profile.theme
+  const font = Object.fromEntries(Object.entries(profile.theme.font).filter(([, value]) => !value.startsWith('mnt-asset:'))) as Partial<ProfileV2['theme']['font']>
+  const { type, color: backgroundColor, gradient, dim } = profile.background
+  return {
+    kind: PACK_KIND, packVersion: PACK_VERSION, meta: { name: profile.custom.sourcePack?.name ?? 'Exported theme' },
+    theme: { mode, color, colorLight, font, radius, shadow, glass, density, scale, iconShape, iconSize },
+    background: { type: type === 'image' ? 'theme' : type, ...(type === 'color' ? { color: backgroundColor } : {}), ...(type === 'gradient' ? { gradient } : {}), dim },
+    layout: profile.layout,
+    widgets: profile.widgets.map(portableWidget),
+    css: profile.custom.css,
+    variables: profile.custom.variables.map(variable => ({ ...variable, default: variableValue(variable, profile.custom.values[variable.name]) } as Variable)),
+  }
+}
 
 /**
  * Merges the chosen parts of a pack into a profile. Parts the pack does not carry, and parts not chosen,
@@ -45,12 +80,27 @@ export function applyPack(profile: ProfileV2, pack: AiPack, parts: Iterable<Pack
 
   if (chosen.has('widgets') && pack.widgets?.length) {
     const byId = new Map(pack.widgets.map(widget => [widget.id, widget]))
-    next = { ...next, widgets: next.widgets.map(widget => byId.get(widget.id) ?? widget) }
+    const existingIds = new Set(next.widgets.map(widget => widget.id))
+    next = { ...next, widgets: [...next.widgets.map(widget => {
+      const incoming = byId.get(widget.id)
+      return incoming && incoming.type === widget.type ? { ...incoming, props: { ...widget.props, ...incoming.props } } as typeof widget : widget
+    }), ...pack.widgets.filter(widget => !existingIds.has(widget.id)).map(portableWidget)] }
     touched = true
   }
 
-  if (chosen.has('css') && typeof pack.css === 'string' && pack.css.trim() !== '') {
+  if (chosen.has('css') && typeof pack.css === 'string') {
     next = { ...next, custom: { ...next.custom, css: pack.css, cssEnabled: true } }
+    touched = true
+  }
+
+  if (chosen.has('css') && pack.variables !== undefined) {
+    const old = new Map(profile.custom.variables.map(variable => [variable.name, variable]))
+    const values = Object.fromEntries(pack.variables.map(variable => {
+      const previous = old.get(variable.name)
+      const compatible = !!pack.meta?.name && pack.meta.name === profile.custom.sourcePack?.name && previous?.type === variable.type && (variable.type !== 'range' || (previous.type === 'range' && previous.unit === variable.unit))
+      return [variable.name, variableValue(variable, compatible ? profile.custom.values[variable.name] : undefined)]
+    }))
+    next = { ...next, custom: { ...next.custom, variables: pack.variables, values } }
     touched = true
   }
 

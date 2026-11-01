@@ -16,7 +16,7 @@ const reply = (pack: unknown) => `Here is a neon theme for you!\n\n\`\`\`json\n$
 
 const settingsEntry = (page: Page) => page.locator('.mnt-settings-entry')
 const replyBox = (page: Page) => page.locator('.sd-ai textarea:not(.sd-ai-request)')
-const cssEditor = (page: Page) => page.locator('.sd-css textarea')
+const cssEditor = (page: Page) => page.locator('.sd-css .cm-content[contenteditable="true"]')
 const accent = (page: Page) => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--mnt-accent').trim().toLowerCase())
 
 test.beforeEach(async ({ page, context }) => {
@@ -85,6 +85,20 @@ test('discarding a preview leaves the saved theme alone', async ({ page }) => {
   await banner.getByRole('button', { name: /^(放弃|Discard)$/ }).click()
   await expect(banner).toHaveCount(0)
   await expect.poll(() => accent(page)).toBe(before)
+})
+
+test('loads the CSS editor only when the style tab opens', async ({ page }) => {
+  const editorRequests: string[] = []
+  page.on('request', request => { if (/\/CssCodeMirror-[^/]+\.js(?:\?|$)/.test(request.url())) editorRequests.push(request.url()) })
+  // Reload with the listener in place to include every request made during startup.
+  await page.reload()
+  await expect(settingsEntry(page)).toBeVisible()
+  expect(editorRequests).toEqual([])
+  await settingsEntry(page).click()
+  expect(editorRequests).toEqual([])
+  await openTab(page, 'style')
+  await expect(cssEditor(page)).toBeVisible()
+  expect(editorRequests).toHaveLength(1)
 })
 
 test('CSS cannot hide the settings entry even with !important, and stays applied', async ({ page }) => {

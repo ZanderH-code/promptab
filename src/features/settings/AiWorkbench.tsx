@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { analyzeCandidate } from '../../core/ai/analyze'
-import { applyPack } from '../../core/ai/apply'
+import { applyPack, exportThemePack } from '../../core/ai/apply'
 import { PACK_PARTS, type PackPart } from '../../core/ai/pack'
 import { extractCandidates } from '../../core/ai/parse'
 import { buildPromptPack } from '../../core/ai/prompt'
@@ -112,6 +112,10 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
         />
         <div className="sd-css-actions">
           <input ref={file} type="file" hidden accept=".json,.jsonc,.css,.md,.txt,application/json,text/css,text/plain,text/markdown" aria-label={t('ai.openFile')} onChange={event => { void readFile(event.target.files?.[0]); event.target.value = '' }} />
+          <button type="button" className="sd-button" onClick={() => {
+            const url = URL.createObjectURL(new Blob([JSON.stringify(exportThemePack(active), null, 2)], { type: 'application/json' }))
+            const link = document.createElement('a'); link.href = url; link.download = 'theme-pack.json'; link.click(); URL.revokeObjectURL(url)
+          }}>{ctx.s.language === 'zh-CN' ? '导出主题包' : 'Export theme pack'}</button>
           <button type="button" className="sd-button" onClick={() => file.current?.click()}>{t('ai.openFile')}</button>
         </div>
         {candidates.length > 1 && (

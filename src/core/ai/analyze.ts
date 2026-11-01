@@ -102,7 +102,7 @@ export function analyzeCandidate(candidate: Candidate, profile: ProfileV2, langu
   const parts = partsOf(pack)
   const problems: Problem[] = []
   if (!PACK_PARTS.some(part => parts[part])) problems.push({ kind: 'empty' })
-  if (parts.css) {
+  if (parts.css && typeof pack.css === 'string') {
     const result = sanitizeCss(pack.css!)
     for (const issue of result.errors) problems.push({ kind: 'css', issue })
   }

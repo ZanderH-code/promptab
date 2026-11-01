@@ -127,7 +127,12 @@
   background: var(--mnt-surface-hover); color: var(--mnt-text); font-family: var(--mnt-font-mono); font-size: var(--mnt-text-sm); line-height: 1.5;
   resize: vertical; tab-size: 2; white-space: pre; overflow: auto;
 }
-.sd .sd-code:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 1px; }
+.sd .sd-code:focus-visible, .sd .sd-codemirror:focus-within { outline: 2px solid var(--mnt-accent); outline-offset: 1px; }
+.sd .sd-codemirror { padding: 0; height: 220px; }
+.sd-codemirror .cm-editor { height: 100%; }
+.sd-codemirror .cm-scroller { overflow: auto; font-family: inherit; }
+.sd-codemirror .cm-content { min-height: 100%; }
+.sd-codemirror .cm-editor.cm-focused { outline: none; }
 .sd-css-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--mnt-space-2); font-size: var(--mnt-text-xs); color: var(--mnt-text-muted); }
 .sd-css-status [data-state="error"] { color: var(--mnt-danger); }
 .sd-css-status [data-state="ok"] { color: var(--mnt-accent); }

@@ -31,13 +31,14 @@ export function SafeModeBanner({ t, canRollback, onEditCss, onRollback, onExit }
   )
 }
 
-type PreviewProps = { t: Translate; name: string; onApply: () => void; onDiscard: () => void }
+type PreviewProps = { t: Translate; name: string; showingOriginal?: boolean; onCompare?: () => void; onApply: () => void; onDiscard: () => void }
 
 /** Shown while an AI theme is previewed but not yet saved. */
-export function PreviewBanner({ t, name, onApply, onDiscard }: PreviewProps) {
+export function PreviewBanner({ t, name, showingOriginal = false, onCompare, onApply, onDiscard }: PreviewProps) {
   return (
     <div className="mnt-banner" data-kind="preview" role="status">
       <span className="mnt-banner-text"><strong>{t('ai.previewing', { name })}</strong> · {t('ai.previewHint')}</span>
+      {onCompare && <button type="button" aria-pressed={showingOriginal} onClick={onCompare}>{t('ai.compareOriginal')}</button>}
       <button type="button" onClick={onDiscard}>{t('ai.discard')}</button>
       <button type="button" data-primary onClick={onApply}>{t('ai.apply')}</button>
     </div>

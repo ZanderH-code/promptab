@@ -65,6 +65,7 @@ export const aiZh = {
   'ai.discard': '放弃',
   'ai.previewing': '预览中：{name}',
   'ai.previewHint': '还没有保存，应用后可以随时撤销。',
+  'ai.compareOriginal': '对比原始效果',
   'ai.defaultName': 'AI 主题',
 } as const
 
@@ -134,5 +135,6 @@ export const aiEn: Record<keyof typeof aiZh, string> = {
   'ai.discard': 'Discard',
   'ai.previewing': 'Previewing: {name}',
   'ai.previewHint': 'Not saved yet; after applying you can undo at any time.',
+  'ai.compareOriginal': 'Compare original',
   'ai.defaultName': 'AI theme',
 }

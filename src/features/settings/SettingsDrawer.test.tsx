@@ -41,6 +41,15 @@ const lastUpdate = (props: ReturnType<typeof setup>) => {
 }
 
 describe('SettingsDrawer tabs', () => {
+  it('edits theme variables in Appearance', () => {
+    const profile: ProfileV2 = { ...base, custom: { ...base.custom, variables: [{ name: '--glow', label: { en: 'Glow', 'zh-CN': '光' }, type: 'toggle', default: 0 }], values: { '--glow': 0 } } }
+    const props = setup({ profile })
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Glow' }))
+    expect(lastUpdate(props).next.custom.values['--glow']).toBe(1)
+    fireEvent.click(screen.getByRole('tab', { name: 'Style' }))
+    expect(screen.queryByRole('checkbox', { name: 'Glow' })).toBeNull()
+  })
+
   it('lists every section, AI included', () => {
     setup()
     const names = within(screen.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)

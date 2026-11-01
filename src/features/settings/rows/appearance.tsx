@@ -1,10 +1,11 @@
+import { variableValue } from '../../../core/ai/apply'
 import { Check, TriangleAlert } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import { isAssetFont } from '../../../core/font'
 import { RANGES, darkSurface, lightSurface } from '../../../core/schema/defaults'
 import type { ProfileV2 } from '../../../core/schema/profile'
 import type { MessageKey } from '../../../i18n'
-import { ColorField, RangeField, Row, Segmented } from '../controls'
+import { ColorField, RangeField, Row, Segmented, Toggle } from '../controls'
 import { FontUpload } from '../FontUpload'
 import { WallpaperContrast } from '../WallpaperContrast'
 import { FONT_KEYS, PRESETS, applyPreset, colorsFor, contrastIssues, editTheme, fixedColors, isFontKey, thumbnailTokens, withColors, type BaseColors, type ThemeMode } from '../themeApi'
@@ -54,6 +55,16 @@ export function appearanceItems(ctx: Ctx): Item[] {
         </Row>
       ),
     },
+    ...profile.custom.variables.map(variable => {
+      const label = variable.label[ctx.s.language]
+      const value = variableValue(variable, profile.custom.values[variable.name])
+      const set = (next: string | number) => change(p => touch({ ...p, custom: { ...p.custom, values: { ...p.custom.values, [variable.name]: next } } }))
+      const node = variable.type === 'range' ? <RangeField t={t} label={label} value={value as number} min={variable.min} max={variable.max} unit={variable.unit} step={(variable.max - variable.min) / 100 || 1} onChange={set} />
+        : variable.type === 'color' ? <ColorField t={t} label={label} value={value as string} onChange={set} />
+          : variable.type === 'toggle' ? <Toggle label={label} checked={value === 1} onChange={checked => set(checked ? 1 : 0)} />
+            : <Row label={label}><Select ctx={ctx} label={label} value={value as string} options={variable.options.map(option => ({ value: option, label: option }))} onChange={set} /></Row>
+      return { id: `variable-${variable.name}`, group: 'settings.theme' as const, keys: [] as Item['keys'], words: [label, variable.name], node }
+    }),
     {
       id: 'presets', keys: ['settings.presets'], words: PRESETS.flatMap(preset => [preset.name['zh-CN'], preset.name.en]),
       node: (

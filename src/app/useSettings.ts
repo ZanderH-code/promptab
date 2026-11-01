@@ -150,7 +150,7 @@ export function useSettings() {
       if (!alive) return
       const sync = () => {
         const state = next.getState()
-        const preview = state.preview?.profileId === state.activeProfileId ? state.preview.profile : undefined
+        const preview = state.preview?.profileId === state.activeProfileId && !state.preview.showingOriginal ? state.preview.profile : undefined
         setProfile(preview ?? state.profiles[state.activeProfileId])
       }
       unsubscribe = next.subscribe(sync); sync(); setStore(next)

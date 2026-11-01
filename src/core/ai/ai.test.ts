@@ -4,7 +4,7 @@ import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES } from '../css/a
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
 import { aiPackSchema, partsOf } from './pack'
-import { applyPack } from './apply'
+import { applyPack, exportThemePack } from './apply'
 import { EXAMPLES } from './examples'
 import { autoFix } from './fix'
 import { extractCandidates } from './parse'
@@ -145,6 +145,70 @@ describe('AI pack layout and widget parts', () => {
 
   it('counts layout and widgets as independently selectable pack parts', () => {
     expect(partsOf({ layout: { areas: ['overview'] }, widgets: [{ id: 'c', type: 'clock', area: 'overview', order: 0, props: {} }] })).toEqual({ theme: false, background: false, css: false, layout: true, widgets: true })
+  })
+})
+
+describe('theme pack variables', () => {
+  it('exports a shareable pack and restores values without profile data', () => {
+    const variable = { name: '--glow', label: { en: 'Glow', 'zh-CN': '光' }, type: 'range' as const, min: 0, max: 10, unit: 'px', default: 2 }
+    const source = { ...profile, custom: { ...profile.custom, css: '.x { padding: var(--glow) }', variables: [variable], values: { '--glow': 7 } } }
+    const json = JSON.stringify(exportThemePack(source))
+    expect(json).not.toContain('secret.example.org')
+    expect(json).not.toContain('mnt-asset:')
+    const pack = aiPackSchema.parse(JSON.parse(json))
+    expect(pack.layout).toEqual(profile.layout)
+    expect(pack.widgets).toEqual(profile.widgets)
+    expect(applyPack(profile, pack).custom.values).toEqual({ '--glow': 7 })
+    expect(pack.background?.type).toBe('theme')
+  })
+
+  it('exports widget presentation without private widget content', () => {
+    const source: ProfileV2 = { ...profile, widgets: [
+      { id: 'greeting', type: 'greeting', area: 'clock', order: 0, props: { name: 'Private Name', size: 2 } },
+      { id: 'text', type: 'text', area: 'links', order: 1, props: { text: 'Private Text', muted: true } },
+      { id: 'search', type: 'search', area: 'search', order: 2, props: { engine: 'private-engine', size: 1 } },
+    ] }
+    const exported = exportThemePack(source)
+    const json = JSON.stringify(exported)
+    expect(json).not.toContain('Private Name')
+    expect(json).not.toContain('Private Text')
+    expect(json).not.toContain('private-engine')
+    const destination = { ...source, widgets: [ { ...source.widgets[0], order: 5 } ] }
+    const restored = applyPack(destination, aiPackSchema.parse(JSON.parse(json)))
+    expect(restored.widgets).toHaveLength(3)
+    expect(restored.widgets[1].props).not.toHaveProperty('text')
+    expect(restored.widgets[0].order).toBe(0)
+    expect(profileIssues(restored)).toEqual([])
+    expect(restored.widgets[0].props).toMatchObject({ name: 'Private Name', size: 2 })
+  })
+
+  it('reimports an exported named theme while retaining changed values', () => {
+    const variable = { name: '--glow', label: { en: 'Glow', 'zh-CN': '光' }, type: 'range' as const, min: 0, max: 10, unit: 'px', default: 2 }
+    const source = { ...profile, custom: { ...profile.custom, sourcePack: { name: 'Aurora', importedAt: '2026-01-01T00:00:00Z' }, variables: [variable], values: { '--glow': 7 } } }
+    const pack = aiPackSchema.parse(JSON.parse(JSON.stringify(exportThemePack(source))))
+    expect(pack.meta?.name).toBe('Aurora')
+    expect(applyPack({ ...source, custom: { ...source.custom, css: 'old', values: { '--glow': 9 } } }, pack).custom).toMatchObject({ css: '', values: { '--glow': 9 } })
+  })
+
+  it('applies authored widget content to an existing matching widget', () => {
+    const source: ProfileV2 = { ...profile, widgets: [{ id: 'text', type: 'text', area: 'clock', order: 0, props: { text: 'old' } }] }
+    const result = applyPack(source, { widgets: [{ id: 'text', type: 'text', area: 'clock', order: 0, props: { text: 'authored' } }] })
+    expect(result.widgets[0].props).toMatchObject({ text: 'authored' })
+  })
+
+  it('rejects duplicate and reserved variable names', () => {
+    const variable = { name: '--mnt-radius', label: { en: 'Radius', 'zh-CN': '圆角' }, type: 'toggle', default: 1 }
+    expect(aiPackSchema.safeParse({ variables: [variable] }).success).toBe(false)
+    expect(aiPackSchema.safeParse({ variables: [{ ...variable, name: '--custom' }, { ...variable, name: '--custom' }] }).success).toBe(false)
+  })
+
+  it('preserves compatible values on reimport and removes obsolete values', () => {
+    const variable = { name: '--glow', label: { en: 'Glow', 'zh-CN': '光' }, type: 'range' as const, min: 0, max: 10, unit: 'px', default: 2 }
+    const pack = aiPackSchema.parse({ meta: { name: 'Aurora' }, css: '.x { padding: var(--glow) }', variables: [variable] })
+    const existing = { ...profile, custom: { ...profile.custom, sourcePack: { name: 'Aurora', importedAt: '2026-01-01T00:00:00Z' }, variables: [variable], values: { '--glow': 7, '--old': 1 } } }
+    expect(applyPack(existing, pack).custom.values).toEqual({ '--glow': 7 })
+    expect(applyPack(existing, aiPackSchema.parse({ meta: { name: 'Other' }, variables: [variable] })).custom.values).toEqual({ '--glow': 2 })
+    expect(applyPack(existing, aiPackSchema.parse({ meta: { name: 'Aurora' }, variables: [{ ...variable, max: 5 }] })).custom.values).toEqual({ '--glow': 2 })
   })
 })
 

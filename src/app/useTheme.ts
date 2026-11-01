@@ -1,3 +1,4 @@
+import { variableValue } from '../core/ai/apply'
 import { useLayoutEffect, type CSSProperties } from 'react'
 import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/derive'
 import { assetFontFamily, isAssetFont } from '../core/font'
@@ -35,6 +36,11 @@ function themeProperties(profile: ProfileV2, mode: ThemeMode): Record<string, st
   tokens['--mnt-wallpaper-overlay'] = `${profile.background.dim}%`
   tokens['--mnt-icon-size'] = `${theme.iconSize}px`
   tokens['--mnt-icon-radius'] = ICON_RADIUS[theme.iconShape]
+  for (const variable of profile.custom.variables) {
+    if (/^--mnt-/i.test(variable.name)) continue
+    const value = variableValue(variable, profile.custom.values[variable.name])
+    tokens[variable.name] = `${value}${variable.type === 'range' ? variable.unit : ''}`
+  }
   return tokens
 }
 

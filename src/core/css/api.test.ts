@@ -16,7 +16,12 @@ describe('CSS API', () => {
   it('is version 1', () => expect(CSS_API_VERSION).toBe(1))
 
   it.each(CSS_API_CLASSES)('class %s is rendered by the app', name => {
-    expect(new RegExp(`['"\` ]${name}['"\` ]`).test(source)).toBe(true)
+    if (name.startsWith('mnt-bookmark-')) {
+      expect(source).toContain('mnt-bookmark-${style}')
+      expect(source).toContain(`'${name.slice('mnt-bookmark-'.length)}'`)
+      return
+    }
+    expect(new RegExp(`['"\` ]${name}(?=['"\` $])`).test(source)).toBe(true)
   })
 
   it.each(CSS_API_VARIABLES)('variable %s is defined by the app', name => {

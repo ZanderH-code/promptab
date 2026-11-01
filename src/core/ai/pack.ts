@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { RANGES } from '../schema/defaults'
-import { baseColorsSchema, profileV2Schema, widgetSchema } from '../schema/profile'
+import { baseColorsSchema, profileV2Schema, variableDeclSchema, widgetSchema } from '../schema/profile'
 import { areaGridProblem, areaNames } from '../layout/grid'
 
 /**
@@ -64,6 +64,13 @@ export const aiPackSchema = z.object({
     dim: number(RANGES.dim).optional(),
   }).optional(),
   css: z.string().optional(),
+  variables: z.array(variableDeclSchema).superRefine((variables, ctx) => {
+    const seen = new Set<string>()
+    variables.forEach((variable, index) => {
+      if (seen.has(variable.name) || /^--mnt-/i.test(variable.name)) ctx.addIssue({ code: 'custom', path: [index, 'name'], message: 'unique non-reserved variable name' })
+      seen.add(variable.name)
+    })
+  }).optional(),
   layout: z.object({
     areas: profileV2Schema.shape.layout.shape.areas.optional(),
     columns: profileV2Schema.shape.layout.shape.columns,
@@ -129,7 +136,7 @@ export const PACK_PARTS: readonly PackPart[] = ['theme', 'background', 'css', 'l
 export const partsOf = (pack: AiPack): Record<PackPart, boolean> => ({
   theme: !!pack.theme && Object.keys(pack.theme).length > 0,
   background: !!pack.background && Object.keys(pack.background).length > 0,
-  css: typeof pack.css === 'string' && pack.css.trim() !== '',
+  css: typeof pack.css === 'string' || pack.variables !== undefined,
   layout: !!pack.layout && Object.keys(pack.layout).length > 0,
   widgets: !!pack.widgets?.length,
 })
