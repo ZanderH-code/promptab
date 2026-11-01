@@ -1,3 +1,6 @@
+import { aiZh } from './ai'
+import { styleZh } from './style'
+
 export const zhCN = {
   'app.title': '新标签页',
   'app.loading': '正在准备桌面…',
@@ -223,6 +226,8 @@ export const zhCN = {
   'error.backupWrite': '导入失败，已恢复原有配置。',
   'error.backupRollback': '导入失败，部分原有数据未能恢复。请保留备份文件并检查浏览器存储权限。',
   'error.export': '导出失败。',
+  ...styleZh,
+  ...aiZh,
 } as const
 
 export type MessageKey = keyof typeof zhCN

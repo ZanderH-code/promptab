@@ -70,10 +70,11 @@
     --mnt-dur-slow: 320ms;
     --mnt-ease: cubic-bezier(.2, .7, .2, 1);
     --mnt-ease-exit: cubic-bezier(.4, 0, 1, 1);
-    --mnt-z-menu: 20;
-    --mnt-z-drawer: 30;
-    --mnt-z-dialog: 40;
-    --mnt-z-toast: 50;
+    /* Above the guarded header (2147483000), so the drawer and dialogs are never under it. */
+    --mnt-z-menu: 2147483100;
+    --mnt-z-drawer: 2147483200;
+    --mnt-z-dialog: 2147483300;
+    --mnt-z-toast: 2147483400;
   }
 
   :root[data-theme="light"] {

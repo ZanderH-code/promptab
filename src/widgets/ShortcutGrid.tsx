@@ -10,6 +10,8 @@ import { WebsiteIcon } from './WebsiteIcon'
 /** The seeded sample site carries the default teal; it follows the accent colour instead of staying fixed. */
 const SAMPLE_ID = 'example'
 const SAMPLE_COLOR = '#90d5cd'
+/** Hostname for `[data-link-host]` selectors in custom CSS. */
+const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
 const tileColor = (item: Shortcut) => item.id === SAMPLE_ID && item.color.toLowerCase() === SAMPLE_COLOR ? 'var(--mnt-accent)' : item.color
 
 type Props = {
@@ -39,8 +41,8 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
   }
 
   return (
-    <div className="bookmarks">
-      <div className="shortcuts-heading">
+    <div className="bookmarks mnt-widget mnt-group" data-widget="bookmarks">
+      <div className="shortcuts-heading mnt-group-title">
         <span>{t('shortcuts.heading')}</span>
         <span className="line" />
         <span className="count">{String(shortcuts.length).padStart(2, '0')}</span>
@@ -50,9 +52,9 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
           <div className="grid" style={{ '--mnt-item-count': shortcuts.length + 1 } as CSSProperties}>
             {shortcuts.map((item, index) => (
               <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
-                <a className="shortcut" title={item.name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
-                  <span className="shortcut-icon" style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
-                  <span>{item.name}</span>
+                <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={item.name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
+                  <span className="shortcut-icon mnt-link-icon" style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
+                  <span className="mnt-link-name">{item.name}</span>
                 </a>
                 {editing && (
                   <div className="shortcut-actions">

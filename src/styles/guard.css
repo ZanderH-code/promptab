@@ -1,0 +1,131 @@
+/*
+ * Guard layer: the first layer, and the only one that uses !important. Important declarations in earlier layers
+ * beat later ones, so nothing in the user layer (even with !important) can hide the settings entry or the banners.
+ */
+@layer guard {
+  :root, body, #root {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .mnt-root {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    translate: none !important;
+    rotate: none !important;
+    scale: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    mask: none !important;
+    contain: none !important;
+  }
+
+  .mnt-header, .mnt-settings-entry, .mnt-banners, .mnt-banner, .mnt-banner :is(button, span) {
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    transform: none !important;
+    translate: none !important;
+    rotate: none !important;
+    scale: none !important;
+    filter: none !important;
+    clip-path: none !important;
+    mask: none !important;
+    max-height: none !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+
+  .mnt-header {
+    display: flex !important;
+    position: relative !important;
+    inset: auto !important;
+    z-index: 2147483000 !important;
+    width: auto !important;
+    overflow: visible !important;
+  }
+
+  .mnt-settings-entry {
+    display: inline-flex !important;
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    color: var(--mnt-text-muted) !important;
+    font-size: 14px !important;
+    overflow: visible !important;
+  }
+
+  .mnt-settings-entry:is(:hover, :focus-visible) {
+    color: var(--mnt-text) !important;
+  }
+
+  /* Banners sit in the flow above the page so they never cover the settings entry. */
+  .mnt-banners {
+    display: flex !important;
+    flex-direction: column !important;
+    position: sticky !important;
+    inset: 0 0 auto 0 !important;
+    z-index: 2147483646 !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .mnt-banner {
+    display: flex !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .mnt-banner :is(button, span) {
+    display: inline-flex !important;
+    position: static !important;
+  }
+}
+
+@layer widgets {
+  .mnt-banner {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--mnt-space-2) var(--mnt-space-3);
+    padding: var(--mnt-space-2) var(--mnt-space-5);
+    background: var(--mnt-bg-elevated);
+    color: var(--mnt-text);
+    border-bottom: 1px solid var(--mnt-border-strong);
+    font-size: var(--mnt-text-sm);
+  }
+
+  .mnt-banner[data-kind=safe], .mnt-banner[data-kind=preview] { border-bottom-color: var(--mnt-accent); }
+  .mnt-banner .mnt-banner-text { flex: 1 1 16ch; min-width: 0; }
+  .mnt-banner .mnt-banner-text strong { color: var(--mnt-accent-text); }
+
+  .mnt-banner button {
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 var(--mnt-space-3);
+    border: 1px solid var(--mnt-border-strong);
+    border-radius: 10px;
+    background: none;
+    color: var(--mnt-text);
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .mnt-banner button:hover:not(:disabled) { border-color: var(--mnt-accent); }
+  .mnt-banner button:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
+  /* The guard layer keeps opacity at 1, so a disabled button is shown with muted text and a dashed border instead. */
+  .mnt-banner button:disabled { color: var(--mnt-text-muted); border-style: dashed; cursor: not-allowed; }
+  .mnt-banner button[data-primary] { background: var(--mnt-accent-soft); color: var(--mnt-accent-text); border-color: transparent; }
+}

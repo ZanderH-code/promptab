@@ -1,4 +1,4 @@
-import { Database, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
+import { Braces, Database, Sparkles, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import type { Settings } from '../../core/model'
@@ -27,12 +27,16 @@ type Props = {
   onError: (error: MessageRef) => void
   /** Tab to open first: a tab name or one of the legacy anchor ids (`wallpaper-settings`, `component-settings`, `search-settings`, `data-settings`). */
   initialSection?: string
+  /** Safe mode is on: custom CSS is paused for this page. */
+  safeMode?: boolean
+  /** Commits the running AI preview to the active profile. */
+  onApplyPreview?: () => void
 }
 
-const ICONS: Record<TabId, LucideIcon> = { appearance: Palette, background: Image, layout: LayoutGrid, widgets: Blocks, shortcuts: Link, search: Search, data: Database, about: Info }
+const ICONS: Record<TabId, LucideIcon> = { appearance: Palette, background: Image, layout: LayoutGrid, widgets: Blocks, shortcuts: Link, search: Search, style: Braces, ai: Sparkles, data: Database, about: Info }
 const TAB_LABELS: Record<TabId, MessageKey> = {
   appearance: 'settings.tab.appearance', background: 'settings.tab.background', layout: 'settings.tab.layout', widgets: 'settings.tab.widgets',
-  shortcuts: 'settings.tab.shortcuts', search: 'settings.tab.search', data: 'settings.tab.data', about: 'settings.tab.about',
+  shortcuts: 'settings.tab.shortcuts', search: 'settings.tab.search', style: 'settings.tab.style', ai: 'settings.tab.ai', data: 'settings.tab.data', about: 'settings.tab.about',
 }
 const LEGACY_ANCHORS: Record<string, TabId> = { 'wallpaper-settings': 'background', 'component-settings': 'widgets', 'search-settings': 'search', 'data-settings': 'data' }
 
@@ -51,7 +55,7 @@ export function matches(haystack: string, query: string): boolean {
 
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled):not([type=hidden]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
-export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError, initialSection }: Props) {
+export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError, initialSection, safeMode = false, onApplyPreview = () => {} }: Props) {
   const [tab, setTab] = useState<TabId>(() => initialTab(initialSection))
   const [query, setQuery] = useState('')
   const drawer = useRef<HTMLElement>(null)
@@ -72,7 +76,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   useEffect(() => { if (initialSection) setTab(initialTab(initialSection)) }, [initialSection])
 
   const ctx: Ctx = {
-    t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperRemove, onReset, onError,
+    t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
     change: (update, kind) => onProfileChange(update, kind),
   }
 

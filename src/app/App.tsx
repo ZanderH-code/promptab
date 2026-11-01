@@ -1,5 +1,5 @@
 import { Settings as SettingsIcon, X } from 'lucide-react'
-import { useCallback, useEffect, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
 import { defaults, type Settings, type Shortcut } from '../core/model'
@@ -12,7 +12,11 @@ import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { Clock } from '../widgets/Clock'
 import { Search } from '../widgets/Search'
 import { ShortcutGrid } from '../widgets/ShortcutGrid'
+import { Banners, PreviewBanner, SafeModeBanner } from '../features/banners/Banners'
+import { useSafeMode } from './safeMode'
 import { useSettings } from './useSettings'
+import { useAssetFonts } from './useAssetFonts'
+import { useUserCss } from './useUserCss'
 import { useWallpaper } from './useWallpaper'
 
 type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut'
@@ -58,6 +62,33 @@ export default function App() {
   }, [settings?.language])
 
   useThemeTokens(profile, settings?.theme)
+  useAssetFonts(profile)
+
+  const { safe, enter: enterSafe, exit: exitSafe } = useSafeMode()
+  // The last stylesheet that passed the settings-entry check (empty counts), and what the page loaded with.
+  const verifiedCss = useRef({ css: '', enabled: false })
+  const loadedCss = useRef<string | undefined>(undefined)
+  useEffect(() => { if (settings && profile && loadedCss.current === undefined) loadedCss.current = profile.custom.cssEnabled ? profile.custom.css : '' }, [settings, profile])
+  useUserCss({
+    profile, safe, ready: !!settings,
+    onReachable: css => { verifiedCss.current = { css, enabled: true } },
+    onUnreachable: (_failure, css) => {
+      const state = store?.getState()
+      if (!state) return
+      if (state.preview?.profileId === state.activeProfileId && state.preview.profile.custom.css === css) {
+        state.clearPreview()
+        setError({ key: 'css.previewRejected' })
+      } else if (css === loadedCss.current || css === verifiedCss.current.css) {
+        // Stored CSS that was already there on load is never rewritten silently: pause it instead.
+        enterSafe()
+        setError({ key: 'safe.autoEntered' })
+      } else {
+        const good = verifiedCss.current
+        run((s, id) => s.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, custom: { ...p.custom, css: good.css, cssEnabled: good.enabled } }), 'restore'), false)
+        setError({ key: 'css.rolledBack' })
+      }
+    },
+  })
 
   if (!settings) {
     const language = systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
@@ -113,9 +144,33 @@ export default function App() {
     return items
   }
 
+  const previewLabel = store?.getState().preview?.label
+  const applyPreview = () => run(async (st, id) => {
+    const preview = st.getState().preview
+    if (!preview?.label || preview.profileId !== id) return
+    await st.getState().updateProfile(id, () => ({ ...preview.profile, meta: { ...preview.profile.meta, updatedAt: new Date().toISOString() } }), 'theme')
+    st.getState().clearPreview()
+  })
+
+  const rollbackTarget = store?.getState().history.profiles[store.getState().activeProfileId]?.snapshots[0]
+
   return (
+    <>
+    {(safe || previewLabel) && (
+      <Banners>
+        {previewLabel && <PreviewBanner t={t} name={previewLabel} onApply={applyPreview} onDiscard={() => store?.getState().clearPreview()} />}
+        {safe && <SafeModeBanner
+          t={t}
+          canRollback={!!rollbackTarget}
+          onEditCss={() => openSettings('style')}
+          onRollback={() => { if (rollbackTarget) run((st, id) => st.getState().restoreSnapshot(id, rollbackTarget.id), false) }}
+          onExit={exitSafe}
+        />}
+      </Banners>
+    )}
     <main
-      className={'app ' + s.theme}
+      className={'app mnt-root ' + s.theme}
+      data-theme-mode={s.theme}
       style={appStyle(s, profile)}
       onClick={closeMenu}
       onContextMenu={event => openMenu(event, 'background', { clamp: true })}
@@ -127,9 +182,9 @@ export default function App() {
           <div className="wallpaper-vignette" style={{ '--vignette': `${profile!.background.image!.vignette}%` } as CSSProperties} />
         </div>
       )}
-      <header>
+      <header className="mnt-header">
         <span className="brand">MINIMAL <span className="brandmuted">/ NEW TAB</span></span>
-        <button className="settings-button" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
+        <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>
       <section className={`desktop layout-${s.layout} ${s.reverse ? 'layout-reverse' : ''}`}>
         <div className="overview">
@@ -157,6 +212,8 @@ export default function App() {
           settings={s}
           profile={profile!}
           initialSection={drawerSection}
+          safeMode={safe}
+          onApplyPreview={applyPreview}
           onProfileChange={(update, kind) => run((store, id) => store.getState().updateProfile(id, p => ({ ...update(p), meta: { ...p.meta, updatedAt: new Date().toISOString() } }), kind))}
           t={t}
           onPatch={patch}
@@ -169,5 +226,6 @@ export default function App() {
       )}
       {editing && <ShortcutEditor key={editing.id} shortcut={editing} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}
     </main>
+    </>
   )
 }

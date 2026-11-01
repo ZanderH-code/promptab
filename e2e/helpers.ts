@@ -4,7 +4,7 @@ import { expect, type Page } from '@playwright/test'
 const TAB_LABELS = {
   appearance: ['外观', 'Appearance'], background: ['背景', 'Background'], layout: ['布局', 'Layout'],
   widgets: ['组件', 'Widgets'], shortcuts: ['快捷方式', 'Shortcuts'], search: ['搜索', 'Search'],
-  data: ['数据', 'Data'], about: ['关于', 'About'],
+  style: ['样式', 'Style'], ai: ['AI', 'AI'], data: ['数据', 'Data'], about: ['关于', 'About'],
 } as const
 
 export async function openTab(page: Page, tab: keyof typeof TAB_LABELS) {

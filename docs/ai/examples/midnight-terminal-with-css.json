@@ -1,0 +1,40 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 1,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Midnight terminal",
+    "description": "Cool dark gradient, condensed tech type, a quiet accent glow on hover.",
+    "notes": "No image needed."
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#0e1116",
+      "surface": "#161b22",
+      "text": "#e6edf3",
+      "accent": "#7ee0c3"
+    },
+    "font": {
+      "display": "barlow-condensed",
+      "ui": "system"
+    },
+    "radius": 4,
+    "shadow": 30,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "rounded"
+  },
+  "background": {
+    "type": "gradient",
+    "gradient": {
+      "angle": 160,
+      "stops": [
+        "#10141b",
+        "#0a0d12"
+      ]
+    },
+    "dim": 0
+  },
+  "css": ".mnt-clock {\n  letter-spacing: -0.02em;\n  text-transform: uppercase;\n}\n.mnt-date {\n  letter-spacing: 0.18em;\n  text-transform: uppercase;\n  color: var(--mnt-text-muted);\n}\n.mnt-link-name {\n  font-size: var(--mnt-text-sm);\n  letter-spacing: 0.04em;\n}\n.mnt-link:hover .mnt-link-icon {\n  box-shadow: 0 0 0 2px var(--mnt-accent);\n}\n@media (prefers-reduced-motion: no-preference) {\n  .mnt-link-icon {\n    transition: box-shadow var(--mnt-dur-base) var(--mnt-ease);\n  }\n}"
+}

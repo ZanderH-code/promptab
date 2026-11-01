@@ -1,0 +1,19 @@
+# Minimal New Tab
+
+> A minimal browser new-tab extension whose look is controlled by a JSON theme pack and an optional stylesheet. This folder tells an AI assistant how to write them.
+
+A theme pack is one JSON object with `"kind": "mnt.theme-pack"` and `"packVersion": 1`. Every other field is optional: `theme`, `background` and `css`. Reply with one `json` code block.
+
+## Docs
+
+- [Theme pack schema](theme-pack.schema.json): the JSON Schema for a pack.
+- [CSS API](css-api.md): the only classes, attributes and variables custom CSS may use.
+- [Example: Paper](examples/paper-colors-only.json)
+- [Example: Midnight terminal](examples/midnight-terminal-with-css.json)
+
+## Rules
+
+- Colours are `#RRGGBB`; numbers carry no units; leave out fields you are unsure about.
+- Express intent with `theme` and `background` first; add `css` only for effects they cannot express.
+- No external URLs, no `!important`, no hiding the settings button, and animation only inside `prefers-reduced-motion: no-preference`.
+- Never add personal sites, bookmarks or promotional links.

@@ -1,0 +1,217 @@
+{
+  "title": "Minimal New Tab theme pack",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string",
+      "const": "mnt.theme-pack"
+    },
+    "packVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "cssApiVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "meta": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "author": {
+          "type": "string"
+        },
+        "createdWith": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "dark",
+            "light",
+            "system"
+          ]
+        },
+        "color": {
+          "type": "object",
+          "properties": {
+            "bg": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            },
+            "text": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            },
+            "surface": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            }
+          },
+          "required": [
+            "bg",
+            "text",
+            "accent"
+          ],
+          "additionalProperties": false
+        },
+        "colorLight": {
+          "type": "object",
+          "properties": {
+            "bg": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            },
+            "text": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            },
+            "surface": {
+              "type": "string",
+              "pattern": "^#[\\da-f]{6}$"
+            }
+          },
+          "required": [
+            "bg",
+            "text",
+            "accent"
+          ],
+          "additionalProperties": false
+        },
+        "font": {
+          "type": "object",
+          "properties": {
+            "display": {
+              "type": "string"
+            },
+            "ui": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "radius": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 28
+        },
+        "shadow": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "glass": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "comfortable",
+            "spacious"
+          ]
+        },
+        "scale": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "iconShape": {
+          "type": "string",
+          "enum": [
+            "circle",
+            "rounded",
+            "square"
+          ]
+        },
+        "iconSize": {
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 120
+        }
+      },
+      "additionalProperties": false
+    },
+    "background": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "theme",
+            "color",
+            "gradient",
+            "accent"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[\\da-f]{6}$"
+        },
+        "gradient": {
+          "type": "object",
+          "properties": {
+            "angle": {
+              "type": "number"
+            },
+            "stops": {
+              "minItems": 2,
+              "maxItems": 3,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^#[\\da-f]{6}$"
+              }
+            }
+          },
+          "required": [
+            "angle",
+            "stops"
+          ],
+          "additionalProperties": false
+        },
+        "dim": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 80
+        }
+      },
+      "additionalProperties": false
+    },
+    "css": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,6 +1,7 @@
 import { Check, Minus, Plus, RotateCcw, Trash2, TriangleAlert } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
+import { isAssetFont } from '../../core/font'
 import { searchUrl, type Settings } from '../../core/model'
 import { RANGES, darkSurface, lightSurface } from '../../core/schema/defaults'
 import type { ProfileV2 } from '../../core/schema/profile'
@@ -10,10 +11,13 @@ import type { ProfileStore } from '../../store/profile'
 import { Dropdown } from '../../ui/Dropdown'
 import { BackupSection } from './BackupSection'
 import { ColorField, RangeField, Row, Segmented, Toggle } from './controls'
+import { AiWorkbench } from './AiWorkbench'
+import { CssEditor } from './CssEditor'
+import { FontUpload } from './FontUpload'
 import { ProfileSection } from './ProfileSection'
 import { FONT_KEYS, PRESETS, applyPreset, colorsFor, contrastIssues, editTheme, fixedColors, isFontKey, thumbnailTokens, withColors, type BaseColors, type ThemeMode } from './themeApi'
 
-export const TABS = ['appearance', 'background', 'layout', 'widgets', 'shortcuts', 'search', 'data', 'about'] as const
+export const TABS = ['appearance', 'background', 'layout', 'widgets', 'shortcuts', 'search', 'style', 'ai', 'data', 'about'] as const
 export type TabId = (typeof TABS)[number]
 
 /** One searchable setting. `keys` are the localized labels (including option names) the search matches against. */
@@ -31,6 +35,10 @@ export type Ctx = {
   onWallpaperRemove: () => void
   onReset: () => void
   onError: (error: MessageRef) => void
+  /** Safe mode is on: custom CSS is paused for this page. */
+  safe: boolean
+  /** Commit the running AI preview to the active profile (with the usual undo snapshot). */
+  onApplyPreview: () => void
 }
 
 const SEARCH_ENGINES = [
@@ -51,8 +59,8 @@ const derivedSurface = (mode: ThemeMode, colors: BaseColors, bg = colors.bg) => 
 
 function fontOptions(ctx: Ctx, current: string) {
   const { t } = ctx
-  const labels: Record<(typeof FONT_KEYS)[number], string> = { system: t('settings.fontSystem'), serif: t('settings.fontSerif'), mono: t('settings.fontMono'), rounded: t('settings.fontRounded') }
-  return [...FONT_KEYS.map(value => ({ value: value as string, label: labels[value] })), ...(isFontKey(current) ? [] : [{ value: current, label: t('common.custom') }])]
+  const labels: Record<(typeof FONT_KEYS)[number], string> = { system: t('settings.fontSystem'), serif: t('settings.fontSerif'), mono: t('settings.fontMono'), rounded: t('settings.fontRounded'), 'barlow-condensed': t('font.barlowCondensed'), cormorant: t('font.cormorant'), outfit: t('font.outfit') }
+  return [...FONT_KEYS.map(value => ({ value: value as string, label: labels[value] })), ...(isFontKey(current) ? [] : [{ value: current, label: isAssetFont(current) ? t('font.uploaded', { name: current.slice(10, 18) }) : t('common.custom') }])]
 }
 
 function presetBackground(preset: ProfileV2['background']): CSSProperties {
@@ -74,7 +82,7 @@ export function appearanceItems(ctx: Ctx): Item[] {
   const issues = contrastIssues(theme, mode)
   const colorName = { colorText: 'settings.colorText', colorMuted: 'settings.colorMuted', colorOnAccent: 'settings.colorOnAccent', colorSurface: 'settings.colorSurface', background: 'settings.background', accent: 'settings.accent' } as const
   const fontRow = (which: 'display' | 'ui', label: MessageKey): Item => ({
-    id: `font-${which}`, group: 'settings.typography', keys: [label, 'settings.fontSystem', 'settings.fontSerif', 'settings.fontMono', 'settings.fontRounded'],
+    id: `font-${which}`, group: 'settings.typography', keys: [label, 'settings.fontSystem', 'settings.fontSerif', 'settings.fontMono', 'settings.fontRounded', 'font.barlowCondensed', 'font.cormorant', 'font.outfit'],
     node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={theme.font[which]} options={fontOptions(ctx, theme.font[which])} onChange={value => setTheme({ font: { ...theme.font, [which]: value } })} /></Row>,
   })
   const range = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string } = {}): Item => ({
@@ -131,6 +139,7 @@ export function appearanceItems(ctx: Ctx): Item[] {
     },
     fontRow('display', 'settings.fontDisplay'),
     fontRow('ui', 'settings.fontUi'),
+    { id: 'font-upload', group: 'settings.typography', keys: ['font.upload', 'font.uploadHint', 'font.uploadDisplay', 'font.uploadUi'], words: ['font', 'woff2', 'ttf', 'otf'], node: <FontUpload ctx={ctx} /> },
     range('radius', 'settings.radius', theme.radius, RANGES.radius, value => setTheme({ radius: value }), { unit: 'px' }),
     range('shadow', 'settings.shadow', theme.shadow, RANGES.shadow, value => setTheme({ shadow: value })),
     range('glass', 'settings.glass', theme.glass, RANGES.glass, value => setTheme({ glass: value })),
@@ -323,6 +332,18 @@ export function searchItems(ctx: Ctx): Item[] {
 
 // ---- data / about --------------------------------------------------------------------------------------------
 
+export function styleItems(ctx: Ctx): Item[] {
+  return [
+    { id: 'css', keys: ['css.title', 'css.hint', 'css.enable', 'css.editor'], words: ['css', 'style'], node: <CssEditor ctx={ctx} safeMode={ctx.safe} /> },
+  ]
+}
+
+export function aiItems(ctx: Ctx): Item[] {
+  return [
+    { id: 'ai', keys: ['ai.title', 'ai.intro', 'ai.copyPrompt', 'ai.reply', 'ai.copyErrors', 'ai.preview', 'ai.apply'], words: ['ai', 'prompt', 'chatgpt', 'claude', 'kimi', 'deepseek', '主题包'], node: <AiWorkbench ctx={ctx} /> },
+  ]
+}
+
 export function dataItems(ctx: Ctx): Item[] {
   const { t, s, store, onError, onReset } = ctx
   return [
@@ -359,6 +380,8 @@ export function itemsFor(tab: TabId, ctx: Ctx): Item[] {
     case 'widgets': return widgetsItems(ctx)
     case 'shortcuts': return shortcutsItems(ctx)
     case 'search': return searchItems(ctx)
+    case 'style': return styleItems(ctx)
+    case 'ai': return aiItems(ctx)
     case 'data': return dataItems(ctx)
     case 'about': return aboutItems(ctx)
   }

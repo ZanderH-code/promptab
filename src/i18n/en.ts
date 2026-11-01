@@ -1,4 +1,6 @@
 import type { MessageKey } from './zh-CN'
+import { aiEn } from './ai'
+import { styleEn } from './style'
 
 export const en: Record<MessageKey, string> = {
   'app.title': 'New Tab',
@@ -225,4 +227,6 @@ export const en: Record<MessageKey, string> = {
   'error.backupWrite': 'Import failed. Your previous setup was restored.',
   'error.backupRollback': 'Import failed and some previous data could not be restored. Keep your backup file and check browser storage permissions.',
   'error.export': 'Export failed.',
+  ...styleEn,
+  ...aiEn,
 }

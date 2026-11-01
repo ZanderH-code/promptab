@@ -41,10 +41,10 @@ const lastUpdate = (props: ReturnType<typeof setup>) => {
 }
 
 describe('SettingsDrawer tabs', () => {
-  it('shows the eight sections and no AI tab', () => {
+  it('lists every section, AI included', () => {
     setup()
     const names = within(screen.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)
-    expect(names).toEqual(['Appearance', 'Background', 'Layout', 'Widgets', 'Shortcuts', 'Search', 'Data', 'About'])
+    expect(names).toEqual(['Appearance', 'Background', 'Layout', 'Widgets', 'Shortcuts', 'Search', 'Style', 'AI', 'Data', 'About'])
     expect(screen.getByRole('tab', { name: 'Appearance' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Appearance')
   })

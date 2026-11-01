@@ -1,5 +1,6 @@
 import { useLayoutEffect, type CSSProperties } from 'react'
 import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/derive'
+import { assetFontFamily, isAssetFont } from '../core/font'
 import { mixOklch } from '../core/tokens/oklch'
 import type { ProfileV2 } from '../core/schema/profile'
 
@@ -8,11 +9,14 @@ const FONTS: Record<string, string> = {
   serif: '"Noto Serif SC", "Songti SC", Georgia, serif',
   mono: 'ui-monospace, "Cascadia Mono", Consolas, monospace',
   rounded: '"HarmonyOS Sans", ui-rounded, system-ui, sans-serif',
+  'barlow-condensed': '"Barlow Condensed", "Arial Narrow", system-ui, sans-serif',
+  cormorant: '"Cormorant Garamond", "Noto Serif SC", Georgia, serif',
+  outfit: 'Outfit, system-ui, "PingFang SC", "Microsoft YaHei", sans-serif',
 }
 const DENSITY = { compact: 0.8, comfortable: 1, spacious: 1.25 } as const
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
-export const fontStack = (ref: string) => FONTS[ref] ?? ref
+export const fontStack = (ref: string) => FONTS[ref] ?? (isAssetFont(ref) ? `"${assetFontFamily(ref)}", ${FONTS.system}` : ref)
 
 /** Every CSS custom property the theme writes on the root, so stale ones can be cleared. */
 function themeProperties(profile: ProfileV2, mode: ThemeMode): Record<string, string> {

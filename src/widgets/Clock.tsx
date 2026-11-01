@@ -17,10 +17,10 @@ export function Clock({ language, showClock, showDate, hour12, onContextMenu }: 
   }, [])
 
   return (
-    <div className="intro" onContextMenu={onContextMenu}>
+    <div className="intro mnt-widget" data-widget="clock" onContextMenu={onContextMenu}>
       <div className="eyebrow"><span className="dot" /> YOUR SPACE, YOUR PACE</div>
-      {showClock && <div className="clock">{now.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', hour12 })}</div>}
-      {showDate && <div className="date">{now.toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</div>}
+      {showClock && <div className="clock mnt-clock">{now.toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit', hour12 })}</div>}
+      {showDate && <div className="date mnt-date">{now.toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</div>}
     </div>
   )
 }

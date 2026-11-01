@@ -1,5 +1,6 @@
 /** Theme helpers for the settings UI, adapting the core token engine, quality checks and presets. */
 import { fontStack } from '../../app/useTheme'
+import { FONT_KEYS, isFontKey } from '../../core/font'
 import type { ProfileV2 } from '../../core/schema/profile'
 import { DEFAULT_MIN_CONTRAST, deriveTokens, themeColorsFor, type BaseColors, type ThemeMode } from '../../core/tokens/derive'
 import { checkTheme, fixThemeLightness, type CheckId } from '../../core/tokens/quality'
@@ -9,8 +10,7 @@ export type { BaseColors, ThemeMode }
 export { PRESETS, applyPreset }
 export type ThemeState = ProfileV2['theme']
 
-export const FONT_KEYS = ['system', 'serif', 'mono', 'rounded'] as const
-export const isFontKey = (value: string): value is (typeof FONT_KEYS)[number] => (FONT_KEYS as readonly string[]).includes(value)
+export { FONT_KEYS, isFontKey }
 
 /** The base colours shown and edited for a mode (the same ones the page renders). */
 export const colorsFor = (theme: ThemeState, mode: ThemeMode): BaseColors => themeColorsFor(theme, mode)

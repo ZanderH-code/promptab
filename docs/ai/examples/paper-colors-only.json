@@ -1,0 +1,27 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 1,
+  "meta": {
+    "name": "Paper",
+    "description": "Warm paper tones with a serif clock. Colours and shape only, no CSS."
+  },
+  "theme": {
+    "mode": "light",
+    "colorLight": {
+      "bg": "#f3ecdf",
+      "surface": "#faf5ea",
+      "text": "#2f2a24",
+      "accent": "#9a4a28"
+    },
+    "font": {
+      "display": "cormorant",
+      "ui": "system"
+    },
+    "radius": 6,
+    "shadow": 12
+  },
+  "background": {
+    "type": "theme",
+    "dim": 0
+  }
+}
