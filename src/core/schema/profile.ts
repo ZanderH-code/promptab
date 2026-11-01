@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { MessageError } from '../../i18n'
+import { areaGridProblem, areaNames } from '../layout/grid'
 import { isHttpUrl } from '../model'
 import { DEFAULT_DIM, RANGES } from './defaults'
 
@@ -32,20 +33,53 @@ export const linkSchema = z.object({
 
 // Known props are typed; unknown props are tolerated so newer or AI-written packs still load.
 const widgetBase = { id: nonempty, area: nonempty, order: z.number().int().nonnegative(), hidden: z.boolean().optional() }
-const looseProps = z.record(z.string(), z.unknown())
+const textAlign = z.enum(['left', 'center', 'right'])
+/** Props every widget accepts: scale and text alignment (inherited from the area when absent). */
+const common = { size: ranged({ min: 0.5, max: 3 }).optional(), align: textAlign.optional() }
+const separator = z.string().max(8)
+const separatorSpacing = ranged({ min: 0, max: 1 })
+export const DATE_PARTS = ['weekday', 'day', 'month', 'year'] as const
 export const widgetSchema = z.discriminatedUnion('type', [
-  z.object({ ...widgetBase, type: z.literal('clock'), props: z.looseObject({ hour12: z.boolean().optional(), seconds: z.boolean().optional(), size: ranged({ min: 0.5, max: 3 }).optional() }) }),
-  z.object({ ...widgetBase, type: z.literal('date'), props: z.looseObject({ format: nonempty.optional() }) }),
-  z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ engine: nonempty.optional() }) }),
+  z.object({
+    ...widgetBase, type: z.literal('clock'),
+    props: z.looseObject({
+      ...common, hour12: z.boolean().optional(), seconds: z.boolean().optional(), hours: z.boolean().optional(), minutes: z.boolean().optional(),
+      pad: z.boolean().optional(), separator: separator.optional(), separatorSpacing: separatorSpacing.optional(), eyebrow: z.boolean().optional(),
+    }),
+  }),
+  z.object({
+    ...widgetBase, type: z.literal('date'),
+    props: z.looseObject({
+      ...common, format: z.enum(['full', 'custom']).optional(), weekday: z.boolean().optional(), day: z.boolean().optional(), month: z.boolean().optional(), year: z.boolean().optional(),
+      order: z.array(z.enum(DATE_PARTS)).max(4).optional(), separator: separator.optional(), separatorSpacing: separatorSpacing.optional(),
+      weekdayStyle: z.enum(['long', 'short']).optional(), monthStyle: z.enum(['long', 'short', 'numeric']).optional(), ordinal: z.boolean().optional(), uppercase: z.boolean().optional(),
+    }),
+  }),
+  z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
-    props: z.looseObject({ source: nonempty.optional(), style: z.enum(['tile', 'list']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional() }),
+    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional() }),
   }),
-  ...(['greeting', 'text', 'spacer'] as const).map(type => z.object({ ...widgetBase, type: z.literal(type), props: looseProps })),
+  z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('spacer'), props: z.looseObject({ ...common, height: ranged({ min: 8, max: 400 }).optional() }) }),
 ])
 export type Widget = z.infer<typeof widgetSchema>
 
-const grid = z.object({ areas: z.array(nonempty).min(1), columns: z.array(nonempty).optional() })
+const grid = z.object({ areas: z.array(nonempty).min(1), columns: z.array(nonempty).optional(), rows: z.array(nonempty).optional() })
+const nineGrid = z.enum(['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'])
+const sideWidth = ranged({ min: 0, max: 16 })
+/** Look of one layout area: panel background, blur, full-bleed width and accent divider lines. */
+export const areaStyleSchema = z.object({
+  align: nineGrid.optional(),
+  background: z.union([color, z.enum(['surface', 'accent', 'bg'])]).optional(),
+  opacity: ranged({ min: 0, max: 100 }).optional(),
+  blur: ranged(RANGES.blur).optional(),
+  bleed: z.boolean().optional(),
+  padding: ranged({ min: 0, max: 200 }).optional(),
+  border: z.object({ top: sideWidth.optional(), right: sideWidth.optional(), bottom: sideWidth.optional(), left: sideWidth.optional() }).optional(),
+})
+export type AreaStyle = z.infer<typeof areaStyleSchema>
 const backgroundImage = z.object({
   asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale), scale: ranged(RANGES.scale), vignette: ranged(RANGES.vignette), position: nonempty,
 })
@@ -66,8 +100,9 @@ export const profileV2Schema = z.object({
   }),
   layout: grid.extend({
     contentWidth: ranged(RANGES.contentWidth),
-    align: z.enum(['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right']),
+    align: nineGrid,
     gap: ranged(RANGES.gap), breakpoints: z.object({ narrow: grid.optional(), medium: grid.optional() }).optional(),
+    areaStyles: z.record(nonempty, areaStyleSchema).optional(),
   }),
   widgets: z.array(widgetSchema),
   bookmarks: z.object({ groups: z.array(z.object({ id: nonempty, name: nonempty, collapsed: z.boolean(), items: z.array(linkSchema) })) }),
@@ -89,11 +124,21 @@ export const profileV2Schema = z.object({
   if (!profile.search.engines.some(engine => engine.id === profile.search.defaultEngineId)) issue(['search', 'defaultEngineId'], 'id of an existing search engine')
   duplicates(profile.search.engines.map(engine => engine.id), i => ['search', 'engines', i, 'id'], 'unique search engine id')
 
-  const names = (areas: string[]) => new Set(areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))
+  const names = (areas: string[]) => new Set(areaNames(areas))
   const grids: { areas: string[]; path: string[] }[] = [{ areas: profile.layout.areas, path: ['layout', 'areas'] }]
   for (const key of ['narrow', 'medium'] as const) {
     const breakpoint = profile.layout.breakpoints?.[key]
     if (breakpoint) grids.push({ areas: breakpoint.areas, path: ['layout', 'breakpoints', key, 'areas'] })
+  }
+  for (const { areas, path } of grids) {
+    const problem = areaGridProblem(areas)
+    if (problem) issue(path, problem)
+  }
+  for (const grid of [profile.layout, ...Object.entries(profile.layout.breakpoints ?? {}).map(([, value]) => value)]) {
+    if (grid?.columns && grid.columns.length !== (grid.areas[0]?.trim().split(/\s+/).length ?? 0)) issue(['layout', 'columns'], 'one column size per area column')
+  }
+  for (const name of Object.keys(profile.layout.areaStyles ?? {})) {
+    if (!names(profile.layout.areas).has(name)) issue(['layout', 'areaStyles', name], 'area listed in layout.areas')
   }
   profile.widgets.forEach((widget, i) => {
     for (const { areas, path } of grids) {
