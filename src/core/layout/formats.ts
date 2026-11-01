@@ -11,9 +11,11 @@ export function ordinalDay(day: number, language: string): string {
 
 export function formatClock(date: Date, language: string, props: ClockProps): string {
   const parts: string[] = []
-  if (props.hours !== false) parts.push(date.toLocaleString(language, { hour: '2-digit', hour12: props.hour12 ?? false }))
-  if (props.minutes !== false) parts.push(date.toLocaleString(language, { minute: '2-digit' }))
-  if (props.seconds) parts.push(date.toLocaleString(language, { second: '2-digit' }))
+  const formatted = new Intl.DateTimeFormat(language, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: props.hour12 ?? false }).formatToParts(date)
+  const part = (type: Intl.DateTimeFormatPartTypes) => formatted.find(item => item.type === type)?.value ?? ''
+  if (props.hours !== false) parts.push(part('hour'))
+  if (props.minutes !== false) parts.push(part('minute'))
+  if (props.seconds) parts.push(part('second'))
   const separator = props.separator ?? ':'
   const spacing = props.separatorSpacing ?? 0
   return parts.join(`${' '.repeat(Math.round(spacing * 4))}${separator}${' '.repeat(Math.round(spacing * 4))}`)
