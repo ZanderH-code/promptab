@@ -13,7 +13,7 @@
   .edit-entry { width: 36px; padding: 0; }
   .onboarding-card {
     display: flex; flex-direction: column; align-items: flex-start; gap: 14px; width: 100%;
-    padding: 20px 22px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius);
+    margin-top: calc(56px * var(--mnt-density)); padding: 20px 22px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius);
     background: var(--mnt-surface); box-shadow: var(--mnt-elev-1);
   }
   .onboarding-card h2 { margin: 4px 0 6px; font-size: var(--mnt-text-xl); font-weight: 500; }
