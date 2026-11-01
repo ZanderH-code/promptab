@@ -11,7 +11,7 @@ export type AiState = {
   skip: Record<PackPart, boolean>
 }
 
-const initial = (): AiState => ({ request: '', includeCurrent: false, reply: '', pick: 0, skip: { theme: false, background: false, css: false } })
+const initial = (): AiState => ({ request: '', includeCurrent: false, reply: '', pick: 0, skip: { theme: false, background: false, css: false, layout: false, widgets: false } })
 
 let state = initial()
 const listeners = new Set<() => void>()

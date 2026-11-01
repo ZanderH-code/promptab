@@ -1,0 +1,117 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "meta": {
+    "name": "Right-side banner",
+    "description": "Warm translucent panel at the top with a compact clock and date."
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#171a20",
+      "text": "#f2efe9",
+      "accent": "#c9a66b"
+    },
+    "font": {
+      "display": "barlow-condensed",
+      "ui": "system"
+    },
+    "radius": 8,
+    "shadow": 22,
+    "glass": 40
+  },
+  "background": {
+    "type": "theme",
+    "dim": 48
+  },
+  "layout": {
+    "areas": [
+      "banner banner",
+      "websites websites"
+    ],
+    "columns": [
+      "1fr",
+      "1fr"
+    ],
+    "rows": [
+      "minmax(200px, 1fr)",
+      "1fr"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "banner",
+          "websites"
+        ],
+        "columns": [
+          "1fr"
+        ],
+        "rows": [
+          "auto",
+          "1fr"
+        ]
+      }
+    },
+    "areaStyles": {
+      "banner": {
+        "background": "surface",
+        "opacity": 72,
+        "blur": 18,
+        "bleed": true,
+        "padding": 32,
+        "align": "center-right",
+        "border": {
+          "bottom": 1
+        }
+      }
+    },
+    "contentWidth": 1400,
+    "align": "center-center",
+    "gap": 0
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "banner",
+      "order": 0,
+      "props": {
+        "hour12": false,
+        "pad": true,
+        "align": "right"
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "banner",
+      "order": 1,
+      "props": {
+        "format": "custom",
+        "weekday": true,
+        "day": true,
+        "month": true,
+        "order": [
+          "weekday",
+          "day",
+          "month"
+        ],
+        "separator": " / ",
+        "ordinal": true,
+        "uppercase": true,
+        "align": "right"
+      }
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "websites",
+      "order": 2,
+      "props": {
+        "style": "icon-only",
+        "maxColumns": 3
+      },
+      "hidden": true
+    }
+  ]
+}

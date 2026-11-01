@@ -20,7 +20,7 @@ export function slimSchema(): string {
   return [
     '{',
     `  "kind": "${PACK_KIND}",                 // required text, always this value`,
-    '  "packVersion": 1,',
+    '  "packVersion": 2,',
     '  "meta": { "name": "Short name", "description": "optional", "notes": "optional, e.g. which wallpaper would suit it" },',
     '  "theme": {                              // optional; include only what you change',
     '    "mode": "dark" | "light" | "system",',
@@ -41,7 +41,9 @@ export function slimSchema(): string {
     '    "gradient": { "angle": number, "stops": ["#RRGGBB", "#RRGGBB"] },   // when type is "gradient", 2-3 stops',
     `    "dim": number ${r.dim.min}-${r.dim.max}               // shade over a wallpaper`,
     '  },',
-    '  "css": "string, optional; see the CSS API below"',
+    '  "css": "string, optional; see the CSS API below",',
+    '  "layout": { "areas": ["bookmarks overview"], "columns": ["1fr", "minmax(280px, 0.7fr)"], "rows": ["auto"], "breakpoints": { "narrow": { "areas": ["overview", "bookmarks"], "columns": ["1fr"] } }, "areaStyles": {}, "contentWidth": 1200, "align": "center-center", "gap": 24 },',
+    '  "widgets": [{ "id": "clock", "type": "clock", "area": "overview", "order": 0, "props": { "hour12": false } }]',
     '}',
   ].join('\n')
 }
@@ -102,6 +104,8 @@ const COPY = {
     examples: '示例',
     exampleColors: '示例 1：只改配色和形状',
     exampleFull: '示例 2：含渐变背景和 CSS',
+    layoutGuide: '布局和组件',
+    layoutGuideText: 'areas 是 CSS 网格区域名称的字符串数组；columns/rows 使用受限的 CSS track 值。breakpoints 可覆盖 narrow/medium 网格。areaStyles 仅支持背景、透明度、模糊、内边距、通栏和边框。widgets 必须使用受支持的组件类型、有效属性，并且 area 必须存在于每个适用网格中。布局示例采用右侧横幅区域和隐藏的网站区。',
     current: '用户当前的配置（不含书签）',
     request: '用户的需求',
     none: '（用户没有写具体需求，请给出一个克制、好看的方案。）',
@@ -147,6 +151,8 @@ const COPY = {
     examples: 'Examples',
     exampleColors: 'Example 1: colours and shape only',
     exampleFull: 'Example 2: gradient background and CSS',
+    layoutGuide: 'Layout and widgets',
+    layoutGuideText: 'areas is an array of CSS grid area rows; columns and rows use the restricted CSS track grammar. breakpoints may override narrow/medium grids. areaStyles only supports background, opacity, blur, padding, bleed, and borders. widgets must use supported component types and valid props, with each area present in every applicable grid. The layout example uses a right-side banner area and a hidden websites area.',
     current: "The user's current setup (bookmarks excluded)",
     request: "The user's request",
     none: '(The user gave no specific request. Offer a restrained, good-looking design.)',
@@ -164,7 +170,8 @@ export function buildPromptPack({ language, request, current }: PromptOptions): 
     `## ${c.schema}\n\`\`\`\n${slimSchema()}\n\`\`\``,
     `## ${c.api}\n${c.apiIntro}\n\n- ${c.classes}: ${code(CSS_API_CLASSES.map(name => `.${name}`))}\n- ${c.attributes}: ${code(CSS_API_ATTRIBUTES)}\n- ${c.variables}: ${code(CSS_API_VARIABLES)}\n\n${c.cssLimits}`,
     `## ${c.design}\n**${c.must}**\n${list(c.mustRules)}\n\n**${c.mustNot}**\n${list(c.mustNotRules)}\n\n**${c.advice}**\n${list(c.adviceRules)}`,
-    `## ${c.examples}\n### ${c.exampleColors}\n${json(EXAMPLES[0].pack)}\n\n### ${c.exampleFull}\n${json(EXAMPLES[1].pack)}`,
+    `## ${c.layoutGuide}\n${c.layoutGuideText}`,
+    `## ${c.examples}\n### ${c.exampleColors}\n${json(EXAMPLES[0].pack)}\n\n### ${c.exampleFull}\n${json(EXAMPLES[1].pack)}\n\n### ${c.layoutGuide}\n${json(EXAMPLES[2].pack)}`,
   ]
   if (current) parts.push(`## ${c.current}\n${json(currentConfig(current))}`)
   parts.push(`## ${c.request}\n${request?.trim() || c.none}`)

@@ -9,7 +9,7 @@ const withSurface = (colors: PackColors, derive: (bg: string, text: string) => s
 
 /**
  * Merges the chosen parts of a pack into a profile. Parts the pack does not carry, and parts not chosen,
- * leave the profile as it was. Bookmarks, layout, widgets and wallpaper images are never touched.
+ * leave the profile as it was. Bookmarks and wallpaper images are never touched.
  * The result is not validated here; the caller runs it through the profile schema.
  */
 export function applyPack(profile: ProfileV2, pack: AiPack, parts: Iterable<PackPart> = PACK_PARTS, now = new Date().toISOString()): ProfileV2 {
@@ -35,6 +35,17 @@ export function applyPack(profile: ProfileV2, pack: AiPack, parts: Iterable<Pack
 
   if (chosen.has('background') && pack.background && Object.keys(pack.background).length) {
     next = { ...next, background: { ...next.background, ...pack.background } }
+    touched = true
+  }
+
+  if (chosen.has('layout') && pack.layout && Object.keys(pack.layout).length) {
+    next = { ...next, layout: { ...next.layout, ...pack.layout, breakpoints: pack.layout.breakpoints ? { ...next.layout.breakpoints, ...pack.layout.breakpoints } : next.layout.breakpoints, areaStyles: pack.layout.areaStyles ? { ...pack.layout.areaStyles } : next.layout.areaStyles } }
+    touched = true
+  }
+
+  if (chosen.has('widgets') && pack.widgets?.length) {
+    const byId = new Map(pack.widgets.map(widget => [widget.id, widget]))
+    next = { ...next, widgets: next.widgets.map(widget => byId.get(widget.id) ?? widget) }
     touched = true
   }
 

@@ -1,6 +1,6 @@
 {
   "kind": "mnt.theme-pack",
-  "packVersion": 1,
+  "packVersion": 2,
   "meta": {
     "name": "Paper",
     "description": "Warm paper tones with a serif clock. Colours and shape only, no CSS."

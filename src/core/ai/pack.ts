@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { RANGES } from '../schema/defaults'
-import { baseColorsSchema, profileV2Schema } from '../schema/profile'
+import { baseColorsSchema, profileV2Schema, widgetSchema } from '../schema/profile'
+import { areaGridProblem, areaNames } from '../layout/grid'
 
 /**
  * The theme pack an AI assistant is asked to write (v1: theme, background and css only).
@@ -8,7 +9,7 @@ import { baseColorsSchema, profileV2Schema } from '../schema/profile'
  * must be valid. Field rules mirror the profile schema, and `applyPack` re-validates the merged profile.
  */
 export const PACK_KIND = 'mnt.theme-pack'
-export const PACK_VERSION = 1
+export const PACK_VERSION = 2
 
 const themeShape = profileV2Schema.shape.theme.shape
 const backgroundShape = profileV2Schema.shape.background.shape
@@ -63,21 +64,74 @@ export const aiPackSchema = z.object({
     dim: number(RANGES.dim).optional(),
   }).optional(),
   css: z.string().optional(),
+  layout: z.object({
+    areas: profileV2Schema.shape.layout.shape.areas.optional(),
+    columns: profileV2Schema.shape.layout.shape.columns,
+    rows: profileV2Schema.shape.layout.shape.rows,
+    breakpoints: profileV2Schema.shape.layout.shape.breakpoints,
+    areaStyles: profileV2Schema.shape.layout.shape.areaStyles,
+    contentWidth: profileV2Schema.shape.layout.shape.contentWidth.optional(),
+    align: profileV2Schema.shape.layout.shape.align.optional(),
+    gap: profileV2Schema.shape.layout.shape.gap.optional(),
+  }).optional(),
+  widgets: z.array(widgetSchema).optional(),
 }).superRefine((pack, ctx) => {
   const { background } = pack
   if (background?.type === 'gradient' && !background.gradient) ctx.addIssue({ code: 'custom', path: ['background', 'gradient'], message: 'gradient required when type is "gradient"' })
   if (background?.type === 'color' && !background.color) ctx.addIssue({ code: 'custom', path: ['background', 'color'], message: 'color required when type is "color"' })
+  if (pack.layout || pack.widgets) {
+    const layout = pack.layout
+    if (layout?.areas) {
+      for (const issue of [
+        areaGridProblem(layout.areas),
+        ...(layout.breakpoints?.narrow?.areas ? [areaGridProblem(layout.breakpoints.narrow.areas)] : []),
+        ...(layout.breakpoints?.medium?.areas ? [areaGridProblem(layout.breakpoints.medium.areas)] : []),
+      ].filter((issue): issue is string => !!issue)) ctx.addIssue({ code: 'custom', path: ['layout', 'areas'], message: issue })
+    }
+    const profile = profileV2Schema.safeParse({
+      schemaVersion: 2,
+      meta: { id: 'ai-pack', name: 'AI pack', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
+      prefs: { language: 'en', openIn: 'new-tab', reduceMotion: 'system', reduceTransparency: 'system' },
+      theme: { mode: 'dark', color: { bg: '#102932', surface: '#203942', text: '#eeeae5', accent: '#90d5cd' }, font: { display: 'system', ui: 'system' }, radius: 14, shadow: 40, glass: 0, density: 'comfortable', scale: 1, iconShape: 'circle', iconSize: 72 },
+      background: { type: 'theme', dim: 35 },
+      layout: { areas: ['overview', 'bookmarks'], contentWidth: 960, align: 'center-center', gap: 24, ...(pack.layout ?? {}) },
+      widgets: pack.widgets ?? [
+        { id: 'clock', type: 'clock', area: 'overview', order: 0, props: {} },
+        { id: 'date', type: 'date', area: 'overview', order: 1, props: {} },
+        { id: 'search', type: 'search', area: 'overview', order: 2, props: {} },
+        { id: 'bookmarks', type: 'bookmarks', area: 'bookmarks', order: 3, props: {} },
+      ],
+      bookmarks: { groups: [{ id: 'default', name: 'Bookmarks', collapsed: false, items: [] }] },
+      search: { engines: [{ id: 'search', name: 'Search', template: 'https://example.com/?q={query}' }], defaultEngineId: 'search' },
+      custom: { css: '', cssEnabled: false, variables: [], values: {} },
+    })
+    if (!profile.success) for (const issue of profile.error.issues) {
+      const path = issue.path.map(String)
+      const packPath = path[0] === 'layout' ? ['layout', ...path.slice(1)] : path[0] === 'widgets' ? ['widgets', ...path.slice(1)] : ['layout']
+      ctx.addIssue({ code: 'custom', path: packPath, message: issue.message })
+    }
+    if (pack.widgets && layout?.areas) {
+      const grids = [...(layout.areas ? [layout.areas] : []), ...Object.values(layout.breakpoints ?? {}).filter((grid): grid is NonNullable<typeof grid> => !!grid).map(grid => grid.areas)]
+      const namesByGrid = grids.map(areaNames)
+      for (let i = 0; i < pack.widgets.length; i++) {
+        const widget = pack.widgets[i]
+        if (!namesByGrid.every(names => names.includes(widget.area))) ctx.addIssue({ code: 'custom', path: ['widgets', i, 'area'], message: `widget area \\"${widget.area}\\" must exist in every configured grid` })
+      }
+    }
+  }
 })
 
 export type AiPack = z.infer<typeof aiPackSchema>
-export type PackPart = 'theme' | 'background' | 'css'
-export const PACK_PARTS: readonly PackPart[] = ['theme', 'background', 'css']
+export type PackPart = 'theme' | 'background' | 'css' | 'layout' | 'widgets'
+export const PACK_PARTS: readonly PackPart[] = ['theme', 'background', 'css', 'layout', 'widgets']
 
 /** Which parts a pack actually carries. */
 export const partsOf = (pack: AiPack): Record<PackPart, boolean> => ({
   theme: !!pack.theme && Object.keys(pack.theme).length > 0,
   background: !!pack.background && Object.keys(pack.background).length > 0,
   css: typeof pack.css === 'string' && pack.css.trim() !== '',
+  layout: !!pack.layout && Object.keys(pack.layout).length > 0,
+  widgets: !!pack.widgets?.length,
 })
 
 /** Nested key names the schema knows, derived from the schema itself so they cannot drift. */

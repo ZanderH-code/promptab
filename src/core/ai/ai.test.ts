@@ -3,6 +3,7 @@ import { translate } from '../../i18n'
 import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES } from '../css/api'
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
+import { aiPackSchema, partsOf } from './pack'
 import { applyPack } from './apply'
 import { EXAMPLES } from './examples'
 import { autoFix } from './fix'
@@ -74,7 +75,7 @@ describe('analyzeCandidate', () => {
   it('tolerates comments and trailing commas', () => {
     const analysis = analyze(fence('json', '{\n // note\n "kind": "mnt.theme-pack", "theme": { "radius": 8, },\n}'))
     expect(analysis.problems).toEqual([])
-    expect(analysis.parts).toEqual({ theme: true, background: false, css: false })
+    expect(analysis.parts).toEqual({ theme: true, background: false, css: false, layout: false, widgets: false })
   })
 
   it('locates syntax errors by line and column', () => {
@@ -133,6 +134,20 @@ describe('analyzeCandidate', () => {
   })
 })
 
+describe('AI pack layout and widget parts', () => {
+  it('validates layout grids and widgets against all breakpoint areas', () => {
+    const valid = { layout: { areas: ['clock search', 'links links'], columns: ['1fr', '1fr'], gap: 16 }, widgets: [{ id: 'clock', type: 'clock', area: 'clock', order: 0, props: { pad: true } }] }
+    expect(aiPackSchema.safeParse(valid).success).toBe(true)
+    expect(aiPackSchema.safeParse({ layout: { areas: ['a b', 'b a'] } }).success).toBe(false)
+    expect(aiPackSchema.safeParse({ layout: { areas: ['clock search', 'links links'], breakpoints: { narrow: { areas: ['overview'] } } }, widgets: valid.widgets }).success).toBe(false)
+    expect(aiPackSchema.safeParse({ widgets: [{ id: 'x', type: 'script', area: 'clock', order: 0, props: {} }] }).success).toBe(false)
+  })
+
+  it('counts layout and widgets as independently selectable pack parts', () => {
+    expect(partsOf({ layout: { areas: ['overview'] }, widgets: [{ id: 'c', type: 'clock', area: 'overview', order: 0, props: {} }] })).toEqual({ theme: false, background: false, css: false, layout: true, widgets: true })
+  })
+})
+
 describe('applyPack', () => {
   const pack = analyze(fence('json', JSON.stringify(EXAMPLES[1].pack))).pack!
 
@@ -146,6 +161,14 @@ describe('applyPack', () => {
     expect(next.bookmarks).toBe(profile.bookmarks)
     expect(next.widgets).toBe(profile.widgets)
     expect(next.meta.updatedAt).toBe('2026-02-02T00:00:00Z')
+  })
+
+  it('applies selected layout and widget fields while preserving omitted widget props', () => {
+    const pack = { layout: { areas: ['clock search', 'links links'], gap: 10 }, widgets: [{ id: 'clock', type: 'clock' as const, area: 'clock', order: 0, props: { hour12: true } }] }
+    const next = applyPack(profile, pack)
+    expect(next.layout).toMatchObject({ areas: ['clock search', 'links links'], gap: 10 })
+    expect(next.widgets[0]).toMatchObject({ id: 'clock', props: { hour12: true } })
+    expect(next.widgets).toHaveLength(profile.widgets.length)
   })
 
   it('applies only the chosen parts, and nothing when none apply', () => {

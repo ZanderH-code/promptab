@@ -1,6 +1,6 @@
 {
   "kind": "mnt.theme-pack",
-  "packVersion": 1,
+  "packVersion": 2,
   "cssApiVersion": 1,
   "meta": {
     "name": "Midnight terminal",

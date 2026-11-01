@@ -2,7 +2,9 @@
 
 > A minimal browser new-tab extension whose look is controlled by a JSON theme pack and an optional stylesheet. This folder tells an AI assistant how to write them.
 
-A theme pack is one JSON object with `"kind": "mnt.theme-pack"` and `"packVersion": 1`. Every other field is optional: `theme`, `background` and `css`. Reply with one `json` code block.
+A theme pack is one JSON object with `"kind": "mnt.theme-pack"` and `"packVersion": 2`. Every other field is optional: `theme`, `background`, `layout`, `widgets` and `css`. Reply with one `json` code block.
+
+Layout packs may set grid areas, safe CSS track sizes, breakpoints, area styles, content width, alignment and gap. Widget objects are validated against the supported widget types, known props and each configured grid.
 
 ## Docs
 
@@ -10,6 +12,7 @@ A theme pack is one JSON object with `"kind": "mnt.theme-pack"` and `"packVersio
 - [CSS API](css-api.md): the only classes, attributes and variables custom CSS may use.
 - [Example: Paper](examples/paper-colors-only.json)
 - [Example: Midnight terminal](examples/midnight-terminal-with-css.json)
+- [Example: Right-side banner](examples/right-banner-layout.json)
 
 ## Rules
 

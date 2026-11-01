@@ -12,7 +12,7 @@ import { Toggle } from './controls'
 import type { Ctx } from './rows'
 
 const MAX_REPLY_BYTES = 512 * 1024
-const PART_LABELS: Record<PackPart, MessageKey> = { theme: 'ai.part.theme', background: 'ai.part.background', css: 'ai.part.css' }
+const PART_LABELS: Record<PackPart, MessageKey> = { theme: 'ai.part.theme', background: 'ai.part.background', css: 'ai.part.css', layout: 'ai.part.layout', widgets: 'ai.part.widgets' }
 
 function markDynamicText(text: string, values: string[]): ReactNode {
   const dynamic = [...new Set(values.filter(Boolean))].sort((a, b) => b.length - a.length)

@@ -9,7 +9,7 @@ import { themeColorsFor, type ThemeMode } from '../tokens/derive'
 import { checkTheme, type CheckId } from '../tokens/quality'
 import { applyPack } from './apply'
 import { autoFix, type Fix } from './fix'
-import { aiPackSchema, partsOf, unknownKeys, type AiPack, type PackPart } from './pack'
+import { aiPackSchema, PACK_PARTS, partsOf, unknownKeys, type AiPack, type PackPart } from './pack'
 import { readCandidate, type Candidate } from './parse'
 
 /** Something that stops the pack from being applied. */
@@ -41,7 +41,7 @@ export type Analysis = {
 }
 
 export const MAX_CSS_LINES = 200
-const NO_PARTS = { theme: false, background: false, css: false }
+const NO_PARTS = { theme: false, background: false, css: false, layout: false, widgets: false }
 
 function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
   const actual = issue.path.reduce<unknown>((current, key) => (current != null && typeof current === 'object' ? (current as Record<PropertyKey, unknown>)[key] : undefined), value)
@@ -101,7 +101,7 @@ export function analyzeCandidate(candidate: Candidate, profile: ProfileV2, langu
   const pack = parsed.data
   const parts = partsOf(pack)
   const problems: Problem[] = []
-  if (!parts.theme && !parts.background && !parts.css) problems.push({ kind: 'empty' })
+  if (!PACK_PARTS.some(part => parts[part])) problems.push({ kind: 'empty' })
   if (parts.css) {
     const result = sanitizeCss(pack.css!)
     for (const issue of result.errors) problems.push({ kind: 'css', issue })
