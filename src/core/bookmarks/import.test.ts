@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest'
+import { collectBookmarkFolders, importBookmarkFolders, type BookmarkNode } from './import'
+
+const tree: BookmarkNode[] = [{ id: 'root', title: '', children: [
+  { id: 'bar', title: 'Bookmarks bar', children: [
+    { id: 'work', title: 'Work', children: [
+      { id: 'docs', title: 'Docs', children: [
+        { id: 'doc-1', title: 'Docs', url: 'https://docs.example.com' },
+        { id: 'bad', title: 'Local', url: 'file:///tmp/nope' },
+      ] },
+      { id: 'mail', title: 'Mail', url: 'https://mail.example.com' },
+    ] },
+    { id: 'same', title: 'Same URL', url: 'https://docs.example.com' },
+  ] },
+] }]
+
+describe('browser bookmark import', () => {
+  it('lists nested folders with readable paths and link counts', () => {
+    expect(collectBookmarkFolders(tree)).toEqual([
+      { id: 'bar', path: 'Bookmarks bar', count: 3 },
+      { id: 'work', path: 'Bookmarks bar / Work', count: 2 },
+      { id: 'docs', path: 'Bookmarks bar / Work / Docs', count: 1 },
+    ])
+  })
+
+  it('flattens selected folders, keeps HTTP(S), and deduplicates URLs', () => {
+    const result = importBookmarkFolders(tree, ['work', 'bar'])
+    expect(result.map(group => ({ name: group.name, urls: group.items.map(item => item.url) }))).toEqual([
+      { name: 'Bookmarks bar / Work', urls: ['https://docs.example.com', 'https://mail.example.com'] },
+    ])
+  })
+})
