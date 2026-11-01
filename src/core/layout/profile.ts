@@ -38,10 +38,11 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
 
   if (template === 'banner') {
     next.theme.mode = 'dark'
+    next.theme.color.accent = '#2fd6e0'
     next.theme.font.display = 'barlow-condensed'
     next.theme.glass = 48
     next.background.dim = 40
-    next.layout.areaStyles = { banner: { background: 'surface', opacity: 68, blur: 18, bleed: true, padding: 24, align: 'center-right', border: { bottom: 1 } } }
+    next.layout.areaStyles = { banner: { background: 'surface', opacity: 68, blur: 18, bleed: true, padding: 24, align: 'center-right', border: { bottom: 2 } } }
     const bookmarks = widget('bookmarks')
     if (bookmarks) { bookmarks.hidden = true; bookmarks.area = 'websites' }
     const clock = widget('clock')

@@ -10,6 +10,7 @@ import { SettingsDrawer } from '../features/settings/SettingsDrawer'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
+import { detectTemplate } from '../core/layout/profile'
 import { moveBookmarks } from '../widgets/bookmarkGroups'
 import { Banners, PreviewBanner, SafeModeBanner } from '../features/banners/Banners'
 import { useSafeMode } from './safeMode'
@@ -190,7 +191,7 @@ export default function App() {
     <>
     {(safe || previewLabel) && (
       <Banners>
-        {previewLabel && <PreviewBanner t={t} name={previewLabel} onApply={applyPreview} onDiscard={() => store?.getState().clearPreview()} />}
+        {previewLabel && <PreviewBanner t={t} name={previewLabel} showingOriginal={!!store?.getState().preview?.showingOriginal} onCompare={() => { const state = store?.getState(); state?.setPreviewOriginal(!state.preview?.showingOriginal) }} onApply={applyPreview} onDiscard={() => store?.getState().clearPreview()} />}
         {safe && <SafeModeBanner
           t={t}
           canRollback={!!rollbackTarget}
@@ -214,9 +215,9 @@ export default function App() {
           <div className="wallpaper-vignette" style={{ '--vignette': `${profile!.background.image!.vignette}%` } as CSSProperties} />
         </div>
       )}
-      <header className="mnt-header">
+      {!(profile && detectTemplate(profile) === 'banner' && profile.widgets.some(widget => widget.type === 'toolbar' && !widget.hidden && widget.area === 'banner' && widget.props.actions?.includes('settings'))) && <header className="mnt-header">
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
-      </header>
+      </header>}
       {editMode && <nav className="edit-toolbar" aria-label={t('edit.toolbar')}>
         <button type="button" onClick={() => setEditing(newShortcut('#b0a092'))}><Plus size={18} aria-hidden="true" />{t('shortcuts.add')}</button>
         <button type="button" onClick={() => setManagingGroups(true)}><Plus size={18} aria-hidden="true" />{t('groups.add')}</button>

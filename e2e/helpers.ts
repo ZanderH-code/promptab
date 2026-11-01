@@ -10,7 +10,7 @@ const templateShortcuts = [
 ] as const
 export const templateBookmarks = templateShortcuts.map(([id, name, url, brand]) => ({
   id, name, url, color: `#${brand?.hex ?? '3a5a80'}`, icon: name[0], iconMode: brand ? 'brand' : 'lucide', iconName: id === 'film' ? 'video' : id,
-  ...(brand ? { iconColorMode: 'brand', brand: { slug: brand.slug, title: brand.title, path: brand.path, hex: brand.hex } } : {}),
+  ...(brand ? { iconColorMode: 'accent', brand: { slug: brand.slug, title: brand.title, path: brand.path, hex: brand.hex } } : {}),
 }))
 
 export async function seedTemplateUser(page: Page, language: 'zh-CN' | 'en' = 'zh-CN', wallpaper = false) {

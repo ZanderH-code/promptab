@@ -82,7 +82,7 @@ export function ProfileWidgets(props: Props) {
               ? <button type="button" key={action} aria-label={t('shortcuts.add')} onClick={() => props.onAdd()}><span aria-hidden="true">＋</span></button>
               : action === 'edit'
                 ? <button type="button" key={action} aria-label={t('edit.enter')} onClick={props.onEnterEditMode}><span aria-hidden="true">✎</span></button>
-                : <button type="button" key={action} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true">⚙</span></button>)}
+                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : undefined} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true">⚙</span></button>)}
           </div>)
         }
       })}
