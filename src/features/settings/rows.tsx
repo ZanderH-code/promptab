@@ -135,7 +135,7 @@ export function appearanceItems(ctx: Ctx): Item[] {
               <ul>{issues.map(issue => <li key={issue.id}><TriangleAlert size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.contrastPair', { fg: t(colorName[issue.fg]), bg: t(colorName[issue.bg]), ratio: issue.ratio.toFixed(1), min: issue.min })}</li>)}</ul>
               <button type="button" className="sd-button" onClick={() => change(p => touch({ ...p, theme: withColors(p.theme, mode, fixedColors(p.theme, mode)) }))}>{t('settings.contrastFix')}</button>
             </>}
-          <WallpaperContrast t={t} profile={profile} mode={mode} />
+          <WallpaperContrast t={t} profile={profile} mode={mode} onDim={dim => change(p => touch({ ...p, background: { ...p.background, dim } }))} />
         </div>
       ),
     },
