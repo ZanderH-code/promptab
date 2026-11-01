@@ -35,7 +35,9 @@
   .error { max-width: calc(100vw - 32px); display: flex; align-items: center; }
   .mnt-widget-toolbar { display: flex; gap: 12px; align-items: center; justify-content: center; }
   .mnt-widget-toolbar button { display: inline-flex; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--mnt-accent); cursor: pointer; font-size: 20px; width: 36px; height: 36px; border-radius: 50%; }
-  .mnt-widget-toolbar button:first-child::before { content: ''; display: inline-block; flex: none; width: 7px; height: 7px; margin-right: 4px; border-radius: 50%; background: currentColor; }
+  .mnt-widget-toolbar button:first-child { position: relative; }
+  .mnt-widget-toolbar button:first-child::before { content: ''; position: absolute; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: currentColor; }
+  .mnt-widget-toolbar button:first-child span { position: relative; z-index: 1; margin-left: 12px; }
   .mnt-layout[data-layout-template="icon-split"] { min-height: 70vh; }
   .mnt-layout[data-layout-template="icon-split"] [data-area="divider"] { width: 1px; min-height: 56vh; align-self: center; }
   .mnt-layout[data-layout-template="icon-split"] [data-area="bookmarks"] .grid { --mnt-cell-width: 84px; grid-template-columns: repeat(3, 84px); justify-content: start; }

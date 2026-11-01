@@ -100,3 +100,7 @@ npm run test:e2e
 ## 权限与数据
 
 扩展申请 `storage`、`unlimitedStorage` 和 `favicon` 权限。`unlimitedStorage` 供本地配置档和历史使用，避免触及 Chrome 的标准本地存储配额；`favicon` 用于读取浏览器缓存的网站图标；缓存不可用时会向网站请求其 `/favicon.ico`，因此网站可能收到连接请求。导入浏览器书签时会请求可选的 `bookmarks` 权限。设置保存在浏览器本地存储中，卸载扩展可能删除其本地数据。
+
+## 许可证
+
+Minimal New Tab 使用 [MIT 许可证](LICENSE) 发布。第三方运行时依赖仍遵循各自许可证，详见[第三方声明](licenses/THIRD_PARTY_NOTICES.md)。

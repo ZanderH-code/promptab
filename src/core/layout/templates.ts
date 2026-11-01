@@ -13,6 +13,6 @@ export function templateGrid(template: LayoutTemplate): Pick<ProfileV2['layout']
     case 'zen': return { areas: ['overview'], breakpoints: { narrow: { areas: ['overview'] } } }
     case 'dashboard': return { areas: ['clock date links', 'search search links'], columns: ['minmax(0, 1fr)', 'minmax(0, 1fr)', 'minmax(240px, 0.8fr)'], rows: ['auto', '1fr'], breakpoints: { narrow: { areas: ['clock', 'date', 'search', 'links'], columns: ['1fr'] } } }
     case 'icon-split': return { areas: ['bookmarks divider overview'], columns: ['minmax(0, 1fr)', '1px', 'minmax(280px, 0.7fr)'], breakpoints: { narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
-    case 'banner': return { areas: ['banner', 'websites'], columns: ['1fr'], rows: ['22%', '1fr'], breakpoints: { narrow: { areas: ['banner', 'websites'], columns: ['1fr'], rows: ['auto', '1fr'] } } }
+    case 'banner': return { areas: ['.', 'banner', 'websites'], columns: ['1fr'], rows: ['22vh', 'auto', '1fr'], breakpoints: { narrow: { areas: ['banner', 'websites'], columns: ['1fr'], rows: ['auto', '1fr'] } } }
   }
 }

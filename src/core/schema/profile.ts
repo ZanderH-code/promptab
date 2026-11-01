@@ -59,7 +59,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
-    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional() }),
+    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional() }),
   }),
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
@@ -77,7 +77,7 @@ function safeGridTrack(value: string): boolean {
     whitespace()
     if (depth > 4) return false
     const rest = value.slice(index)
-    const atom = /^(?:\d*\.\d+|\d+)(?:fr|px|%)|^0(?![\w.%-])|^(?:auto|min-content|max-content)(?![\w-])/.exec(rest)
+    const atom = /^(?:\d*\.\d+|\d+)(?:fr|px|%|vh|vw)|^0(?![\w.%-])|^(?:auto|min-content|max-content)(?![\w-])/.exec(rest)
     if (atom) { index += atom[0].length; return true }
     const fn = /^(minmax|repeat)\(/.exec(rest)
     if (!fn) return false

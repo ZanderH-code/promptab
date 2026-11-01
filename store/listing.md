@@ -56,3 +56,7 @@ Minimal New Tab 把新标签页变成专注、可自定义的个人桌面，不�
 ## Support / privacy URL
 
 Publish `store/privacy-policy.md` at the project's public policy URL before submitting the listing. Keep the published policy in sync with the extension behavior and manifest permissions.
+
+## Open-source license
+
+The project is released under the MIT License. Bundled runtime dependencies retain their respective licenses; see `licenses/THIRD_PARTY_NOTICES.md` in the source repository.

@@ -873,6 +873,9 @@
                   },
                   "showGroupTitles": {
                     "type": "boolean"
+                  },
+                  "showAdd": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": {}

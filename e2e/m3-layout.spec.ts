@@ -9,7 +9,7 @@ const templates = [
   ['仅时钟/禅模式', '"overview"'],
   ['仪表盘三栏', '"clock date links" "search search links"'],
   ['左右分区 · 纯图标', '"bookmarks divider overview"'],
-  ['顶栏横幅', '"banner" "websites"'],
+  ['顶栏横幅', '"." "banner" "websites"'],
 ] as const
 
 async function chooseTemplate(page: Page, name: string, language: 'zh-CN' | 'en' = 'zh-CN') {
