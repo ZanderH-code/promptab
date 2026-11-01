@@ -88,12 +88,12 @@ describe('SettingsDrawer tabs', () => {
     expect(screen.getByRole('combobox', { name: 'Language' })).toBeInTheDocument()
   })
 
-  it('shows profile and backup sections only in Data', () => {
+  it('shows profile and backup sections only in Data', async () => {
     setup()
     expect(screen.queryByText('profiles-stub')).toBeNull()
     fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
     expect(screen.getByText('profiles-stub')).toBeInTheDocument()
-    expect(screen.getByText('backup-stub')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('backup-stub')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Reset settings' })).toBeInTheDocument()
   })
 })
