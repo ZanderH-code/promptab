@@ -161,7 +161,7 @@ export default function App() {
     if (state.target === 'shortcut' && shortcut) {
       return [
         { label: t('shortcuts.edit'), onSelect: () => setEditing(shortcut) },
-        { label: t('shortcuts.reorder'), onSelect: () => setManagingGroups(true) },
+        { label: t('shortcuts.reorder'), onSelect: () => setEditMode(true) },
         { label: t('shortcuts.moveToGroup'), onSelect: () => openMoveDialog(shortcut) },
         { label: t('shortcuts.delete'), onSelect: () => removeShortcut(shortcut) },
       ]
@@ -171,7 +171,7 @@ export default function App() {
     const items: ContextMenuItem[] = [{ label: t(label), onSelect: () => openSettings(section) }]
     if (state.target === 'background') {
       items.push({ label: t('shortcuts.add'), onSelect: () => setEditing(newShortcut('#90d5cd')) })
-      items.push({ label: t('groups.manage'), onSelect: () => setManagingGroups(true) })
+      items.push({ label: t('groups.manage'), onSelect: () => setEditMode(true) })
     }
     return items
   }

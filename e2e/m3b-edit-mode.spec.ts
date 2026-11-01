@@ -15,7 +15,7 @@ test('desktop edit mode is separate from settings and can be toggled with E', as
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
   await page.getByRole('button', { name: '设置' }).click()
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
-  await page.getByRole('button', { name: '编辑桌面' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: '编辑桌面', exact: true }).click()
   await expect(page.locator('.edit-toolbar')).toBeVisible()
 })
 
