@@ -6,7 +6,11 @@ import { searchUrl, type Settings } from '../../core/model'
 import { RANGES, darkSurface, lightSurface } from '../../core/schema/defaults'
 import type { ProfileV2 } from '../../core/schema/profile'
 import { applyTemplate, detectTemplate } from '../../core/layout/profile'
+import { areaGridProblem, areaNames } from '../../core/layout/grid'
 import { LAYOUT_TEMPLATES } from '../../core/layout/templates'
+import { formatClock, formatDate } from '../../core/layout/formats'
+import { profileIssues } from '../../core/schema/profile'
+import { useState } from 'react'
 import type { MessageKey, MessageRef, Translate } from '../../i18n'
 import type { ChangeKind } from '../../store/history'
 import type { ProfileStore } from '../../store/profile'
@@ -286,17 +290,76 @@ export function layoutItems(ctx: Ctx): Item[] {
     id, keys: [label, ...options.map(([, key]) => key)],
     node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
   })
+  const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string): Item => ({
+    id, keys: [label], node: <Row label={t(label)} stack><textarea className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}</Row>,
+  })
   const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard' }
-  const areas = [...new Set(profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))]
-  const widgets: Item[] = profile.widgets.map(widget => ({ id: `widget-area-${widget.id}`, keys: ['settings.widgetArea'], node: <Row label={`${widget.type}: ${widget.id}`}><Select ctx={ctx} label={`${widget.type} area`} value={widget.area} options={areas.map(area => ({ value: area, label: area }))} onChange={area => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, area } : item) }))} /></Row> }))
+  const areas = areaNames(profile.layout.areas)
+  const narrow = profile.layout.breakpoints?.narrow
+  const [gridErrors, setGridErrors] = useState<Record<string, string | undefined>>({})
+  const editGrid = (key: 'areas' | 'columns' | 'rows', value: string, narrowGrid = false) => {
+    const lines = value.split('\n').map(line => line.trim()).filter(Boolean)
+    const gridValue = key === 'areas' || lines.length ? lines : undefined
+    const candidate = structuredClone(profile)
+    if (narrowGrid) candidate.layout.breakpoints = { ...candidate.layout.breakpoints, narrow: { ...(candidate.layout.breakpoints?.narrow ?? { areas: candidate.layout.areas }), [key]: gridValue } }
+    else candidate.layout = { ...candidate.layout, [key]: gridValue }
+    const problem = key === 'areas' ? areaGridProblem(lines) : null
+    const issue = problem ?? profileIssues(candidate, s.language).find(item => item.path.includes('layout.areas') || item.path.includes('layout.columns'))?.expected
+    setGridErrors(errors => ({ ...errors, [`${narrowGrid ? 'narrow' : 'base'}-${key}`]: issue }))
+    if (issue) return
+    change(() => touch(candidate))
+  }
+  const gridEditor = (narrowGrid = false): Item[] => {
+    const grid = narrowGrid ? narrow : profile.layout
+    if (!grid) return []
+    const prefix = narrowGrid ? 'narrow' : 'base'
+    const label = narrowGrid ? 'settings.layoutNarrow' : 'settings.layoutAreas'
+    return [
+      textField(`${prefix}-areas`, label, grid.areas.join('\n'), value => editGrid('areas', value, narrowGrid), gridErrors[`${prefix}-areas`]),
+      textField(`${prefix}-columns`, 'settings.layoutColumns', grid.columns?.join('\n') ?? '', value => editGrid('columns', value, narrowGrid), gridErrors[`${prefix}-columns`]),
+      textField(`${prefix}-rows`, 'settings.layoutRows', grid.rows?.join('\n') ?? '', value => editGrid('rows', value, narrowGrid), gridErrors[`${prefix}-rows`]),
+    ]
+  }
+  const patchWidget = (id: string, props: Record<string, unknown>) => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === id ? { ...item, props: { ...item.props, ...props } as typeof item.props } : item) }))
+  const widgetMove = (id: string, direction: -1 | 1) => change(p => {
+    const widget = p.widgets.find(item => item.id === id)
+    if (!widget) return p
+    const siblings = p.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order)
+    const from = siblings.findIndex(item => item.id === id), to = from + direction
+    if (to < 0 || to >= siblings.length) return p
+    ;[siblings[from], siblings[to]] = [siblings[to], siblings[from]]
+    const order = new Map(siblings.map((item, index) => [item.id, index]))
+    return touch({ ...p, widgets: p.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })
+  })
+  const widgetItems: Item[] = profile.widgets.map(widget => ({
+    id: `widget-${widget.id}`, keys: ['settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.widgetEyebrow'],
+    node: <div className="sd-note"><strong>{widget.type}: {widget.id}</strong>
+      <Toggle label={widget.type === 'clock' ? t('settings.showClock') : widget.type === 'date' ? t('settings.showDate') : widget.type === 'search' ? t('settings.showSearch') : widget.type === 'bookmarks' ? t('settings.shortcuts') : t('settings.widgets')} checked={!widget.hidden} onChange={visible => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, hidden: !visible } : item) }))} />
+      <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areas.map(area => ({ value: area, label: area }))} onChange={area => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, area } : item) }))} /></Row>
+      <Row label={t('settings.widgetOrder')}><button className="sd-button" disabled={widget.order <= 0} onClick={() => widgetMove(widget.id, -1)}>↑</button><button className="sd-button" onClick={() => widgetMove(widget.id, 1)}>↓</button></Row>
+      <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} onChange={size => patchWidget(widget.id, { size })} />
+      <Row label={t('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget(widget.id, { align })} /></Row>
+      {widget.type === 'clock' && <Toggle label={t('settings.widgetEyebrow')} checked={widget.props.eyebrow === true} onChange={eyebrow => patchWidget(widget.id, { eyebrow })} />}
+    </div>,
+  }))
   const areaControls: Item[] = areas.map(area => {
     const style = profile.layout.areaStyles?.[area] ?? {}
-    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding'], node: <div className="sd-note"><strong>{area}</strong><Row label={t('settings.areaBlur')}><RangeField t={t} label={t('settings.areaBlur')} value={style.blur ?? 0} min={0} max={40} unit="px" onChange={blur => change(p => touch({ ...p, layout: { ...p.layout, areaStyles: { ...p.layout.areaStyles, [area]: { ...p.layout.areaStyles?.[area], blur } } } }))} /></Row><Row label={t('settings.areaPadding')}><RangeField t={t} label={t('settings.areaPadding')} value={style.padding ?? 0} min={0} max={200} unit="px" onChange={padding => change(p => touch({ ...p, layout: { ...p.layout, areaStyles: { ...p.layout.areaStyles, [area]: { ...p.layout.areaStyles?.[area], padding } } } }))} /></Row></div> }
+    const setStyle = (updates: Record<string, unknown>) => change(p => touch({ ...p, layout: { ...p.layout, areaStyles: { ...p.layout.areaStyles, [area]: { ...p.layout.areaStyles?.[area], ...updates } } } }))
+    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding', 'settings.areaBackground', 'settings.areaOpacity', 'settings.areaBleed', 'settings.areaAlign', 'settings.areaBorderTop', 'settings.areaBorderRight', 'settings.areaBorderBottom', 'settings.areaBorderLeft'], node: <div className="sd-note"><strong>{area}</strong>
+      <Row label={t('settings.areaBackground')}><Select ctx={ctx} label={t('settings.areaBackground')} value={style.background ?? 'surface'} options={[{ value: 'surface', label: t('settings.colorSurface') }, { value: 'accent', label: t('settings.accent') }, { value: 'bg', label: t('settings.background') }, { value: '#102932', label: t('common.custom') }]} onChange={background => setStyle({ background })} /></Row>
+      {style.background && style.background.startsWith('#') && <ColorField t={t} label={t('settings.areaBackground')} value={style.background} onChange={background => setStyle({ background })} />}
+      <RangeField t={t} label={t('settings.areaOpacity')} value={style.opacity ?? 100} min={0} max={100} unit="%" onChange={opacity => setStyle({ opacity })} />
+      <RangeField t={t} label={t('settings.areaBlur')} value={style.blur ?? 0} min={0} max={40} unit="px" onChange={blur => setStyle({ blur })} />
+      <RangeField t={t} label={t('settings.areaPadding')} value={style.padding ?? 0} min={0} max={200} unit="px" onChange={padding => setStyle({ padding })} />
+      <Toggle label={t('settings.areaBleed')} checked={style.bleed ?? false} onChange={bleed => setStyle({ bleed })} />
+      <Row label={t('settings.areaAlign')}><Select ctx={ctx} label={t('settings.areaAlign')} value={style.align ?? 'center-center'} options={['top-left','top-center','top-right','center-left','center-center','center-right','bottom-left','bottom-center','bottom-right'].map(value => ({ value, label: value }))} onChange={align => setStyle({ align })} /></Row>
+      {(['top', 'right', 'bottom', 'left'] as const).map(side => <RangeField key={side} t={t} label={t(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} value={style.border?.[side] ?? 0} min={0} max={16} unit="px" onChange={width => setStyle({ border: { ...style.border, [side]: width } })} />)}
+    </div> }
   })
+  const gridItems = [...gridEditor(), ...(narrow ? gridEditor(true) : [{ id: 'narrow-grid', keys: ['settings.layoutNarrow'], node: <button type="button" className="sd-button" onClick={() => change(p => touch({ ...p, layout: { ...p.layout, breakpoints: { ...p.layout.breakpoints, narrow: { areas: p.layout.areas } } } }))}>{t('settings.layoutNarrow')}</button> } as Item]) ]
   return [
     { id: 'layout-template', keys: ['settings.layout', ...Object.values(templateLabels)], node: <Row label={t('settings.layout')}><Select ctx={ctx} label={t('settings.layout')} value={detectTemplate(profile)} options={LAYOUT_TEMPLATES.map(value => ({ value, label: t(templateLabels[value]) }))} onChange={value => change(p => touch(applyTemplate(p, value as (typeof LAYOUT_TEMPLATES)[number])))} /></Row> },
-    ...widgets,
-    ...areaControls,
+    ...gridItems, ...widgetItems, ...areaControls,
     choice('alignment', 'settings.alignment', s.alignment, [['center', 'settings.alignCenter'], ['left', 'settings.alignLeft']], value => patch({ alignment: value as Settings['alignment'] })),
     { id: 'content-width', keys: ['settings.contentWidth'], node: <RangeField t={t} label={t('settings.contentWidth')} value={profile.layout.contentWidth} min={RANGES.contentWidth.min} max={RANGES.contentWidth.max} step={10} unit="px" onChange={contentWidth => change(p => touch({ ...p, layout: { ...p.layout, contentWidth } }))} /> },
     { id: 'gap', keys: ['settings.gap'], node: <RangeField t={t} label={t('settings.gap')} value={profile.layout.gap} min={RANGES.gap.min} max={RANGES.gap.max} unit="px" onChange={gap => change(p => touch({ ...p, layout: { ...p.layout, gap } }))} /> },
@@ -308,7 +371,7 @@ export function layoutItems(ctx: Ctx): Item[] {
 
 export function widgetsItems(ctx: Ctx): Item[] {
   const { t, s, patch, change } = ctx
-  const flags = [['showSearch', 'settings.showSearch'], ['hour12', 'settings.hour12']] as const
+  const flags = [['showSearch', 'settings.showSearch']] as const
   const byType = {
     clock: ctx.profile.widgets.find(widget => widget.type === 'clock'),
     date: ctx.profile.widgets.find(widget => widget.type === 'date'),
@@ -317,7 +380,31 @@ export function widgetsItems(ctx: Ctx): Item[] {
     const current = byType[type]
     return { id: `widget-${type}`, keys: [label], node: <Toggle label={t(label)} checked={!!current && !current.hidden} onChange={visible => change(profile => touch({ ...profile, widgets: profile.widgets.map(widget => widget.type === type ? { ...widget, hidden: !visible } : widget) }))} /> }
   }
-  return [widgetToggle('clock', 'settings.showClock'), widgetToggle('date', 'settings.showDate'), ...flags.slice(2).map(([key, label]) => ({ id: key, keys: [label], node: <Toggle label={t(label)} checked={s[key]} onChange={value => patch({ [key]: value })} /> }))]
+  const clock = byType.clock
+  const date = byType.date
+  const formatRows: Item[] = []
+  const [previewNow, setPreviewNow] = useState(() => new Date())
+  if (clock) {
+    const p = clock.props
+    const patchClock = (updates: Record<string, unknown>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === clock.id ? { ...item, props: { ...item.props, ...updates } } : item) }))
+    for (const [key, label] of [['hours', 'settings.clockHours'], ['minutes', 'settings.clockMinutes'], ['seconds', 'settings.clockSeconds']] as const) formatRows.push({ id: `clock-${key}`, keys: [label], node: <Toggle label={t(label)} checked={key === 'seconds' ? !!p.seconds : p[key] !== false} onChange={value => patchClock({ [key]: value })} /> })
+    formatRows.push({ id: 'clock-hour12', keys: ['settings.hour12'], node: <Toggle label={t('settings.hour12')} checked={p.hour12 ?? false} onChange={hour12 => patchClock({ hour12 })} /> })
+    formatRows.push({ id: 'clock-separator', keys: ['settings.clockSeparator'], node: <Row label={t('settings.clockSeparator')}><input className="sd-input" maxLength={8} value={p.separator ?? ':'} aria-label={t('settings.clockSeparator')} onChange={event => patchClock({ separator: event.target.value })} /></Row> })
+    formatRows.push({ id: 'clock-spacing', keys: ['settings.clockSpacing'], node: <RangeField t={t} label={t('settings.clockSpacing')} value={p.separatorSpacing ?? 0} min={0} max={1} step={0.05} onChange={separatorSpacing => patchClock({ separatorSpacing })} /> })
+    formatRows.push({ id: 'clock-preview', keys: ['settings.widgets'], node: <div className="sd-note"><strong>{formatClock(previewNow, s.language, p)}</strong></div> })
+  }
+  if (date) {
+    const p = date.props
+    const patchDate = (updates: Record<string, unknown>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === date.id ? { ...item, props: { ...item.props, ...updates } } : item) }))
+    for (const [key, label] of [['weekday', 'settings.dateWeekday'], ['day', 'settings.dateDay'], ['month', 'settings.dateMonth'], ['year', 'settings.dateYear'], ['ordinal', 'settings.dateOrdinal'], ['uppercase', 'settings.dateUppercase']] as const) formatRows.push({ id: `date-${key}`, keys: [label], node: <Toggle label={t(label)} checked={!!p[key]} onChange={value => patchDate({ [key]: value, format: 'custom' })} /> })
+    formatRows.push({ id: 'date-weekday-style', keys: ['settings.dateWeekday'], node: <Row label={t('settings.dateWeekday')}><Select ctx={ctx} label={t('settings.dateWeekday')} value={p.weekdayStyle ?? 'long'} options={['long','short'].map(value => ({ value, label: value }))} onChange={weekdayStyle => patchDate({ weekdayStyle, format: 'custom' })} /></Row> })
+    formatRows.push({ id: 'date-month-style', keys: ['settings.dateMonth'], node: <Row label={t('settings.dateMonth')}><Select ctx={ctx} label={t('settings.dateMonth')} value={p.monthStyle ?? 'long'} options={['long','short','numeric'].map(value => ({ value, label: value }))} onChange={monthStyle => patchDate({ monthStyle, format: 'custom' })} /></Row> })
+    formatRows.push({ id: 'date-separator', keys: ['settings.dateSeparator'], node: <Row label={t('settings.dateSeparator')}><input className="sd-input" maxLength={8} value={p.separator ?? ' '} aria-label={t('settings.dateSeparator')} onChange={event => patchDate({ separator: event.target.value, format: 'custom' })} /></Row> })
+    const order = p.order ?? ['weekday', 'month', 'day', 'year']
+    formatRows.push({ id: 'date-order', keys: ['settings.dateOrder'], node: <Row label={t('settings.dateOrder')}><button className="sd-button" onClick={() => patchDate({ order: [...order.slice(1), order[0]], format: 'custom' })}>{order.map(part => t(({ weekday: 'settings.dateWeekday', day: 'settings.dateDay', month: 'settings.dateMonth', year: 'settings.dateYear' } as const)[part])).join(' → ')}</button></Row> })
+    formatRows.push({ id: 'date-preview', keys: ['settings.widgets'], node: <div className="sd-note"><strong>{formatDate(previewNow, s.language, { ...p, format: 'custom' })}</strong></div> })
+  }
+  return [widgetToggle('clock', 'settings.showClock'), widgetToggle('date', 'settings.showDate'), ...flags.map(([key, label]) => ({ id: key, keys: [label], node: <Toggle label={t(label)} checked={s[key]} onChange={value => patch({ [key]: value })} /> })), ...formatRows]
 }
 
 export function shortcutsItems(ctx: Ctx): Item[] {

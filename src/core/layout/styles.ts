@@ -19,15 +19,16 @@ export function areaStyle(style: AreaStyle | undefined, palette: ProfileV2['them
   }
   const background = style.background ? (style.background in palette ? palette[style.background as keyof typeof palette] : style.background) : undefined
   const border = style.border
+  const mixedBackground = background ? `color-mix(in srgb, ${background} ${style.opacity ?? 100}%, transparent)` : undefined
   return {
     display: 'grid', ...place(style.align),
-    ...(background ? { backgroundColor: background, '--mnt-area-opacity': `${(style.opacity ?? 100) / 100}` } : {}),
+    ...(mixedBackground ? { backgroundColor: mixedBackground } : {}),
     ...(style.blur ? { backdropFilter: `blur(${style.blur}px)` } : {}),
     ...(style.padding !== undefined ? { padding: `${style.padding}px` } : {}),
     ...(border?.top ? { borderTop: `${border.top}px solid var(--mnt-accent)` } : {}),
     ...(border?.right ? { borderRight: `${border.right}px solid var(--mnt-accent)` } : {}),
     ...(border?.bottom ? { borderBottom: `${border.bottom}px solid var(--mnt-accent)` } : {}),
     ...(border?.left ? { borderLeft: `${border.left}px solid var(--mnt-accent)` } : {}),
-    ...(style.bleed ? { marginInline: 'calc((var(--mnt-content-width) - 100vw) / 2)', width: '100vw' } : {}),
+    ...(style.bleed ? { marginInline: 'calc((min(var(--mnt-content-width), 88vw) - 100vw) / 2)', width: '100vw', position: 'relative', left: '50%', transform: 'translateX(-50%)' } : {}),
   } as CSSProperties
 }
