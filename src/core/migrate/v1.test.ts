@@ -61,6 +61,12 @@ describe('v1 migration', () => {
   it('localizes generated names and recognizes search engines from the template', async () => {
     const zh = await migrateV1(defaults, dependencies())
     expect([zh.meta.name, zh.bookmarks.groups[0].name, zh.search.engines[0].name]).toEqual(['默认', '常用', 'Google'])
+    expect(zh.bookmarks.groups[0]).toMatchObject({ builtinName: 'quick-links', items: [expect.objectContaining({ builtinName: 'sample-website', builtinGroup: 'quick-links' })] })
+    const custom = await migrateV1({ ...defaults, searchTemplate: 'https://custom.example/search?q={query}' }, dependencies())
+    expect(custom.search.engines[0].builtinName).toBe('custom-search')
+    expect(zh.bookmarks.groups[0].items[0]).toMatchObject({ builtinName: 'sample-website', builtinIcon: 'sample-website' })
+    expect((await projectV1(zh, dependencies())).settings.shortcuts[0]).not.toHaveProperty('builtinIcon')
+    expect((await projectV1(zh, dependencies())).settings.shortcuts[0]).not.toHaveProperty('builtinGroup')
     const en = await migrateV1({ ...defaults, language: 'en', searchTemplate: 'https://www.baidu.com/s?wd={query}' }, dependencies())
     expect([en.meta.name, en.bookmarks.groups[0].name, en.search.engines[0].name]).toEqual(['Default', 'Quick links', 'Baidu'])
     const override = await migrateV1({ ...defaults, searchTemplate: 'https://www.baidu.com/s?wd={query}' }, { ...dependencies(), language: 'en' })

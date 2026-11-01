@@ -1,12 +1,18 @@
 import { test, expect, type Page } from '@playwright/test'
 import { expectLocalizedSurface, openTab } from './helpers'
 
-const BAD_PACK = {
+const GOOD_PACK = {
   kind: 'mnt.theme-pack',
   meta: { name: 'Regression theme' },
   theme: { mode: 'dark', radius: 12, color: { bg: '#10141b', text: '#ffffff', accent: '#7ee0c3' } },
 }
-const GOOD_REPLY = `\n\`\`\`json\n${JSON.stringify(BAD_PACK)}\n\`\`\``
+const GOOD_REPLY = `\n\`\`\`json\n${JSON.stringify(GOOD_PACK)}\n\`\`\``
+const BAD_PACK = {
+  kind: 'mnt.theme-pack',
+  theme: { mode: 'dark', radius: 12, color: { bg: '#10141b', text: '#ffffff', accent: 'teal' } },
+  unknownField: true,
+}
+const BAD_REPLY = `\n\`\`\`json\n${JSON.stringify(BAD_PACK)}\n\`\`\``
 
 async function open(page: Page) {
   await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
@@ -48,6 +54,7 @@ for (const language of ['zh-CN', 'en'] as const) {
       await expectLocalizedSurface(page)
       await page.getByRole('button', { name: language === 'en' ? 'Cancel' : '取消', exact: true }).click()
 
+      await expectLocalizedSurface(page)
       await page.locator('.shortcut').first().click({ button: 'right' })
       await expect(page.getByRole('menu')).toBeVisible()
       await expectLocalizedSurface(page)
@@ -61,6 +68,17 @@ for (const language of ['zh-CN', 'en'] as const) {
       await reply.fill(GOOD_REPLY)
       await expect(page.locator('.sd-ai-ok')).toBeVisible()
       await expectLocalizedSurface(page)
+      const malformedPack = { ...BAD_PACK, theme: { ...BAD_PACK.theme, color: { ...BAD_PACK.theme.color, accent: 'teal' as string, extra: true } } }
+      const malformedReply = `\n\`\`\`json\n${JSON.stringify(malformedPack)}\n\`\`\``
+      await reply.fill(malformedReply)
+      await expect(page.locator('[data-kind="problem"]')).toBeVisible()
+      await expect(page.locator('[data-kind="warning"]')).toBeVisible()
+      await expectLocalizedSurface(page)
+      const issueText = await page.locator('[data-kind="problem"]').innerText()
+      const warningText = await page.locator('[data-kind="warning"]').innerText()
+      expect(issueText).toContain(language === 'en' ? 'expected' : '需要')
+      expect(issueText).toContain(language === 'en' ? 'color' : '颜色')
+      expect(warningText).toContain(language === 'en' ? 'Unknown field' : '未识别的字段')
     })
   })
 }

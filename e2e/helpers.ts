@@ -28,8 +28,8 @@ export async function setAccent(page: Page, value: string) {
  */
 const ZH_ENGLISH_WORD_WHITELIST = new Set([
   'aa', 'ai', 'baidu', 'bing', 'chatgpt', 'claude', 'css', 'data', 'deepseek', 'english', 'google', 'http', 'https', 'image', 'jpeg', 'json', 'jsonc', 'kb',
-  'kimi', 'kindle', 'markdown', 'mb', 'md', 'minimal', 'mnt', 'new', 'oklch', 'otf', 'png', 'prefers-reduced-motion', 'px', 'query', 'rgb', 's', 'svg', 'tab', 'ttf', 'url',
-  'user', 'webp', 'woff2', 'xml',
+  'kimi', 'kindle', 'markdown', 'mb', 'md', 'mnt', 'oklch', 'otf', 'png', 'prefers-reduced-motion', 'px', 'query', 'rgb', 'rrggbb', 'svg', 'ttf', 'url', 'user', 'webp', 'woff2', 'xml',
+  // Kimi appears in the AI introduction; Kindle appears in the Chinese AI request placeholder; Aa is the preset preview sample. RRGGBB names the fixed color format in validation guidance.
 ])
 
 /** Returns visible text nodes, excluding content supplied by the user. */
@@ -52,7 +52,7 @@ export async function visibleUiText(page: Page) {
 /** Fails when a visible surface leaks untranslated text for its current locale. */
 export async function expectLocalizedSurface(page: Page) {
   const language = await page.locator('html').getAttribute('lang')
-  const text = await visibleUiText(page)
+  const text = (await visibleUiText(page)).replace(/MINIMAL\s*(?:\/\s*)?NEW\s+TAB/gi, '')
   if (language === 'en') {
     expect(text.match(/[㐀-鿿]/g)).toBeNull()
     return

@@ -3,7 +3,7 @@ import type { CSSProperties, MouseEvent } from 'react'
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Shortcut } from '../core/model'
-import type { Translate, MessageKey } from '../i18n'
+import type { Translate } from '../i18n'
 import { SortableShortcut } from './SortableShortcut'
 import { WebsiteIcon } from './WebsiteIcon'
 
@@ -13,7 +13,9 @@ const SAMPLE_COLOR = '#90d5cd'
 /** Hostname for `[data-link-host]` selectors in custom CSS. */
 const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
 const tileColor = (item: Shortcut) => item.id === SAMPLE_ID && item.color.toLowerCase() === SAMPLE_COLOR ? 'var(--mnt-accent)' : item.color
-const shortcutName = (item: Shortcut, t: Translate) => item.builtinName === 'sample-website' ? t('builtin.sampleWebsite' as MessageKey) : item.name
+const shortcutName = (item: Shortcut, t: Translate) => item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
+const shortcutIcon = (item: Shortcut, t: Translate) => item.builtinIcon === 'sample-website' ? t('builtin.sampleWebsiteIcon') : item.icon
+const groupName = (item: Shortcut | undefined, t: Translate) => item?.builtinGroup === 'quick-links' ? t('builtin.quickLinks') : undefined
 
 type Props = {
   shortcuts: Shortcut[]
@@ -44,7 +46,7 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
   return (
     <div className="bookmarks mnt-widget mnt-group" data-widget="bookmarks">
       <div className="shortcuts-heading mnt-group-title">
-        <span>{t('shortcuts.heading')}</span>
+        <span>{groupName(shortcuts[0], t) ?? t('shortcuts.heading')}</span>
         <span className="line" />
         <span className="count">{String(shortcuts.length).padStart(2, '0')}</span>
       </div>
@@ -55,9 +57,9 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
               const name = shortcutName(item, t)
               return (
                 <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
-                <a className="shortcut mnt-link" data-user-content data-link-host={linkHost(item.url)} title={name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
-                  <span className="shortcut-icon mnt-link-icon" style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={item} /></span>
-                  <span className="mnt-link-name">{name}</span>
+                <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
+                  <span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon: shortcutIcon(item, t) }} /></span>
+                  <span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span>
                 </a>
                 {editing && (
                   <div className="shortcut-actions">

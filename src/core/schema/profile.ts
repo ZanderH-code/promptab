@@ -28,7 +28,7 @@ export const variableDeclSchema = z.discriminatedUnion('type', [
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
-  image: asset.optional(), iconMode: z.enum(['auto', 'text']).optional(), builtinName: z.literal('sample-website').optional(),
+  image: asset.optional(), iconMode: z.enum(['auto', 'text']).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
 })
 
 // Known props are typed; unknown props are tolerated so newer or AI-written packs still load.
@@ -71,8 +71,8 @@ export const profileV2Schema = z.object({
     gap: ranged(RANGES.gap), breakpoints: z.object({ narrow: grid.optional(), medium: grid.optional() }).optional(),
   }),
   widgets: z.array(widgetSchema),
-  bookmarks: z.object({ groups: z.array(z.object({ id: nonempty, name: nonempty, collapsed: z.boolean(), items: z.array(linkSchema) })) }),
-  search: z.object({ engines: z.array(z.object({ id: nonempty, name: nonempty, template })), defaultEngineId: nonempty }),
+  bookmarks: z.object({ groups: z.array(z.object({ id: nonempty, name: nonempty, builtinName: z.literal('quick-links').optional(), collapsed: z.boolean(), items: z.array(linkSchema.extend({ builtinGroup: z.literal('quick-links').optional() })) })) }),
+  search: z.object({ engines: z.array(z.object({ id: nonempty, name: nonempty, builtinName: z.literal('custom-search').optional(), template })), defaultEngineId: nonempty }),
   custom: z.object({ css: z.string(), cssEnabled: z.boolean(), variables: z.array(variableDeclSchema), values: z.record(z.string(), z.union([z.string(), z.number()])), sourcePack: z.object({ name: nonempty, importedAt: date }).optional() }),
 }).superRefine((profile, ctx) => {
   const issue = (path: (string | number)[], message: string) => ctx.addIssue({ code: 'custom', path, message })

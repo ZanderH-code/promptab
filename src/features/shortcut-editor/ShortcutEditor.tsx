@@ -27,6 +27,13 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
   function changeName(name: string) {
     const next = { ...shortcut, name }
     delete next.builtinName
+    if (name !== shortcut.name) delete next.builtinGroup
+    onChange(next)
+  }
+
+  function changeIcon(icon: string) {
+    const next = { ...shortcut, icon }
+    delete next.builtinIcon
     onChange(next)
   }
 
@@ -38,7 +45,9 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
       reader.onload = () => {
         const image = String(reader.result)
         setLocalImage(image)
-        onChange({ ...shortcut, image })
+        const next = { ...shortcut, image }
+        delete next.builtinIcon
+        onChange(next)
       }
       reader.onerror = () => onError('error.readImage')
       reader.readAsDataURL(file)
@@ -76,15 +85,15 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
         <fieldset className="icon-choices">
           <legend>{t('editor.chooseIcon')}</legend>
           <div className="icon-choice-grid">
-            <button type="button" className={'icon-choice ' + (selected === 'auto' ? 'selected' : '')} aria-pressed={selected === 'auto'} onClick={() => onChange({ ...shortcut, image: undefined, iconMode: 'auto' })}>
+            <button type="button" className={'icon-choice ' + (selected === 'auto' ? 'selected' : '')} aria-pressed={selected === 'auto'} onClick={() => { const next = { ...shortcut, image: undefined, iconMode: 'auto' as const }; delete next.builtinIcon; onChange(next) }}>
               <span className="icon-choice-preview auto-preview"><WebsiteIcon shortcut={automatic} onStatus={setStatus} /></span>
               <span>{t('editor.iconAuto')}</span>
             </button>
-            <button type="button" className={'icon-choice ' + (selected === 'text' ? 'selected' : '')} aria-pressed={selected === 'text'} onClick={() => onChange({ ...shortcut, image: undefined, iconMode: 'text' })}>
+            <button type="button" className={'icon-choice ' + (selected === 'text' ? 'selected' : '')} aria-pressed={selected === 'text'} onClick={() => { const next = { ...shortcut, image: undefined, iconMode: 'text' as const }; delete next.builtinIcon; onChange(next) }}>
               <span className="icon-choice-preview text-preview" style={{ '--tile': shortcut.color } as CSSProperties}>{textIcon}</span>
               <span>{t('editor.iconText')}</span>
             </button>
-            <button type="button" className={'icon-choice ' + (selected === 'upload' ? 'selected' : '')} aria-pressed={selected === 'upload'} onClick={() => (localImage ? onChange({ ...shortcut, image: localImage }) : fileInput.current?.click())}>
+            <button type="button" className={'icon-choice ' + (selected === 'upload' ? 'selected' : '')} aria-pressed={selected === 'upload'} onClick={() => { if (localImage) { const next = { ...shortcut, image: localImage }; delete next.builtinIcon; onChange(next) } else fileInput.current?.click() }}>
               <span className="icon-choice-preview upload-preview">{localImage ? <img src={localImage} alt="" /> : <Plus size={24} strokeWidth={1.5} aria-hidden="true" />}</span>
               <span>{t('editor.iconUpload')}</span>
             </button>
@@ -97,7 +106,7 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
           <div className="text-icon-controls">
             <label className="stack">
               {t('editor.iconText')}
-              <input maxLength={2} value={shortcut.icon} placeholder={shortcut.name.slice(0, 1)} onChange={event => onChange({ ...shortcut, icon: event.target.value })} />
+              <input maxLength={2} value={shortcut.icon} placeholder={shortcut.name.slice(0, 1)} onChange={event => changeIcon(event.target.value)} />
             </label>
             <label>
               {t('editor.iconColor')}

@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand/vanilla'
-import type { Language, Translate, MessageKey } from '../../i18n'
+import type { Language, Translate } from '../../i18n'
 import type { ProfileStore } from '../../store/profile'
 
 export type ProfileSectionProps = { store: StoreApi<ProfileStore>; t: Translate; language: Language }
@@ -18,7 +18,7 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
   const headingId = useId()
   const selectId = useId()
   const active = profiles[activeProfileId]
-  const profileName = (profile: ProfileStore['profiles'][string]) => profile.meta.builtinName === 'default-profile' ? t('builtin.defaultProfile' as MessageKey) : profile.meta.name
+  const profileName = (profile: ProfileStore['profiles'][string]) => profile.meta.builtinName === 'default-profile' ? t('builtin.defaultProfile') : profile.meta.name
   const snapshots = history.profiles[activeProfileId]?.snapshots ?? []
 
   function clearPreview() {
