@@ -70,7 +70,7 @@ export function ProfileWidgets(props: Props) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)
           case 'search': return frame(<Search template={searchTemplate} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
-          case 'bookmarks': return frame(<ShortcutGrid groups={profile.bookmarks.groups} shortcuts={shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} onManageDone={props.onManageDone} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} showAdd={editing || widget.props.showAdd !== false} onGroups={props.onGroups} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
+          case 'bookmarks': return frame(<ShortcutGrid groups={profile.bookmarks.groups} shortcuts={shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} onManageDone={props.onManageDone} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} showAdd={editing || widget.props.showAdd !== false} iconColor={widget.props.iconColor ?? 'per-site'} onGroups={props.onGroups} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
           case 'greeting': {
             const greeting = t(`greeting.${greetingPeriod(now.getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
             return frame(<div>{widget.props.name ? <span data-user-content>{t('greeting.withName', { greeting, name: widget.props.name })}</span> : greeting}</div>)
@@ -82,7 +82,7 @@ export function ProfileWidgets(props: Props) {
               ? <button type="button" key={action} aria-label={t('shortcuts.add')} onClick={() => props.onAdd()}><span aria-hidden="true">＋</span></button>
               : action === 'edit'
                 ? <button type="button" key={action} aria-label={t('edit.enter')} onClick={props.onEnterEditMode}><span aria-hidden="true">✎</span></button>
-                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : undefined} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true">⚙</span></button>)}
+                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : 'mnt-settings-entry'} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true">⚙</span></button>)}
           </div>)
         }
       })}

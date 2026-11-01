@@ -164,6 +164,7 @@ export const zhCN = {
   'settings.bookmarkSource': '书签来源',
   'settings.bookmarkAll': '所有分组',
   'settings.bookmarkTitles': '显示分组标题',
+  'settings.bookmarkIconAccent': '所有图标使用强调色',
   'settings.bookmarkTile': '磁贴',
   'settings.bookmarkList': '列表',
   'settings.bookmarkMinimal': '极简',

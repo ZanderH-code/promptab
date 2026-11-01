@@ -59,7 +59,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
-    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional() }),
+    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional(), iconColor: z.enum(['per-site', 'accent']).optional() }),
   }),
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),

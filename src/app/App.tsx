@@ -227,7 +227,7 @@ export default function App() {
           <div className="wallpaper-vignette" style={{ '--vignette': `${profile!.background.image!.vignette}%` } as CSSProperties} />
         </div>
       )}
-      {!(profile && detectTemplate(profile) === 'banner' && profile.widgets.some(widget => widget.type === 'toolbar' && !widget.hidden && widget.area === 'banner' && widget.props.actions?.includes('settings'))) && <header className="mnt-header">
+      {!(profile && ['banner', 'icon-split'].includes(detectTemplate(profile)) && profile.widgets.some(widget => widget.type === 'toolbar' && !widget.hidden && widget.area === (detectTemplate(profile) === 'banner' ? 'banner' : 'overview') && widget.props.actions?.includes('settings'))) && <header className="mnt-header">
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>}
       {editMode && <nav className="edit-toolbar" aria-label={t('edit.toolbar')}>

@@ -38,6 +38,11 @@
   .mnt-widget-toolbar button:first-child { position: relative; }
   .mnt-widget-toolbar button:first-child::before { content: ''; position: absolute; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: currentColor; }
   .mnt-widget-toolbar button:first-child span { position: relative; z-index: 1; margin-left: 12px; }
+  .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar { gap: 16px; }
+  .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar button:first-child::before { content: none; }
+  .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar button { box-sizing: border-box; flex: 0 0 32px; padding: 0; width: 32px; height: 32px; }
+  .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar::before { content: ''; display: block; flex: 0 0 32px; width: 32px; height: 32px; background: radial-gradient(circle, var(--mnt-accent) 0 5px, transparent 5.5px); }
+  .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar button:first-child span { margin: 0; }
   .mnt-layout[data-layout-template="icon-split"] { min-height: 70vh; }
   .mnt-layout[data-layout-template="icon-split"] [data-area="divider"] { width: 1px; min-height: 56vh; align-self: center; }
   .mnt-layout[data-layout-template="icon-split"] [data-area="bookmarks"] .grid { --mnt-cell-width: 84px; grid-template-columns: repeat(3, 84px); justify-content: start; }

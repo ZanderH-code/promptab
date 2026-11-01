@@ -44,7 +44,7 @@ describe('layout grids', () => {
     expect(a.theme.mode).toBe('light')
     expect(a.layout.areas).toEqual(['bookmarks divider overview'])
     expect(a.layout.columns?.[1]).toBe('1px')
-    expect(a.widgets.find(item => item.type === 'bookmarks')?.props).toMatchObject({ style: 'icon-only', maxColumns: 3, showGroupTitles: false, showAdd: false })
+    expect(a.widgets.find(item => item.type === 'bookmarks')?.props).toMatchObject({ style: 'icon-only', maxColumns: 3, showGroupTitles: false, showAdd: false, iconColor: 'accent' })
     expect(a.widgets.find(item => item.type === 'toolbar')).toMatchObject({ area: 'overview', props: { actions: ['add', 'edit', 'settings'] } })
     const b = applyTemplate(profile, 'banner')
     expect(b.layout.areas).toEqual(['.', 'banner', 'websites'])

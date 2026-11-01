@@ -876,6 +876,13 @@
                   },
                   "showAdd": {
                     "type": "boolean"
+                  },
+                  "iconColor": {
+                    "type": "string",
+                    "enum": [
+                      "per-site",
+                      "accent"
+                    ]
                   }
                 },
                 "additionalProperties": {}

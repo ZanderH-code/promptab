@@ -71,6 +71,7 @@
   }
 
   .mnt-settings-entry.mnt-banner-settings { color: var(--mnt-accent) !important; font-size: 20px !important; }
+  .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar .mnt-settings-entry { width: 32px !important; height: 32px !important; padding: 0 !important; }
 
   .mnt-settings-entry:is(:hover, :focus-visible) {
     color: var(--mnt-text) !important;

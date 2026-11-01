@@ -25,7 +25,7 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
     next.theme.colorLight.accent = '#3a5a80'
     next.layout.areaStyles = { divider: { background: 'accent' } }
     const bookmarks = widget('bookmarks')
-    if (bookmarks?.type === 'bookmarks') { bookmarks.props = { ...bookmarks.props, style: 'icon-only', maxColumns: 3, showGroupTitles: false, showAdd: false }; bookmarks.area = 'bookmarks'; bookmarks.order = 0 }
+    if (bookmarks?.type === 'bookmarks') { bookmarks.props = { ...bookmarks.props, style: 'icon-only', maxColumns: 3, showGroupTitles: false, showAdd: false, iconColor: 'accent' }; bookmarks.area = 'bookmarks'; bookmarks.order = 0 }
     const clock = widget('clock')
     if (clock?.type === 'clock') { clock.area = 'overview'; clock.order = 0; clock.props = { ...clock.props, size: 0.55, hours: true, minutes: true, seconds: false, separator: ':', separatorSpacing: 0.25, align: 'center' } }
     const date = widget('date')

@@ -165,6 +165,7 @@ export const en: Record<MessageKey, string> = {
   'settings.bookmarkSource': 'Bookmark source',
   'settings.bookmarkAll': 'All groups',
   'settings.bookmarkTitles': 'Show group titles',
+  'settings.bookmarkIconAccent': 'Use accent color for all icons',
   'settings.bookmarkTile': 'Tiles',
   'settings.bookmarkList': 'List',
   'settings.bookmarkMinimal': 'Minimal',

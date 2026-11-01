@@ -21,7 +21,7 @@ function portableWidget(widget: ProfileV2['widgets'][number]): ProfileV2['widget
   const allowed: Record<string, string[]> = {
     clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow'],
     date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase'],
-    search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles'],
+    search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor'],
     greeting: ['size', 'align'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
   }
   return { ...widget, props: Object.fromEntries(Object.entries(widget.props).filter(([key]) => allowed[widget.type].includes(key))) } as typeof widget

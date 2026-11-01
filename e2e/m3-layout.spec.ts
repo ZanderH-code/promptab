@@ -65,13 +65,29 @@ test('icon split uses the full-page 1440 by 900 baseline and accent hover', asyn
   await prepareTemplateShot(page, 'icon-split')
   const links = page.locator('.mnt-bookmark-icon-only .shortcut')
   await expect(links).toHaveCount(8)
-  for (const link of await links.all()) await expect(link.locator('svg path').first()).toHaveAttribute('d', /.+/)
+  await expect(page.locator('.mnt-header')).toHaveCount(0)
+  await expect(page.locator('.mnt-widget-toolbar .mnt-settings-entry')).toBeVisible()
+  await expect(page.locator('.add-shortcut')).toHaveCount(0)
+  await expect(page.locator('[data-area="bookmarks"] .grid')).toHaveCSS('grid-template-columns', '84px 84px 84px')
+  const accent = await page.locator('.mnt-root').evaluate(element => getComputedStyle(element).getPropertyValue('--mnt-accent').trim())
+  for (const path of await links.locator('svg path').all()) {
+    await expect(path).toHaveAttribute('d', /.+/)
+    await expect(path).toHaveCSS('color', `rgb(${parseInt(accent.slice(1, 3), 16)}, ${parseInt(accent.slice(3, 5), 16)}, ${parseInt(accent.slice(5, 7), 16)})`)
+  }
+  const centers = await page.locator('.mnt-widget-toolbar').evaluate(element => {
+    const bounds = element.getBoundingClientRect()
+    const buttons = [...element.querySelectorAll('button')].map(button => { const rect = button.getBoundingClientRect(); return rect.left + rect.width / 2 })
+    return [bounds.left + (bounds.width - 176) / 2 + 16, ...buttons]
+  })
+  const gaps = centers.slice(1).map((center, index) => center - centers[index])
+  expect(gaps.every(gap => Math.abs(gap - gaps[0]) < 0.5)).toBe(true)
   await expect(page).toHaveScreenshot('layout-icon-split-1440x900.png', { maxDiffPixelRatio: 0 })
   const target = links.nth(3)
   const bounds = await target.boundingBox()
   expect(bounds).not.toBeNull()
   await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2)
   await expect.poll(() => target.evaluate(el => getComputedStyle(el, '::after').opacity)).toBe('1')
+  await expect.poll(() => target.evaluate(el => getComputedStyle(el, '::after').content)).toContain('github.com')
   await expect(page).toHaveScreenshot('layout-icon-split-hover-1440x900.png', { maxDiffPixelRatio: 0 })
 })
 
