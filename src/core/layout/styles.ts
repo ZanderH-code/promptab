@@ -17,9 +17,9 @@ export function areaStyle(style: AreaStyle | undefined, palette: ProfileV2['them
     const [vertical, horizontal] = (align ?? 'center-center').split('-')
     return { alignItems: vertical === 'top' ? 'start' : vertical === 'bottom' ? 'end' : 'center', justifyItems: horizontal === 'left' ? 'start' : horizontal === 'right' ? 'end' : 'center' }
   }
-  const background = style.background ? (style.background in palette ? palette[style.background as keyof typeof palette] : style.background) : undefined
+  const background = style.background ? (style.background in palette ? `var(--mnt-${style.background})` : style.background) : undefined
   const border = style.border
-  const mixedBackground = background ? `color-mix(in srgb, ${background} ${style.opacity ?? 100}%, transparent)` : undefined
+  const mixedBackground = background ? `color-mix(in oklch, ${background} ${style.opacity ?? 100}%, transparent)` : undefined
   return {
     display: 'grid', ...place(style.align),
     ...(mixedBackground ? { backgroundColor: mixedBackground } : {}),
@@ -29,6 +29,6 @@ export function areaStyle(style: AreaStyle | undefined, palette: ProfileV2['them
     ...(border?.right ? { borderRight: `${border.right}px solid var(--mnt-accent)` } : {}),
     ...(border?.bottom ? { borderBottom: `${border.bottom}px solid var(--mnt-accent)` } : {}),
     ...(border?.left ? { borderLeft: `${border.left}px solid var(--mnt-accent)` } : {}),
-    ...(style.bleed ? { width: '100vw', position: 'relative', left: '50%', transform: 'translateX(-50%)' } : {}),
+    ...(style.bleed ? { width: `calc(100vw - ${typeof document === 'undefined' ? 0 : Math.max(0, window.innerWidth - document.documentElement.getBoundingClientRect().width)}px)`, position: 'relative', left: '50%', transform: 'translateX(-50%)', boxSizing: 'border-box' } : {}),
   } as CSSProperties
 }
