@@ -29,9 +29,9 @@ export function Row({ label, hint, children, htmlFor, stack = false }: { label: 
   )
 }
 
-export function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+export function Toggle({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
   const id = useId()
-  return <Row label={label} htmlFor={id}><input id={id} type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} /></Row>
+  return <Row label={label} htmlFor={id}><input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} /></Row>
 }
 
 const fill = (value: number, min: number, max: number) => ({ '--fill': `${((value - min) / (max - min)) * 100}%` }) as CSSProperties
