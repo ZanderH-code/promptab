@@ -52,7 +52,7 @@ describe('layout grids', () => {
     expect(b.widgets.find(item => item.type === 'bookmarks')?.hidden).toBe(true)
     expect(b.theme.font.display).toBe('barlow-condensed')
     expect(profileV2Schema.safeParse(a).success).toBe(true)
-    expect(profileV2Schema.safeParse(b).success).toBe(true)
+    expect(profileV2Schema.safeParse(b).success, JSON.stringify(profileV2Schema.safeParse(b))).toBe(true)
   })
 
   it('applies every template to a styled profile with a valid resulting grid', async () => {

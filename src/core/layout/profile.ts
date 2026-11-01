@@ -21,17 +21,18 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
 
   if (template === 'icon-split') {
     next.theme.mode = 'light'
-    next.theme.colorLight ??= { ...next.theme.color, bg: '#eeeae4', surface: '#f8f7f3', text: '#302d29' }
+    next.theme.colorLight ??= { ...next.theme.color, bg: '#eeeae4', surface: '#f8f7f3', text: '#302d29', accent: '#3a5a80' }
+    next.theme.colorLight.accent = '#3a5a80'
     next.layout.areaStyles = { divider: { background: 'accent' } }
     const bookmarks = widget('bookmarks')
     if (bookmarks?.type === 'bookmarks') { bookmarks.props = { ...bookmarks.props, style: 'icon-only', maxColumns: 3, showGroupTitles: false }; bookmarks.area = 'bookmarks'; bookmarks.order = 0 }
     const clock = widget('clock')
-    if (clock?.type === 'clock') { clock.area = 'overview'; clock.order = 0; clock.props = { ...clock.props, hours: true, minutes: true, seconds: false, separator: ':', separatorSpacing: 0.25 } }
+    if (clock?.type === 'clock') { clock.area = 'overview'; clock.order = 0; clock.props = { ...clock.props, size: 0.55, hours: true, minutes: true, seconds: false, separator: ':', separatorSpacing: 0.25, align: 'center' } }
     const date = widget('date')
-    if (date?.type === 'date') { date.area = 'overview'; date.order = 1; date.props = { ...date.props, format: 'custom', weekday: true, day: true, month: true, year: true, order: ['weekday', 'day', 'month', 'year'], separator: ' / ' } }
+    if (date?.type === 'date') { date.area = 'overview'; date.order = 1; date.props = { ...date.props, format: 'custom', weekday: true, day: true, month: true, year: true, order: ['weekday', 'day', 'month', 'year'], separator: ' / ', align: 'center' } }
     const search = widget('search')
     if (search) search.hidden = true
-    const toolbar = { id: 'layout-toolbar', type: 'toolbar' as const, area: 'overview', order: 2, props: { actions: ['add', 'edit', 'settings'] as ('add' | 'edit' | 'settings')[] } }
+    const toolbar = { id: 'layout-toolbar', type: 'toolbar' as const, area: 'overview', order: 2, props: { align: 'center' as const, actions: ['add', 'edit', 'settings'] as ('add' | 'edit' | 'settings')[] } }
     if (!next.widgets.some(item => item.type === 'toolbar')) next.widgets.push(toolbar)
   }
 
@@ -39,18 +40,22 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
     next.theme.mode = 'dark'
     next.theme.font.display = 'barlow-condensed'
     next.theme.glass = 48
-    next.background.dim = 55
+    next.background.dim = 40
     next.layout.areaStyles = { banner: { background: 'surface', opacity: 68, blur: 18, bleed: true, padding: 24, align: 'center-right', border: { bottom: 1 } } }
     const bookmarks = widget('bookmarks')
     if (bookmarks) { bookmarks.hidden = true; bookmarks.area = 'websites' }
     const clock = widget('clock')
-    if (clock) { clock.area = 'banner'; clock.order = 0 }
+    if (clock?.type === 'clock') { clock.area = 'banner'; clock.order = 0; clock.props = { ...clock.props, size: 0.5, align: 'right' } }
     const date = widget('date')
-    if (date?.type === 'date') { date.area = 'banner'; date.order = 1; date.props = { ...date.props, format: 'custom', weekday: true, day: true, month: true, order: ['weekday', 'day', 'month'], ordinal: true, uppercase: true, separator: ' / ', align: 'right' } }
+    if (date?.type === 'date') { date.area = 'banner'; date.order = 1; date.props = { ...date.props, size: 1.1, format: 'custom', weekday: true, day: true, month: true, order: ['weekday', 'day', 'month'], ordinal: true, uppercase: true, separator: ' / ', align: 'right' } }
     const search = widget('search')
     if (search) { search.hidden = true; search.area = 'banner' }
-    const toolbar = widget('toolbar')
-    if (toolbar) { toolbar.hidden = true; toolbar.area = 'banner' }
+    let toolbar = widget('toolbar')
+    if (toolbar) { toolbar.hidden = false; toolbar.area = 'banner'; toolbar.order = 2; toolbar.props = { ...toolbar.props, size: 0.95, actions: ['settings'] } }
+    else {
+      toolbar = { id: 'layout-banner-toolbar', type: 'toolbar', area: 'banner', order: 2, props: { size: 0.95, actions: ['settings'] } } as ProfileV2['widgets'][number]
+      next.widgets.push(toolbar)
+    }
   }
 
   next.layout.areas = grid.areas

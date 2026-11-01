@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openTab, seedExistingUser } from './helpers'
+import { openTab, seedExistingUser, seedTemplateUser } from './helpers'
 
 const templates = [
   ['上下排列', '"overview" "bookmarks"'],
@@ -12,13 +12,27 @@ const templates = [
   ['顶栏横幅', '"banner" "websites"'],
 ] as const
 
-async function chooseTemplate(page: Page, name: string) {
-  await page.getByRole('combobox', { name: '布局方式', exact: true }).click()
+async function chooseTemplate(page: Page, name: string, language: 'zh-CN' | 'en' = 'zh-CN') {
+  await page.getByRole('combobox', { name: language === 'en' ? 'Layout' : '布局方式', exact: true }).click()
   await page.getByRole('option', { name, exact: true }).click()
 }
 
 async function expectGrid(page: Page, areas: string) {
   await expect(page.locator('.mnt-layout')).toHaveCSS('grid-template-areas', areas)
+}
+
+async function prepareTemplateShot(page: Page, template: 'icon-split' | 'banner') {
+  await page.clock.install({ time: new Date('2026-08-29T19:17:00Z') })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.evaluate(() => localStorage.clear())
+  await seedTemplateUser(page, template === 'banner' ? 'en' : 'zh-CN', template === 'banner')
+  await page.reload()
+  await expect(page.locator('.clock')).toBeVisible()
+  await page.locator('.settings-button').click()
+  await openTab(page, 'layout')
+  await chooseTemplate(page, template === 'icon-split' ? '左右分区 · 纯图标' : 'Top banner', template === 'banner' ? 'en' : 'zh-CN')
+  await page.getByRole('button', { name: template === 'banner' ? 'Close settings' : '关闭设置' }).click()
+  await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', template)
 }
 
 test.beforeEach(async ({ page }) => {
@@ -47,15 +61,18 @@ for (const [name, grid] of templates) {
   })
 }
 
-test('icon split and banner templates match their 1440 by 900 baselines', async ({ page }) => {
-  await chooseTemplate(page, '左右分区 · 纯图标')
-  await page.getByRole('button', { name: '关闭设置' }).click()
-  await expect(page.locator('.mnt-layout')).toHaveScreenshot('layout-icon-split-1440x900.png')
-  await page.locator('.settings-button').click()
-  await openTab(page, 'layout')
-  await chooseTemplate(page, '顶栏横幅')
-  await page.getByRole('button', { name: '关闭设置' }).click()
-  await expect(page.locator('.mnt-layout')).toHaveScreenshot('layout-banner-1440x900.png')
+test('icon split uses the full-page 1440 by 900 baseline and accent hover', async ({ page }) => {
+  await prepareTemplateShot(page, 'icon-split')
+  await expect(page).toHaveScreenshot('layout-icon-split-1440x900.png')
+  await page.locator('.mnt-bookmark-icon-only .shortcut').nth(3).evaluate(el => { el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })) })
+  await expect(page).toHaveScreenshot('layout-icon-split-hover-1440x900.png')
+})
+
+test('banner uses the full-page English 1440 by 900 baseline', async ({ page }) => {
+  await prepareTemplateShot(page, 'banner')
+  await expect(page.locator('.mnt-date')).toContainText('29TH')
+  await expect(page.locator('.mnt-date')).toContainText('AUGUST')
+  await expect(page).toHaveScreenshot('layout-banner-1440x900.png')
 })
 
 test('layout controls can refine icon split and banner templates', async ({ page }) => {

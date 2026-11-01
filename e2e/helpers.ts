@@ -1,6 +1,24 @@
 import { expect, type Page } from '@playwright/test'
 
 /** Seeds a pre-existing v1 user before the app bootstraps, preserving upgrade-path defaults. */
+const templateShortcuts = [
+  ['amazon', 'Amazon', 'https://amazon.com', '232f3e'], ['reddit', 'Reddit', 'https://reddit.com', 'ff4500'],
+  ['gmail', 'Gmail', 'https://mail.google.com', 'ea4335'], ['github', 'GitHub', 'https://github.com', '181717'],
+  ['drive', 'Google Drive', 'https://drive.google.com', '4285f4'], ['film', 'Film', 'https://example.com/film', '3a5a80'],
+  ['code', 'Code', 'https://example.com/code', '3a5a80'], ['calendar', 'Calendar', 'https://calendar.google.com', '4285f4'],
+] as const
+export const templateBookmarks = templateShortcuts.map(([id, name, url, hex]) => ({
+  id, name, url, color: `#${hex}`, icon: name[0], iconMode: id === 'film' || id === 'code' ? 'lucide' : 'brand', iconName: id,
+  ...(id === 'film' || id === 'code' ? {} : { iconColorMode: 'brand', brand: { slug: id, title: name, path: 'M12 2 22 12 12 22 2 12Z', hex } }),
+}))
+
+export async function seedTemplateUser(page: Page, language: 'zh-CN' | 'en' = 'zh-CN', wallpaper = false) {
+  await seedExistingUser(page, {
+    language, theme: 'light', accent: '#3a5a80', shortcuts: templateBookmarks, columns: 3,
+    ...(wallpaper ? { wallpaper: '__template-wallpaper__', overlay: 40 } : {}),
+  })
+}
+
 export async function seedExistingUser(page: Page, settings: Record<string, unknown> = {}) {
   const legacy = {
     schemaVersion: 1, language: 'zh-CN', theme: 'dark', accent: '#90d5cd', background: '#102932',
@@ -10,7 +28,24 @@ export async function seedExistingUser(page: Page, settings: Record<string, unkn
     columns: 6, iconSize: 72, iconShape: 'circle', alignment: 'center', layout: 'stacked', reverse: false, overlay: 35,
     ...settings,
   }
-  await page.addInitScript(value => localStorage.setItem('settings', JSON.stringify(value)), legacy)
+  await page.addInitScript(value => {
+    if (value.wallpaper === '__template-wallpaper__') {
+      const canvas = document.createElement('canvas')
+      canvas.width = 480; canvas.height = 300
+      const context = canvas.getContext('2d')!
+      const gradient = context.createLinearGradient(0, 0, 480, 300)
+      gradient.addColorStop(0, '#c7d5dc'); gradient.addColorStop(.48, '#627782'); gradient.addColorStop(1, '#182530')
+      context.fillStyle = gradient; context.fillRect(0, 0, 480, 300)
+      for (let i = 0; i < 18; i++) {
+        const x = (i * 83) % 480, y = (i * 47) % 240
+        const cloud = context.createRadialGradient(x, y, 2, x, y, 100 + (i % 3) * 30)
+        cloud.addColorStop(0, `rgba(245,248,250,${.12 + (i % 4) * .025})`); cloud.addColorStop(1, 'rgba(245,248,250,0)')
+        context.fillStyle = cloud; context.fillRect(x - 140, y - 140, 280, 280)
+      }
+      value.wallpaper = canvas.toDataURL('image/png')
+    }
+    localStorage.setItem('settings', JSON.stringify(value))
+  }, legacy)
 }
 
 /** Opens a settings tab by its accessible name (the drawer shows one tab at a time). */
