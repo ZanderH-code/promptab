@@ -1,4 +1,4 @@
-import { Settings as SettingsIcon, X } from 'lucide-react'
+import { Check, Edit3, Plus, Settings as SettingsIcon, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
@@ -41,6 +41,9 @@ export default function App() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
+      if (!event.repeat && event.key.toLowerCase() === 'e' && !target?.closest('input, textarea, select, [contenteditable="true"]')) {
+        setEditMode(value => !value)
+      }
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !target?.closest('input, textarea, select, [contenteditable="true"]')) {
         event.preventDefault()
         undo()
@@ -51,6 +54,8 @@ export default function App() {
   }, [undo])
   const [drawer, setDrawer] = useState(false)
   const [managingGroups, setManagingGroups] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [onboardingDismissed, setOnboardingDismissed] = useState(() => localStorage.getItem('mnt:onboarding:dismissed') === 'true')
   const [drawerSection, setDrawerSection] = useState<string | undefined>()
   const [editing, setEditing] = useState<Shortcut | null>(null)
   const addGroupId = useRef<string | undefined>(undefined)
@@ -111,6 +116,8 @@ export default function App() {
   }
 
   const openSettings = (section?: string) => {
+    setEditMode(false)
+    setManagingGroups(false)
     setDrawerSection(section)
     setDrawer(true)
   }
@@ -209,13 +216,29 @@ export default function App() {
       )}
       <header className="mnt-header">
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
+        {!editMode && <button className="edit-entry mnt-edit-entry" onClick={() => setEditMode(true)} aria-label={t('edit.enter')}><Edit3 size={18} aria-hidden="true" /></button>}
       </header>
+      {editMode && <nav className="edit-toolbar" aria-label={t('edit.toolbar')}>
+        <button type="button" onClick={() => setEditing(newShortcut('#b0a092'))}><Plus size={18} aria-hidden="true" />{t('shortcuts.add')}</button>
+        <button type="button" onClick={() => setManagingGroups(true)}><Plus size={18} aria-hidden="true" />{t('groups.add')}</button>
+        <button type="button" onClick={() => openSettings('widgets')}><Plus size={18} aria-hidden="true" />{t('edit.addWidget')}</button>
+        <button type="button" onClick={() => setEditMode(false)}><Check size={18} aria-hidden="true" />{t('groups.done')}</button>
+      </nav>}
+      {profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && profile.bookmarks.groups.every(group => group.items.length === 0) && <section className="onboarding-card" aria-labelledby="onboarding-title">
+        <div><span className="editor-kicker">{t('onboarding.kicker')}</span><h2 id="onboarding-title">{t('onboarding.title')}</h2><p>{t('onboarding.description')}</p></div>
+        <div className="onboarding-actions">
+          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); setEditing(newShortcut('#b0a092')) }}>{t('onboarding.add')}</button>
+          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); openSettings('data') }}>{t('onboarding.import')}</button>
+          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); openSettings('appearance') }}>{t('onboarding.theme')}</button>
+          <button type="button" onClick={() => { localStorage.setItem('mnt:onboarding:dismissed', 'true'); setOnboardingDismissed(true); openSettings('ai') }}>{t('onboarding.ai')}</button>
+        </div>
+      </section>}
       {profile && <ProfileWidgets
         profile={profile}
         language={s.language}
         shortcuts={s.shortcuts}
-        editing={managingGroups}
-        onManageDone={() => setManagingGroups(false)}
+        editing={editMode || managingGroups}
+        onManageDone={() => { setEditMode(false); setManagingGroups(false) }}
         t={t}
         onError={setError}
         onContextMenu={(event: MouseEvent) => openMenu(event, 'clock')}
@@ -246,6 +269,7 @@ export default function App() {
           initialSection={drawerSection}
           safeMode={safe}
           onApplyPreview={applyPreview}
+          onEnterEditMode={() => { setEditMode(true); setDrawer(false) }}
           onProfileChange={(update, kind) => run((store, id) => store.getState().updateProfile(id, p => ({ ...update(p), meta: { ...p.meta, updatedAt: new Date().toISOString() } }), kind))}
           t={t}
           onPatch={patch}

@@ -31,6 +31,7 @@ type Props = {
   safeMode?: boolean
   /** Commits the running AI preview to the active profile. */
   onApplyPreview?: () => void
+  onEnterEditMode?: () => void
 }
 
 const ICONS: Record<TabId, LucideIcon> = { appearance: Palette, background: Image, layout: LayoutGrid, widgets: Blocks, shortcuts: Link, search: Search, style: Braces, ai: Sparkles, data: Database, about: Info }
@@ -55,7 +56,7 @@ export function matches(haystack: string, query: string): boolean {
 
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled):not([type=hidden]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
-export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError, initialSection, safeMode = false, onApplyPreview = () => {} }: Props) {
+export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError, initialSection, safeMode = false, onApplyPreview = () => {}, onEnterEditMode = () => {} }: Props) {
   const [tab, setTab] = useState<TabId>(() => initialTab(initialSection))
   const [query, setQuery] = useState('')
   const [layoutDrafts, setLayoutDrafts] = useState<NonNullable<Ctx['layoutDrafts']>>({})
@@ -160,7 +161,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
             <small>{t('settings.kicker')}</small>
             <h2>{t('settings.title')}</h2>
           </div>
-          <button type="button" className="sd-icon-button" onClick={onClose} aria-label={t('settings.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button>
+          <div className="sd-head-actions"><button type="button" className="sd-button" onClick={onEnterEditMode}>{t('edit.enter')}</button><button type="button" className="sd-icon-button" onClick={onClose} aria-label={t('settings.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>
         </header>
         <div className="sd-search">
           <Search size={16} strokeWidth={1.5} aria-hidden="true" />

@@ -1,4 +1,25 @@
 @layer widgets {
+  .edit-toolbar {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 12;
+    display: flex; gap: 6px; padding: 6px; border: 1px solid var(--mnt-border); border-radius: 999px;
+    background: var(--mnt-surface); box-shadow: var(--mnt-elev-2);
+  }
+  .edit-toolbar button, .edit-entry {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px;
+    background: transparent; color: var(--mnt-text); cursor: pointer;
+  }
+  .edit-toolbar button:hover, .edit-entry:hover { background: var(--mnt-accent-soft); }
+  .edit-entry { width: 36px; padding: 0; }
+  .mnt-layout[data-edit-mode] .mnt-area { outline: 1px dashed var(--mnt-border-strong); outline-offset: 8px; position: relative; }
+  .mnt-layout[data-edit-mode] .mnt-area::before { content: attr(data-area); position: absolute; top: -22px; left: 0; color: var(--mnt-text-muted); font-size: 11px; }
+  .shortcut-actions { position: absolute; top: 4px; right: 4px; z-index: 2; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mnt-surface); box-shadow: var(--mnt-elev-1); opacity: 0; }
+  .shortcut-wrap:hover .shortcut-actions, .shortcut-wrap:focus-within .shortcut-actions { opacity: 1; }
+  [data-edit-mode] .shortcut-wrap { position: relative; }
+  [data-edit-mode] .shortcut-actions button { width: 28px; height: 28px; border-radius: 50%; }
+  .bookmark-edit-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .mnt-layout[data-edit-mode] .mnt-widget-frame { outline: 1px dashed var(--mnt-border-strong); outline-offset: 4px; }
+  .mnt-layout[data-edit-mode] .mnt-widget-frame::after { content: attr(data-widget); position: absolute; top: -16px; left: 4px; color: var(--mnt-text-muted); font-size: 10px; }
   .app {
     min-height: 100vh;
     color: var(--mnt-text);

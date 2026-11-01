@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Plus, X } from 'lucide-react'
+import { ArrowRight, Pencil, Plus, X } from 'lucide-react'
 import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { DndContext, KeyboardSensor, PointerSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
@@ -83,8 +83,7 @@ export function ShortcutGrid({ groups, shortcuts, editing, onManageDone, t, onGr
   }
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns } as CSSProperties}>
-    {editing && <div>
-      <button type="button" onClick={onManageDone}>{t('groups.done')}</button>
+    {editing && <div className="bookmark-edit-tools">
       <button type="button" onClick={() => setDialog({ kind: 'name', value: '' })}>{t('groups.add')}</button>
       {selected.length > 0 && <>
         <span>{t('groups.selected', { count: selected.length })}</span>
@@ -98,16 +97,17 @@ export function ShortcutGrid({ groups, shortcuts, editing, onManageDone, t, onGr
         {(showGroupTitles || editing) && <div className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`}>
           {editing || group.collapsed || groups.length > 1 ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => update(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
           <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>
-          {editing && <><button type="button" onClick={() => setDialog({ kind: 'name', id: group.id, value: groupName(group) })}>{t('groups.rename')}</button><button type="button" onClick={() => setDialog({ kind: 'delete-group', id: group.id })}>{t('groups.delete')}</button></>}
+          {editing && <div className="group-actions"><button type="button" aria-label={t('groups.rename')} onClick={() => setDialog({ kind: 'name', id: group.id, value: groupName(group) })}><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} onClick={() => setDialog({ kind: 'delete-group', id: group.id })}><X size={15} aria-hidden="true" /></button></div>}
         </div>}
         {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns } as CSSProperties}>
           {group.items.map((stored, index) => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name; const icon = item.builtinIcon === 'sample-website' ? t('builtin.sampleWebsiteIcon') : item.icon
             return <SortableShortcut id={item.id} enabled={editing} groupId={group.id} dragLabel={t('shortcuts.drag')} key={item.id}>
               {editing && <input type="checkbox" aria-label={t('groups.select', { name })} checked={selected.includes(item.id)} onChange={event => setSelected(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))} />}
               <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={name} href={item.url} onContextMenu={event => onContextMenu(event, item)} onKeyDown={event => { if ((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu') { event.preventDefault(); event.stopPropagation(); onContextMenu(event as unknown as MouseEvent, item) } }}><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
-              {editing && <div className="shortcut-actions"><button aria-label={t('shortcuts.editNamed', { name })} onClick={() => onEdit(item)}>{t('common.edit')}</button><button aria-label={t('shortcuts.moveToGroupNamed', { name: item.builtinName ? name : item.name })} onClick={() => onMove(item)}>{t('shortcuts.moveToGroup')}</button><button aria-label={t('shortcuts.moveLeftNamed', { name })} disabled={index === 0} onClick={() => move([item.id], group.id, group.items[index - 1].id)}><ArrowLeft size={16} /></button><button aria-label={t('shortcuts.moveRightNamed', { name })} disabled={index === group.items.length - 1} onClick={() => move([item.id], group.id, group.items[index + 2]?.id)}><ArrowRight size={16} /></button><button aria-label={t('shortcuts.deleteNamed', { name })} onClick={() => onRemove(item)}><X size={16} /></button></div>}
+              {editing && <div className="shortcut-actions"><button aria-label={t('shortcuts.editNamed', { name })} onClick={() => onEdit(item)}><span className="visually-hidden">{t('common.edit')}</span><Pencil size={16} aria-hidden="true" /></button><button aria-label={t('shortcuts.moveToGroupNamed', { name: item.builtinName ? name : item.name })} onClick={() => onMove(item)}><span className="visually-hidden">{t('shortcuts.moveToGroup')}</span><ArrowRight size={16} aria-hidden="true" /></button><button aria-label={t('shortcuts.deleteNamed', { name })} onClick={() => onRemove(item)}><span className="visually-hidden">{t('shortcuts.delete')}</span><X size={16} aria-hidden="true" /></button></div>}
             </SortableShortcut> })}
           {(editing || group === visibleGroups[0]) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
+          {editing && group === visibleGroups[0] && <button className="edit-done" type="button" onClick={onManageDone}>{t('groups.done')}</button>}
         </div>}
       </DropGroup>)}
       </SortableContext>

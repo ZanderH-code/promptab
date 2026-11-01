@@ -61,8 +61,8 @@ async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnap
   // Store the envelope, including absence and the exact localStorage string.
   if (await backend.get('backup:v1-original') === null) await backend.set('backup:v1-original', JSON.stringify(raw))
   const input = raw.backend === 'local'
-    ? raw.value === null ? defaults : JSON.parse(raw.value)
-    : raw.present ? raw.value : defaults
+    ? raw.value === null ? { ...defaults, shortcuts: [] } : JSON.parse(raw.value)
+    : raw.present ? raw.value : { ...defaults, shortcuts: [] }
   const wallpaper = await (options.readWallpaper ?? readWallpaper)()
   const assets = options.assets ?? createAssetLibrary()
   const profile = await migrateV1(input, {

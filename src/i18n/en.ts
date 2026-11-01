@@ -15,6 +15,9 @@ export const en: Record<MessageKey, string> = {
   'search.placeholder': 'Search the web',
   'search.submit': 'Submit search',
 
+  'edit.enter': 'Edit desktop',
+  'edit.toolbar': 'Desktop editing tools',
+  'edit.addWidget': 'Add widget',
   'groups.manage': 'Manage groups',
   'groups.done': 'Done',
   'groups.add': 'Add group',
@@ -52,6 +55,13 @@ export const en: Record<MessageKey, string> = {
   'menu.searchSettings': 'Search settings',
   'menu.desktopSettings': 'Desktop and wallpaper settings',
 
+  'onboarding.kicker': 'GET STARTED',
+  'onboarding.title': 'Make this page yours',
+  'onboarding.description': 'Add a website, import bookmarks, choose a theme, or start with AI.',
+  'onboarding.add': 'Add first website',
+  'onboarding.import': 'Import browser bookmarks',
+  'onboarding.theme': 'Choose a theme',
+  'onboarding.ai': 'Create with AI',
   'settings.open': 'Open settings',
   'settings.close': 'Close settings',
   'settings.button': 'Settings',

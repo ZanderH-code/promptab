@@ -14,6 +14,9 @@ export const zhCN = {
   'search.placeholder': '搜索你想知道的',
   'search.submit': '提交搜索',
 
+  'edit.enter': '编辑桌面',
+  'edit.toolbar': '桌面编辑工具',
+  'edit.addWidget': '添加组件',
   'groups.manage': '管理分组',
   'groups.done': '完成',
   'groups.add': '添加分组',
@@ -51,6 +54,13 @@ export const zhCN = {
   'menu.searchSettings': '搜索设置',
   'menu.desktopSettings': '桌面与壁纸设置',
 
+  'onboarding.kicker': '开始使用',
+  'onboarding.title': '打造你的新标签页',
+  'onboarding.description': '添加网站、导入书签、选择主题，或用 AI 开始设计。',
+  'onboarding.add': '添加第一个网站',
+  'onboarding.import': '导入浏览器书签',
+  'onboarding.theme': '选择主题',
+  'onboarding.ai': '用 AI 创建',
   'settings.open': '打开设置',
   'settings.close': '关闭设置',
   'settings.button': '设置',
