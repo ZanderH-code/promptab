@@ -23,6 +23,18 @@ async function setup(split = false) {
 }
 
 describe('v2 settings integration', () => {
+  it('adds a bookmark to its chosen group in one undoable update', async () => {
+    const hook = await setup()
+    act(() => hook.result.current.run((store, id) => store.getState().updateProfile(id, p => ({ ...p, bookmarks: { groups: [...p.bookmarks.groups, { id: 'other', name: 'Other', collapsed: false, items: [] }] } }))))
+    await waitFor(() => expect(hook.result.current.profile!.bookmarks.groups).toHaveLength(2))
+    const item = { id: 'new', name: 'New', url: 'https://example.org', color: '#123456', icon: 'N' }
+    act(() => hook.result.current.patch({ shortcuts: [...hook.result.current.settings!.shortcuts, item] }, 'other'))
+    await waitFor(() => expect(hook.result.current.profile!.bookmarks.groups[1].items).toHaveLength(1))
+    act(() => hook.result.current.undo())
+    await waitFor(() => expect(hook.result.current.profile!.bookmarks.groups[1].items).toHaveLength(0))
+    expect(hook.result.current.profile!.bookmarks.groups).toHaveLength(2)
+  })
+
   it('projects a history preview without saving it and restores the live view', async () => {
     const hook = await setup()
     const preview = structuredClone(hook.profile)

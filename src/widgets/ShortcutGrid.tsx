@@ -1,81 +1,123 @@
 import { ArrowLeft, ArrowRight, Plus, X } from 'lucide-react'
-import type { CSSProperties, MouseEvent } from 'react'
-import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, arrayMove, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { useRef, useState, type CSSProperties, type MouseEvent } from 'react'
+import { DndContext, KeyboardSensor, PointerSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
 import { SortableShortcut } from './SortableShortcut'
 import { WebsiteIcon } from './WebsiteIcon'
+import { moveBookmarks } from './bookmarkGroups'
 
-/** The seeded sample site carries the default teal; it follows the accent colour instead of staying fixed. */
-const SAMPLE_ID = 'example'
-const SAMPLE_COLOR = '#90d5cd'
-/** Hostname for `[data-link-host]` selectors in custom CSS. */
-const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
-const tileColor = (item: Shortcut) => item.id === SAMPLE_ID && item.color.toLowerCase() === SAMPLE_COLOR ? 'var(--mnt-accent)' : item.color
-const shortcutName = (item: Shortcut, t: Translate) => item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
-const shortcutIcon = (item: Shortcut, t: Translate) => item.builtinIcon === 'sample-website' ? t('builtin.sampleWebsiteIcon') : item.icon
-const groupName = (item: Shortcut | undefined, t: Translate) => item?.builtinGroup === 'quick-links' ? t('builtin.quickLinks') : undefined
-
+type Group = ProfileV2['bookmarks']['groups'][number]
 type Props = {
-  shortcuts: Shortcut[]
-  editing: boolean
-  t: Translate
-  onReorder: (shortcuts: Shortcut[]) => void
-  onEdit: (shortcut: Shortcut) => void
-  onRemove: (shortcut: Shortcut) => void
-  onAdd: () => void
+  groups: Group[]; shortcuts: Shortcut[]; editing: boolean; onManageDone: () => void; t: Translate; language: 'en' | 'zh-CN'
+  style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only'; source: string; showGroupTitles: boolean; maxColumns: number
+  onGroups: (update: (groups: Group[]) => Group[]) => void
+  onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void
   onContextMenu: (event: MouseEvent, shortcut: Shortcut) => void
 }
-
-export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemove, onAdd, onContextMenu }: Props) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  )
-
-  const move = (from: number, to: number) => onReorder(arrayMove(shortcuts, from, to))
-
-  function dragEnd({ active, over }: DragEndEvent) {
-    if (!over || active.id === over.id) return
-    const from = shortcuts.findIndex(item => item.id === active.id)
-    const to = shortcuts.findIndex(item => item.id === over.id)
-    if (from >= 0 && to >= 0) move(from, to)
+const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
+const groupAwareCollision: CollisionDetection = args => {
+  const pointerHits = pointerWithin(args)
+  if (pointerHits.length) return pointerHits.filter(hit => !String(hit.id).startsWith('group:')).length ? pointerHits.filter(hit => !String(hit.id).startsWith('group:')) : pointerHits
+  return closestCorners(args)
+}
+function DropGroup({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef } = useDroppable({ id: `group:${id}`, data: { groupId: id } })
+  return <div ref={setNodeRef} data-drop-group={id}>{children}</div>
+}
+export function ShortcutGrid({ groups, shortcuts, editing, onManageDone, t, onGroups, onEdit, onRemove, onAdd, onContextMenu, style, source, showGroupTitles, maxColumns }: Props) {
+  const [selected, setSelected] = useState<string[]>([])
+  const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
+  const [dialog, setDialog] = useState<{ kind: 'name'; id?: string; value: string } | { kind: 'delete-group'; id: string } | { kind: 'delete-selected' } | null>(null)
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
+  const dragTarget = useRef<{ id: string; startX: number; startY: number; x: number; y: number } | null>(null)
+  const names = new Map(shortcuts.map(item => [item.id, item]))
+  const update = (fn: (groups: Group[]) => Group[]) => onGroups(fn)
+  const move = (ids: string[], group: string, before?: string) => update(current => moveBookmarks(current, ids, group, before))
+  function dragStart({ active }: import('@dnd-kit/core').DragStartEvent) {
+    const activeId = String(active.id)
+    const source = document.querySelector<HTMLElement>(`[data-sortable-id="${CSS.escape(activeId)}"]`)
+    if (!source) return
+    const rect = source.getBoundingClientRect()
+    const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2
+    dragTarget.current = { id: activeId, startX: x, startY: y, x, y }
   }
-
-  return (
-    <div className="bookmarks mnt-group">
-      <div className="shortcuts-heading mnt-group-title">
-        <span>{groupName(shortcuts[0], t) ?? t('shortcuts.heading')}</span>
-        <span className="line" />
-        <span className="count">{String(shortcuts.length).padStart(2, '0')}</span>
-      </div>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={dragEnd}>
-        <SortableContext items={shortcuts.map(item => item.id)} strategy={rectSortingStrategy}>
-          <div className="grid" style={{ '--mnt-item-count': shortcuts.length + 1 } as CSSProperties}>
-            {shortcuts.map((item, index) => {
-              const name = shortcutName(item, t)
-              return (
-                <SortableShortcut id={item.id} enabled={editing} dragLabel={t('shortcuts.drag')} key={item.id}>
-                <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={name} href={item.url} onContextMenu={event => onContextMenu(event, item)}>
-                  <span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': tileColor(item) } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon: shortcutIcon(item, t) }} /></span>
-                  <span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span>
-                </a>
-                {editing && (
-                  <div className="shortcut-actions">
-                    <button aria-label={t('shortcuts.editNamed', { name })} onClick={() => onEdit(item)}>{t('common.edit')}</button>
-                    <button aria-label={t('shortcuts.moveLeftNamed', { name })} disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowLeft size={16} strokeWidth={1.5} aria-hidden="true" /></button>
-                    <button aria-label={t('shortcuts.moveRightNamed', { name })} disabled={index === shortcuts.length - 1} onClick={() => move(index, index + 1)}><ArrowRight size={16} strokeWidth={1.5} aria-hidden="true" /></button>
-                    <button aria-label={t('shortcuts.deleteNamed', { name })} onClick={() => onRemove(item)}><X size={16} strokeWidth={1.5} aria-hidden="true" /></button>
-                  </div>
-                )}
-              </SortableShortcut>
-              )
-            })}
-            <button className="add-shortcut" onClick={onAdd}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>
-          </div>
-        </SortableContext>
-      </DndContext>
-    </div>
-  )
+  function dragMove({ active, delta }: DragMoveEvent) {
+    if (dragTarget.current?.id === String(active.id)) {
+      dragTarget.current = { ...dragTarget.current, x: dragTarget.current.startX + delta.x, y: dragTarget.current.startY + delta.y }
+    }
+  }
+  function dragEnd({ active, over }: DragEndEvent) {
+    const activeId = String(active.id)
+    const pointerTarget = dragTarget.current?.id === activeId ? dragTarget.current : undefined
+    dragTarget.current = null
+    const sourceGroup = groups.find(candidate => candidate.items.some(item => item.id === activeId))
+    if (!over) return
+    if (activeId === over.id) return
+    const target = String(over.id)
+    const overGroup = target.startsWith('group:')
+      ? groups.find(group => `group:${group.id}` === target)
+      : groups.find(group => group.items.some(item => item.id === target))
+    const pointerGroupId = pointerTarget && document.elementFromPoint(pointerTarget.x, pointerTarget.y)?.closest<HTMLElement>('[data-drop-group]')?.dataset.dropGroup
+    const targetGroup = overGroup ?? groups.find(group => group.id === pointerGroupId)
+    if (sourceGroup && targetGroup && sourceGroup.id !== targetGroup.id) {
+      move(selected.includes(activeId) ? selected : [activeId], targetGroup.id)
+      return
+    }
+    const currentGroup = sourceGroup
+    if (!targetGroup) return
+    if (target.startsWith('group:') && targetGroup.id === currentGroup?.id) return
+    if (!target.startsWith('group:') && targetGroup.id === currentGroup?.id) {
+      const groupItems = targetGroup.items.map(item => item.id)
+      const from = groupItems.indexOf(activeId), to = groupItems.indexOf(target)
+      if (from < 0 || to < 0) return
+      const reordered = [...groupItems]
+      reordered.splice(from, 1)
+      reordered.splice(to, 0, activeId)
+      update(current => current.map(group => group.id === targetGroup.id ? { ...group, items: reordered.map(id => group.items.find(item => item.id === id)!) } : group))
+      return
+    }
+    move(selected.includes(activeId) ? selected : [activeId], targetGroup.id, target.startsWith('group:') ? undefined : target)
+  }
+  const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
+  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns } as CSSProperties}>
+    {editing && <div>
+      <button type="button" onClick={onManageDone}>{t('groups.done')}</button>
+      <button type="button" onClick={() => setDialog({ kind: 'name', value: '' })}>{t('groups.add')}</button>
+      {selected.length > 0 && <>
+        <span>{t('groups.selected', { count: selected.length })}</span>
+        <select aria-label={t('groups.moveSelected')} value="" onChange={event => { if (event.target.value) { move(selected, event.target.value); setSelected([]) } }}><option value="">{t('groups.moveTo')}</option>{groups.map(g => <option key={g.id} value={g.id}>{groupName(g)}</option>)}</select>
+        <button type="button" onClick={() => setDialog({ kind: 'delete-selected' })}>{t('groups.deleteSelected')}</button>
+      </>}
+    </div>}
+    <DndContext sensors={sensors} collisionDetection={groupAwareCollision} onDragStart={dragStart} onDragMove={dragMove} onDragEnd={dragEnd}>
+      <SortableContext items={visibleGroups.flatMap(group => group.items.map(item => item.id))} strategy={rectSortingStrategy}>
+      {visibleGroups.map(group => <DropGroup key={group.id} id={group.id}>
+        {(showGroupTitles || editing) && <div className={`shortcuts-heading mnt-group-title${showGroupTitles ? '' : ' mnt-group-title-hidden'}`}>
+          {editing || group.collapsed || groups.length > 1 ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => update(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
+          <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>
+          {editing && <><button type="button" onClick={() => setDialog({ kind: 'name', id: group.id, value: groupName(group) })}>{t('groups.rename')}</button><button type="button" onClick={() => setDialog({ kind: 'delete-group', id: group.id })}>{t('groups.delete')}</button></>}
+        </div>}
+        {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns } as CSSProperties}>
+          {group.items.map((stored, index) => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name; const icon = item.builtinIcon === 'sample-website' ? t('builtin.sampleWebsiteIcon') : item.icon
+            return <SortableShortcut id={item.id} enabled={editing} groupId={group.id} dragLabel={t('shortcuts.drag')} key={item.id}>
+              {editing && <input type="checkbox" aria-label={t('groups.select', { name })} checked={selected.includes(item.id)} onChange={event => setSelected(current => event.target.checked ? [...current, item.id] : current.filter(id => id !== item.id))} />}
+              <a className="shortcut mnt-link" data-link-host={linkHost(item.url)} title={name} href={item.url} onContextMenu={event => onContextMenu(event, item)}><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
+              {editing && <div className="shortcut-actions"><button aria-label={t('shortcuts.editNamed', { name })} onClick={() => onEdit(item)}>{t('common.edit')}</button><button aria-label={t('shortcuts.moveLeftNamed', { name })} disabled={index === 0} onClick={() => move([item.id], group.id, group.items[index - 1].id)}><ArrowLeft size={16} /></button><button aria-label={t('shortcuts.moveRightNamed', { name })} disabled={index === group.items.length - 1} onClick={() => move([item.id], group.id, group.items[index + 2]?.id)}><ArrowRight size={16} /></button><button aria-label={t('shortcuts.deleteNamed', { name })} onClick={() => onRemove(item)}><X size={16} /></button></div>}
+            </SortableShortcut> })}
+          {(editing || group === visibleGroups[0]) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
+        </div>}
+      </DropGroup>)}
+      </SortableContext>
+    </DndContext>
+    {dialog && <div role="dialog" aria-modal="true" aria-label={dialog.kind === 'name' ? t('groups.name') : t(dialog.kind === 'delete-group' ? 'groups.confirmDelete' : 'groups.confirmSelected')} className="modal-backdrop">
+      <form className="modal" onSubmit={event => { event.preventDefault(); if (dialog.kind === 'name') { const name = dialog.value.trim(); if (!name) return; if (dialog.id) update(current => current.map(g => { if (g.id !== dialog.id) return g; const { builtinName: _builtinName, ...rest } = g; return { ...rest, name } })); else update(current => [...current, { id: crypto.randomUUID(), name, collapsed: false, items: [] }]) } else if (dialog.kind === 'delete-group') { update(current => current.filter(g => g.id !== dialog.id)); setSelected([]) } else { update(current => current.map(g => ({ ...g, items: g.items.filter(item => !selected.includes(item.id)) }))); setSelected([]) } setDialog(null) }}>
+        {dialog.kind === 'name' ? <label>{t('groups.name')}<input autoFocus value={dialog.value} onChange={event => setDialog({ ...dialog, value: event.target.value })} /></label> : <p>{t(dialog.kind === 'delete-group' ? 'groups.confirmDelete' : 'groups.confirmSelected')}</p>}
+        <button type="button" onClick={() => setDialog(null)}>{t('common.cancel')}</button><button type="submit">{t(dialog.kind === 'name' ? 'groups.save' : 'groups.confirm')}</button>
+      </form>
+    </div>}
+    {!groups.length && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
+  </div>
 }

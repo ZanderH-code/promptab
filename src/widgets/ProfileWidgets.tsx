@@ -9,7 +9,7 @@ import { formatClock, formatDate, greetingPeriod } from '../core/layout/formats'
 import { Search } from './Search'
 import { ShortcutGrid } from './ShortcutGrid'
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onReorder: (shortcuts: Shortcut[]) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onAdd: () => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -69,7 +69,7 @@ export function ProfileWidgets(props: Props) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)
           case 'search': return frame(<Search template={searchTemplate} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
-          case 'bookmarks': return frame(<ShortcutGrid shortcuts={shortcuts} editing={editing} t={t} onReorder={props.onReorder} onEdit={props.onEdit} onRemove={props.onRemove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
+          case 'bookmarks': return frame(<ShortcutGrid groups={profile.bookmarks.groups} shortcuts={shortcuts} editing={editing} onManageDone={props.onManageDone} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} onGroups={props.onGroups} onEdit={props.onEdit} onRemove={props.onRemove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)
           case 'greeting': {
             const greeting = t(`greeting.${greetingPeriod(now.getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
             return frame(<div>{widget.props.name ? <span data-user-content>{t('greeting.withName', { greeting, name: widget.props.name })}</span> : greeting}</div>)

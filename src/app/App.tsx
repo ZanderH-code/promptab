@@ -48,8 +48,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [undo])
   const [drawer, setDrawer] = useState(false)
+  const [managingGroups, setManagingGroups] = useState(false)
   const [drawerSection, setDrawerSection] = useState<string | undefined>()
   const [editing, setEditing] = useState<Shortcut | null>(null)
+  const addGroupId = useRef<string | undefined>(undefined)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
 
@@ -122,7 +124,8 @@ export default function App() {
     const shortcut = finishShortcut(editing)
     if (!shortcut) { setError({ key: 'error.shortcutInvalid' }); return }
     const exists = s.shortcuts.some(item => item.id === editing.id)
-    patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] })
+    patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] }, !exists ? addGroupId.current : undefined)
+    addGroupId.current = undefined
     setEditing(null)
   }
 
@@ -131,14 +134,17 @@ export default function App() {
     if (state.target === 'shortcut' && shortcut) {
       return [
         { label: t('shortcuts.edit'), onSelect: () => setEditing(shortcut) },
-        { label: t('shortcuts.reorder'), onSelect: () => openSettings('shortcuts') },
+        { label: t('shortcuts.reorder'), onSelect: () => setManagingGroups(true) },
         { label: t('shortcuts.delete'), onSelect: () => removeShortcut(shortcut) },
       ]
     }
     const section = state.target === 'clock' ? 'component-settings' : state.target === 'search' ? 'search-settings' : 'wallpaper-settings'
     const label = state.target === 'clock' ? 'menu.clockSettings' : state.target === 'search' ? 'menu.searchSettings' : 'menu.desktopSettings'
     const items: ContextMenuItem[] = [{ label: t(label), onSelect: () => openSettings(section) }]
-    if (state.target === 'background') items.push({ label: t('shortcuts.add'), onSelect: () => setEditing(newShortcut('#90d5cd')) })
+    if (state.target === 'background') {
+      items.push({ label: t('shortcuts.add'), onSelect: () => setEditing(newShortcut('#90d5cd')) })
+      items.push({ label: t('groups.manage'), onSelect: () => setManagingGroups(true) })
+    }
     return items
   }
 
@@ -187,14 +193,15 @@ export default function App() {
         profile={profile}
         language={s.language}
         shortcuts={s.shortcuts}
-        editing={drawer}
+        editing={managingGroups}
+        onManageDone={() => setManagingGroups(false)}
         t={t}
         onError={setError}
         onContextMenu={(event: MouseEvent) => openMenu(event, 'clock')}
-        onReorder={(shortcuts: Shortcut[]) => patch({ shortcuts })}
+        onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } })))}
         onEdit={setEditing}
         onRemove={removeShortcut}
-        onAdd={() => setEditing(newShortcut('#b0a092'))}
+        onAdd={groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) }}
         onBookmarkContextMenu={(event: MouseEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
       />}
 

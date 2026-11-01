@@ -59,7 +59,7 @@ async function project(profile: ProfileV2): Promise<Settings> {
   }
 }
 
-async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Promise<ProfileV2> {
+async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targetGroupId?: string): Promise<ProfileV2> {
   const p = structuredClone(profile)
   p.meta.updatedAt = new Date().toISOString()
   if (changes.language !== undefined) p.prefs.language = changes.language
@@ -116,9 +116,11 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>): Pro
         }
         if (!image) image = await assets.add(await (await fetch(item.image)).blob())
       }
-      return { index: original?.index ?? 0, item: { ...item, ...(image ? { image } : {}) } }
+      const targetIndex = targetGroupId ? groups.findIndex(group => group.id === targetGroupId) : 0
+      return { index: original?.index ?? Math.max(0, targetIndex), item: { ...item, ...(image ? { image } : {}) } }
     }))
-    if (converted.some((entry, i) => i > 0 && entry.index < converted[i - 1].index)) throw new Error('Cannot reorder bookmarks across groups')
+    const existing = converted.filter(entry => originals.has(entry.item.id))
+    if (existing.some((entry, i) => i > 0 && entry.index < existing[i - 1].index)) throw new Error('Cannot reorder bookmarks across groups')
     groups.forEach((group, index) => { group.items = converted.filter(entry => entry.index === index).map(entry => entry.item) })
   }
   return p
@@ -178,8 +180,8 @@ export function useSettings() {
     }).catch(e => { console.error(e); setError(toMessageRef(e, 'error.saveSettings')) })
     queue.current = task
   }, [store])
-  const patch = useCallback((changes: Partial<Settings>) => run(async (s, id) => {
-    const p = await applyChanges(s.getState().profiles[id], changes)
+  const patch = useCallback((changes: Partial<Settings>, targetGroupId?: string) => run(async (s, id) => {
+    const p = await applyChanges(s.getState().profiles[id], changes, targetGroupId)
     await s.getState().updateProfile(id, () => p)
   }), [run])
   const reset = useCallback(() => run(async (s, id) => {
