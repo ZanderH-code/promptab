@@ -292,6 +292,13 @@ describe('SettingsDrawer grid drafts', () => {
     const update = props.onProfileChange.mock.calls.at(-1)![0] as (p: ProfileV2) => ProfileV2
     expect(update(newer).layout.areaStyles?.overview.bleed).toBe(true)
   })
+  it('shows invalid track feedback on its own field', () => {
+    setup({ initialSection: 'layout' })
+    const columns = screen.getAllByRole('textbox', { name: 'Column sizes' })[0]
+    fireEvent.change(columns, { target: { value: 'bad-track' } })
+    expect(screen.getByRole('alert')).toHaveTextContent('valid grid track size')
+  })
+
   it('clears drafts after a profile or grid replacement', () => {
     const props = setup({ initialSection: 'layout' })
     const input = screen.getByRole('textbox', { name: 'Area grid' })

@@ -89,7 +89,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       if (ctx.layoutDrafts?.[prefix]?.[key] === undefined) return undefined
       const result = candidateFor(profile, key, field(key), narrowGrid)
       const path = `${narrowGrid ? 'layout.breakpoints.narrow' : 'layout'}.${key}`
-      return (key === 'areas' ? areaGridProblem(parse(field(key))) : null) ?? (result ? profileIssues(result.candidate, s.language).find(issue => issue.path === path)?.expected : undefined)
+      return (key === 'areas' ? areaGridProblem(parse(field(key))) : null) ?? (result ? profileIssues(result.candidate, s.language).find(issue => issue.path === path || (issue.path.startsWith(`${path}.`) && /^\d+$/.test(issue.path.slice(path.length + 1))))?.expected : undefined)
     }
     return [
       textField(`${prefix}-areas`, label, field('areas'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas')),
