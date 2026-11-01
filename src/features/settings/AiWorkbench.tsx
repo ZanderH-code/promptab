@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { analyzeCandidate } from '../../core/ai/analyze'
 import { applyPack } from '../../core/ai/apply'
 import { PACK_PARTS, type PackPart } from '../../core/ai/pack'
@@ -13,6 +13,25 @@ import type { Ctx } from './rows'
 
 const MAX_REPLY_BYTES = 512 * 1024
 const PART_LABELS: Record<PackPart, MessageKey> = { theme: 'ai.part.theme', background: 'ai.part.background', css: 'ai.part.css' }
+
+function markDynamicText(text: string, values: string[]): ReactNode {
+  const dynamic = [...new Set(values.filter(Boolean))].sort((a, b) => b.length - a.length)
+  if (!dynamic.length) return text
+  const pattern = new RegExp(`(${dynamic.map(value => value.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&')).join('|')})`, 'g')
+  return text.split(pattern).map((part, index) => dynamic.includes(part) ? <span key={index} data-user-content>{part}</span> : part)
+}
+
+function problemContent(t: Ctx['t'], problem: Parameters<typeof problemText>[1], language: Ctx['s']['language']): ReactNode {
+  const text = problemText(t, problem, language)
+  const values = problem.kind === 'field' ? [problem.path, problem.value] : problem.kind === 'syntax' ? [problem.message] : problem.kind === 'css' ? [problem.issue.detail ?? ''] : []
+  return markDynamicText(text, values)
+}
+
+function warningContent(t: Ctx['t'], warning: Parameters<typeof warningText>[1]): ReactNode {
+  const text = warningText(t, warning)
+  const values = warning.kind === 'unknown-key' ? [warning.path] : warning.kind === 'font' ? [warning.path, warning.value] : warning.kind === 'css-foreign' ? [warning.name] : []
+  return markDynamicText(text, values)
+}
 
 /**
  * Bring-your-own-AI theme workbench: builds the prompt to copy out, reads the pasted reply, shows what was fixed,
@@ -118,13 +137,13 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
               {analysis.problems.length > 0 && (
                 <div className="sd-ai-group" data-kind="problem" role="alert">
                   <strong>{t('ai.problems', { count: analysis.problems.length })}</strong>
-                  <ul>{analysis.problems.map((problem, index) => <li key={index}>{problemText(t, problem, ctx.s.language)}</li>)}</ul>
+                  <ul>{analysis.problems.map((problem, index) => <li key={index}>{problemContent(t, problem, ctx.s.language)}</li>)}</ul>
                 </div>
               )}
               {analysis.warnings.length > 0 && (
                 <div className="sd-ai-group" data-kind="warning">
                   <strong>{t('ai.warnings', { count: analysis.warnings.length })}</strong>
-                  <ul>{analysis.warnings.map((warning, index) => <li key={index}>{warningText(t, warning)}</li>)}</ul>
+                  <ul>{analysis.warnings.map((warning, index) => <li key={index}>{warningContent(t, warning)}</li>)}</ul>
                 </div>
               )}
               {analysis.pack && analysis.problems.length === 0 && <p className="sd-ai-ok" role="status">{t('ai.ok')}</p>}
