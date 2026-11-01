@@ -22,7 +22,7 @@ async function expectGrid(page: Page, areas: string) {
 }
 
 async function prepareTemplateShot(page: Page, template: 'icon-split' | 'banner') {
-  await page.clock.install({ time: new Date('2026-08-29T19:17:00Z') })
+  await page.clock.install({ time: new Date('2026-08-01T19:17:00Z') })
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.evaluate(() => localStorage.clear())
   await seedTemplateUser(page, template === 'banner' ? 'en' : 'zh-CN', template === 'banner')
@@ -63,15 +63,27 @@ for (const [name, grid] of templates) {
 
 test('icon split uses the full-page 1440 by 900 baseline and accent hover', async ({ page }) => {
   await prepareTemplateShot(page, 'icon-split')
+  const links = page.locator('.mnt-bookmark-icon-only .shortcut')
+  await expect(links).toHaveCount(8)
+  for (const link of await links.all()) await expect(link.locator('svg path').first()).toHaveAttribute('d', /.+/)
   await expect(page).toHaveScreenshot('layout-icon-split-1440x900.png')
-  await page.locator('.mnt-bookmark-icon-only .shortcut').nth(3).evaluate(el => { el.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })) })
-  await expect(page).toHaveScreenshot('layout-icon-split-hover-1440x900.png')
+  const target = links.nth(3)
+  const bounds = await target.boundingBox()
+  expect(bounds).not.toBeNull()
+  await page.mouse.move(bounds!.x + bounds!.width / 2, bounds!.y + bounds!.height / 2)
+  await expect.poll(() => target.evaluate(el => getComputedStyle(el, '::after').opacity)).toBe('1')
+  await expect(page).toHaveScreenshot('layout-icon-split-hover-1440x900.png', { maxDiffPixelRatio: 0 })
 })
 
 test('banner uses the full-page English 1440 by 900 baseline', async ({ page }) => {
   await prepareTemplateShot(page, 'banner')
-  await expect(page.locator('.mnt-date')).toContainText('29TH')
+  await expect(page.locator('.mnt-date')).toContainText('1ST')
   await expect(page.locator('.mnt-date')).toContainText('AUGUST')
+  const boxes = await page.locator('[data-area="banner"] .mnt-widget-frame').evaluateAll(nodes => nodes.map(node => { const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, height: r.height } }))
+  expect(boxes).toHaveLength(3)
+  expect(boxes[0].x).toBeLessThan(boxes[1].x)
+  expect(boxes[1].x).toBeLessThan(boxes[2].x)
+  expect(Math.abs((boxes[0].y + boxes[0].height / 2) - (boxes[1].y + boxes[1].height / 2))).toBeLessThan(5)
   await expect(page).toHaveScreenshot('layout-banner-1440x900.png')
 })
 

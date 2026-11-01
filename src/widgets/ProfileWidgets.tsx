@@ -62,7 +62,7 @@ export function ProfileWidgets(props: Props) {
   const searchTemplate = profile.search.engines.find(e => e.id === profile.search.defaultEngineId)?.template ?? 'https://www.google.com/search?q={query}'
   const legacyStacked = profile.layout.areas.length === 2 && profile.layout.areas[0] === 'overview' && profile.layout.areas[1] === 'bookmarks'
   return <section className={`desktop mnt-layout${legacyStacked ? ' layout-stacked' : ''}`} data-layout-template={detectTemplate(profile)} style={gridStyle(grid, profile.layout.contentWidth, profile.layout.gap)} data-breakpoint={breakpoint} data-edit-mode={editing ? '' : undefined}>
-    {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette) }}>
+    {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette), ...(detectTemplate(profile) === 'banner' && name === 'banner' ? { display: 'flex', paddingInline: '6%' } : {}) }}>
       {widgetsIn(profile.widgets, name).map(widget => {
         const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
         const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} style={common}>{child}</div>

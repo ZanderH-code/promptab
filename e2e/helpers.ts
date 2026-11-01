@@ -1,15 +1,16 @@
 import { expect, type Page } from '@playwright/test'
+import { siYoutube, siReddit, siGmail, siGithub, siGoogledrive, siGooglecalendar } from 'simple-icons'
 
 /** Seeds a pre-existing v1 user before the app bootstraps, preserving upgrade-path defaults. */
 const templateShortcuts = [
-  ['amazon', 'Amazon', 'https://amazon.com', '232f3e'], ['reddit', 'Reddit', 'https://reddit.com', 'ff4500'],
-  ['gmail', 'Gmail', 'https://mail.google.com', 'ea4335'], ['github', 'GitHub', 'https://github.com', '181717'],
-  ['drive', 'Google Drive', 'https://drive.google.com', '4285f4'], ['film', 'Film', 'https://example.com/film', '3a5a80'],
-  ['code', 'Code', 'https://example.com/code', '3a5a80'], ['calendar', 'Calendar', 'https://calendar.google.com', '4285f4'],
+  ['youtube', 'YouTube', 'https://youtube.com', siYoutube], ['reddit', 'Reddit', 'https://reddit.com', siReddit],
+  ['gmail', 'Gmail', 'https://mail.google.com', siGmail], ['github', 'GitHub', 'https://github.com', siGithub],
+  ['drive', 'Google Drive', 'https://drive.google.com', siGoogledrive], ['film', 'Film', 'https://example.com/film', null],
+  ['code', 'Code', 'https://example.com/code', null], ['calendar', 'Calendar', 'https://calendar.google.com', siGooglecalendar],
 ] as const
-export const templateBookmarks = templateShortcuts.map(([id, name, url, hex]) => ({
-  id, name, url, color: `#${hex}`, icon: name[0], iconMode: id === 'film' || id === 'code' ? 'lucide' : 'brand', iconName: id,
-  ...(id === 'film' || id === 'code' ? {} : { iconColorMode: 'brand', brand: { slug: id, title: name, path: 'M12 2 22 12 12 22 2 12Z', hex } }),
+export const templateBookmarks = templateShortcuts.map(([id, name, url, brand]) => ({
+  id, name, url, color: `#${brand?.hex ?? '3a5a80'}`, icon: name[0], iconMode: brand ? 'brand' : 'lucide', iconName: id === 'film' ? 'video' : id,
+  ...(brand ? { iconColorMode: 'brand', brand: { slug: brand.slug, title: brand.title, path: brand.path, hex: brand.hex } } : {}),
 }))
 
 export async function seedTemplateUser(page: Page, language: 'zh-CN' | 'en' = 'zh-CN', wallpaper = false) {
@@ -41,6 +42,15 @@ export async function seedExistingUser(page: Page, settings: Record<string, unkn
         const cloud = context.createRadialGradient(x, y, 2, x, y, 100 + (i % 3) * 30)
         cloud.addColorStop(0, `rgba(245,248,250,${.12 + (i % 4) * .025})`); cloud.addColorStop(1, 'rgba(245,248,250,0)')
         context.fillStyle = cloud; context.fillRect(x - 140, y - 140, 280, 280)
+      }
+      let noise = 1234567
+      for (let i = 0; i < 16000; i++) {
+        noise = (noise * 1664525 + 1013904223) >>> 0
+        const x = noise % 480
+        noise = (noise * 1664525 + 1013904223) >>> 0
+        const y = noise % 300
+        context.fillStyle = i % 2 ? 'rgba(255,255,255,0.025)' : 'rgba(0,0,0,0.025)'
+        context.fillRect(x, y, 1, 1)
       }
       value.wallpaper = canvas.toDataURL('image/png')
     }

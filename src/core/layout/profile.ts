@@ -45,7 +45,7 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
     const bookmarks = widget('bookmarks')
     if (bookmarks) { bookmarks.hidden = true; bookmarks.area = 'websites' }
     const clock = widget('clock')
-    if (clock?.type === 'clock') { clock.area = 'banner'; clock.order = 0; clock.props = { ...clock.props, size: 0.5, align: 'right' } }
+    if (clock?.type === 'clock') { clock.area = 'banner'; clock.order = 0; clock.props = { ...clock.props, size: 1, align: 'right' } }
     const date = widget('date')
     if (date?.type === 'date') { date.area = 'banner'; date.order = 1; date.props = { ...date.props, size: 1.1, format: 'custom', weekday: true, day: true, month: true, order: ['weekday', 'day', 'month'], ordinal: true, uppercase: true, separator: ' / ', align: 'right' } }
     const search = widget('search')
