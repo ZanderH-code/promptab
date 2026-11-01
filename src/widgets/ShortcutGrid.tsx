@@ -41,7 +41,7 @@ export function ShortcutGrid({ shortcuts, editing, t, onReorder, onEdit, onRemov
   }
 
   return (
-    <div className="bookmarks mnt-widget mnt-group" data-widget="bookmarks">
+    <div className="bookmarks mnt-group">
       <div className="shortcuts-heading mnt-group-title">
         <span>{t('shortcuts.heading')}</span>
         <span className="line" />

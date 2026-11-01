@@ -5,7 +5,7 @@
 export const CSS_API_VERSION = 1
 
 export const CSS_API_CLASSES = [
-  'mnt-root', 'mnt-header', 'mnt-settings-entry', 'mnt-widget',
+  'mnt-root', 'mnt-header', 'mnt-settings-entry', 'mnt-area', 'mnt-widget',
   'mnt-clock', 'mnt-date',
   'mnt-search', 'mnt-search-input',
   'mnt-group', 'mnt-group-title', 'mnt-link', 'mnt-link-icon', 'mnt-link-name',
@@ -13,7 +13,8 @@ export const CSS_API_CLASSES = [
 
 /** Attribute selectors, as written in CSS. `github.com` is an example value of `data-link-host`. */
 export const CSS_API_ATTRIBUTES = [
-  '[data-widget="clock"]', '[data-widget="search"]', '[data-widget="bookmarks"]',
+  '[data-area="clock"]', '[data-area="overview"]', '[data-area="bookmarks"]',
+  '[data-widget="clock"]', '[data-widget="date"]', '[data-widget="search"]', '[data-widget="bookmarks"]', '[data-widget="greeting"]', '[data-widget="text"]', '[data-widget="spacer"]',
   '[data-link-host="github.com"]', '[data-theme-mode="dark"]', '[data-theme-mode="light"]',
 ] as const
 

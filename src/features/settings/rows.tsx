@@ -5,6 +5,8 @@ import { isAssetFont } from '../../core/font'
 import { searchUrl, type Settings } from '../../core/model'
 import { RANGES, darkSurface, lightSurface } from '../../core/schema/defaults'
 import type { ProfileV2 } from '../../core/schema/profile'
+import { applyTemplate, detectTemplate } from '../../core/layout/profile'
+import { LAYOUT_TEMPLATES } from '../../core/layout/templates'
 import type { MessageKey, MessageRef, Translate } from '../../i18n'
 import type { ChangeKind } from '../../store/history'
 import type { ProfileStore } from '../../store/profile'
@@ -284,9 +286,17 @@ export function layoutItems(ctx: Ctx): Item[] {
     id, keys: [label, ...options.map(([, key]) => key)],
     node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
   })
+  const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard' }
+  const areas = [...new Set(profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))]
+  const widgets: Item[] = profile.widgets.map(widget => ({ id: `widget-area-${widget.id}`, keys: ['settings.widgetArea'], node: <Row label={`${widget.type}: ${widget.id}`}><Select ctx={ctx} label={`${widget.type} area`} value={widget.area} options={areas.map(area => ({ value: area, label: area }))} onChange={area => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, area } : item) }))} /></Row> }))
+  const areaControls: Item[] = areas.map(area => {
+    const style = profile.layout.areaStyles?.[area] ?? {}
+    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding'], node: <div className="sd-note"><strong>{area}</strong><Row label={t('settings.areaBlur')}><RangeField t={t} label={t('settings.areaBlur')} value={style.blur ?? 0} min={0} max={40} unit="px" onChange={blur => change(p => touch({ ...p, layout: { ...p.layout, areaStyles: { ...p.layout.areaStyles, [area]: { ...p.layout.areaStyles?.[area], blur } } } }))} /></Row><Row label={t('settings.areaPadding')}><RangeField t={t} label={t('settings.areaPadding')} value={style.padding ?? 0} min={0} max={200} unit="px" onChange={padding => change(p => touch({ ...p, layout: { ...p.layout, areaStyles: { ...p.layout.areaStyles, [area]: { ...p.layout.areaStyles?.[area], padding } } } }))} /></Row></div> }
+  })
   return [
-    choice('layout', 'settings.layout', s.layout, [['stacked', 'settings.layoutStacked'], ['split', 'settings.layoutSplit']], value => patch({ layout: value as Settings['layout'] })),
-    { id: 'reverse', keys: ['settings.reverse'], node: <Toggle label={t('settings.reverse')} checked={s.reverse} onChange={reverse => patch({ reverse })} /> },
+    { id: 'layout-template', keys: ['settings.layout', ...Object.values(templateLabels)], node: <Row label={t('settings.layout')}><Select ctx={ctx} label={t('settings.layout')} value={detectTemplate(profile)} options={LAYOUT_TEMPLATES.map(value => ({ value, label: t(templateLabels[value]) }))} onChange={value => change(p => touch(applyTemplate(p, value as (typeof LAYOUT_TEMPLATES)[number])))} /></Row> },
+    ...widgets,
+    ...areaControls,
     choice('alignment', 'settings.alignment', s.alignment, [['center', 'settings.alignCenter'], ['left', 'settings.alignLeft']], value => patch({ alignment: value as Settings['alignment'] })),
     { id: 'content-width', keys: ['settings.contentWidth'], node: <RangeField t={t} label={t('settings.contentWidth')} value={profile.layout.contentWidth} min={RANGES.contentWidth.min} max={RANGES.contentWidth.max} step={10} unit="px" onChange={contentWidth => change(p => touch({ ...p, layout: { ...p.layout, contentWidth } }))} /> },
     { id: 'gap', keys: ['settings.gap'], node: <RangeField t={t} label={t('settings.gap')} value={profile.layout.gap} min={RANGES.gap.min} max={RANGES.gap.max} unit="px" onChange={gap => change(p => touch({ ...p, layout: { ...p.layout, gap } }))} /> },
@@ -297,9 +307,17 @@ export function layoutItems(ctx: Ctx): Item[] {
 }
 
 export function widgetsItems(ctx: Ctx): Item[] {
-  const { t, s, patch } = ctx
-  const flags = [['showClock', 'settings.showClock'], ['showDate', 'settings.showDate'], ['showSearch', 'settings.showSearch'], ['hour12', 'settings.hour12']] as const
-  return flags.map(([key, label]) => ({ id: key, keys: [label], node: <Toggle label={t(label)} checked={s[key]} onChange={value => patch({ [key]: value })} /> }))
+  const { t, s, patch, change } = ctx
+  const flags = [['showSearch', 'settings.showSearch'], ['hour12', 'settings.hour12']] as const
+  const byType = {
+    clock: ctx.profile.widgets.find(widget => widget.type === 'clock'),
+    date: ctx.profile.widgets.find(widget => widget.type === 'date'),
+  }
+  const widgetToggle = (type: 'clock' | 'date', label: MessageKey) => {
+    const current = byType[type]
+    return { id: `widget-${type}`, keys: [label], node: <Toggle label={t(label)} checked={!!current && !current.hidden} onChange={visible => change(profile => touch({ ...profile, widgets: profile.widgets.map(widget => widget.type === type ? { ...widget, hidden: !visible } : widget) }))} /> }
+  }
+  return [widgetToggle('clock', 'settings.showClock'), widgetToggle('date', 'settings.showDate'), ...flags.slice(2).map(([key, label]) => ({ id: key, keys: [label], node: <Toggle label={t(label)} checked={s[key]} onChange={value => patch({ [key]: value })} /> }))]
 }
 
 export function shortcutsItems(ctx: Ctx): Item[] {

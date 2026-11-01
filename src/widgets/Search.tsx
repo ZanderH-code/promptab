@@ -34,7 +34,7 @@ export function Search({ template, t, onContextMenu, onError }: Props) {
   }
 
   return (
-    <form className="search mnt-widget mnt-search" data-widget="search" onContextMenu={onContextMenu} onSubmit={submit}>
+    <form className="search mnt-search" onContextMenu={onContextMenu} onSubmit={submit}>
       <SearchIcon className="search-icon" size={20} strokeWidth={1.5} aria-hidden="true" />
       <input id="search" className="mnt-search-input" value={query} onChange={event => setQuery(event.target.value)} placeholder={t('search.placeholder')} aria-label={t('search.label')} />
       <kbd>/</kbd>

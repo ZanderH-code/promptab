@@ -9,9 +9,7 @@ import { ShortcutEditor } from '../features/shortcut-editor/ShortcutEditor'
 import { SettingsDrawer } from '../features/settings/SettingsDrawer'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
-import { Clock } from '../widgets/Clock'
-import { Search } from '../widgets/Search'
-import { ShortcutGrid } from '../widgets/ShortcutGrid'
+import { ProfileWidgets } from '../widgets/ProfileWidgets'
 import { Banners, PreviewBanner, SafeModeBanner } from '../features/banners/Banners'
 import { useSafeMode } from './safeMode'
 import { useSettings } from './useSettings'
@@ -186,22 +184,20 @@ export default function App() {
         <span className="brand">MINIMAL <span className="brandmuted">/ NEW TAB</span></span>
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>
-      <section className={`desktop layout-${s.layout} ${s.reverse ? 'layout-reverse' : ''}`}>
-        <div className="overview">
-          <Clock language={s.language} showClock={s.showClock} showDate={s.showDate} hour12={s.hour12} onContextMenu={event => openMenu(event, 'clock')} />
-          {s.showSearch && <Search template={s.searchTemplate} t={t} onError={setError} onContextMenu={event => openMenu(event, 'search')} />}
-        </div>
-        <ShortcutGrid
-          shortcuts={s.shortcuts}
-          editing={drawer}
-          t={t}
-          onReorder={shortcuts => patch({ shortcuts })}
-          onEdit={setEditing}
-          onRemove={removeShortcut}
-          onAdd={() => setEditing(newShortcut('#b0a092'))}
-          onContextMenu={(event, shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
-        />
-      </section>
+      {profile && <ProfileWidgets
+        profile={profile}
+        language={s.language}
+        shortcuts={s.shortcuts}
+        editing={drawer}
+        t={t}
+        onError={setError}
+        onContextMenu={(event: MouseEvent) => openMenu(event, 'clock')}
+        onReorder={(shortcuts: Shortcut[]) => patch({ shortcuts })}
+        onEdit={setEditing}
+        onRemove={removeShortcut}
+        onAdd={() => setEditing(newShortcut('#b0a092'))}
+        onBookmarkContextMenu={(event: MouseEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
+      />}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
       {undoNotice && <div className="undo-toast" role="status"><span>{s.language === 'en' ? 'Changes saved' : '更改已保存'}</span><button type="button" onClick={undo}>{s.language === 'en' ? 'Undo' : '撤销'}</button></div>}

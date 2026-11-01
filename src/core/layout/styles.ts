@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { AreaStyle, ProfileV2 } from '../schema/profile'
 import { columnCount, type Grid } from './grid'
-import type { LayoutTemplate } from './templates'
 
 export function gridStyle(grid: Grid, contentWidth: number, gap: number): CSSProperties {
   return {
@@ -12,7 +11,7 @@ export function gridStyle(grid: Grid, contentWidth: number, gap: number): CSSPro
   } as CSSProperties
 }
 
-export function areaStyle(style: AreaStyle | undefined, template: LayoutTemplate, palette: ProfileV2['theme']['color']): CSSProperties {
+export function areaStyle(style: AreaStyle | undefined, palette: ProfileV2['theme']['color']): CSSProperties {
   if (!style) return {}
   const place = (align: NonNullable<AreaStyle['align']> | undefined) => {
     const [vertical, horizontal] = (align ?? 'center-center').split('-')
@@ -30,6 +29,5 @@ export function areaStyle(style: AreaStyle | undefined, template: LayoutTemplate
     ...(border?.bottom ? { borderBottom: `${border.bottom}px solid var(--mnt-accent)` } : {}),
     ...(border?.left ? { borderLeft: `${border.left}px solid var(--mnt-accent)` } : {}),
     ...(style.bleed ? { marginInline: 'calc((var(--mnt-content-width) - 100vw) / 2)', width: '100vw' } : {}),
-    ...(template === 'stacked' ? {} : {}),
   } as CSSProperties
 }

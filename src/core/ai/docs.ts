@@ -7,6 +7,7 @@ export const CLASS_NOTES: Record<(typeof CSS_API_CLASSES)[number], string> = {
   'mnt-root': 'The page root. Theme variables and the background live here.',
   'mnt-header': 'The top bar with the brand and the settings button. Protected.',
   'mnt-settings-entry': 'The settings button. Protected: custom CSS cannot hide, move or cover it.',
+  'mnt-area': 'One named responsive layout area. Carries `data-area` with its area name.',
   'mnt-widget': 'Every widget block. Combine with `data-widget` to pick one.',
   'mnt-clock': 'The time text.',
   'mnt-date': 'The date line under the clock.',
@@ -20,9 +21,16 @@ export const CLASS_NOTES: Record<(typeof CSS_API_CLASSES)[number], string> = {
 }
 
 export const ATTRIBUTE_NOTES: Record<(typeof CSS_API_ATTRIBUTES)[number], string> = {
+  '[data-area="clock"]': 'A layout area named clock.',
+  '[data-area="overview"]': 'The default clock and search area.',
+  '[data-area="bookmarks"]': 'The default bookmarks area.',
   '[data-widget="clock"]': 'The clock widget.',
+  '[data-widget="date"]': 'The date widget.',
   '[data-widget="search"]': 'The search widget.',
   '[data-widget="bookmarks"]': 'The bookmarks widget.',
+  '[data-widget="greeting"]': 'A greeting widget.',
+  '[data-widget="text"]': 'A text widget.',
+  '[data-widget="spacer"]': 'A spacing widget.',
   '[data-link-host="github.com"]': 'A bookmark tile for one site; replace `github.com` with any host.',
   '[data-theme-mode="dark"]': 'The page while the dark palette is in use.',
   '[data-theme-mode="light"]': 'The page while the light palette is in use.',

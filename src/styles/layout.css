@@ -1,13 +1,25 @@
 @layer widgets {
   .desktop {
-    width: var(--mnt-content-width);
+    width: min(var(--mnt-content-width), 88vw);
     padding-bottom: var(--mnt-space-7);
+    margin: auto;
+    gap: var(--mnt-layout-gap, 24px);
+    align-items: center;
   }
+
+  .mnt-area { min-width: 0; }
+  .mnt-area[data-area="overview"] { display: flex; flex-direction: column; align-items: center; }
+  .mnt-area[data-area="overview"] .intro { width: 100%; }
+  .mnt-area[data-area="overview"] .search { max-width: 560px; }
+  .mnt-area[data-area="bookmarks"] { width: 100%; }
+  .mnt-area[data-area="bookmarks"] .shortcuts-heading { margin-top: 58px; }
+  .mnt-widget-frame { min-width: 0; zoom: var(--mnt-widget-size, 1); }
 
   .overview, .bookmarks {
     width: 100%;
     min-width: 0;
   }
+
 
   .search, .shortcuts-heading {
     width: 100%;
