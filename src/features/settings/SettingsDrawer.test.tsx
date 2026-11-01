@@ -4,7 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { migrateV1 } from '../../core/migrate/v1'
 import { defaults } from '../../core/model'
-import type { ProfileV2 } from '../../core/schema/profile'
+import { profileIssues, type ProfileV2 } from '../../core/schema/profile'
 import { translate, type Language } from '../../i18n'
 import type { ProfileStore } from '../../store/profile'
 import { SettingsDrawer, initialTab, matches } from './SettingsDrawer'
@@ -32,8 +32,8 @@ function setup(options: { profile?: ProfileV2; language?: Language; initialSecti
     profile, t, initialSection: options.initialSection,
     onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(),
   }
-  render(<><button>opener</button><SettingsDrawer {...props} /></>)
-  return props
+  const view = render(<><button>opener</button><SettingsDrawer {...props} /></>)
+  return { ...props, rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>) }
 }
 const lastUpdate = (props: ReturnType<typeof setup>) => {
   const call = props.onProfileChange.mock.calls.at(-1)!
@@ -278,6 +278,59 @@ describe('SettingsDrawer background', () => {
     expect(parsePosition('center')).toEqual({ named: 'center', x: 50, y: 50 })
     expect(parsePosition('20% 80%')).toEqual({ x: 20, y: 80 })
     expect(parsePosition('garbage')).toEqual({ x: 50, y: 50 })
+  })
+})
+
+describe('SettingsDrawer grid drafts', () => {
+  it('preserves raw multiline input and applies edits to the latest profile', () => {
+    const props = setup({ initialSection: 'layout' })
+    const input = screen.getByRole('textbox', { name: 'Area grid' })
+    fireEvent.change(input, { target: { value: 'overview\nbookmarks\n' } })
+    expect(input).toHaveValue('overview\nbookmarks\n')
+    const newer = structuredClone(base)
+    newer.layout.areaStyles = { overview: { bleed: true } }
+    const update = props.onProfileChange.mock.calls.at(-1)![0] as (p: ProfileV2) => ProfileV2
+    expect(update(newer).layout.areaStyles?.overview.bleed).toBe(true)
+  })
+  it('clears drafts after a profile or grid replacement', () => {
+    const props = setup({ initialSection: 'layout' })
+    const input = screen.getByRole('textbox', { name: 'Area grid' })
+    fireEvent.change(input, { target: { value: 'invalid invalid\ninvalid .' } })
+    const replacement = structuredClone(base)
+    replacement.meta.id = 'other'
+    replacement.layout.areas = ['bookmarks', 'overview']
+    props.rerender(replacement)
+    expect(input).toHaveValue('bookmarks\noverview')
+  })
+
+  it('moves widgets to a shared breakpoint area and removes obsolete styles atomically', () => {
+    const profile = structuredClone(base)
+    profile.layout.breakpoints = { narrow: { areas: ['bookmarks', 'overview'] }, medium: { areas: ['bookmarks', 'overview'] } }
+    profile.layout.areaStyles = { overview: { bleed: true } }
+    const props = setup({ profile, initialSection: 'layout' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Area grid' }), { target: { value: 'bookmarks' } })
+    const next = lastUpdate(props).next
+    expect(next.widgets.every(widget => widget.area === 'bookmarks')).toBe(true)
+    expect(next.layout.areaStyles?.overview).toBeUndefined()
+    expect(profileIssues(next)).toEqual([])
+  })
+
+  it('does not commit an edit that leaves no shared widget area', () => {
+    const profile = structuredClone(base)
+    profile.layout.breakpoints = { narrow: { areas: ['overview', 'bookmarks'] } }
+    const props = setup({ profile, initialSection: 'layout' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Area grid' }), { target: { value: 'newarea' } })
+    expect(props.onProfileChange).not.toHaveBeenCalled()
+    fireEvent.click(screen.getAllByRole('combobox', { name: 'Widget area' })[0])
+    expect(screen.getByRole('option', { name: 'newarea' })).toBeInTheDocument()
+  })
+
+  it('does not commit a candidate with an unrelated validation error', () => {
+    const profile = structuredClone(base)
+    profile.search.defaultEngineId = 'missing'
+    const props = setup({ profile, initialSection: 'layout' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Area grid' }), { target: { value: 'overview\nbookmarks\n' } })
+    expect(props.onProfileChange).not.toHaveBeenCalled()
   })
 })
 

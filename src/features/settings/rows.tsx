@@ -45,8 +45,9 @@ export type Ctx = {
   safe: boolean
   /** Commit the running AI preview to the active profile (with the usual undo snapshot). */
   onApplyPreview: () => void
-  layoutDrafts?: Partial<Record<'base' | 'narrow', { areas: string[]; columns?: string[]; rows?: string[] }>>
+  layoutDrafts?: Partial<Record<'base' | 'narrow', Partial<Record<'areas' | 'columns' | 'rows', string>>>>
   onLayoutDraftsChange?: (drafts: NonNullable<Ctx['layoutDrafts']>) => void
+  onGridCommit?: (profile: ProfileV2) => void
   movedWidgets?: string[]
   onMovedWidgets?: (messages: string[]) => void
 }
@@ -68,6 +69,12 @@ function usePreviewNow() {
     return () => window.clearTimeout(timer)
   }, [])
   return now
+}
+
+function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
+  const [value, setValue] = useState(checked)
+  useEffect(() => { setValue(checked) }, [checked])
+  return <Toggle label={label} checked={value} onChange={next => { setValue(next); onChange(next) }} />
 }
 
 function WidgetFormatPreview({ type, props, language }: { type: 'clock' | 'date'; props: Record<string, unknown>; language: Settings['language'] }) {
@@ -313,61 +320,75 @@ export function layoutItems(ctx: Ctx): Item[] {
     id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}</Row>,
   })
   const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard' }
-  const baseGrid = ctx.layoutDrafts?.base ?? profile.layout
-  const narrow = ctx.layoutDrafts?.narrow ?? profile.layout.breakpoints?.narrow
-  const areas = areaNames(baseGrid.areas)
+  const baseGrid = profile.layout
+  const narrow = profile.layout.breakpoints?.narrow
+  const areas = areaNames(ctx.layoutDrafts?.base?.areas !== undefined ? ctx.layoutDrafts.base.areas.split('\n').map(line => line.trim()).filter(Boolean) : baseGrid.areas)
   const areaLabel = (area: string) => area === 'overview' ? t('settings.areaOverview') : area === 'bookmarks' ? t('settings.shortcuts') : area
   const widgetLabel = (widget: ProfileV2['widgets'][number]) => ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer') })[widget.type]
-  const editGrid = (key: 'areas' | 'columns' | 'rows', value: string, narrowGrid = false) => {
-    const lines = value.split('\n').map(line => line.trim()).filter(Boolean)
-    const gridValue = key === 'areas' || lines.length ? lines : undefined
-    const target = narrowGrid ? narrow ?? { areas: profile.layout.areas } : baseGrid
-    const edited = { ...target, [key]: gridValue } as { areas: string[]; columns?: string[]; rows?: string[] }
-    const gridKey = narrowGrid ? 'narrow' : 'base'
-    const drafts = { ...ctx.layoutDrafts, [gridKey]: edited }
-    ctx.onLayoutDraftsChange?.(drafts)
-    const candidate = structuredClone(profile)
-    if (narrowGrid) candidate.layout.breakpoints = { ...candidate.layout.breakpoints, narrow: edited }
-    else candidate.layout = { ...candidate.layout, ...edited }
-    let moved: string[] = []
+  type GridKey = 'areas' | 'columns' | 'rows'
+  const parse = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean)
+  const candidateFor = (current: ProfileV2, key: GridKey, value: string, narrowGrid: boolean) => {
+    const candidate = structuredClone(current)
+    const target = narrowGrid ? candidate.layout.breakpoints?.narrow : candidate.layout
+    if (!target) return null
+    const lines = parse(value)
+    if (key === 'areas') target.areas = lines
+    else target[key] = lines.length ? lines : undefined
+    const moved: string[] = []
     if (key === 'areas') {
-      const names = areaNames(lines)
-      if (!names.length) return
-      const changed = candidate.widgets.filter(widget => !names.includes(widget.area))
-      if (changed.length) {
-        const destination = names[0]
-        const ids = new Set(changed.map(widget => widget.id))
-        candidate.widgets = candidate.widgets.map(widget => ids.has(widget.id) ? { ...widget, area: destination } : widget)
-        moved = changed.map(widget => `${widget.id} → ${destination}`)
+      const grids = [candidate.layout, ...Object.values(candidate.layout.breakpoints ?? {}).filter(grid => grid !== undefined)]
+      const common = areaNames(candidate.layout.areas).filter(name => grids.every(grid => areaNames(grid.areas).includes(name)))
+      const destination = common[0]
+      if (destination) candidate.widgets = candidate.widgets.map(widget => {
+        if (common.includes(widget.area)) return widget
+        moved.push(`${widget.id} → ${destination}`)
+        return { ...widget, area: destination }
+      })
+      if (!narrowGrid && candidate.layout.areaStyles) {
+        const names = areaNames(candidate.layout.areas)
+        candidate.layout.areaStyles = Object.fromEntries(Object.entries(candidate.layout.areaStyles).filter(([name]) => names.includes(name)))
       }
     }
-    const expectedPaths = narrowGrid
-      ? [`layout.breakpoints.narrow.${key}`, 'layout.breakpoints.narrow.areas', 'layout.breakpoints.narrow.columns']
-      : [`layout.${key}`, 'layout.areas', 'layout.columns']
-    const issue = (key === 'areas' ? areaGridProblem(lines) : null)
-      ?? profileIssues(candidate, s.language).find(item => expectedPaths.includes(item.path))?.expected
-    if (issue) return
-    if (key === 'areas') ctx.onMovedWidgets?.(moved)
-    change(() => touch(candidate))
+    return { candidate, moved }
+  }
+  const editGrid = (key: GridKey, value: string, narrowGrid = false) => {
+    const gridKey = narrowGrid ? 'narrow' : 'base'
+    ctx.onLayoutDraftsChange?.({ ...ctx.layoutDrafts, [gridKey]: { ...ctx.layoutDrafts?.[gridKey], [key]: value } })
+    const draftArea = ctx.layoutDrafts?.[gridKey]?.areas
+    const result = candidateFor(profile, draftArea !== undefined ? 'areas' : key, draftArea ?? value, narrowGrid)
+    if (result && key !== 'areas') {
+      const target = narrowGrid ? result.candidate.layout.breakpoints?.narrow : result.candidate.layout
+      if (target) target[key] = parse(value).length ? parse(value) : undefined
+    }
+    if (!result || profileIssues(result.candidate, s.language).length) return
+    change(current => {
+      const latest = candidateFor(current, draftArea !== undefined ? 'areas' : key, draftArea ?? value, narrowGrid)
+      if (latest && key !== 'areas') {
+        const target = narrowGrid ? latest.candidate.layout.breakpoints?.narrow : latest.candidate.layout
+        if (target) target[key] = parse(value).length ? parse(value) : undefined
+      }
+      if (!latest || profileIssues(latest.candidate, s.language).length) return current
+      ctx.onGridCommit?.(latest.candidate)
+      return touch(latest.candidate)
+    })
+    if (key === 'areas' || draftArea !== undefined) ctx.onMovedWidgets?.(result.moved)
   }
   const gridEditor = (narrowGrid = false): Item[] => {
     const grid = narrowGrid ? narrow : baseGrid
     if (!grid) return []
     const prefix = narrowGrid ? 'narrow' : 'base'
     const label = narrowGrid ? 'settings.layoutNarrow' : 'settings.layoutAreas'
-    const fieldIssue = (key: 'areas' | 'columns' | 'rows') => {
-      const target = narrowGrid ? narrow : baseGrid
-      if (!target) return undefined
-      const candidate = structuredClone(profile)
-      if (narrowGrid) candidate.layout.breakpoints = { ...candidate.layout.breakpoints, narrow: target }
-      else candidate.layout = { ...candidate.layout, ...target }
-      const paths = [`${narrowGrid ? 'layout.breakpoints.narrow' : 'layout'}.${key}`]
-      return (key === 'areas' ? areaGridProblem(target.areas) : null) ?? profileIssues(candidate, s.language).find(issue => paths.includes(issue.path))?.expected
+    const field = (key: GridKey) => ctx.layoutDrafts?.[prefix]?.[key] ?? grid[key]?.join('\n') ?? ''
+    const fieldIssue = (key: GridKey) => {
+      if (ctx.layoutDrafts?.[prefix]?.[key] === undefined) return undefined
+      const result = candidateFor(profile, key, field(key), narrowGrid)
+      const path = `${narrowGrid ? 'layout.breakpoints.narrow' : 'layout'}.${key}`
+      return (key === 'areas' ? areaGridProblem(parse(field(key))) : null) ?? (result ? profileIssues(result.candidate, s.language).find(issue => issue.path === path)?.expected : undefined)
     }
     return [
-      textField(`${prefix}-areas`, label, grid.areas.join('\n'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas')),
-      textField(`${prefix}-columns`, 'settings.layoutColumns', grid.columns?.join('\n') ?? '', value => editGrid('columns', value, narrowGrid), fieldIssue('columns')),
-      textField(`${prefix}-rows`, 'settings.layoutRows', grid.rows?.join('\n') ?? '', value => editGrid('rows', value, narrowGrid), fieldIssue('rows')),
+      textField(`${prefix}-areas`, label, field('areas'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas')),
+      textField(`${prefix}-columns`, 'settings.layoutColumns', field('columns'), value => editGrid('columns', value, narrowGrid), fieldIssue('columns')),
+      textField(`${prefix}-rows`, 'settings.layoutRows', field('rows'), value => editGrid('rows', value, narrowGrid), fieldIssue('rows')),
     ]
   }
   const patchWidget = (id: string, props: Record<string, unknown>) => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === id ? { ...item, props: { ...item.props, ...props } as typeof item.props } : item) }))
@@ -401,7 +422,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       <RangeField t={t} label={t('settings.areaOpacity')} value={style.opacity ?? 100} min={0} max={100} unit="%" onChange={opacity => setStyle({ opacity })} />
       <RangeField t={t} label={t('settings.areaBlur')} value={style.blur ?? 0} min={0} max={40} unit="px" onChange={blur => setStyle({ blur })} />
       <RangeField t={t} label={t('settings.areaPadding')} value={style.padding ?? 0} min={0} max={200} unit="px" onChange={padding => setStyle({ padding })} />
-      <Toggle label={t('settings.areaBleed')} checked={style.bleed ?? false} onChange={bleed => setStyle({ bleed })} />
+      <AreaBleedToggle label={t('settings.areaBleed')} checked={style.bleed ?? false} onChange={bleed => setStyle({ bleed })} />
       <Row label={t('settings.areaAlign')}><Select ctx={ctx} label={t('settings.areaAlign')} value={style.align ?? 'center-center'} options={(['top-left','top-center','top-right','center-left','center-center','center-right','bottom-left','bottom-center','bottom-right'] as const).map((value, index) => ({ value, label: t((['settings.posTopLeft','settings.posTop','settings.posTopRight','settings.posLeft','settings.posCenter','settings.posRight','settings.posBottomLeft','settings.posBottom','settings.posBottomRight'] as const)[index]) }))} onChange={align => setStyle({ align })} /></Row>
       {(['top', 'right', 'bottom', 'left'] as const).map(side => <RangeField key={side} t={t} label={t(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} value={style.border?.[side] ?? 0} min={0} max={16} unit="px" onChange={width => setStyle({ border: { ...style.border, [side]: width } })} />)}
     </div> }

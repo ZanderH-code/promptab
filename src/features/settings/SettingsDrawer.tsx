@@ -60,6 +60,17 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const [query, setQuery] = useState('')
   const [layoutDrafts, setLayoutDrafts] = useState<NonNullable<Ctx['layoutDrafts']>>({})
   const [movedWidgets, setMovedWidgets] = useState<string[]>([])
+  const gridSignature = (value: ProfileV2) => JSON.stringify([value.meta.id, value.layout.areas, value.layout.columns, value.layout.rows, value.layout.breakpoints])
+  const currentGrid = gridSignature(profile)
+  const previousGrid = useRef(currentGrid)
+  const ownGrid = useRef<string | null>(null)
+  useEffect(() => {
+    if (previousGrid.current !== currentGrid) {
+      if (ownGrid.current !== currentGrid) { setLayoutDrafts({}); setMovedWidgets([]) }
+      previousGrid.current = currentGrid
+      ownGrid.current = null
+    }
+  }, [currentGrid])
   const drawer = useRef<HTMLElement>(null)
   const tabRefs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({})
   const search = useRef<HTMLInputElement>(null)
@@ -80,7 +91,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const ctx: Ctx = {
     t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
     change: (update, kind) => onProfileChange(update, kind),
-    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, movedWidgets, onMovedWidgets: setMovedWidgets,
+    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets,
   }
 
   const restore = async (target: ResettableTab) => {
