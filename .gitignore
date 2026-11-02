@@ -2,6 +2,8 @@ node_modules/
 dist/
 store/promptab-*.zip
 store/icon-preview.png
+store/gallery-preview.png
+store/gallery-list.png
 *.tsbuildinfo
 .claude/
 test-results/

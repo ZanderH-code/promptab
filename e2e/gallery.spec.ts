@@ -77,6 +77,8 @@ for (const [name, bad] of [
   ['import', { ...pack, css: '@import "https://example.com/a.css";' }],
   ['oversized', { ...pack, css: 'x'.repeat(530_000) }],
   ['unknown field', { ...pack, surprise: true }],
+  ['unknown widget property', { ...pack, widgets: [{ id: 'bookmarks', type: 'bookmarks', area: 'overview', order: 0, props: { mystery: true } }] }],
+  ['unknown variable property', { ...pack, variables: [{ type: 'range', name: '--glow', label: { en: 'Glow', 'zh-CN': '光晕' }, min: 0, max: 10, unit: 'px', default: 3, mystery: true }] }],
 ] as const) {
   test(`rejects ${name} in a downloaded pack`, async ({ page }) => {
     await page.route(`${base}**`, route => route.fulfill({ headers, json: route.request().url().endsWith('index.json') ? index : bad }))
