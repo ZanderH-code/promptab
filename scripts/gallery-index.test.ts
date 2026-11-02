@@ -37,6 +37,8 @@ describe('gallery index generation', () => {
       expect(run().status).toBe(0)
       expect(readFileSync(path, 'utf8')).toBe(first)
       expect(run('--check').status).toBe(0)
+      writeFileSync(path, first.replace(/\n/g, '\r\n'))
+      expect(run('--check').status).toBe(0)
       writeFileSync(path, '{}\n')
       const stale = run('--check')
       expect(stale.status).not.toBe(0)

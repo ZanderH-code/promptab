@@ -19,6 +19,6 @@ if (entries.length < 12) throw new Error('Gallery requires at least 12 packs')
 const index = JSON.stringify({ version: 1, packs: entries }, null, 2) + '\n'
 const path = resolve(root, 'index.json')
 if (process.argv.includes('--check')) {
-  if (await readFile(path, 'utf8').catch(() => '') !== index) throw new Error('Gallery index is out of date; run npx vite-node scripts/gallery-index.ts')
+  if ((await readFile(path, 'utf8').catch(() => '')).replace(/\r\n/g, '\n') !== index.replace(/\r\n/g, '\n')) throw new Error('Gallery index is out of date; run npx vite-node scripts/gallery-index.ts')
 } else await writeFile(path, index)
 console.log(`Validated ${entries.length} gallery packs${process.argv.includes('--check') ? ' and index' : '; index generated'}.`)
