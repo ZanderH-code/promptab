@@ -2,13 +2,26 @@
 
 # Promptab
 
-[English](README.md) | 简体中文
+[English](README.md) | 简体中文 · [官方主页](https://zanderh-code.github.io/promptab/) · [主题画廊](https://zanderh-code.github.io/promptab/gallery/index.json) · [隐私政策](https://zanderh-code.github.io/promptab/privacy/)
 
 **想要什么样，就跟 AI 说什么样。**
 
 用你已经在用的任何 AI（ChatGPT、Claude、Kimi、DeepSeek 等）设计新标签页。不需要 Promptab 账号、API key 或额外 AI 额度。修改可以预览、随时撤销，数据只保存在这台设备。
 
 ![Promptab 演示：使用 AI 创建纸质主题](docs/assets/demo.gif)
+
+## ✨ 原创主题与布局展示
+
+Promptab 将自然的语言描述直接转化为浏览器主页的布局排版、字体与色彩体系，完全在浏览器本地渲染。
+
+![Promptab 原创主题展示](docs/assets/showcase-grid.png)
+
+| 主题名称 | 风格与字体 | 示例 AI 提示词 |
+| --- | --- | --- |
+| **Warm Study · 书卷暖调** | Cormorant 典雅衬线 · 暖纸色 | `“琥珀灯光下的书房，文字带有书卷气，暖纸色背景衬托常用网站”` |
+| **Cyber Grid · 极客终端** | 等宽代码风 · 青色荧光高亮 | `“深色终端风格页面，以青色点缀、利落的时钟和紧凑书签网格为主”` |
+| **Swiss Minimal · 瑞士极简** | 现代无衬线体 · 利落线条对齐 | `“瑞士平面设计风格：黑白红高对比排版、克制留白与利落边框”` |
+| **Plum Night · 静谧梅紫** | 深邃紫调 · 柔和时钟光晕 | `“安静的梅紫夜色，搭配优雅字体、柔和圆角和居中的书签”` |
 
 ## 功能
 

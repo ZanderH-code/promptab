@@ -6,5 +6,6 @@ store/gallery-preview.png
 store/gallery-list.png
 *.tsbuildinfo
 .claude/
+.local-review/
 test-results/
 playwright-report/
