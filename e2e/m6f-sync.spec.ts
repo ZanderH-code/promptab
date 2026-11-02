@@ -81,7 +81,7 @@ test('a changed cloud profile is applied and can be undone', async ({ page }) =>
     storage.storage.__notify({ 'mnt.sync.manifest': { newValue: JSON.stringify(next) } }, 'sync')
   })
 
-  await expect(page.getByRole('status').filter({ hasText: 'Newer profile pulled.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'Cloud setup applied.' })).toBeVisible()
   await page.getByRole('button', { name: 'Undo pulled profile' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Pulled profile was undone.' })).toBeVisible()
 })
