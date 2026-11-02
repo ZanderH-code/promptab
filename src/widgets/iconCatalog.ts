@@ -6,5 +6,10 @@ export const emojis = ['🌐', '⭐', '❤️', '📚', '🎵', '🎮', '📷', 
 export type BrandIcon = { title: string; slug: string; path: string; hex: string }
 let catalog: Promise<BrandIcon[]> | undefined
 export function loadBrands() {
-  return catalog ??= import('simple-icons').then(module => Object.values(module) as BrandIcon[]).catch(error => { catalog = undefined; throw error })
+  return catalog ??= (import.meta.env.DEV
+    ? import('simple-icons').then(module => Object.values(module) as BrandIcon[])
+    : fetch(new URL('../brand-catalog.json', import.meta.url)).then(response => {
+      if (!response.ok) throw new Error('Brand catalog unavailable')
+      return response.json() as Promise<BrandIcon[]>
+    })).catch(error => { catalog = undefined; throw error })
 }

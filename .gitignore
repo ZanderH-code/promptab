@@ -1,5 +1,6 @@
 node_modules/
 dist/
+dist-firefox/
 store/promptab-*.zip
 store/icon-preview.png
 store/gallery-preview.png

@@ -38,8 +38,10 @@ export function verifyPackage(path) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const manifest = JSON.parse(await readFile(resolve('dist/manifest.json'), 'utf8'))
-  const archive = resolve('store', `promptab-${manifest.version}.zip`)
+  const firefox = process.argv[2] === 'firefox'
+  const prefix = firefox ? 'promptab-firefox' : 'promptab'
+  const manifest = JSON.parse(await readFile(resolve(firefox ? 'dist-firefox/manifest.json' : 'dist/manifest.json'), 'utf8'))
+  const archive = resolve('store', `${prefix}-${manifest.version}.zip`)
   const result = await verifyPackage(archive)
   console.log(`Verified ${result.entries} ZIP entries and ${result.assets} index assets in ${archive}`)
 }

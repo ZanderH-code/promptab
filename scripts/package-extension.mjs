@@ -11,7 +11,8 @@ const manifestPath = resolve(dist, 'manifest.json')
 if (!existsSync(dist) || !existsSync(manifestPath)) throw new Error('dist/manifest.json is missing; run the build first')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 if (typeof manifest.version !== 'string' || !/^\d+\.\d+\.\d+$/.test(manifest.version)) throw new Error('dist/manifest.json has no valid version')
-const output = resolve(process.argv[3] || resolve(root, 'store', `promptab-${manifest.version}.zip`))
+const packageName = dist.endsWith('dist-firefox') ? `promptab-firefox-${manifest.version}.zip` : `promptab-${manifest.version}.zip`
+const output = resolve(process.argv[3] || resolve(root, 'store', packageName))
 mkdirSync(dirname(output), { recursive: true })
 rmSync(output, { force: true })
 

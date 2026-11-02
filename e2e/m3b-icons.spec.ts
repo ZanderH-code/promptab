@@ -1,6 +1,4 @@
 import { test, expect, type Page } from '@playwright/test'
-import { readdir, stat } from 'node:fs/promises'
-import { join } from 'node:path'
 import { seedExistingUser } from './helpers'
 
 async function addShortcut(page: Page, name: string) {
@@ -14,12 +12,8 @@ async function save(page: Page) {
 }
 
 test('saved brand icons render without requesting the brand catalog chunk', async ({ page }) => {
-  const directory = join(process.cwd(), 'dist', 'assets')
-  const scripts = (await readdir(directory)).filter(name => name.endsWith('.js'))
-  const sized = await Promise.all(scripts.map(async name => ({ name, size: (await stat(join(directory, name))).size })))
-  const brandChunk = sized.sort((a, b) => b.size - a.size)[0]
   const requests: string[] = []
-  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/' + brandChunk.name)) requests.push(request.url()) })
+  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/brand-catalog.json')) requests.push(request.url()) })
   await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
@@ -45,13 +39,8 @@ test('saved brand icons render without requesting the brand catalog chunk', asyn
 })
 
 test('brand catalog loads on demand and chosen icons survive reload', async ({ page }) => {
-  const directory = join(process.cwd(), 'dist', 'assets')
-  const scripts = (await readdir(directory)).filter(name => name.endsWith('.js'))
-  const sized = await Promise.all(scripts.map(async name => ({ name, size: (await stat(join(directory, name))).size })))
-  const brandChunk = sized.sort((a, b) => b.size - a.size)[0]
-  expect(brandChunk.size).toBeGreaterThan(1_000_000)
   const requests: string[] = []
-  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/' + brandChunk.name)) requests.push(request.url()) })
+  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/brand-catalog.json')) requests.push(request.url()) })
   await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
