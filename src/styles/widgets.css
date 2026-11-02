@@ -56,7 +56,7 @@
     background-attachment: fixed;
   }
 
-  .app header {
+  .app > header {
     height: 90px;
     display: flex;
     align-items: center;
@@ -453,7 +453,7 @@
   }
 
   @media (max-width:600px) {
-    .app header {
+    .app > header {
       height: 70px;
     }
 

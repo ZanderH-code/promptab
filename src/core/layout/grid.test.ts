@@ -34,7 +34,7 @@ describe('layout grids', () => {
   it('orders visible widgets and exposes six named templates', () => {
     const widgets = [{ id: 'b', area: 'a', order: 2 }, { id: 'a', area: 'a', order: 1 }, { id: 'x', area: 'b', order: 0 }, { id: 'h', area: 'a', order: 0, hidden: true }] as any
     expect(widgetsIn(widgets, 'a').map(item => item.id)).toEqual(['a', 'b'])
-    expect(templateGrid('dashboard').areas).toEqual(['clock date links', 'search search links'])
+    expect(templateGrid('dashboard').areas).toEqual(['clock clock clock', 'date search links'])
     for (const id of ['stacked', 'split', 'top-grid', 'websites', 'zen', 'dashboard', 'icon-split', 'banner'] as const) expect(templateGrid(id).areas.length).toBeGreaterThan(0)
   })
 
@@ -55,6 +55,15 @@ describe('layout grids', () => {
     expect(b.theme.font.display).toBe('barlow-condensed')
     expect(profileV2Schema.safeParse(a).success).toBe(true)
     expect(profileV2Schema.safeParse(b).success).toBe(true)
+  })
+
+  it('keeps the date with the clock when switching to dashboard', async () => {
+    const profile = await migrateV1(defaults, { id: () => 'dashboard', now: () => '2026-01-01T00:00:00.000Z', add: () => Promise.reject(new Error('unused')) })
+    const dashboard = applyTemplate(profile, 'dashboard')
+    expect(dashboard.widgets.find(item => item.type === 'clock')).toMatchObject({ area: 'clock', order: 0 })
+    expect(dashboard.widgets.find(item => item.type === 'date')).toMatchObject({ area: 'clock', order: 1 })
+    expect(dashboard.widgets.find(item => item.type === 'bookmarks')?.area).toBe('clock')
+    expect(dashboard.widgets.find(item => item.type === 'search')?.area).toBe('clock')
   })
 
   it('applies every template to a styled profile with a valid resulting grid', async () => {

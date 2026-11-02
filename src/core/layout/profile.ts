@@ -7,7 +7,7 @@ export function detectTemplate(profile: ProfileV2): LayoutTemplate {
   if (areas === 'bookmarks overview') return 'split'
   if (areas === 'bookmarks') return 'websites'
   if (areas === 'overview') return 'zen'
-  if (areas === 'clock date links|search search links') return 'dashboard'
+  if (areas === 'clock date links|search search links' || areas === 'clock clock clock|date search links') return 'dashboard'
   if (areas === 'overview overview|bookmarks bookmarks') return 'top-grid'
   if (areas === 'bookmarks divider overview') return 'icon-split'
   if (areas === 'banner|websites' || areas === '.|banner|websites') return 'banner'
@@ -34,6 +34,13 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
     if (search) search.hidden = true
     const toolbar = { id: 'layout-toolbar', type: 'toolbar' as const, area: 'overview', order: 2, props: { align: 'center' as const, actions: ['add', 'edit', 'settings'] as ('add' | 'edit' | 'settings')[] } }
     if (!next.widgets.some(item => item.type === 'toolbar')) next.widgets.push(toolbar)
+  }
+
+  if (template === 'dashboard') {
+    for (const [type, order] of [['clock', 0], ['date', 1], ['search', 2], ['bookmarks', 3], ['toolbar', 4]] as const) {
+      const item = widget(type)
+      if (item) { item.area = 'clock'; item.order = order }
+    }
   }
 
   if (template === 'banner') {
