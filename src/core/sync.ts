@@ -154,11 +154,13 @@ export async function writeSyncStorage(storage: SyncStorage, profile: ProfileV2)
   for (const [key, value] of Object.entries(items)) {
     if (storageBytes({ [key]: value }) > 8_192) throw new Error('Sync item quota exceeded')
   }
-  const manifest = { version: SYNC_VERSION, count: chunks.length }
+  const changed = Object.fromEntries(Object.entries(items).filter(([key, value]) => values[key] !== value))
+  const oldManifest = values[SYNC_MANIFEST_KEY]
+  const stale = ownKeys.filter(key => key.startsWith(SYNC_CHUNK_PREFIX) && Number(key.slice(SYNC_CHUNK_PREFIX.length)) >= chunks.length)
+  if (!Object.keys(changed).length && !stale.length && oldManifest !== undefined) return
+  const manifest = { version: SYNC_VERSION, count: chunks.length, revision: crypto.randomUUID() }
   const nextSize = storageBytes({ ...values, ...items, [SYNC_MANIFEST_KEY]: JSON.stringify(manifest) })
   if (nextSize > 100_000) throw new Error('Sync total quota exceeded')
-  await storage.set(items)
-  await storage.set({ [SYNC_MANIFEST_KEY]: JSON.stringify(manifest) })
-  const stale = ownKeys.filter(key => key.startsWith(SYNC_CHUNK_PREFIX) && Number(key.slice(SYNC_CHUNK_PREFIX.length)) >= chunks.length)
+  await storage.set({ ...changed, [SYNC_MANIFEST_KEY]: JSON.stringify(manifest) })
   if (stale.length) await storage.remove(stale)
 }

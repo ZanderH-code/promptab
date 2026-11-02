@@ -53,8 +53,29 @@ describe('browser sync storage', () => {
 
     const baselineWrites = writes
     values['other.large-value'] = 'x'.repeat(99_500)
+    local.meta.name = 'Changed'
     await expect(writeSyncStorage(storage, local)).rejects.toThrow(/quota/i)
     expect(writes).toBe(baselineWrites)
+  })
+
+  it('writes only changed chunks and skips unchanged snapshots', async () => {
+    const values: Record<string, unknown> = {}
+    const writes: Record<string, string>[] = []
+    const storage = {
+      async get() { return { ...values } },
+      async set(items: Record<string, string>) { writes.push(items); Object.assign(values, items) },
+      async remove(keys: string[]) { keys.forEach(key => { delete values[key] }) },
+    }
+    const local = await profile()
+    await writeSyncStorage(storage, local)
+    writes.length = 0
+    await writeSyncStorage(storage, local)
+    expect(writes).toHaveLength(0)
+    local.meta.name += ' edited'
+    await writeSyncStorage(storage, local)
+    expect(writes).toHaveLength(1)
+    expect(Object.keys(writes[0])).toContain('mnt.sync.manifest')
+    expect((await readSyncStorage(storage))?.profile.meta.name).toBe(local.meta.name)
   })
 
   it('counts stale chunks while checking the temporary write size', async () => {
