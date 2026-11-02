@@ -492,7 +492,7 @@ scripts/
 
 ### M6：可选增强（不阻塞发布）
 
-- **上架后性能优化**：首屏 JS 当前为 485.6 KB raw（含 React vendor 与主题 bootstrap），用 500 KB 的端到端总量护栏防回归，测量方法见 [docs/performance.md](docs/performance.md)。进一步按需加载编辑模式、dnd-kit、网站编辑相关代码；评估延后完整 zod 校验时的数据完整性与错误恢复，不能用移动 chunk 的方式虚报首屏成本降低。
+- **上架后性能优化**：首屏 JS 当前约为 485.7 KB raw（含 React vendor 与主题 bootstrap），用 500 KB 的端到端总量护栏防回归，测量方法见 [docs/performance.md](docs/performance.md)。进一步按需加载编辑模式、dnd-kit、网站编辑相关代码；评估延后完整 zod 校验时的数据完整性与错误恢复，不能用移动 chunk 的方式虚报首屏成本降低。
 - **内置 AI（BYOK）**：用户填写 API key（只存本地），支持 Anthropic、OpenAI 兼容接口；对话直接产出主题包，走相同的校验和预览流程。可附当前页面截图作为视觉参考。
 - **主题画廊**：GitHub 仓库收集社区主题包（PR 提交，CI 自动校验 schema 和 CSS 规则），扩展内按网址导入（`optional_host_permissions` 只申请该仓库的 raw 域名）。
 - 更多组件：待办、便签、天气（需明确数据来源与网络请求）、倒计时。
