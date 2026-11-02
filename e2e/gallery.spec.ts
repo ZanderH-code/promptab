@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openTab, seedExistingUser } from './helpers'
+import { expectLocalizedSurface, openTab, seedExistingUser } from './helpers'
 
 const base = 'https://zanderh-code.github.io/promptab/gallery/'
 const colors = { bg: '#10141b', surface: '#19212a', text: '#ffffff', accent: '#7ee0c3' }
@@ -65,8 +65,11 @@ test('shows a localized error for an unsafe pack', async ({ page }) => {
   await page.locator('.mnt-settings-entry').click()
   await openTab(page, 'ai')
   await page.getByRole('button', { name: '打开主题画廊' }).click()
+  await expect(page.getByRole('button', { name: 'Sample' })).toBeVisible()
+  await expectLocalizedSurface(page)
   await page.getByRole('button', { name: 'Sample' }).click()
   await expect(page.getByRole('alert')).toContainText('主题包无效或不安全')
+  await expectLocalizedSurface(page)
 })
 
 for (const [name, bad] of [
