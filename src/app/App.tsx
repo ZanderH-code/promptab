@@ -16,6 +16,7 @@ import { useAssetFonts } from './useAssetFonts'
 import { useUserCss } from './useUserCss'
 import { useWallpaper } from './useWallpaper'
 
+const SyncApp = lazy(() => import('./syncRuntime').then(m => ({ default: m.SyncApp })))
 const SettingsDrawer = lazy(() => import('../features/settings/SettingsDrawer').then(m => ({ default: m.SettingsDrawer })))
 const BackupSection = lazy(() => import('../features/settings/BackupSection').then(m => ({ default: m.BackupSection })))
 const ShortcutEditor = lazy(() => import('../features/shortcut-editor/ShortcutEditor').then(m => ({ default: m.ShortcutEditor })))
@@ -41,6 +42,17 @@ function appStyle(s: Settings, profile: ProfileV2 | null) {
 export default function App() {
   const { settings, profile, store, error, setError, patch, reset, undo, undoNotice, run } = useSettings()
   const wallpaper = useWallpaper(profile, run, setError)
+  const [syncMounted, setSyncMounted] = useState(false)
+  useEffect(() => {
+    if (!store) return
+    let alive = true
+    let second = 0
+    const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
+      const storage = (window.chrome as unknown as { storage?: { local?: { get(key: string): Promise<Record<string, unknown>> } } }).storage
+      void storage?.local?.get('mnt.sync.enabled').then(value => { if (alive && value['mnt.sync.enabled'] === true) setSyncMounted(true) })
+    }) })
+    return () => { alive = false; cancelAnimationFrame(first); cancelAnimationFrame(second) }
+  }, [store])
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
@@ -56,6 +68,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [undo])
   const [drawer, setDrawer] = useState(false)
+  useEffect(() => { if (drawer) setSyncMounted(true) }, [drawer])
   const [managingGroups, setManagingGroups] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [onboardingDismissed, setOnboardingDismissed] = useState(() => localStorage.getItem('mnt:onboarding:dismissed') === 'true')
@@ -203,8 +216,9 @@ export default function App() {
 
   return (
     <>
-    {(safe || previewLabel) && (
+    {(safe || previewLabel || syncMounted) && (
       <Banners>
+        <Suspense fallback={null}>{syncMounted && store && <SyncApp store={store} language={s.language} />}</Suspense>
         {previewLabel && <PreviewBanner t={t} name={previewLabel} showingOriginal={!!store?.getState().preview?.showingOriginal} onCompare={() => { const state = store?.getState(); state?.setPreviewOriginal(!state.preview?.showingOriginal) }} onApply={applyPreview} onDiscard={() => store?.getState().clearPreview()} />}
         {safe && <SafeModeBanner
           t={t}

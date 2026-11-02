@@ -85,6 +85,23 @@ export function mergeSyncedProfile(local: ProfileV2, payload: SyncPayload): Prof
   return parseProfileV2(merged)
 }
 
+export function debounceSync(callback: () => void) {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return {
+    schedule: () => { clearTimeout(timer); timer = setTimeout(callback, 2000) },
+    cancel: () => clearTimeout(timer),
+  }
+}
+
+export function decideSyncChanges(base: { local: string; cloud: string } | null, local: string, cloud: string): 'unchanged' | 'push' | 'pull' | 'conflict' {
+  if (local === cloud) return 'unchanged'
+  if (!base) return 'conflict'
+  if (local === base.local && cloud === base.cloud) return 'unchanged'
+  if (local === base.local) return 'pull'
+  if (cloud === base.cloud) return 'push'
+  return 'conflict'
+}
+
 export type SyncConflictDecision = 'keep-local' | 'pull-cloud'
 
 export function decideSyncConflict(localUpdatedAt: string, cloudUpdatedAt: string): SyncConflictDecision {

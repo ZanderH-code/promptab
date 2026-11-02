@@ -54,7 +54,7 @@ test('browser sync is opt-in and preserves its stored copy when disabled', async
   expect(keys.filter(key => key.startsWith('mnt.sync.')).length).toBeGreaterThan(0)
 })
 
-test('a newer synced profile can be pulled and undone', async ({ page }) => {
+test('a changed cloud profile is applied and can be undone', async ({ page }) => {
   await installStorageMock(page)
   await page.goto('/')
   await expect(page.locator('.mnt-clock')).toBeVisible()
@@ -71,7 +71,7 @@ test('a newer synced profile can be pulled and undone', async ({ page }) => {
     const current = Array.from({ length: manifest.count }, (_, index) => String(values[`mnt.sync.chunk.${index}`])).join('')
     const payload = JSON.parse(current)
     payload.profile.meta.updatedAt = '9999-01-01T00:00:00.000Z'
-    payload.profile.meta.name = 'Cloud profile'
+    payload.profile.theme.color.accent = '#123456'
     const text = JSON.stringify(payload)
     const chunks: string[] = []
     for (let i = 0; i < text.length; i += 3_500) chunks.push(text.slice(i, i + 3_500))
@@ -81,8 +81,6 @@ test('a newer synced profile can be pulled and undone', async ({ page }) => {
     storage.storage.__notify({ 'mnt.sync.manifest': { newValue: JSON.stringify(next) } }, 'sync')
   })
 
-  await expect(page.getByText('A newer profile was found in browser sync. Choose which copy to use.')).toBeVisible()
-  await page.getByRole('button', { name: 'Pull newer profile' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Newer profile pulled.' })).toBeVisible()
   await page.getByRole('button', { name: 'Undo pulled profile' }).click()
   await expect(page.getByRole('status').filter({ hasText: 'Pulled profile was undone.' })).toBeVisible()

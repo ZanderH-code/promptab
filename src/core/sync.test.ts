@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { mergeSyncedProfile, parseSyncPayload, serializeSyncPayload, decideSyncConflict, chunkSyncPayload, readSyncStorage, writeSyncStorage } from './sync'
+import { describe, expect, it, vi } from 'vitest'
+import { mergeSyncedProfile, parseSyncPayload, serializeSyncPayload, decideSyncConflict, decideSyncChanges, debounceSync, chunkSyncPayload, readSyncStorage, writeSyncStorage } from './sync'
 import { defaultProfile } from '../features/settings/sectionDefaults'
 
 const profile = async () => await defaultProfile('en')
@@ -39,6 +39,21 @@ describe('profile sync payload', () => {
 })
 
 describe('browser sync storage', () => {
+  it('debounces repeated updates for two seconds', () => {
+    vi.useFakeTimers()
+    try {
+      const callback = vi.fn()
+      const timer = debounceSync(callback)
+      timer.schedule()
+      vi.advanceTimersByTime(1500)
+      timer.schedule()
+      vi.advanceTimersByTime(1999)
+      expect(callback).not.toHaveBeenCalled()
+      vi.advanceTimersByTime(1)
+      expect(callback).toHaveBeenCalledTimes(1)
+      timer.cancel()
+    } finally { vi.useRealTimers() }
+  })
   it('roundtrips a payload and rejects total quota overflow before writing', async () => {
     const values: Record<string, unknown> = {}
     let writes = 0
@@ -96,6 +111,14 @@ describe('browser sync storage', () => {
 })
 
 describe('sync conflicts', () => {
+  it('distinguishes independent edits against the base', () => {
+    const base = { local: 'before-local', cloud: 'before-cloud' }
+    expect(decideSyncChanges(base, 'before-local', 'new-cloud')).toBe('pull')
+    expect(decideSyncChanges(base, 'new-local', 'before-cloud')).toBe('push')
+    expect(decideSyncChanges(base, 'new-local', 'new-cloud')).toBe('conflict')
+    expect(decideSyncChanges(null, 'local', 'cloud')).toBe('conflict')
+    expect(decideSyncChanges(base, 'same', 'same')).toBe('unchanged')
+  })
   it('compares update timestamps and keeps local on ties or invalid input', () => {
     expect(decideSyncConflict('2026-01-02T00:00:00Z', '2026-01-01T00:00:00Z')).toBe('keep-local')
     expect(decideSyncConflict('2026-01-01T00:00:00Z', '2026-01-02T00:00:00Z')).toBe('pull-cloud')
