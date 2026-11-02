@@ -11,7 +11,7 @@ Measured on Windows Chromium using the production build at `dedd344`, with an ex
 
 After the privacy-link change at `925ccbf`, the same test measured **485,692 bytes raw / 154,218 bytes gzip** (485.7 KB / 154.2 KB). The table above preserves the baseline measurement. Moving React into a separate chunk improves caching but does not reduce this total. The entry alone is not the startup budget. Gzip sizes are calculated separately for each decoded script response using Node's `gzipSync`; the extension reads packaged files locally, and the preview server need not serve gzip.
 
-`e2e/startup-performance.spec.ts` listens to every `.js` response during a saved profile reload. It includes static imports, modulepreloads, and the synchronous theme bootstrap, then waits for network idle so that a late import cannot escape the budget. It asserts a total of at most **500,000 raw bytes**, with no settings interaction, and prints raw/gzip totals and the individual scripts. Settings, AI, the CSS sanitizer (when custom CSS is absent), the CSS editor, and the brand catalog remain on demand.
+`e2e/startup-performance.spec.ts` listens to every `.js` response during a saved profile reload. It includes static imports, modulepreloads, and the synchronous theme bootstrap, then waits for network idle so that a late import cannot escape the budget. It asserts a total of at most **520,000 raw bytes**, with no settings interaction, and prints raw/gzip totals and the individual scripts. Settings, AI, the CSS sanitizer (when custom CSS is absent), the CSS editor, and the brand catalog remain on demand.
 
 Run the production checks with:
 
