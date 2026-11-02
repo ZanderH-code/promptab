@@ -7,7 +7,7 @@ export function detectTemplate(profile: ProfileV2): LayoutTemplate {
   if (areas === 'bookmarks overview') return 'split'
   if (areas === 'bookmarks') return 'websites'
   if (areas === 'overview') return 'zen'
-  if (areas === 'clock date links|search search links' || areas === 'clock clock clock|date search links') return 'dashboard'
+  if (areas === 'clock date links|search search links' || areas === 'clock clock clock|date search links' || areas === 'clock clock clock|date search links|bookmarks bookmarks bookmarks') return 'dashboard'
   if (areas === 'overview overview|bookmarks bookmarks') return 'top-grid'
   if (areas === 'bookmarks divider overview') return 'icon-split'
   if (areas === 'banner|websites' || areas === '.|banner|websites') return 'banner'
@@ -37,7 +37,7 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
   }
 
   if (template === 'dashboard') {
-    for (const [type, area, order] of [['clock', 'clock', 0], ['date', 'clock', 1], ['search', 'search', 0], ['bookmarks', 'links', 0], ['toolbar', 'clock', 2]] as const) {
+    for (const [type, area, order] of [['clock', 'clock', 0], ['date', 'clock', 1], ['search', 'search', 0], ['bookmarks', 'bookmarks', 0], ['toolbar', 'clock', 2]] as const) {
       const item = widget(type)
       if (item) { item.area = area; item.order = order }
     }

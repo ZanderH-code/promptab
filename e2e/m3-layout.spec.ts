@@ -7,7 +7,7 @@ const templates = [
   ['顶栏 + 网格', '"overview overview" "bookmarks bookmarks"'],
   ['仅网站', '"bookmarks"'],
   ['仅时钟/禅模式', '"overview"'],
-  ['仪表盘三栏', '"clock clock clock" "date search links"'],
+  ['仪表盘三栏', '"clock clock clock" "date search links" "bookmarks bookmarks bookmarks"'],
   ['左右分区 · 纯图标', '"bookmarks divider overview"'],
   ['顶栏横幅', '"." "banner" "websites"'],
 ] as const
@@ -145,10 +145,10 @@ test('stacked, split and dashboard arrangements respond to viewport width', asyn
   const overview = page.locator('[data-area="overview"]')
   expect((await bookmarks.boundingBox())!.x).toBeLessThan((await overview.boundingBox())!.x)
   await chooseTemplate(page, '仪表盘三栏')
-  await expectGrid(page, '"clock clock clock" "date search links"')
+  await expectGrid(page, '"clock clock clock" "date search links" "bookmarks bookmarks bookmarks"')
   await page.setViewportSize({ width: 400, height: 800 })
   await expect(page.locator('.mnt-layout')).toHaveAttribute('data-breakpoint', 'narrow')
-  await expectGrid(page, '"clock" "date" "search" "links"')
+  await expectGrid(page, '"clock" "date" "search" "links" "bookmarks"')
 })
 
 test('area controls update computed styles', async ({ page }) => {

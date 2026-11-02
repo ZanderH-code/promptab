@@ -112,7 +112,9 @@ test('generate original store screenshots', async ({ page }) => {
     const snapshot = JSON.parse(localStorage.getItem(key)!)
     const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
     const search = profile.widgets.find((widget: { type: string }) => widget.type === 'search')
+    const bookmarks = profile.widgets.find((widget: { type: string }) => widget.type === 'bookmarks')
     if (search) search.hidden = true
+    if (bookmarks) bookmarks.hidden = true
     localStorage.setItem(key, JSON.stringify(snapshot))
   })
   await page.reload()
