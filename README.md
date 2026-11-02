@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 Your new tab, designed by your AI. Bring any AI you already use—ChatGPT, Claude, Kimi, DeepSeek, and more. No Promptab account, API key, or AI credits required. Preview changes, undo anytime, and keep your data on this device.
 
-<!-- Demo recording will be added at docs/assets/demo.gif. -->
+![Promptab demo: creating a paper theme with AI](docs/assets/demo.gif)
 
 ## Features
 

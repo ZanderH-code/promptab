@@ -6,7 +6,7 @@
 
 用你已经在用的任何 AI（ChatGPT、Claude、Kimi、DeepSeek 等）设计新标签页。不需要 Promptab 账号、API key 或额外 AI 额度。修改可以预览、随时撤销，数据只保存在这台设备。
 
-<!-- 演示录制后放在 docs/assets/demo.gif。 -->
+![Promptab 演示：使用 AI 创建纸质主题](docs/assets/demo.gif)
 
 ## 功能
 
