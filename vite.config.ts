@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { defaultExclude } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   base: './',
@@ -12,5 +13,5 @@ export default defineConfig({
       },
     },
   },
-  test: { environment: 'jsdom', exclude: ['e2e/**', 'node_modules/**', 'dist/**'] },
+  test: { environment: 'jsdom', exclude: [...defaultExclude, 'e2e/**', 'node_modules/**', 'dist/**', '**/.local-review/**'] },
 })
