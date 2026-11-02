@@ -65,7 +65,6 @@ export function parseSyncPayload(json: string): SyncPayload {
 
 /** Apply the sync projection while retaining device-local wallpaper, fonts and icon assets. */
 export function mergeSyncedProfile(local: ProfileV2, payload: SyncPayload): ProfileV2 {
-  if (local.meta.id !== payload.profile.meta.id) throw new Error('Sync profile does not match')
   const incoming = payload.profile
   const localImages = new Map(local.bookmarks.groups.flatMap(group => group.items.map(item => [item.id, item.image] as const)))
   const groups = incoming.bookmarks.groups.map(group => ({
@@ -77,7 +76,7 @@ export function mergeSyncedProfile(local: ProfileV2, payload: SyncPayload): Prof
   }))
   const merged = {
     ...structuredClone(local),
-    meta: structuredClone(incoming.meta),
+    meta: { ...structuredClone(local.meta), updatedAt: incoming.meta.updatedAt },
     prefs: structuredClone(incoming.prefs),
     theme: { ...structuredClone(incoming.theme), font: structuredClone(local.theme.font) },
     layout: structuredClone(incoming.layout),

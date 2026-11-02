@@ -18,9 +18,12 @@ describe('profile sync payload', () => {
     expect(Object.hasOwn(payload.profile, 'background')).toBe(false)
     expect(Object.hasOwn(payload.profile.theme, 'font')).toBe(false)
 
+    payload.profile.meta.id = 'remote-device'
     payload.profile.meta.name = 'Synced profile'
     const merged = mergeSyncedProfile(local, payload)
-    expect(merged.meta.name).toBe('Synced profile')
+    expect(merged.meta.id).toBe(local.meta.id)
+    expect(merged.meta.name).toBe(local.meta.name)
+    expect(merged.meta.createdAt).toBe(local.meta.createdAt)
     expect(merged.background).toEqual(local.background)
     expect(merged.bookmarks.groups[0].items[0].image).toBe(`mnt-asset:${id}`)
     expect(merged.theme.font.display).toBe(`mnt-asset:${id}`)
