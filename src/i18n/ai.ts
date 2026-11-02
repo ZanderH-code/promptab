@@ -2,6 +2,16 @@
 export const aiZh = {
   'settings.tab.ai': 'AI',
 
+  'gallery.open': '打开主题画廊',
+  'gallery.close': '关闭主题画廊',
+  'gallery.loading': '正在加载主题画廊…',
+  'gallery.error': '无法加载主题画廊，请检查网络后重试。',
+  'gallery.invalid': '这个主题包无效或不安全，无法预览。',
+  'gallery.retry': '重试',
+  'gallery.stale': '正在显示本地缓存，可能不是最新。',
+  'gallery.prompt': '试试这样说',
+  'gallery.copy': '复制提示',
+  'gallery.copied': '提示已复制',
   'ai.title': 'AI 工作台',
   'ai.intro': '把提示包交给你正在使用的 AI（ChatGPT、Claude、Kimi、DeepSeek 等），再粘贴回复。无需账号、API key 或额外额度；Promptab 本地校验，预览后应用，随时可撤销。',
   'ai.step1': '第 1 步：复制提示包',
@@ -77,6 +87,16 @@ export const aiZh = {
 export const aiEn: Record<keyof typeof aiZh, string> = {
   'settings.tab.ai': 'AI',
 
+  'gallery.open': 'Open theme gallery',
+  'gallery.close': 'Close theme gallery',
+  'gallery.loading': 'Loading theme gallery…',
+  'gallery.error': 'Could not load the theme gallery. Check your connection and retry.',
+  'gallery.invalid': 'This theme pack is invalid or unsafe and cannot be previewed.',
+  'gallery.retry': 'Retry',
+  'gallery.stale': 'Showing a cached list; it may be out of date.',
+  'gallery.prompt': 'Try saying',
+  'gallery.copy': 'Copy prompt',
+  'gallery.copied': 'Prompt copied',
   'ai.title': 'AI workbench',
   'ai.intro': 'Give the prompt pack to any AI you already use (ChatGPT, Claude, Kimi, DeepSeek, and more), then paste its reply here. No account, API key or extra credits needed; Promptab validates locally so you can preview, apply and undo anytime.',
   'ai.step1': 'Step 1: copy the prompt pack',

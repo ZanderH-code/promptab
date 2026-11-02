@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+const Gallery = lazy(() => import('./Gallery').then(m => ({ default: m.Gallery })))
 import { analyzeCandidate } from '../../core/ai/analyze'
 import { applyPack, exportThemePack } from '../../core/ai/apply'
 import { PACK_PARTS, type PackPart } from '../../core/ai/pack'
@@ -42,6 +43,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
   const [state, set] = useAiState()
   const [notice, setNotice] = useState<MessageKey | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const [galleryOpen, setGalleryOpen] = useState(false)
   const [excludeCss, setExcludeCss] = useState(false)
   const exportButton = useRef<HTMLButtonElement>(null)
   const cancelExport = useRef<HTMLButtonElement>(null)
@@ -104,6 +106,12 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
 
   return (
     <div className="sd-ai">
+      <button type="button" className="sd-button" aria-expanded={galleryOpen} onClick={() => setGalleryOpen(open => !open)}>{t(galleryOpen ? 'gallery.close' : 'gallery.open')}</button>
+      {galleryOpen && <Suspense fallback={<p role="status">{t('gallery.loading')}</p>}><Gallery ctx={ctx} profile={active} onSelect={(source, result) => {
+        if (!result.pack) return
+        edit({ reply: source, pick: 0, skip: { theme: false, background: false, css: false, layout: false, widgets: false } })
+        try { store.getState().setPreview(active.meta.id, applyPack(active, result.pack, PACK_PARTS.filter(part => result.parts[part])), result.pack.meta?.name || t('ai.defaultName')) } catch { onError({ key: 'gallery.invalid' }) }
+      }} /></Suspense>}
       <p className="sd-hint">{t('ai.intro')}</p>
 
       <section className="sd-ai-step" aria-labelledby="ai-step1">

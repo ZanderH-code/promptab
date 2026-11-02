@@ -90,6 +90,11 @@
 .sd-segmented button[aria-checked="true"] { color: var(--mnt-text); border-color: var(--mnt-accent); background: var(--mnt-accent-soft); }
 .sd-segmented button:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
 
+.sd-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--mnt-space-3); }
+.sd-gallery article { min-width: 0; overflow-wrap: anywhere; font-size: var(--mnt-text-sm); }
+.sd-gallery .sd-preset, .sd-gallery .sd-preset-card { width: 100%; }
+.sd-gallery p { margin: 6px 0; }
+
 .sd-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--mnt-space-3) var(--mnt-space-2); padding: var(--mnt-space-2) 0; }
 .sd-preset { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; color: var(--mnt-text); font: inherit; cursor: pointer; text-align: left; }
 .sd-preset-card {
