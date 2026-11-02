@@ -1,0 +1,45 @@
+name: Publish Edge Add-on
+
+on:
+  workflow_dispatch:
+    inputs:
+      product_id:
+        description: Edge Add-ons Product ID
+        required: true
+        default: c758fd07-3426-49a7-a625-61897ef946c5
+        type: string
+      publish_notes:
+        description: Notes for Microsoft certification
+        required: false
+        default: Update submitted through GitHub Actions
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-addons-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/package-extension.mjs
+      - run: node scripts/verify-package.mjs
+      - name: Upload and submit to Edge Add-ons
+        run: node scripts/publish-edge.mjs
+        env:
+          EDGE_ADDONS_CLIENT_ID: ${{ secrets.EDGE_ADDONS_CLIENT_ID }}
+          EDGE_ADDONS_API_KEY: ${{ secrets.EDGE_ADDONS_API_KEY }}
+          EDGE_ADDONS_PRODUCT_ID: ${{ inputs.product_id }}
+          EDGE_ADDONS_PUBLISH_NOTES: ${{ inputs.publish_notes }}
+          EDGE_ADDONS_VERSION: 0.10.0
