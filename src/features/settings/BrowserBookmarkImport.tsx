@@ -2,19 +2,11 @@ import { useState } from 'react'
 import { appendImportedBookmarkGroups, collectBookmarkFolders, importBookmarkFolders, type BookmarkFolder, type BookmarkNode } from '../../core/bookmarks/import'
 import type { MessageKey } from '../../i18n'
 import type { Ctx } from './rows/shared'
-
-type BookmarkApi = {
-  getTree: () => Promise<BookmarkNode[]>
-}
-type PermissionsApi = {
-  request: (details: { permissions: string[] }) => Promise<boolean>
-  contains?: (details: { permissions: string[] }) => Promise<boolean>
-}
-type ChromeApi = { bookmarks?: BookmarkApi; permissions?: PermissionsApi }
+import { extensionApi } from '../../platform/extension'
 
 type Props = { ctx: Ctx }
 
-const chromeApi = () => (window as Window & { chrome?: ChromeApi }).chrome
+const browserApi = extensionApi
 
 export function BrowserBookmarkImport({ ctx }: Props) {
   const [folders, setFolders] = useState<BookmarkFolder[]>([])
@@ -22,18 +14,18 @@ export function BrowserBookmarkImport({ ctx }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<MessageKey | null>(null)
-  const available = !!chromeApi()?.permissions?.request && !!chromeApi()?.bookmarks?.getTree
+  const available = !!browserApi()?.permissions?.request && !!browserApi()?.bookmarks?.getTree
 
   const openPicker = async () => {
-    const api = chromeApi()
-    if (!api?.bookmarks || !api.permissions) return
+    const api = browserApi()
+    if (!api?.bookmarks || !api.permissions?.request) return
     setBusy(true)
     setStatus(null)
     try {
-      const alreadyGranted = api.permissions.contains ? await api.permissions.contains({ permissions: ['bookmarks'] }) : false
-      const granted = alreadyGranted || await api.permissions.request({ permissions: ['bookmarks'] })
+      // Keep the optional permission request in the original button gesture.
+      const granted = await api.permissions.request({ permissions: ['bookmarks'] })
       if (!granted) { setStatus('bookmarks.permissionDenied'); return }
-      const tree = await api.bookmarks.getTree()
+      const tree = await api.bookmarks.getTree() as BookmarkNode[]
       setTree(tree)
       setFolders(collectBookmarkFolders(tree))
       setSelected([])

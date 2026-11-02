@@ -5,10 +5,11 @@ import type { ProfileV2 } from '../core/schema/profile'
 import { debounceSync, decideSyncChanges, mergeSyncedProfile, readSyncStorage, toSyncPayload, writeSyncStorage, type SyncPayload } from '../core/sync'
 import { syncText, type SyncMessage } from '../core/syncMessages'
 import type { Language } from '../i18n'
+import { extensionApi, type ExtensionStorageArea } from '../platform/extension'
 
 type Storage = {
-  local: { get(key: string | string[]): Promise<Record<string, unknown>>; set(items: Record<string, unknown>): Promise<void>; remove(keys: string | string[]): Promise<void> }
-  sync: { get(keys: string[] | null): Promise<Record<string, unknown>>; set(items: Record<string, string>): Promise<void>; remove(keys: string[]): Promise<void> }
+  local: ExtensionStorageArea & { remove(keys: string | string[]): Promise<void> }
+  sync: ExtensionStorageArea & { remove(keys: string | string[]): Promise<void> }
   onChanged?: { addListener(fn: ChangeListener): void; removeListener(fn: ChangeListener): void }
 }
 type ChangeListener = (changes: Record<string, unknown>, area: string) => void
@@ -142,9 +143,10 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
 
 export function SyncRuntime({ store }: { store: StoreApi<ProfileStore> }) {
   useEffect(() => {
-    const api = (window.chrome as unknown as { storage?: Storage } | undefined)?.storage
-    if (!api?.local || !api.sync) { set({ available: false, ready: true }); return }
-    controller = createController(store, api)
+    const api = extensionApi()?.storage as { local?: Storage['local']; sync?: Storage['sync']; onChanged?: Storage['onChanged'] } | undefined
+    const local = api?.local, sync = api?.sync
+    if (!local || !sync) { set({ available: false, ready: true }); return }
+    controller = createController(store, { local, sync, onChanged: api.onChanged })
     return () => { controller?.stop(); controller = undefined }
   }, [store])
   return null

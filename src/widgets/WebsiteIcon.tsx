@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { browserFaviconUrl, faviconUrl } from '../core/favicon'
+import { faviconSources } from '../core/favicon'
 import type { Shortcut } from '../core/model'
 import { genericIcons } from './iconCatalog'
 import { brandIconColor } from '../core/tokens/iconContrast'
@@ -13,7 +13,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   useEffect(() => { setAttempt(0); setLoaded(false) }, [shortcut.url, shortcut.image, shortcut.iconMode])
 
   const sources = shortcut.image ? [shortcut.image] : !shortcut.iconMode || shortcut.iconMode === 'auto'
-    ? [browserFaviconUrl(shortcut.url), faviconUrl(shortcut.url)].filter((source): source is string => !!source) : []
+    ? faviconSources(shortcut.url) : []
   const source = sources[attempt]
   useEffect(() => { onStatus?.(source ? (loaded ? 'found' : 'loading') : 'missing') }, [source, loaded, onStatus])
 

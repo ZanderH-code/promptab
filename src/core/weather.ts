@@ -1,3 +1,5 @@
+import { extensionApi } from '../platform/extension'
+
 export type WeatherUnit = 'celsius' | 'fahrenheit'
 
 export type WeatherDay = { date: string; code: number; high: number; low: number }
@@ -26,7 +28,7 @@ export type WeatherCity = { id: number; name: string; country: string; latitude:
 
 export async function requestWeatherPermission(service: 'forecast' | 'geocoding') {
   const origin = service === 'forecast' ? 'https://api.open-meteo.com' : 'https://geocoding-api.open-meteo.com'
-  const permissions = (globalThis as typeof globalThis & { chrome?: { permissions?: { request(details: { origins: string[] }): Promise<boolean> } } }).chrome?.permissions
+  const permissions = extensionApi()?.permissions
   return permissions ? permissions.request({ origins: [`${origin}/*`] }) : true
 }
 

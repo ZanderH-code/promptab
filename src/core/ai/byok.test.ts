@@ -16,6 +16,16 @@ describe('BYOK requests', () => {
     expect(fetch).not.toHaveBeenCalled()
   })
 
+  it('requests Firefox data consent with the provider permission', async () => {
+    const request = vi.fn().mockResolvedValue(false)
+    vi.stubGlobal('browser', { permissions: { request } })
+    await expect(sendByok(input)).rejects.toThrow('permission')
+    expect(request).toHaveBeenCalledWith({
+      origins: ['https://api.openai.com/*'],
+      data_collection: ['authenticationInfo', 'personalCommunications'],
+    })
+  })
+
   it('sends only the requested prompt and rejects key echoes', async () => {
     vi.stubGlobal('chrome', { permissions: { request: vi.fn().mockResolvedValue(true) } })
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: input.key } }] }), { status: 200 }))

@@ -7,6 +7,7 @@ import { finishShortcut } from '../core/shortcut'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
+import { extensionApi } from '../platform/extension'
 import { detectTemplate } from '../core/layout/profile'
 import { moveBookmarks } from '../widgets/bookmarkGroups'
 import { Banners, PreviewBanner, SafeModeBanner } from '../features/banners/Banners'
@@ -48,8 +49,8 @@ export default function App() {
     let alive = true
     let second = 0
     const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => {
-      const storage = (window.chrome as unknown as { storage?: { local?: { get(key: string): Promise<Record<string, unknown>> } } }).storage
-      void storage?.local?.get('mnt.sync.enabled').then(value => { if (alive && value['mnt.sync.enabled'] === true) setSyncMounted(true) })
+      const storage = extensionApi()?.storage?.local
+      void storage?.get('mnt.sync.enabled').then(value => { if (alive && value['mnt.sync.enabled'] === true) setSyncMounted(true) })
     }) })
     return () => { alive = false; cancelAnimationFrame(first); cancelAnimationFrame(second) }
   }, [store])

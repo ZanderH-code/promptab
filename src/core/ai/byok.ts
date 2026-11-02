@@ -1,9 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { extensionApi, isFirefoxExtension } from '../../platform/extension'
 
 export type ByokProvider = 'anthropic' | 'openai'
 type Input = { provider: ByokProvider; model: string; key: string; prompt: string; signal?: AbortSignal }
-type Permissions = { request(details: { origins: string[] }): Promise<boolean> }
-
 const origins: Record<ByokProvider, string> = { anthropic: 'https://api.anthropic.com', openai: 'https://api.openai.com' }
 const MAX_RESPONSE = 512 * 1024
 
@@ -31,11 +30,13 @@ async function boundedFetch(url: RequestInfo | URL, options?: RequestInit): Prom
 export async function sendByok(input: Input): Promise<string> {
   const origin = origins[input.provider]
   if (!origin || !input.key.trim() || !input.model.trim() || !input.prompt.trim() || input.prompt.length > 100000 || input.prompt.includes(input.key)) throw new Error('input')
-  const permissions = (globalThis as typeof globalThis & { chrome?: { permissions?: Permissions } }).chrome?.permissions
+  const permissions = extensionApi()?.permissions
   if (!permissions) throw new Error('permission')
-  // request() runs in the click handler before the first await, preserving user activation.
+  // Keep every browser permission request in the click handler before the first await.
+  const permissionRequest = { origins: [`${origin}/*`] as string[] }
+  if (isFirefoxExtension()) Object.assign(permissionRequest, { data_collection: ['authenticationInfo', 'personalCommunications'] })
   let granted: boolean
-  try { granted = await permissions.request({ origins: [`${origin}/*`] }) }
+  try { granted = await permissions.request(permissionRequest) }
   catch { throw new Error('permission') }
   if (!granted) throw new Error('permission')
   if (input.signal?.aborted) throw new Error('cancelled')

@@ -7,13 +7,15 @@ import { systemLanguage, toMessageRef, type MessageRef } from '../i18n'
 import { bootstrap } from '../storage/bootstrap'
 import { createAssetLibrary } from '../storage/assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage } from '../storage/profiles'
+import { extensionApi } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
 
 export const assets = createAssetLibrary()
 export type AppProfileStore = ReturnType<typeof createProfileStore>
 
 export function createAppProfileStorage() {
-  const backend = window.chrome?.storage ? createChromeStorageBackend(window.chrome.storage.local) : createLocalStorageBackend(localStorage)
+  const local = extensionApi()?.storage?.local
+  const backend = local ? createChromeStorageBackend(local) : createLocalStorageBackend(localStorage)
   return { backend, persistence: createProfileStorage(backend) }
 }
 
