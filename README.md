@@ -1,3 +1,5 @@
+<img src="docs/brand/logo.svg" width="96" alt="Promptab logo">
+
 # Promptab
 
 English | [简体中文](README.zh-CN.md)
