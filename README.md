@@ -12,6 +12,8 @@ Your new tab, designed by your AI. Bring any AI you already use—ChatGPT, Claud
 
 ## Features
 
+- Browse the online theme gallery, copy example prompts, and preview themes before applying them.
+
 - Clock, date, search, greetings and other configurable widgets; layout templates and editable widget areas
 - Website shortcuts with groups, drag-and-drop sorting, browser bookmark import, and automatic, image or text icons
 - Preset themes, colors, fonts, shapes, custom CSS and local wallpaper

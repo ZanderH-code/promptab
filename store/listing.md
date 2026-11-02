@@ -13,7 +13,7 @@ Your new tab, designed by your AI.
 **Describe it. Paste it. Done.** Bring your own AI: ask ChatGPT, Claude, Kimi, DeepSeek, or any assistant you already use to design your new tab. No Promptab account, API key, or extra AI credits required. Promptab validates the result locally so you can preview it, apply it, and undo it anytime. Your settings and assets stay in browser storage on your device.
 
 - Build a homepage with clocks, dates, search, bookmark groups, and shortcuts.
-- Switch between curated themes and light/dark/system appearance modes.
+- Explore the theme gallery, copy an example prompt, and preview curated themes before applying them.
 - Arrange content with layout templates, columns, alignment, and widget visibility controls.
 - Create multiple profiles for different workflows and keep a local history for undo and recovery.
 - Import selected browser-bookmark folders on demand through an optional permission.
@@ -22,14 +22,14 @@ Your new tab, designed by your AI.
 - Export and restore backups when you choose.
 - Let the AI you already use design structured theme/profile suggestions; Promptab itself has no built-in AI service or network client.
 
-Promptab stores settings and assets in browser-managed extension storage. It does not include an account, advertising SDK, analytics, telemetry, or a developer-operated data service. Some features necessarily contact destinations you choose: search queries go to your selected search provider, shortcuts open their websites, automatic favicon fallback may request the site's `/favicon.ico`, and remote images or wallpapers are fetched from their configured URLs.
+Promptab stores settings and assets in browser-managed extension storage. It does not include an account, advertising SDK, analytics, telemetry, or a developer-operated data service. Opening the theme gallery fetches its list from zanderh-code.github.io, and selecting a theme fetches its pack from the same host. Some features necessarily contact destinations you choose: search queries go to your selected search provider, shortcuts open their websites, automatic favicon fallback may request the site's `/favicon.ico`, and remote images or wallpapers are fetched from their configured URLs.
 
 ## 中文完整介绍
 
 **想要什么样，就跟 AI 说什么样。** 用你已经在用的任何 AI（ChatGPT、Claude、Kimi、DeepSeek 等）设计新标签页。不需要 Promptab 账号、API key 或额外 AI 额度。Promptab 在本地校验结果，你可以预览、应用并随时撤销；设置和资源保存在这台设备的浏览器存储中。
 
 - 使用时钟、日期、搜索、书签分组和快捷方式搭建主页。
-- 使用主题，以及浅色、深色或跟随系统的外观模式。
+- 浏览主题画廊、复制示例提示，并在应用前预览精选主题。
 - 通过布局模板、列数、对齐方式和组件显示开关安排内容。
 - 为不同工作流创建多个配置文件，并保留本地历史以支持撤销和恢复。
 - 仅在你主动选择时，通过可选权限导入指定浏览器书签文件夹。
@@ -38,7 +38,7 @@ Promptab stores settings and assets in browser-managed extension storage. It doe
 - 在你主动操作时导出和恢复备份。
 - 把提示包交给你已经在用的 AI，由它设计结构化主题/配置建议；Promptab 不提供内置 AI 服务或网络客户端。
 
-设置和资源保存在浏览器管理的扩展存储中。扩展不包含账号、广告 SDK、分析、遥测或开发者运营的数据服务。部分功能会联系你选择的目标：搜索查询会发送到你选择的搜索服务，快捷方式会打开对应网站，自动图标的后备逻辑可能请求网站的 `/favicon.ico`，远程图片或壁纸会从配置的地址获取。
+设置和资源保存在浏览器管理的扩展存储中。扩展不包含账号、广告 SDK、分析、遥测或开发者运营的数据服务。打开主题画廊时会从 zanderh-code.github.io 获取主题列表，选择主题时从同一主机获取主题包。部分功能会联系你选择的目标：搜索查询会发送到你选择的搜索服务，快捷方式会打开对应网站，自动图标的后备逻辑可能请求网站的 `/favicon.ico`，远程图片或壁纸会从配置的地址获取。
 
 ## Permissions disclosure
 
