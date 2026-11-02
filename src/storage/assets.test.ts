@@ -115,10 +115,12 @@ describe('asset library', () => {
     expect(await (await library.get(ref))?.text()).toBe('abc')
   })
 
-  it('rejects oversized assets before writing', async () => {
+  it('rejects oversized assets before writing and accepts an explicit per-asset limit', async () => {
     const library = createAssetLibrary(memoryStore().store, { maxBytes: 2 })
     await expect(library.add(blob('abc'))).rejects.toThrow(/size/i)
-    expect(await library.list()).toEqual([])
+    expect(await library.add(blob('abc'), 3)).toMatch(/^mnt-asset:/)
+    await expect(library.add(blob('abcd'), 3)).rejects.toThrow(/size/i)
+    expect(await library.list()).toHaveLength(1)
   })
 
   it('rejects malformed references', async () => {

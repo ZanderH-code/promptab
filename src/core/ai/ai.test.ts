@@ -163,6 +163,13 @@ describe('theme pack variables', () => {
     expect(pack.background?.type).toBe('theme')
   })
 
+  it('exports video wallpaper as a safe theme background without local media references', () => {
+    const source: ProfileV2 = { ...profile, background: { type: 'video', dim: 20, video: { asset: `mnt-asset:${'a'.repeat(64)}`, poster: `mnt-asset:${'b'.repeat(64)}`, blur: 0, grayscale: 0 } } }
+    const json = JSON.stringify(exportThemePack(source))
+    expect(json).not.toContain('mnt-asset:')
+    expect(aiPackSchema.parse(JSON.parse(json)).background?.type).toBe('theme')
+  })
+
   it('exports widget presentation without private widget content', () => {
     const source: ProfileV2 = { ...profile, widgets: [
       { id: 'greeting', type: 'greeting', area: 'clock', order: 0, props: { name: 'Private Name', size: 2 } },

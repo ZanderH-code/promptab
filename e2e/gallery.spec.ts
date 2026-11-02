@@ -5,7 +5,7 @@ const base = 'https://zanderh-code.github.io/promptab/gallery/'
 const colors = { bg: '#10141b', surface: '#19212a', text: '#ffffff', accent: '#7ee0c3' }
 const prompt = { en: 'Try a calm dark theme', 'zh-CN': '试试安静的深色主题' }
 const entry = { id: 'sample', name: 'Sample', author: 'Promptab', tags: ['dark'], prompt, colors, mode: 'dark', file: 'packs/sample.json' }
-const index = { version: 1, packs: [entry] }
+const index = { version: 2, packs: [entry] }
 const pack = { kind: 'mnt.theme-pack', packVersion: 2, meta: { name: 'Sample', author: 'Promptab', tags: ['dark'], prompt }, theme: { mode: 'dark', color: colors }, css: '.mnt-clock { letter-spacing: 0.1em; }' }
 const headers = { 'access-control-allow-origin': '*', 'content-type': 'application/json' }
 

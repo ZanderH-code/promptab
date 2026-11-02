@@ -31,7 +31,7 @@ export const themePackThemeSchema = z.object({
 }).strict()
 
 export const themePackBackgroundSchema = z.object({
-  type: backgroundShape.type,
+  type: z.enum(['theme', 'color', 'gradient', 'image', 'accent']),
   color: backgroundShape.color,
   gradient: backgroundShape.gradient,
   dim: dim.optional(),

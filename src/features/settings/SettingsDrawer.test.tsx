@@ -30,7 +30,7 @@ function setup(options: { profile?: ProfileV2; language?: Language; initialSecti
     store: createStore<ProfileStore>(() => ({}) as ProfileStore),
     settings: { ...defaults, language, theme: options.themeMode ?? 'dark' },
     profile, t, initialSection: options.initialSection,
-    onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(),
+    onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperFiles: vi.fn(), onWallpaperVideoFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(),
   }
   const view = render(<><button>opener</button><SettingsDrawer {...props} /></>)
   return { ...props, rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>) }
@@ -252,6 +252,20 @@ describe('SettingsDrawer background', () => {
     const { next } = lastUpdate(props)
     expect(next.background.type).toBe('gradient')
     expect(next.background.gradient?.stops).toHaveLength(2)
+  })
+
+  it('selects local video backgrounds and configures wallpaper rotation', () => {
+    const asset = `mnt-asset:${'a'.repeat(64)}`
+    const withRotation = structuredClone(base)
+    withRotation.background = { ...withRotation.background, type: 'image', image: { asset, blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' }, rotation: { images: [asset, `mnt-asset:${'b'.repeat(64)}`], interval: 'open' } }
+    const props = setup({ profile: withRotation, initialSection: 'background' })
+    fireEvent.click(screen.getByRole('radio', { name: 'Every hour' }))
+    expect(lastUpdate(props).next.background.rotation?.interval).toBe('hour')
+    fireEvent.click(screen.getByRole('radio', { name: 'Video' }))
+    expect(lastUpdate(props).next.background.type).toBe('video')
+    const images = screen.getByLabelText('Upload images (PNG, JPEG, WebP, up to 5 MB each)') as HTMLInputElement
+    expect(images.multiple).toBe(true)
+    expect((screen.getByLabelText('Upload a video (MP4 or WebM, up to 30 MB)') as HTMLInputElement).accept).toBe('video/mp4,video/webm')
   })
 
   it('edits gradient stops between two and three', () => {

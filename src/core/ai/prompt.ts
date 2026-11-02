@@ -57,7 +57,7 @@ export function currentConfig(profile: ProfileV2) {
   const { type, color, gradient, dim } = profile.background
   return {
     theme: { ...theme, font: { display: safeFont(font.display), ui: safeFont(font.ui) } },
-    background: { type: type === 'image' ? 'theme' : type, ...(color ? { color } : {}), ...(gradient ? { gradient } : {}), dim },
+    background: { type: type === 'image' || type === 'video' ? 'theme' : type, ...(color ? { color } : {}), ...(gradient ? { gradient } : {}), dim },
     ...(profile.custom.css.trim() ? { css: profile.custom.css } : {}),
   }
 }

@@ -30,9 +30,11 @@ export function backgroundItems(ctx: Ctx): Item[] {
   const { t, profile, mode, change } = ctx
   const bg = profile.background
   const image = bg.image
+  const video = bg.video
   const colors = colorsFor(profile.theme, mode)
   const setBackground = (update: (background: ProfileV2['background']) => ProfileV2['background']) => change(p => touch({ ...p, background: update(p.background) }))
   const setImage = (changes: Partial<NonNullable<ProfileV2['background']['image']>>) => setBackground(b => b.image ? { ...b, image: { ...b.image, ...changes } } : b)
+  const setVideo = (changes: Partial<NonNullable<ProfileV2['background']['video']>>) => setBackground(b => b.video ? { ...b, video: { ...b.video, ...changes } } : b)
   const setType = (type: ProfileV2['background']['type']) => change(p => {
     const current = colorsFor(p.theme, mode)
     const background = { ...p.background, type }
@@ -51,12 +53,12 @@ export function backgroundItems(ctx: Ctx): Item[] {
   const disabledHint = !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
   const items: Item[] = [
     {
-      id: 'bg-type', keys: ['settings.bgType', 'settings.bgTheme', 'settings.bgColor', 'settings.bgGradient', 'settings.bgAccent', 'settings.bgImage'],
+      id: 'bg-type', keys: ['settings.bgType', 'settings.bgTheme', 'settings.bgColor', 'settings.bgGradient', 'settings.bgAccent', 'settings.bgImage', 'settings.bgVideo', 'settings.wallpaperVideo'],
       node: (
         <Row label={t('settings.bgType')} stack>
           <Segmented label={t('settings.bgType')} value={bg.type} onChange={setType} options={[
             { value: 'theme', label: t('settings.bgTheme') }, { value: 'color', label: t('settings.bgColor') }, { value: 'gradient', label: t('settings.bgGradient') },
-            { value: 'accent', label: t('settings.bgAccent') }, { value: 'image', label: t('settings.bgImage') },
+            { value: 'accent', label: t('settings.bgAccent') }, { value: 'image', label: t('settings.bgImage') }, { value: 'video', label: t('settings.bgVideo') },
           ]} />
         </Row>
       ),
@@ -89,13 +91,21 @@ export function backgroundItems(ctx: Ctx): Item[] {
       node: (
         <div className="sd-upload">
           <label className="sd-label" htmlFor="sd-wallpaper-file">{t('settings.wallpaperUpload')}</label>
-          <input id="sd-wallpaper-file" type="file" accept="image/png,image/jpeg,image/webp" onChange={event => { ctx.onWallpaperFile(event.target.files?.[0]); event.target.value = '' }} />
-          {image && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
+          <input id="sd-wallpaper-file" type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => { ctx.onWallpaperFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
+          <label className="sd-label" htmlFor="sd-wallpaper-video">{t('settings.wallpaperVideo')}</label>
+          <input id="sd-wallpaper-video" type="file" accept="video/mp4,video/webm" onChange={event => { ctx.onWallpaperVideoFile(event.target.files?.[0]); event.target.value = '' }} />
+          {(image || video || bg.rotation) && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
         </div>
       ),
     },
     { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
   )
+  if (bg.type === 'image' && bg.rotation) items.push({
+    id: 'wallpaper-rotation', keys: ['settings.wallpaperRotation', 'settings.rotationOpen', 'settings.rotationHour', 'settings.rotationDay'],
+    node: <Row label={t('settings.wallpaperRotation')} stack><Segmented label={t('settings.wallpaperRotation')} value={bg.rotation.interval} onChange={interval => setBackground(b => b.rotation ? { ...b, rotation: { ...b.rotation, interval: interval as 'open' | 'hour' | 'day' } } : b)} options={[
+      { value: 'open', label: t('settings.rotationOpen') }, { value: 'hour', label: t('settings.rotationHour') }, { value: 'day', label: t('settings.rotationDay') },
+    ]} /></Row>,
+  })
   if (image) {
     items.push(
       imageRange('blur', 'settings.blur', image.blur, RANGES.blur, blur => setImage({ blur }), { unit: 'px' }),
@@ -118,6 +128,12 @@ export function backgroundItems(ctx: Ctx): Item[] {
     )
   } else {
     items.push({ id: 'image-hint', keys: ['settings.imageNone'], node: disabledHint })
+  }
+  if (video) {
+    items.push(
+      imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }),
+      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%' }),
+    )
   }
   return items
 }

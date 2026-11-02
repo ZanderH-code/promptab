@@ -50,6 +50,22 @@ describe('backup storage service', () => {
     expect((await parseBackupV2(await s.service.exportBackup())).activeProfileId).toBe('old')
   })
 
+  it('imports and exports video assets larger than the image limit', async () => {
+    const s = await setup()
+    const videoBlob = new Blob([new Uint8Array(6 * 1024 * 1024)], { type: 'video/webm' })
+    const digest = await crypto.subtle.digest('SHA-256', await videoBlob.arrayBuffer())
+    const videoId = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+    const profile = (s.initial.profiles as ProfileCollection).profiles.old
+    profile.background = { type: 'video', dim: 20, video: { asset: `mnt-asset:${videoId}`, poster: s.oldRef, blur: 0, grayscale: 0 } }
+    expect((await import('../core/schema/profile')).profileIssues(profile)).toEqual([])
+    const json = await serializeBackupV2({ activeProfileId: 'old', profiles: [profile], assets: [
+      { id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }, { id: videoId, blob: videoBlob },
+    ] })
+    await s.service.importBackup(json, 1)
+    const exported = await parseBackupV2(await s.service.exportBackup())
+    expect(exported.assets.find(asset => asset.id === videoId)?.blob.size).toBe(videoBlob.size)
+  })
+
   it.each(['generation:', 'index'])('preserves old profiles and assets when %s fails', async key => {
     const s = await setup()
     s.fail(key)

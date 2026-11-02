@@ -117,6 +117,10 @@ export type AreaStyle = z.infer<typeof areaStyleSchema>
 const backgroundImage = z.object({
   asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale), scale: ranged(RANGES.scale), vignette: ranged(RANGES.vignette), position: nonempty,
 })
+const backgroundVideo = z.object({ asset, poster: asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale) })
+const wallpaperRotation = z.object({ images: z.array(asset).min(2).max(20), interval: z.enum(['open', 'hour', 'day']) }).superRefine((rotation, ctx) => {
+  if (new Set(rotation.images).size !== rotation.images.length) ctx.addIssue({ code: 'custom', path: ['images'], message: 'unique wallpaper assets' })
+})
 
 export const profileV2Schema = z.object({
   schemaVersion: z.literal(2),
@@ -128,9 +132,9 @@ export const profileV2Schema = z.object({
     density: z.enum(['compact', 'comfortable', 'spacious']), scale: ranged(RANGES.scale), iconShape: z.enum(['circle', 'rounded', 'square']), iconSize: z.number().int().min(40).max(120),
   }),
   background: z.object({
-    type: z.enum(['theme', 'color', 'gradient', 'image', 'accent']), color: color.optional(), gradient: z.object({ angle: z.number(), stops: z.array(color).min(2).max(3) }).optional(),
+    type: z.enum(['theme', 'color', 'gradient', 'image', 'video', 'accent']), color: color.optional(), gradient: z.object({ angle: z.number(), stops: z.array(color).min(2).max(3) }).optional(),
     /** Wallpaper shade 0-80, independent of whether an image is set. */
-    dim: ranged(RANGES.dim).default(DEFAULT_DIM), image: backgroundImage.optional(),
+    dim: ranged(RANGES.dim).default(DEFAULT_DIM), image: backgroundImage.optional(), video: backgroundVideo.optional(), rotation: wallpaperRotation.optional(),
   }),
   layout: grid.extend({
     contentWidth: ranged(RANGES.contentWidth),

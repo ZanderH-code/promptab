@@ -1,4 +1,4 @@
-import { parseBackupV2, serializeBackupV2 } from '../core/backup-v2'
+import { parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from '../core/backup-v2'
 import { parseBackup } from '../core/backup'
 import { migrateV1 } from '../core/migrate/v1'
 import type { ProfileV2 } from '../core/schema/profile'
@@ -101,7 +101,8 @@ export function createBackupV2Service(deps: {
         next = planImport(committed, backup, options)
         for (const asset of backup.assets) {
           const reference = `mnt-asset:${asset.id}`
-          if (await deps.assets.add(asset.blob) !== reference) throw new Error('Asset ID mismatch')
+          const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
+          if (await deps.assets.add(asset.blob, limit) !== reference) throw new Error('Asset ID mismatch')
           const stored = await deps.assets.get(reference)
           if (!stored) throw new Error(`Missing asset: ${asset.id}`)
           const digest = await crypto.subtle.digest('SHA-256', await stored.arrayBuffer())

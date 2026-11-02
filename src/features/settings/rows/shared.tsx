@@ -23,6 +23,8 @@ export type Ctx = {
   change: (update: (profile: ProfileV2) => ProfileV2, kind?: ChangeKind) => void
   patch: (changes: Partial<Settings>) => void
   onWallpaperFile: (file?: File) => void
+  onWallpaperFiles: (files: File[]) => void
+  onWallpaperVideoFile: (file?: File) => void
   onWallpaperRemove: () => void
   onReset: () => void
   onError: (error: MessageRef) => void

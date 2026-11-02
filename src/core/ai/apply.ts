@@ -28,7 +28,7 @@ export function exportThemePack(profile: ProfileV2): AiPack {
   return {
     kind: PACK_KIND, packVersion: PACK_VERSION, meta: { name: profile.custom.sourcePack?.name ?? 'Exported theme' },
     theme: { mode, color, colorLight, font, radius, shadow, glass, density, scale, iconShape, iconSize },
-    background: { type: type === 'image' ? 'theme' : type, ...(type === 'color' ? { color: backgroundColor } : {}), ...(type === 'gradient' ? { gradient } : {}), dim },
+    background: { type: type === 'image' || type === 'video' ? 'theme' : type, ...(type === 'color' ? { color: backgroundColor } : {}), ...(type === 'gradient' ? { gradient } : {}), dim },
     layout: profile.layout,
     widgets: profile.widgets.map(portableWidget),
     css: profile.custom.css,

@@ -19,6 +19,7 @@ import { useWallpaper } from './useWallpaper'
 const SettingsDrawer = lazy(() => import('../features/settings/SettingsDrawer').then(m => ({ default: m.SettingsDrawer })))
 const BackupSection = lazy(() => import('../features/settings/BackupSection').then(m => ({ default: m.BackupSection })))
 const ShortcutEditor = lazy(() => import('../features/shortcut-editor/ShortcutEditor').then(m => ({ default: m.ShortcutEditor })))
+const WallpaperVideo = lazy(() => import('../features/wallpaper/WallpaperVideo').then(m => ({ default: m.WallpaperVideo })))
 
 type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut'
 type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut }
@@ -118,6 +119,7 @@ export default function App() {
 
   const s = settings
   const imageStyle = profile ? wallpaperStyle(profile, wallpaper.url) : null
+  const videoBackground = profile?.background.type === 'video' ? profile.background.video : undefined
   const t =(key: MessageKey, params?: MessageParams) => translate(s.language, key, params)
 
   const openMenu = (event: MouseEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut } = {}) => {
@@ -227,6 +229,14 @@ export default function App() {
           <div className="wallpaper-vignette" style={{ '--vignette': `${profile!.background.image!.vignette}%` } as CSSProperties} />
         </div>
       )}
+      {videoBackground && wallpaper.videoUrl && wallpaper.posterUrl && (
+        <div className="wallpaper" aria-hidden="true">
+          <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url(\"${wallpaper.posterUrl}\")` }} />}>
+            <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} reduceMotion={profile!.prefs.reduceMotion} />
+          </Suspense>
+          <div className="wallpaper-shade" />
+        </div>
+      )}
       {!(profile && ['banner', 'icon-split'].includes(detectTemplate(profile)) && profile.widgets.some(widget => widget.type === 'toolbar' && !widget.hidden && widget.area === (detectTemplate(profile) === 'banner' ? 'banner' : 'overview') && widget.props.actions?.includes('settings'))) && <header className="mnt-header">
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>}
@@ -286,7 +296,9 @@ export default function App() {
           t={t}
           onPatch={patch}
           onClose={() => setDrawer(false)}
-          onWallpaperFile={file => void wallpaper.choose(file)}
+          onWallpaperFile={file => void wallpaper.choose(file ? [file] : [])}
+          onWallpaperFiles={files => void wallpaper.choose(files)}
+          onWallpaperVideoFile={file => void wallpaper.chooseVideo(file)}
           onWallpaperRemove={wallpaper.remove}
           onReset={reset}
           onError={setError}

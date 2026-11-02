@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaults } from './model'
 import { migrateV1 } from './migrate/v1'
-import { parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_TOTAL_ASSET_BYTES } from './backup-v2'
+import { parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_TOTAL_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from './backup-v2'
 
 const id = '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
 const profile = () => migrateV1(defaults, { id: () => 'main', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unexpected') } })
@@ -22,6 +22,34 @@ describe('v2 backups', () => {
     expect(result.profiles).toEqual(input.profiles)
     expect(result.assets[0].blob.type).toBe('image/png')
     expect(await result.assets[0].blob.arrayBuffer()).toEqual(await input.assets[0].blob.arrayBuffer())
+  })
+
+  it('round trips video wallpaper assets and enforces the larger video limit', async () => {
+    const input = await fixture()
+    const bytes = new TextEncoder().encode('webm sample')
+    const digest = await crypto.subtle.digest('SHA-256', bytes)
+    const videoId = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+    input.profiles[0].background = { type: 'video', dim: 20, video: { asset: `mnt-asset:${videoId}`, poster: `mnt-asset:${id}`, blur: 0, grayscale: 0 } }
+    input.assets.push({ id: videoId, blob: new Blob([bytes], { type: 'video/webm' }) })
+    const parsed = await parseBackupV2(await serializeBackupV2(input))
+    expect(parsed.profiles[0].background.video?.asset).toBe(`mnt-asset:${videoId}`)
+    expect(parsed.assets.find(asset => asset.id === videoId)?.blob.type).toBe('video/webm')
+    const oversized = new Blob([new Uint8Array(MAX_BACKUP_VIDEO_BYTES + 1)], { type: 'video/mp4' })
+    await expect(serializeBackupV2({ ...(await fixture()), assets: [{ id: '0'.repeat(64), blob: oversized }] })).rejects.toThrow()
+  })
+
+  it('rejects MIME types that do not match wallpaper asset references', async () => {
+    const input = await fixture()
+    const bytes = new TextEncoder().encode('webm sample')
+    const digest = await crypto.subtle.digest('SHA-256', bytes)
+    const videoId = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+    input.profiles[0].background = { type: 'video', dim: 20, video: { asset: `mnt-asset:${videoId}`, poster: `mnt-asset:${id}`, blur: 0, grayscale: 0 } }
+    input.assets.push({ id: videoId, blob: new Blob([bytes], { type: 'video/webm' }) })
+    const value = JSON.parse(await serializeBackupV2(input))
+    const wrongVideoMime = { ...value, assets: value.assets.map((item: { id: string }) => item.id === videoId ? { ...item, mime: 'image/png' } : item) }
+    const wrongPosterMime = { ...value, assets: value.assets.map((item: { id: string }) => item.id === id ? { ...item, mime: 'video/webm' } : item) }
+    await expect(parseBackupV2(JSON.stringify(wrongVideoMime))).rejects.toThrow()
+    await expect(parseBackupV2(JSON.stringify(wrongPosterMime))).rejects.toThrow()
   })
 
   it('distinguishes malformed JSON from invalid backup structure', async () => {

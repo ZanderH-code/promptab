@@ -48,6 +48,15 @@ describe('resetSection', () => {
     expect(next.theme.radius).toBe(2)
   })
 
+  it('resets video settings but keeps the video and poster assets', () => {
+    const profile = customized()
+    profile.background = { type: 'video', dim: 55, video: { asset: ASSET, poster: `mnt-asset:${'c'.repeat(64)}`, blur: 12, grayscale: 40 } }
+    const next = resetSection(parseProfileV2(profile), fresh, 'background')
+    expect(next.background.type).toBe('theme')
+    expect(next.background.video).toEqual({ asset: ASSET, poster: `mnt-asset:${'c'.repeat(64)}`, blur: 0, grayscale: 0 })
+    expect(parseProfileV2(next)).toBeTruthy()
+  })
+
   it('resets the layout, icon settings and column limit, and re-homes widgets in unknown areas', () => {
     const next = resetSection(customized(), fresh, 'layout')
     expect(next.layout).toEqual(fresh.layout)

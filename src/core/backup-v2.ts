@@ -3,9 +3,11 @@ import { DEFAULT_MAX_ASSET_BYTES } from '../storage/assets'
 import { parseProfileV2, type ProfileV2 } from './schema/profile'
 
 export const MAX_BACKUP_ASSET_BYTES = DEFAULT_MAX_ASSET_BYTES
+export const MAX_BACKUP_VIDEO_BYTES = 30 * 1024 * 1024
 export const MAX_BACKUP_TOTAL_ASSET_BYTES = 50 * 1024 * 1024
 const MAX_BACKUP_JSON_CHARS = 80 * 1024 * 1024
-const mimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp'])
+const mimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'])
+const maxBytesForMime = (mime: string) => mime.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
 const assetId = /^[a-f0-9]{64}$/
 
 export type BackupV2Asset = { id: string; blob: Blob }
@@ -39,17 +41,29 @@ function checkProfiles(value: unknown, active: unknown): ProfileV2[] {
   return profiles
 }
 
-function checkReferences(profiles: ProfileV2[], ids: Set<string>): void {
+function checkReferences(profiles: ProfileV2[], assetMimes: Map<string, string>): void {
   function visit(value: unknown): void {
     if (typeof value === 'string') {
       for (const match of value.matchAll(/mnt-asset:([a-f0-9]{64})(?![a-zA-Z0-9])/g)) {
-        if (!ids.has(match[1])) throw new Error(`Missing asset: ${match[1]}`)
+        if (!assetMimes.has(match[1])) throw new Error(`Missing asset: ${match[1]}`)
       }
     } else if (value && typeof value === 'object') {
       for (const child of Object.values(value)) visit(child)
     }
   }
-  profiles.forEach(visit)
+  function expectMime(reference: string | undefined, kind: 'image' | 'video'): void {
+    if (!reference) return
+    const mime = assetMimes.get(reference.slice('mnt-asset:'.length))
+    if (!mime?.startsWith(`${kind}/`)) throw new Error(`Invalid ${kind} asset MIME`)
+  }
+  profiles.forEach(profile => {
+    visit(profile)
+    expectMime(profile.background.image?.asset, 'image')
+    expectMime(profile.background.video?.asset, 'video')
+    expectMime(profile.background.video?.poster, 'image')
+    profile.background.rotation?.images.forEach(reference => expectMime(reference, 'image'))
+    profile.bookmarks.groups.forEach(group => group.items.forEach(item => expectMime(item.image, 'image')))
+  })
 }
 
 async function hash(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
@@ -63,10 +77,10 @@ function encode(bytes: Uint8Array): string {
   return btoa(binary)
 }
 
-function decode(value: unknown): Uint8Array<ArrayBuffer> {
-  if (typeof value !== 'string' || !value || value.length % 4 !== 0 || value.length > Math.ceil(MAX_BACKUP_ASSET_BYTES / 3) * 4 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) throw new Error('Invalid base64 asset')
+function decode(value: unknown, maxBytes: number): Uint8Array<ArrayBuffer> {
+  if (typeof value !== 'string' || !value || value.length % 4 !== 0 || value.length > Math.ceil(maxBytes / 3) * 4) throw new Error('Invalid base64 asset')
   const binary = atob(value)
-  if (binary.length > MAX_BACKUP_ASSET_BYTES || btoa(binary) !== value) throw new Error('Invalid base64 asset')
+  if (binary.length > maxBytes || btoa(binary) !== value) throw new Error('Invalid base64 asset')
   return Uint8Array.from(binary, char => char.charCodeAt(0))
 }
 
@@ -88,22 +102,25 @@ async function parseBackupV2Value(value: unknown): Promise<ParsedBackupV2> {
   const profiles = checkProfiles(raw.profiles, raw.activeProfileId)
   if (!Array.isArray(raw.assets)) throw new Error('Invalid assets')
   const ids = new Set<string>()
+  const assetMimes = new Map<string, string>()
   let total = 0
   const encoded = raw.assets.map(value => {
     const item = record(value, ['id', 'mime', 'base64'])
     if (typeof item.id !== 'string' || !assetId.test(item.id) || ids.has(item.id) || typeof item.mime !== 'string' || !mimeTypes.has(item.mime) || typeof item.base64 !== 'string') throw new Error('Invalid asset')
     ids.add(item.id)
-    if (!item.base64 || item.base64.length > Math.ceil(MAX_BACKUP_ASSET_BYTES / 3) * 4) throw new Error('Asset exceeds size limit')
+    assetMimes.set(item.id, item.mime)
+    const maxBytes = maxBytesForMime(item.mime)
+    if (!item.base64 || item.base64.length > Math.ceil(maxBytes / 3) * 4) throw new Error('Asset exceeds size limit')
     const padding = item.base64.endsWith('==') ? 2 : item.base64.endsWith('=') ? 1 : 0
     total += Math.floor(item.base64.length * 3 / 4) - padding
     if (total > MAX_BACKUP_TOTAL_ASSET_BYTES) throw new Error('Assets exceed total size limit')
     return item as EncodedAsset
   })
-  checkReferences(profiles, ids)
+  checkReferences(profiles, assetMimes)
   total = 0
   const assets: BackupV2Asset[] = []
   for (const item of encoded) {
-    const bytes = decode(item.base64)
+    const bytes = decode(item.base64, maxBytesForMime(item.mime))
     total += bytes.length
     if (total > MAX_BACKUP_TOTAL_ASSET_BYTES || await hash(bytes) !== item.id) throw new Error('Invalid asset hash or total size')
     assets.push({ id: item.id, blob: new Blob([bytes], { type: item.mime }) })
@@ -118,7 +135,7 @@ export async function serializeBackupV2(input: BackupV2Input): Promise<string> {
   let total = 0
   const assets: EncodedAsset[] = []
   for (const item of input.assets) {
-    if (!item || typeof item.id !== 'string' || !assetId.test(item.id) || !(item.blob instanceof Blob) || !mimeTypes.has(item.blob.type) || !item.blob.size || item.blob.size > MAX_BACKUP_ASSET_BYTES) throw new Error('Invalid asset')
+    if (!item || typeof item.id !== 'string' || !assetId.test(item.id) || !(item.blob instanceof Blob) || !mimeTypes.has(item.blob.type) || !item.blob.size || item.blob.size > maxBytesForMime(item.blob.type)) throw new Error('Invalid asset')
     total += item.blob.size
     if (total > MAX_BACKUP_TOTAL_ASSET_BYTES) throw new Error('Assets exceed total size limit')
     const bytes = new Uint8Array(await item.blob.arrayBuffer())

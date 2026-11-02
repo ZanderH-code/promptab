@@ -171,6 +171,15 @@ describe('applyPreset', () => {
     expect(out.theme.mode).toBe('dark')
   })
 
+  it('Glass keeps the active video when both wallpaper resources exist', () => {
+    const video = `mnt-asset:${'c'.repeat(64)}`
+    const current = parseProfileV2({ ...profile, background: { ...profile.background, type: 'video', video: { asset: video, poster: asset, blur: 2, grayscale: 10 } } })
+    const out = applyPreset(current, getPreset('glass')!)
+    expect(out.background.type).toBe('video')
+    expect(out.background.video).toEqual(current.background.video)
+    expect(out.background.image).toEqual(current.background.image)
+  })
+
   it('Glass falls back safely without a wallpaper: no image mode and no see-through panels', () => {
     const out = applyPreset(withoutWallpaper, getPreset('glass')!)
     expect(out.background.type).not.toBe('image')

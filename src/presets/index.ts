@@ -22,9 +22,9 @@ export function getPreset(id: string): ThemePack | undefined {
  * Apply a preset to a profile and return the new profile; `profile` is not modified.
  *
  * Only `theme` and `background` change. Bookmarks, layout, widgets, prefs, search, custom code/variables, meta
- * and the wallpaper resource (`background.image`) are kept as they are, so switching away and back never loses a
- * wallpaper. A preset that wants a wallpaper (Glass) uses it with its glass/dim when the profile has one, and
- * otherwise falls back to its own plain background with glass 0. Recording the change in history is the caller's job.
+ * and wallpaper resources are kept as they are, so switching away and back never loses a wallpaper. A preset that
+ * wants a wallpaper (Glass) uses the existing image or video with its glass/dim, and otherwise falls back to its
+ * own plain background with glass 0. Recording the change in history is the caller's job.
  */
 export function applyPreset(profile: ProfileV2, preset: ThemePack): ProfileV2 {
   const theme: Record<string, unknown> = { ...profile.theme }
@@ -32,14 +32,15 @@ export function applyPreset(profile: ProfileV2, preset: ThemePack): ProfileV2 {
   if (preset.theme.colorLight === undefined) delete theme.colorLight
   theme.preset = preset.id
 
-  const { image } = profile.background
+  const { image, video, rotation } = profile.background
+  const wallpaperType = profile.background.type === 'video' && video ? 'video' : image ? 'image' : video ? 'video' : undefined
   let background = profile.background
-  if (preset.wallpaper && image) {
+  if (preset.wallpaper && wallpaperType) {
     theme.glass = preset.wallpaper.glass
-    background = { type: 'image', dim: preset.wallpaper.dim, image }
+    background = { type: wallpaperType, dim: preset.wallpaper.dim, ...(image && { image }), ...(video && { video }), ...(rotation && { rotation }) }
   } else if (preset.background) {
     const { type, color, gradient, dim } = preset.background
-    background = { type, dim: dim ?? profile.background.dim, ...(color && { color }), ...(gradient && { gradient }), ...(image && { image }) }
+    background = { type, dim: dim ?? profile.background.dim, ...(color && { color }), ...(gradient && { gradient }), ...(image && { image }), ...(video && { video }), ...(rotation && { rotation }) }
   }
   return { ...profile, theme: theme as ProfileV2['theme'], background }
 }

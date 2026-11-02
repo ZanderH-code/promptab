@@ -20,6 +20,8 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
     try {
       const { persistence } = createAppProfileStorage()
       const json = await createBackupV2Service({ profiles: persistence, assets }).exportBackup()
+      const size = new Blob([json]).size / (1024 * 1024)
+      if (size >= 10 && !confirm(t('backup.largeExport', { size: size.toFixed(1) }))) return
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
       const link = document.createElement('a')
       link.href = url
@@ -102,7 +104,7 @@ function exportedAt(json: string): string {
 
 function hasWallpaper(json: string): boolean {
   const value = JSON.parse(json)
-  return value.profiles.some((profile: { background?: { type?: string } }) => profile.background?.type === 'image')
+  return value.profiles.some((profile: { background?: { type?: string } }) => ['image', 'video'].includes(profile.background?.type ?? ''))
 }
 
 function profileCount(json: string, id: string): number {

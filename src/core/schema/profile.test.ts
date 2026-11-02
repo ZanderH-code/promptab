@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MessageError, translate } from '../../i18n'
-import { profileV2Schema, parseProfileV2, profileIssues } from './profile'
+import { profileV2Schema, parseProfileV2, profileIssues, type ProfileV2 } from './profile'
 
 const profile = {
   schemaVersion: 2,
@@ -56,6 +56,17 @@ describe('profile v2 schema', () => {
       expect(profileV2Schema.safeParse(linkProfile(bad)).success).toBe(false)
       expect(profileV2Schema.safeParse(backgroundProfile(bad)).success).toBe(false)
     }
+  })
+
+  it('accepts local video assets and image wallpaper rotation settings', () => {
+    const video = `mnt-asset:${'b'.repeat(64)}`
+    const image = `mnt-asset:${'c'.repeat(64)}`
+    const candidate = structuredClone(profile) as unknown as ProfileV2
+    candidate.background = { type: 'video', dim: 35, video: { asset: video, poster: image, blur: 4, grayscale: 15 } }
+    candidate.background.rotation = { images: [image, `mnt-asset:${'d'.repeat(64)}`], interval: 'hour' }
+    expect(profileV2Schema.safeParse(candidate).success).toBe(true)
+    expect(profileV2Schema.safeParse({ ...candidate, background: { ...candidate.background, rotation: { images: [], interval: 'forever' } } }).success).toBe(false)
+    expect(profileV2Schema.safeParse({ ...candidate, background: { ...candidate.background, video: { ...candidate.background.video, asset: 'https://example.com/video.mp4' } } }).success).toBe(false)
   })
 
   it('renders path, expected format and actual value in both languages', () => {

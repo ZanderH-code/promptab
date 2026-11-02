@@ -22,6 +22,8 @@ type Props = {
   onProfileChange: (update: (profile: ProfileV2) => ProfileV2, kind?: ChangeKind) => void
   onClose: () => void
   onWallpaperFile: (file?: File) => void
+  onWallpaperFiles: (files: File[]) => void
+  onWallpaperVideoFile: (file?: File) => void
   onWallpaperRemove: () => void
   onReset: () => void
   onError: (error: MessageRef) => void
@@ -56,7 +58,7 @@ export function matches(haystack: string, query: string): boolean {
 
 const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled):not([type=hidden]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
 
-export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperRemove, onReset, onError, initialSection, safeMode = false, onApplyPreview = () => {}, onEnterEditMode = () => {} }: Props) {
+export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, initialSection, safeMode = false, onApplyPreview = () => {}, onEnterEditMode = () => {} }: Props) {
   const [tab, setTab] = useState<TabId>(() => initialTab(initialSection))
   const [query, setQuery] = useState('')
   const [layoutDrafts, setLayoutDrafts] = useState<NonNullable<Ctx['layoutDrafts']>>({})
@@ -94,7 +96,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   useEffect(() => { if (initialSection) setTab(initialTab(initialSection)) }, [initialSection])
 
   const ctx: Ctx = {
-    t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
+    t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
     change: (update, kind) => onProfileChange(update, kind),
     layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets,
   }

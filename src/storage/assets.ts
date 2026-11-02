@@ -117,8 +117,8 @@ export function createAssetLibrary(store: AssetStore = indexedDbAssetStore, opti
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) throw new Error('Invalid asset size limit')
   return {
     /** Adding an existing asset restarts its grace period, protecting it while it is staged again. */
-    async add(blob: Blob): Promise<string> {
-      if (blob.size > maxBytes) throw new Error('Asset exceeds size limit')
+    async add(blob: Blob, limit = maxBytes): Promise<string> {
+      if (!Number.isSafeInteger(limit) || limit < 0 || blob.size > limit) throw new Error('Asset exceeds size limit')
       const digest = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
       const id = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
       const addedAt = now()
