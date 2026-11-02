@@ -59,8 +59,8 @@
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] { width: 100%; align-self: stretch; display: flex; align-items: center; justify-content: flex-end; gap: clamp(12px, 2vw, 32px); }
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] .mnt-widget-frame { width: auto; flex: 0 1 auto; text-align: right; }
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="clock"] .intro { width: auto; display: flex; align-items: baseline; }
-  .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="clock"] .clock { font-size: clamp(22px, 2vw, 29px); }
-  .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="date"] { font-size: clamp(16px, 1.5vw, 21px); }
+  .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="clock"] .clock { font-size: clamp(28px, 3vw, 42px); }
+  .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="date"] { font-size: clamp(20px, 1.8vw, 26px); }
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar button::before { content: none; }
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar { flex: 0 0 auto; justify-content: flex-end; }
   .mnt-layout[data-layout-template="banner"] [data-area="websites"] { display: grid; }
