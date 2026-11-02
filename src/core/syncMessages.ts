@@ -5,7 +5,7 @@ export type SyncMessage = 'title' | 'hint' | 'enable' | 'extensionOnly' | 'confl
 const messages: Record<Language, Record<SyncMessage, string>> = {
   en: {
     title: 'Browser sync',
-    hint: 'Optional Chrome Sync sends shortcuts, groups, theme settings and layout to your signed-in browser account. Wallpaper, uploaded fonts and bookmark images stay on this device. Full backups remain available as files.',
+    hint: 'Optional browser sync sends shortcuts, groups, theme settings and layout to your signed-in browser account. Wallpaper, uploaded fonts and bookmark images stay on this device. Full backups remain available as files.',
     enable: 'Sync this profile across devices',
     extensionOnly: 'Browser sync is available in the installed extension.',
     conflict: 'The local and browser sync profiles differ. Choose which copy to use.',
@@ -26,7 +26,7 @@ const messages: Record<Language, Record<SyncMessage, string>> = {
   },
   'zh-CN': {
     title: '浏览器同步',
-    hint: '可选的 Chrome 同步会将快捷方式、分组、主题设置和布局发送到当前登录的浏览器账号。壁纸、上传的字体和书签图片仍保存在此设备。完整备份仍可导出为文件。',
+    hint: '可选的浏览器同步会将快捷方式、分组、主题设置和布局发送到当前登录的浏览器账号。壁纸、上传的字体和书签图片仍保存在此设备。完整备份仍可导出为文件。',
     enable: '在设备间同步此配置',
     extensionOnly: '浏览器同步仅在已安装的扩展中可用。',
     conflict: '本地配置与浏览器同步配置不同，请选择使用哪一份。',

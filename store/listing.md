@@ -1,65 +1,69 @@
 # Promptab — Store Listing
 
-## Short description
+## English
+
+### Short description
 
 Your new tab, designed by your AI.
 
-## 中文短描述
+### Full description
 
-一句话，让你的 AI 帮你设计新标签页。
+**Describe it. Preview it. Make it yours.** Promptab turns your new tab into a customizable home for the things you use every day. Ask an AI assistant to design a theme, paste its reply, and preview the result before applying it. The manual workflow needs no Promptab account or API key. You can also send a request directly to Anthropic or OpenAI with your own session-only API key; provider charges may apply.
 
-## Full description
+- Build a dashboard with clocks, dates, search, shortcuts, bookmark groups, and flexible layouts.
+- Browse the theme gallery, preview themes, and personalize colors, fonts, shapes, and CSS.
+- Add local image or video wallpapers and rotate a selection of wallpapers.
+- Add Todo, Note, Countdown, and optional weather widgets. Weather requests happen only after you choose a weather action.
+- Keep separate profiles, undo changes, and export or restore a backup.
+- Opt in to browser sync for profile settings and shortcuts across signed-in devices. Wallpapers, videos, fonts, and uploaded shortcut images stay local.
+- Import selected browser-bookmark folders only after granting the optional bookmarks permission.
+- Choose automatic website icons, brand icons, Lucide icons, text, emoji, or your own images.
+- Use the extension in English or Simplified Chinese. A separate desktop Firefox build is available.
 
-**Describe it. Paste it. Done.** Bring your own AI: ask ChatGPT, Claude, Kimi, DeepSeek, or any assistant you already use to design your new tab. The manual copy-and-paste workflow needs no Promptab account, API key, or extra AI credits. Optionally, send directly to Anthropic or OpenAI with your own API key; provider charges may apply. Promptab validates the result locally so you can preview it, apply it, and undo it anytime. Your settings and assets stay in browser storage on your device.
+Promptab stores its data in browser-managed extension storage and has no Promptab account, advertising SDK, analytics, or developer-operated application server. Opening the gallery fetches its index and selected packs from zanderh-code.github.io. When you use optional features, the selected AI provider receives the prompt, model, and API key; Open-Meteo receives the city or coordinates used for weather; and your browser's sync service processes synced profile data. Search providers, shortcut destinations, favicon sites, and configured remote image hosts receive the requests needed for those features.
 
-- Build a homepage with clocks, dates, search, bookmark groups, and shortcuts.
-- Explore the theme gallery, copy an example prompt, and preview curated themes before applying them.
-- Arrange content with layout templates, columns, alignment, and widget visibility controls.
-- Create multiple profiles for different workflows and keep a local history for undo and recovery.
-- Import selected browser-bookmark folders on demand through an optional permission.
-- Customize shortcut icons with automatic favicons, brand icons, Lucide icons, text, emoji, or your own image.
-- Add local wallpapers, fonts, and CSS with validation and safe-mode recovery.
-- Export and restore backups when you choose.
-- Copy a prompt to your AI, or optionally send it directly to Anthropic or OpenAI using your own API key and model. Provider charges may apply.
+### Permissions
 
-Promptab stores settings and assets in browser-managed extension storage. It does not include an account, advertising SDK, analytics, telemetry, or a developer-operated data service. Opening the theme gallery fetches its list from zanderh-code.github.io, and selecting a theme fetches its pack from the same host. Some features necessarily contact destinations you choose: search queries go to your selected search provider, shortcuts open their websites, automatic favicon fallback may request the site's `/favicon.ico`, and remote images or wallpapers are fetched from their configured URLs.
+- **Storage and unlimited storage:** Save profiles, settings, history, and locally managed assets.
+- **Favicon (Chromium only):** Obtain browser-provided website icons; the site's `/favicon.ico` is used as a fallback.
+- **Bookmarks (optional):** Requested when you start browser-bookmark import; only selected folders are copied.
+- **AI provider hosts (optional):** Requested when you send to the selected Anthropic or OpenAI provider.
+- **Open-Meteo hosts (optional):** Requested when you search for a city or load a weather forecast.
 
-## 中文完整介绍
+### Firefox Add-ons (AMO)
 
-**想要什么样，就跟 AI 说什么样。** 用你已经在用的任何 AI（ChatGPT、Claude、Kimi、DeepSeek 等）设计新标签页。手动复制粘贴流程不需要 Promptab 账号、API 密钥或额外 AI 额度。你也可以使用自己的 API 密钥直接发送给 Anthropic 或 OpenAI，服务商可能收费。Promptab 在本地校验结果，你可以预览、应用并随时撤销；设置和资源保存在这台设备的浏览器存储中。
-
-- 使用时钟、日期、搜索、书签分组和快捷方式搭建主页。
-- 浏览主题画廊、复制示例提示，并在应用前预览精选主题。
-- 通过布局模板、列数、对齐方式和组件显示开关安排内容。
-- 为不同工作流创建多个配置文件，并保留本地历史以支持撤销和恢复。
-- 仅在你主动选择时，通过可选权限导入指定浏览器书签文件夹。
-- 使用自动网站图标、品牌图标、Lucide 图标、文字、表情或自定义图片。
-- 添加本地壁纸、字体和 CSS，并使用校验与安全模式恢复。
-- 在你主动操作时导出和恢复备份。
-- 把提示包复制给你在用的 AI，或使用自己的 API 密钥和模型直接发送给 Anthropic 或 OpenAI；服务商可能收取 API 费用。
-
-设置和资源保存在浏览器管理的扩展存储中。扩展不包含账号、广告 SDK、分析、遥测或开发者运营的数据服务。打开主题画廊时会从 zanderh-code.github.io 获取主题列表，选择主题时从同一主机获取主题包。部分功能会联系你选择的目标：搜索查询会发送到你选择的搜索服务，快捷方式会打开对应网站，自动图标的后备逻辑可能请求网站的 `/favicon.ico`，远程图片或壁纸会从配置的地址获取。
-
-## Permissions disclosure
-
-- **Storage:** Saves settings, profiles, history, and locally managed assets in extension storage.
-- **Unlimited storage:** Allows larger local profiles and assets.
-- **Favicon:** Lets the browser provide favicon data for shortcut sites; the implementation also has a direct `/favicon.ico` fallback.
-- **Bookmarks (optional):** Requested only when you start browser-bookmark import, then used to read the tree and copy the folders you select.
-- **AI provider origins (optional):** When you send directly, access is requested for the chosen provider, `api.anthropic.com` or `api.openai.com`. The prompt, model and API key are sent to that provider; the key is kept only in the interface session and is not saved in extension storage. The provider's privacy policy and pricing apply.
-
-## Suggested category and keywords
+**Summary:** A customizable new tab with AI-assisted themes, shortcuts, widgets, optional weather, and browser sync.
 
 **Category:** Productivity
 
-**Keywords:** new tab, dashboard, bookmarks, themes, customization, productivity, local-first, profiles, wallpapers, CSS
+**Data-collection notes:** The Firefox package declares no required data-collection categories. Optional `authenticationInfo` and `personalCommunications` apply when you choose to send an AI request directly: the selected provider receives your API key and prompt. Optional `locationInfo` applies only to weather, after you opt in to a weather action: Open-Meteo receives a city name or selected coordinates. A current-location request happens only when you choose it. Firefox asks for the relevant optional data permission alongside the provider host permission. Browser Sync is separately opt-in and is handled by the browser's sync service.
 
-## Support / privacy URL
+**Keywords:** new tab, dashboard, bookmarks, themes, widgets, weather, productivity, profiles, wallpapers, CSS
+
+## 中文
+
+### 短描述
+
+一句话，让你的 AI 帮你设计新标签页。
+
+### 完整介绍
+
+**描述想法、预览效果，打造属于你的新标签页。** Promptab 让你自定义每天都会使用的主页。你可以让 AI 助手设计主题、粘贴回复，并在应用前预览。手动复制粘贴不需要 Promptab 账号或 API 密钥；也可以使用仅保存在当前界面会话中的密钥直接发送给 Anthropic 或 OpenAI，服务商可能收费。
+
+- 使用时钟、日期、搜索、快捷方式和书签分组搭建主页，自由调整布局。
+- 浏览主题画廊，在应用前预览，并调整颜色、字体、形状和 CSS。
+- 使用本地图片或视频壁纸，轮换选择的壁纸。
+- 添加待办、便签、倒计时和可选天气组件；只有主动使用天气功能时才发送天气请求。
+- 创建多个配置档、撤销更改，并导出或恢复备份。
+- 可选择开启浏览器同步，在已登录的设备之间同步配置和快捷方式；壁纸、视频、字体及上传的快捷方式图片保留在本地。
+- 仅在你授权可选书签权限后，导入所选浏览器书签文件夹。
+- 使用网站自动图标、品牌图标、Lucide 图标、文字、表情或自己的图片。
+- 支持中文和英文界面，并提供独立的桌面 Firefox 构建。
+
+Promptab 将数据保存在浏览器管理的扩展存储中，不含 Promptab 账号、广告 SDK、分析或开发者运营的应用服务器。打开画廊时会从 zanderh-code.github.io 获取索引和选中的主题包。使用可选功能时，所选 AI 服务商会收到提示、模型和 API 密钥；Open-Meteo 会收到天气查询所需的城市或坐标；浏览器同步服务会处理你选择同步的配置。搜索服务、快捷方式网站、网站图标来源及配置的远程图片主机也会收到相应请求。
+
+## Support and privacy
 
 Privacy policy: https://zanderh-code.github.io/promptab/privacy/
 
-Keep the published policy in sync with the extension behavior and manifest permissions.
-
-## Open-source license
-
-The project is released under the MIT License. Bundled runtime dependencies retain their respective licenses; see `licenses/THIRD_PARTY_NOTICES.md` in the source repository.
+The project is released under the MIT License. Bundled dependencies retain their respective licenses; see `licenses/THIRD_PARTY_NOTICES.md` in the source repository. The published privacy policy must be updated to match the final release before submission.
