@@ -43,7 +43,7 @@ export function SyncSection({ settings, store }: Props) {
       const local = store.getState().profiles[store.getState().activeProfileId]
       const cloud = await readSyncStorage(api.sync)
       if (!alive) return
-      if (cloud && cloud.profile.meta.id === local.meta.id && decideSyncConflict(local.meta.updatedAt, cloud.profile.meta.updatedAt) === 'pull-cloud') setConflict(cloud)
+      if (cloud) setConflict(cloud)
       else await writeSyncStorage(api.sync, local)
       setInitialized(true)
       setReady(true)
@@ -72,7 +72,6 @@ export function SyncSection({ settings, store }: Props) {
       void readSyncStorage(api.sync).then(cloud => {
         if (!cloud || closed) return
         const local = store.getState().profiles[store.getState().activeProfileId]
-        if (cloud.profile.meta.id !== local.meta.id) return
         if (decideSyncConflict(local.meta.updatedAt, cloud.profile.meta.updatedAt) === 'pull-cloud') setConflict(cloud)
       }).catch(() => { if (!closed) setStatus(message('error')) })
     }
@@ -87,13 +86,13 @@ export function SyncSection({ settings, store }: Props) {
     try {
       await api.local.set({ 'mnt.sync.enabled': next })
       if (next) {
-        const state = store.getState()
-        await writeSyncStorage(api.sync, state.profiles[state.activeProfileId])
-      } else {
-        const values = await api.sync.get(null)
-        const keys = Object.keys(values).filter(key => key === 'mnt.sync.manifest' || key.startsWith('mnt.sync.chunk.'))
-        if (keys.length) await api.sync.remove(keys)
-      }
+        const cloud = await readSyncStorage(api.sync)
+        if (cloud) setConflict(cloud)
+        else {
+          const state = store.getState()
+          await writeSyncStorage(api.sync, state.profiles[state.activeProfileId])
+        }
+      } else setConflict(null)
       setEnabled(next)
       setInitialized(true)
       setStatus(message(next ? 'saved' : 'disabled'))

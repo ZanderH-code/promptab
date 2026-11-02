@@ -28,7 +28,7 @@ async function installStorageMock(page: import('@playwright/test').Page) {
   })
 }
 
-test('browser sync is opt-in and removes its stored copy when disabled', async ({ page }) => {
+test('browser sync is opt-in and preserves its stored copy when disabled', async ({ page }) => {
   await installStorageMock(page)
   await page.goto('/')
   await expect(page.locator('.mnt-clock')).toBeVisible()
@@ -51,7 +51,7 @@ test('browser sync is opt-in and removes its stored copy when disabled', async (
   await toggle.uncheck()
   await expect(page.getByRole('status').filter({ hasText: 'Browser sync is off' })).toBeVisible()
   const keys = await page.evaluate(async () => Object.keys(await (window.chrome as unknown as { storage: { sync: { get(keys: null): Promise<Record<string, unknown>> } } }).storage.sync.get(null)))
-  expect(keys.filter(key => key.startsWith('mnt.sync.'))).toEqual([])
+  expect(keys.filter(key => key.startsWith('mnt.sync.')).length).toBeGreaterThan(0)
 })
 
 test('a newer synced profile can be pulled and undone', async ({ page }) => {
