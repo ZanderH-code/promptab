@@ -129,6 +129,26 @@ test('Template B plays a local video after its poster is visible', async ({ page
   await expect(video).toHaveAttribute('data-first-frame-ms', /\d+/)
 })
 
+test('headed browser pauses video when another tab is foregrounded', async ({ page }) => {
+  test.skip(process.env.HEADED_VISIBILITY !== '1', 'Requires a headed browser with real tab visibility')
+  await prepareBanner(page)
+  const file = await createWebm(page)
+  await page.locator('.mnt-settings-entry').click()
+  await openTab(page, 'background')
+  await page.getByLabel('Upload a video (MP4 or WebM, up to 30 MB)').setInputFiles(file)
+  const video = page.locator('.wallpaper-video-element')
+  await expect.poll(() => video.evaluate(element => (element as HTMLVideoElement).paused)).toBe(false)
+  const other = await page.context().newPage()
+  await other.goto('/')
+  await other.bringToFront()
+  await expect.poll(() => page.evaluate(() => document.hidden)).toBe(true)
+  await expect.poll(() => video.evaluate(element => (element as HTMLVideoElement).paused)).toBe(true)
+  await page.bringToFront()
+  await expect.poll(() => page.evaluate(() => document.hidden)).toBe(false)
+  await expect.poll(() => video.evaluate(element => (element as HTMLVideoElement).paused)).toBe(false)
+  await other.close()
+})
+
 test('reduced motion keeps the local video paused on its poster', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await prepareBanner(page)
