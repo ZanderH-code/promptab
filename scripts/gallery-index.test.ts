@@ -27,7 +27,8 @@ describe('gallery index generation', () => {
       expect(packs.filter((pack: any) => typeof pack.css === 'string' && pack.css.trim()).length).toBeGreaterThanOrEqual(4)
       expect(packs.filter((pack: any) => pack.variables?.length).length).toBeGreaterThanOrEqual(2)
       expect(new Set(packs.map((pack: any) => pack.meta.prompt.en)).size).toBe(packs.length)
-      for (const template of ['split', 'icon-split', 'banner', 'dashboard', 'top-grid'] as const) expect(packs.some((pack: any) => JSON.stringify(pack.layout?.areas) === JSON.stringify(templateGrid(template).areas)), template).toBe(true)
+      // Built-in dashboard geometry does not need to be duplicated by a gallery theme pack.
+      for (const template of ['split', 'icon-split', 'banner', 'top-grid'] as const) expect(packs.some((pack: any) => JSON.stringify(pack.layout?.areas) === JSON.stringify(templateGrid(template).areas)), template).toBe(true)
       for (const pack of packs.filter((pack: any) => pack.layout)) expect(pack.widgets.some((widget: any) => widget.type === 'bookmarks' && !widget.hidden)).toBe(true)
       for (const entry of index.packs) {
         const pack = JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8'))
