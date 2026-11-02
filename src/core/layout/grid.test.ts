@@ -62,8 +62,8 @@ describe('layout grids', () => {
     const dashboard = applyTemplate(profile, 'dashboard')
     expect(dashboard.widgets.find(item => item.type === 'clock')).toMatchObject({ area: 'clock', order: 0 })
     expect(dashboard.widgets.find(item => item.type === 'date')).toMatchObject({ area: 'clock', order: 1 })
-    expect(dashboard.widgets.find(item => item.type === 'bookmarks')?.area).toBe('clock')
-    expect(dashboard.widgets.find(item => item.type === 'search')?.area).toBe('clock')
+    expect(dashboard.widgets.find(item => item.type === 'bookmarks')?.area).toBe('links')
+    expect(dashboard.widgets.find(item => item.type === 'search')?.area).toBe('search')
   })
 
   it('applies every template to a styled profile with a valid resulting grid', async () => {

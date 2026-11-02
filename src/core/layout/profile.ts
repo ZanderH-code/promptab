@@ -37,9 +37,9 @@ export function applyTemplate(profile: ProfileV2, template: LayoutTemplate): Pro
   }
 
   if (template === 'dashboard') {
-    for (const [type, order] of [['clock', 0], ['date', 1], ['search', 2], ['bookmarks', 3], ['toolbar', 4]] as const) {
+    for (const [type, area, order] of [['clock', 'clock', 0], ['date', 'clock', 1], ['search', 'search', 0], ['bookmarks', 'links', 0], ['toolbar', 'clock', 2]] as const) {
       const item = widget(type)
-      if (item) { item.area = 'clock'; item.order = order }
+      if (item) { item.area = area; item.order = order }
     }
   }
 
