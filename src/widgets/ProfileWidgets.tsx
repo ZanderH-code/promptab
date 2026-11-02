@@ -10,8 +10,9 @@ import { gridStyle, areaStyle } from '../core/layout/styles'
 import { formatClock, formatDate, greetingPeriod } from '../core/layout/formats'
 import { Search } from './Search'
 import { ShortcutGrid } from './ShortcutGrid'
+import { ProductivityWidgetView } from './ProductivityWidgets'
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' }>) => void }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -78,6 +79,7 @@ export function ProfileWidgets(props: Props) {
           }
           case 'text': return frame(<div>{widget.props.text}</div>)
           case 'spacer': return frame(<div aria-hidden="true" style={{ height: widget.props.height ?? 40 }} />)
+          case 'todo': case 'note': case 'countdown': return frame(<ProductivityWidgetView widget={widget} language={language} t={t} onChange={props.onWidgetChange} />)
           case 'toolbar': return frame(<div className="mnt-widget-toolbar" role="toolbar" aria-label={t('widgets.toolbar')}>
             {(widget.props.actions ?? ['add', 'edit', 'settings']).map(action => action === 'add'
               ? <button type="button" key={action} aria-label={t('shortcuts.add')} onClick={() => props.onAdd()}><span aria-hidden="true">＋</span></button>

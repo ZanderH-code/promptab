@@ -8,7 +8,7 @@ export function shortcutsItems(ctx: Ctx): Item[] {
   const items: Item[] = [{ id: 'shortcuts', keys: ['settings.shortcuts', 'settings.shortcutsHint'], node: <div className="sd-note"><p>{t('settings.shortcutsHint')}</p><p>{t('settings.shortcutsCount', { count: s.shortcuts.length })}</p></div> }]
   for (const widget of profile.widgets) {
     if (widget.type !== 'bookmarks') continue
-    const patch = (updates: Record<string, unknown>) => change(current => touch({ ...current, widgets: current.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } } : item) }))
+    const patch = (updates: Record<string, unknown>) => change(current => touch({ ...current, widgets: current.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } } : item) as typeof current.widgets }))
     const row = (key: string, keys: MessageKey[], node: Item['node']) => items.push({ id: `${widget.id}-${key}`, keys, node })
     row('style', ['settings.bookmarkStyle', ...styles.map(([, key]) => key)], <Row label={t('settings.bookmarkStyle')}><Select ctx={ctx} label={t('settings.bookmarkStyle')} value={widget.props.style ?? 'tile'} options={styles.map(([value, key]) => ({ value, label: t(key) }))} onChange={style => patch({ style })} /></Row>)
     row('source', ['settings.bookmarkSource', 'settings.bookmarkAll'], <Row label={t('settings.bookmarkSource')}><Select ctx={ctx} label={t('settings.bookmarkSource')} value={widget.props.source ?? 'all'} options={[{ value: 'all', label: t('settings.bookmarkAll') }, ...profile.bookmarks.groups.map(group => ({ value: group.id, label: group.builtinName ? t('builtin.quickLinks') : group.name }))]} onChange={source => patch({ source })} /></Row>)

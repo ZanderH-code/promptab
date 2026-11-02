@@ -78,6 +78,8 @@
 .sd .sd-hex { width: 82px; min-height: 28px; padding: 0 8px; border: 1px solid var(--mnt-border); border-radius: 8px; background: var(--mnt-surface-hover); color: var(--mnt-text); font-family: var(--mnt-font-mono); font-size: var(--mnt-text-sm); }
 .sd .sd-hex:focus-visible, .sd .sd-input:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 1px; }
 .sd .sd-input { width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid var(--mnt-border); border-radius: 10px; background: var(--mnt-surface-hover); color: var(--mnt-text); font: inherit; font-size: var(--mnt-text-sm); }
+.sd .sd-note textarea.sd-input { min-height: 88px; padding-block: 8px; resize: vertical; }
+.sd-widget-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 
 .sd-segmented { display: flex; flex-wrap: wrap; gap: 4px; }
 .sd-segmented.sd-grid { display: grid; grid-template-columns: repeat(var(--sd-cols, 3), 1fr); }

@@ -30,7 +30,7 @@ export function layoutItems(ctx: Ctx): Item[] {
   const narrow = profile.layout.breakpoints?.narrow
   const areas = areaNames(ctx.layoutDrafts?.base?.areas !== undefined ? ctx.layoutDrafts.base.areas.split('\n').map(line => line.trim()).filter(Boolean) : baseGrid.areas)
   const areaLabel = (area: string) => area === 'overview' ? t('settings.areaOverview') : area === 'bookmarks' ? t('settings.shortcuts') : area
-  const widgetLabel = (widget: ProfileV2['widgets'][number]) => ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar') })[widget.type]
+  const widgetLabel = (widget: ProfileV2['widgets'][number]) => ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar'), todo: t('widgets.todo'), note: t('widgets.note'), countdown: t('widgets.countdown') })[widget.type]
   type GridKey = 'areas' | 'columns' | 'rows'
   const parse = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean)
   const candidateFor = (current: ProfileV2, key: GridKey, value: string, narrowGrid: boolean) => {
@@ -97,7 +97,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       textField(`${prefix}-rows`, 'settings.layoutRows', field('rows'), value => editGrid('rows', value, narrowGrid), fieldIssue('rows')),
     ]
   }
-  const patchWidget = (id: string, props: Record<string, unknown>) => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === id ? { ...item, props: { ...item.props, ...props } as typeof item.props } : item) }))
+  const patchWidget = (id: string, props: Record<string, unknown>) => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === id ? { ...item, props: { ...item.props, ...props } as typeof item.props } : item) as typeof p.widgets }))
   const widgetMove = (id: string, direction: -1 | 1) => change(p => {
     const widget = p.widgets.find(item => item.id === id)
     if (!widget) return p

@@ -147,6 +147,20 @@ describe('profile v2 schema', () => {
     expect(bad(d => { d.widgets.push({ ...d.widgets[0] }) })[0]).toMatchObject({ path: 'widgets.1.id', expected: 'unique widget id' })
   })
 
+  it('validates todo, note and countdown widgets and rejects malformed props', () => {
+    const widgets = (...items: object[]) => mutate(d => { d.widgets = items; d.layout.areas = ['a'] })
+    const widget = (type: string, props: object) => ({ id: type, type, area: 'a', order: 0, props })
+    const additions = [
+      widget('todo', { title: 'Today', items: [{ id: 'one', text: 'Read', done: false }], hideCompleted: true }),
+      widget('note', { title: 'Idea', content: 'Remember this' }),
+      widget('countdown', { title: 'Launch', targetDate: '2027-01-01', format: 'detailed' }),
+    ]
+    expect(profileV2Schema.safeParse(widgets(...additions)).success).toBe(true)
+    expect(profileIssues(widgets(widget('todo', { items: [{ id: '', text: '', done: 'no' }] })))[0].path).toContain('widgets.0.props.items.0')
+    expect(profileV2Schema.safeParse(widgets(widget('note', { content: 42 }))).success).toBe(false)
+    for (const targetDate of ['tomorrow', '2027-02-30', '2027-1-2']) expect(profileV2Schema.safeParse(widgets(widget('countdown', { title: 'Launch', targetDate }))).success, targetDate).toBe(false)
+  })
+
   it('requires the default engine to exist', () => {
     expect(bad(d => { d.search.defaultEngineId = 'missing' })[0]).toMatchObject({ path: 'search.defaultEngineId', value: 'missing' })
   })

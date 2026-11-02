@@ -40,6 +40,10 @@ const common = { size: ranged({ min: 0.5, max: 3 }).optional(), align: textAlign
 const separator = z.string().max(8)
 const separatorSpacing = ranged({ min: 0, max: 1 })
 export const DATE_PARTS = ['weekday', 'day', 'month', 'year'] as const
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}, { error: 'ISO date (YYYY-MM-DD)' })
 export const widgetSchema = z.discriminatedUnion('type', [
   z.object({
     ...widgetBase, type: z.literal('clock'),
@@ -65,6 +69,9 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('spacer'), props: z.looseObject({ ...common, height: ranged({ min: 8, max: 400 }).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('toolbar'), props: z.looseObject({ ...common, actions: z.array(z.enum(['add', 'edit', 'settings'])).max(3).optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('todo'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), items: z.array(z.object({ id: nonempty, text: z.string().max(500), done: z.boolean() })).max(100), hideCompleted: z.boolean().optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('note'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), content: z.string().max(10000) }) }),
+  z.object({ ...widgetBase, type: z.literal('countdown'), props: z.looseObject({ ...common, title: z.string().max(120), targetDate: isoDate, format: z.enum(['days', 'detailed']).optional() }) }),
 ])
 export type Widget = z.infer<typeof widgetSchema>
 

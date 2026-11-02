@@ -270,6 +270,7 @@ export default function App() {
         onBookmarkContextMenu={(event: MouseEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
         onOpenSettings={() => openSettings()}
         onEnterEditMode={() => setEditMode(true)}
+        onWidgetChange={widget => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widget.id ? widget : item) })))}
       />}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
