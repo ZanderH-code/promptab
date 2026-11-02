@@ -6,6 +6,7 @@ import { applyTemplate, detectTemplate } from '../../../core/layout/profile'
 import { areaGridProblem, areaNames } from '../../../core/layout/grid'
 import { LAYOUT_TEMPLATES } from '../../../core/layout/templates'
 import type { MessageKey } from '../../../i18n'
+import { weatherText } from '../../../core/weatherMessages'
 import { ColorField, RangeField, Row, Toggle } from '../controls'
 import { Select, touch, type Ctx, type Item } from './shared'
 
@@ -30,7 +31,7 @@ export function layoutItems(ctx: Ctx): Item[] {
   const narrow = profile.layout.breakpoints?.narrow
   const areas = areaNames(ctx.layoutDrafts?.base?.areas !== undefined ? ctx.layoutDrafts.base.areas.split('\n').map(line => line.trim()).filter(Boolean) : baseGrid.areas)
   const areaLabel = (area: string) => area === 'overview' ? t('settings.areaOverview') : area === 'bookmarks' ? t('settings.shortcuts') : area
-  const widgetLabel = (widget: ProfileV2['widgets'][number]) => ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar'), todo: t('widgets.todo'), note: t('widgets.note'), countdown: t('widgets.countdown') })[widget.type]
+  const widgetLabel = (widget: ProfileV2['widgets'][number]) => widget.type === 'weather' ? weatherText(s.language, 'title') : ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar'), todo: t('widgets.todo'), note: t('widgets.note'), countdown: t('widgets.countdown') })[widget.type]
   type GridKey = 'areas' | 'columns' | 'rows'
   const parse = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean)
   const candidateFor = (current: ProfileV2, key: GridKey, value: string, narrowGrid: boolean) => {

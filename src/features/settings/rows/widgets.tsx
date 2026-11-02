@@ -6,6 +6,8 @@ import { areaNames } from '../../../core/layout/grid'
 import { createProductivityWidget, type ProductivityWidgetType } from '../../../core/widgets/defaults'
 import { RangeField, Row, Toggle } from '../controls'
 import { Select, touch, type Ctx, type Item } from './shared'
+import { WeatherSettings } from './WeatherSettings'
+import { weatherText } from '../../../core/weatherMessages'
 
 function usePreviewNow() {
   const [now, setNow] = useState(() => new Date())
@@ -59,8 +61,9 @@ export function widgetsItems(ctx: Ctx): Item[] {
     formatRows.push({ id: 'date-order', keys: ['settings.dateOrder'], node: <Row label={t('settings.dateOrder')}><button className="sd-button" onClick={() => patchDate({ order: [...order.slice(1), order[0]], format: 'custom' })}>{order.map(part => t(({ weekday: 'settings.dateWeekday', day: 'settings.dateDay', month: 'settings.dateMonth', year: 'settings.dateYear' } as const)[part])).join(' → ')}</button></Row> })
     formatRows.push({ id: 'date-preview', keys: ['settings.widgets'], node: <WidgetFormatPreview type="date" props={p} language={s.language} /> })
   }
-  const productTypes: ProductivityWidgetType[] = ['todo', 'note', 'countdown']
-  const productLabel: Record<ProductivityWidgetType, MessageKey> = { todo: 'widgets.todo', note: 'widgets.note', countdown: 'widgets.countdown' }
+  const productTypes: ProductivityWidgetType[] = ['todo', 'note', 'countdown', 'weather']
+  const productLabel: Record<Exclude<ProductivityWidgetType, 'weather'>, MessageKey> = { todo: 'widgets.todo', note: 'widgets.note', countdown: 'widgets.countdown' }
+  const productTitle = (type: ProductivityWidgetType) => type === 'weather' ? weatherText(s.language, 'title') : t(productLabel[type])
   const addProductivityWidget = (type: ProductivityWidgetType) => change(profile => {
     const area = profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).find(name => name !== '.') ?? 'overview'
     const order = Math.max(-1, ...profile.widgets.filter(widget => widget.area === area).map(widget => widget.order)) + 1
@@ -68,11 +71,11 @@ export function widgetsItems(ctx: Ctx): Item[] {
     return touch({ ...profile, widgets: [...profile.widgets, { ...widget, order }] })
   })
   const productivityItems: Item[] = [
-    { id: 'productivity-add', keys: ['settings.addProductivityWidget'], node: <div className="sd-note"><strong>{t('settings.addProductivityWidget')}</strong><div className="sd-widget-actions">{productTypes.map(type => <button className="sd-button" type="button" key={type} onClick={() => addProductivityWidget(type)}>{t(productLabel[type])}</button>)}</div></div> },
-    ...ctx.profile.widgets.filter(widget => widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown').map((widget): Item => {
+    { id: 'productivity-add', keys: ['settings.addProductivityWidget'], node: <div className="sd-note"><strong>{t('settings.addProductivityWidget')}</strong><div className="sd-widget-actions">{productTypes.map(type => <button className="sd-button" type="button" key={type} onClick={() => addProductivityWidget(type)}>{productTitle(type)}</button>)}</div></div> },
+    ...ctx.profile.widgets.filter(widget => widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown' || widget.type === 'weather').map((widget): Item => {
       const patchWidget = (updates: Record<string, unknown>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } as typeof item.props } : item) as typeof profile.widgets }))
-      const title = widget.type === 'countdown' ? widget.props.title : widget.props.title ?? ''
-      const controls = widget.type === 'todo' ? <>
+      const title = widget.type === 'countdown' ? widget.props.title : widget.type === 'weather' ? '' : widget.props.title ?? ''
+      const controls = widget.type === 'weather' ? <WeatherSettings ctx={ctx} widget={widget} patch={patchWidget} /> : widget.type === 'todo' ? <>
         <Toggle label={t('settings.todoHideCompleted')} checked={widget.props.hideCompleted === true} onChange={hideCompleted => patchWidget({ hideCompleted })} />
         {widget.props.items.map(item => <Row key={item.id} label={t('settings.todoItem')}><input className="sd-input" maxLength={500} value={item.text} aria-label={t('settings.todoItem')} onChange={event => patchWidget({ items: widget.props.items.map(current => current.id === item.id ? { ...current, text: event.target.value } : current) })} /><button className="sd-button" type="button" aria-label={t('settings.removeWidget')} onClick={() => patchWidget({ items: widget.props.items.filter(current => current.id !== item.id) })}>−</button></Row>)}
         <button className="sd-button" type="button" onClick={() => patchWidget({ items: [...widget.props.items, { id: crypto.randomUUID(), text: '', done: false }] })}>{t('settings.todoAddItem')}</button>
@@ -80,9 +83,9 @@ export function widgetsItems(ctx: Ctx): Item[] {
         <Row label={t('settings.countdownDate')}><input className="sd-input" type="date" value={widget.props.targetDate} aria-label={t('settings.countdownDate')} onChange={event => patchWidget({ targetDate: event.target.value })} /></Row>
         <Row label={t('settings.countdownFormat')}><Select ctx={ctx} label={t('settings.countdownFormat')} value={widget.props.format ?? 'days'} options={[{ value: 'days', label: t('settings.countdownDays') }, { value: 'detailed', label: t('settings.countdownDetailed') }]} onChange={format => patchWidget({ format })} /></Row>
       </>
-      return { id: `productivity-${widget.id}`, keys: [productLabel[widget.type], 'settings.widgetTitle', 'settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.removeWidget'], node: <div className="sd-note"><strong>{t(productLabel[widget.type])}</strong>
+      return { id: `productivity-${widget.id}`, keys: [widget.type === 'weather' ? 'settings.widgets' : productLabel[widget.type], 'settings.widgetTitle', 'settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.removeWidget'], node: <div className="sd-note"><strong>{productTitle(widget.type)}</strong>
         <Toggle label={t('settings.widgets')} checked={!widget.hidden} onChange={visible => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, hidden: !visible } : item) }))} />
-        <Row label={t('settings.widgetTitle')}><input className="sd-input" maxLength={120} value={title} aria-label={t('settings.widgetTitle')} onChange={event => patchWidget({ title: event.target.value })} /></Row>
+        {widget.type !== 'weather' && <Row label={t('settings.widgetTitle')}><input className="sd-input" maxLength={120} value={title} aria-label={t('settings.widgetTitle')} onChange={event => patchWidget({ title: event.target.value })} /></Row>}
         {controls}
         <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areaNames(ctx.profile.layout.areas).map(area => ({ value: area, label: area === 'overview' ? t('settings.areaOverview') : area }))} onChange={area => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, area, order: Math.max(-1, ...profile.widgets.filter(other => other.area === area).map(other => other.order)) + 1 } : item) }))} /></Row>
         <Row label={t('settings.widgetOrder')}><button className="sd-button" type="button" aria-label={t('settings.widgetOrder')} onClick={() => { const siblings = ctx.profile.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order); const index = siblings.findIndex(item => item.id === widget.id); if (index > 0) { [siblings[index - 1], siblings[index]] = [siblings[index], siblings[index - 1]]; const order = new Map(siblings.map((item, i) => [item.id, i])); change(profile => touch({ ...profile, widgets: profile.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })) } }}>↑</button><button className="sd-button" type="button" onClick={() => { const siblings = ctx.profile.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order); const index = siblings.findIndex(item => item.id === widget.id); if (index < siblings.length - 1) { [siblings[index + 1], siblings[index]] = [siblings[index], siblings[index + 1]]; const order = new Map(siblings.map((item, i) => [item.id, i])); change(profile => touch({ ...profile, widgets: profile.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })) } }}>↓</button></Row>

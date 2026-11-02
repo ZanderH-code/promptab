@@ -64,6 +64,19 @@
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar button::before { content: none; }
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar { flex: 0 0 auto; justify-content: flex-end; }
   .mnt-layout[data-layout-template="banner"] [data-area="websites"] { display: grid; }
+  .mnt-weather { width: min(100%, 360px); margin-inline: auto; color: var(--mnt-text); }
+  .mnt-weather-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--mnt-space-3); }
+  .mnt-weather-heading h2 { margin: 0; font: inherit; font-size: var(--mnt-text-md); }
+  .mnt-weather-refresh { border: 1px solid var(--mnt-border); border-radius: 999px; padding: 5px 10px; background: var(--mnt-surface); color: var(--mnt-text); font: inherit; font-size: var(--mnt-text-xs); cursor: pointer; }
+  .mnt-weather-refresh:disabled { opacity: .6; cursor: wait; }
+  .mnt-weather-current { display: flex; align-items: center; justify-content: center; gap: var(--mnt-space-3); margin-block: var(--mnt-space-3); }
+  .mnt-weather-current svg, .mnt-weather-days svg { color: var(--mnt-accent); flex: none; }
+  .mnt-weather-current strong { font-size: var(--mnt-text-xl); font-variant-numeric: tabular-nums; }
+  .mnt-weather-current span { color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
+  .mnt-weather-days { display: grid; gap: var(--mnt-space-2); padding: 0; margin: 0; list-style: none; }
+  .mnt-weather-days li { display: flex; align-items: center; justify-content: space-between; gap: var(--mnt-space-2); font-size: var(--mnt-text-xs); }
+  .mnt-weather-updated, .mnt-weather-empty, .mnt-weather-status { margin: var(--mnt-space-2) 0 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-xs); }
+  .mnt-weather-status { color: var(--mnt-danger, var(--mnt-accent)); }
 
   @media (max-width: 600px) { .desktop { margin: 50px auto; } }
   @media (max-width: 639px) { .grid { --mnt-effective-icon: min(var(--mnt-icon-size), 64px); --mnt-grid-columns: min(var(--mnt-columns), var(--mnt-item-count), 4); } }

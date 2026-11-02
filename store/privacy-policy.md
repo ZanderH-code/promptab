@@ -22,6 +22,7 @@ The extension does not operate a general background data-collection channel. Net
 - When you submit a search, the browser navigates to the search URL template configured in your settings. Your query is sent to the search provider you selected, under that provider's privacy policy.
 - When you open a shortcut, the browser navigates to that website. The destination receives the request according to its own policies.
 - If you choose a remote wallpaper or import a remote image into a shortcut, the browser fetches that URL so the image can be displayed and stored locally. The remote host may receive the request.
+- The optional weather widget contacts Open-Meteo only after you click a weather action. City search sends the city name to `https://geocoding-api.open-meteo.com/*`. Loading weather sends the selected city's coordinates, or coordinates from a one-time location request, to `https://api.open-meteo.com/*`. Current location is requested only after you click the location button; the extension does not track location in the background. Weather responses are cached locally for at least 30 minutes and may be shown with their last-updated time when offline.
 
 The extension does not sell personal information or use these direct feature requests for its own analytics.
 
@@ -47,4 +48,4 @@ Promptab 不包含账号、广告 SDK、分析或遥测服务。设置、配置�
 
 AI 工作台可以手动复制提示包，也可以使用你自己的 API 密钥直接发送给 Anthropic 或 OpenAI。点击发送时会请求所选服务商域名的可选访问权限，并向其发送提示包、模型和密钥；提示包包含你的需求，不会自动附带当前主题、CSS 或书签；你在需求中输入的内容会被包含。密钥仅保存在界面会话内，不写入扩展存储；服务商的隐私政策和收费标准适用，API 使用可能产生费用。
 
-自动网站图标会优先使用浏览器的 favicon 接口，并可能回退请求相应网站 origin 的 `/favicon.ico`。搜索提交会把查询发送到你配置的搜索服务，打开快捷方式会访问对应网站；远程壁纸或远程图片导入也会向相应地址发起请求。这些请求由你主动使用的功能触发，并受目标服务的隐私政策约束。扩展本身不通过这些请求进行分析或出售个人信息。
+自动网站图标会优先使用浏览器的 favicon 接口，并可能回退请求相应网站 origin 的 `/favicon.ico`。搜索提交会把查询发送到你配置的搜索服务，打开快捷方式会访问对应网站；远程壁纸或远程图片导入也会向相应地址发起请求。可选天气组件只在你点击相关操作后联系 Open-Meteo：城市搜索会发送城市名称，加载天气会发送所选城市坐标或一次性定位得到的坐标。只有点击定位按钮后才请求当前位置，不会在后台持续跟踪。天气结果至少在本地缓存 30 分钟，离线时可以显示缓存和更新时间。这些请求由你主动使用的功能触发，并受目标服务的隐私政策约束。扩展本身不通过这些请求进行分析或出售个人信息。

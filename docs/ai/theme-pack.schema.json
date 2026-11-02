@@ -1323,6 +1323,77 @@
               "props"
             ],
             "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "area": {
+                "type": "string"
+              },
+              "order": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "hidden": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string",
+                "const": "weather"
+              },
+              "props": {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "number"
+                  },
+                  "align": {
+                    "type": "string",
+                    "enum": [
+                      "left",
+                      "center",
+                      "right"
+                    ]
+                  },
+                  "city": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "enum": [
+                      "celsius",
+                      "fahrenheit"
+                    ]
+                  },
+                  "showForecast": {
+                    "type": "boolean"
+                  },
+                  "currentLocation": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": {}
+              }
+            },
+            "required": [
+              "id",
+              "area",
+              "order",
+              "type",
+              "props"
+            ],
+            "additionalProperties": false
           }
         ]
       }

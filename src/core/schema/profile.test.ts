@@ -154,6 +154,7 @@ describe('profile v2 schema', () => {
       widget('todo', { title: 'Today', items: [{ id: 'one', text: 'Read', done: false }], hideCompleted: true }),
       widget('note', { title: 'Idea', content: 'Remember this' }),
       widget('countdown', { title: 'Launch', targetDate: '2027-01-01', format: 'detailed' }),
+      widget('weather', { city: 'London', latitude: 51.5, longitude: -0.12, unit: 'celsius', showForecast: true }),
     ]
     expect(profileV2Schema.safeParse(widgets(...additions)).success).toBe(true)
     expect(profileIssues(widgets(widget('todo', { items: [{ id: '', text: '', done: 'no' }] })))[0].path).toContain('widgets.0.props.items.0')

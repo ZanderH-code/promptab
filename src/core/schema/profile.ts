@@ -72,6 +72,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('todo'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), items: z.array(z.object({ id: nonempty, text: z.string().max(500), done: z.boolean() })).max(100), hideCompleted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('note'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), content: z.string().max(10000) }) }),
   z.object({ ...widgetBase, type: z.literal('countdown'), props: z.looseObject({ ...common, title: z.string().max(120), targetDate: isoDate, format: z.enum(['days', 'detailed']).optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('weather'), props: z.looseObject({ ...common, city: z.string().max(120).optional(), latitude: z.number().optional(), longitude: z.number().optional(), unit: z.enum(['celsius', 'fahrenheit']).optional(), showForecast: z.boolean().optional(), currentLocation: z.boolean().optional() }) }),
 ])
 export type Widget = z.infer<typeof widgetSchema>
 
