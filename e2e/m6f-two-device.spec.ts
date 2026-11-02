@@ -60,9 +60,11 @@ test('two devices resolve opt-in, sync edits, undo pulls and disable locally', a
   try {
     const a = await device('#123456')
     const b = await device('#654321')
-    const profileId = (page: Page) => page.evaluate(() => {
-      const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
-      return JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!).profiles.activeProfileId as string
+    const profileId = (page: Page) => page.evaluate(async () => {
+      const storage = (window.chrome as unknown as { storage: { local: { get(key: string): Promise<Record<string, unknown>> } } }).storage.local
+      const index = JSON.parse(String((await storage.get('profiles:v2:index'))['profiles:v2:index']))
+      const key = `profiles:v2:generation:${index.generation}`
+      return JSON.parse(String((await storage.get(key))[key])).profiles.activeProfileId as string
     })
     expect(await profileId(a)).not.toBe(await profileId(b))
     const openSync = async (page: Page) => { await page.locator('.settings-button').click(); await openTab(page, 'data') }
