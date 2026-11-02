@@ -26,23 +26,23 @@ await new Promise(r => setTimeout(r, 3500))
 
 const browser = await chromium.launch()
 const themesToCapture = [
-  { id: 'warm-study', name: 'Warm Study', pack: 'warm-study', promptEn: 'An amber-lit study with literary type and warm paper tones', promptZh: '琥珀灯光下的书房，文字带有书卷气' },
-  { id: 'cyber-grid', name: 'Cyber Grid', pack: 'cyber-grid', promptEn: 'Dark terminal-inspired page with cyan details and sharp monospace clock', promptZh: '深色终端风格页面，以青色荧光与利落等宽时钟为主' },
-  { id: 'swiss-minimal', name: 'Swiss Minimal', pack: 'swiss-minimal', promptEn: 'Swiss graphic design: high-contrast layout, crisp borders and modern sans', promptZh: '瑞士平面设计风格：现代无衬线体、克制留白与利落线条' },
-  { id: 'plum-night', name: 'Plum Night', pack: 'plum-night', promptEn: 'Quiet midnight desk: deep plum palette, soft glow on clock, and rounded cards', promptZh: '静谧梅紫夜色：深邃紫调、柔和时钟光晕与精致圆角' },
+  { id: 'warm-study', name: 'Warm Study', badge: 'Cormorant Serif · Amber Paper', pack: 'warm-study', promptEn: 'An amber-lit study with literary type, warm paper tones, and minimal links' },
+  { id: 'cyber-grid', name: 'Cyber Grid', badge: 'Mono Terminal · Cyan Glow', pack: 'cyber-grid', promptEn: 'Dark terminal-inspired page with cyan details, sharp clock, and compact shortcuts' },
+  { id: 'swiss-minimal', name: 'Swiss Minimal', badge: 'Modern Sans · Crisp Alignment', pack: 'swiss-minimal', promptEn: 'Swiss graphic design: high-contrast layout, crisp borders and modern sans' },
+  { id: 'plum-night', name: 'Plum Night', badge: 'Soft Glow · Deep Purple', pack: 'plum-night', promptEn: 'Quiet midnight desk: deep plum palette, soft glow on clock, and rounded cards' },
 ]
 
 const captured = {}
 
 for (const item of themesToCapture) {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, locale: 'en-US' })
   await page.clock.install({ time: new Date('2026-11-02T19:24:00Z') })
   await page.route('**/favicon.ico', route => route.abort())
 
-  // Seed with realistic shortcuts
+  // Seed with realistic shortcuts in English
   await page.addInitScript(shortcuts => {
     localStorage.setItem('settings', JSON.stringify({
-      schemaVersion: 1, language: 'zh-CN', theme: 'dark', accent: '#90d5cd', background: '#102932',
+      schemaVersion: 1, language: 'en', theme: 'dark', accent: '#90d5cd', background: '#102932',
       showClock: true, showDate: true, showSearch: true, hour12: false,
       searchTemplate: 'https://www.google.com/search?q={query}',
       shortcuts, columns: 6, iconSize: 64, iconShape: 'circle', alignment: 'center', layout: 'stacked', reverse: false, overlay: 35,
@@ -72,15 +72,17 @@ for (const item of themesToCapture) {
   await page.waitForTimeout(500)
   await page.addStyleTag({ content: '.undo-toast { display: none !important; }' })
 
+  // Save individual full-resolution screenshots in English
   const screenshotBuf = await page.screenshot({ fullPage: false })
+  writeFileSync(resolve(root, `docs/assets/theme-${item.id}.png`), screenshotBuf)
   captured[item.id] = `data:image/png;base64,${screenshotBuf.toString('base64')}`
-  console.log(`Captured ${item.name}`)
+  console.log(`Saved individual screenshot: docs/assets/theme-${item.id}.png`)
   await page.close()
 }
 
 const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/brand/logo.svg')).toString('base64')}`
 
-// 1. Social Preview (1280x640)
+// 1. Social Preview (1280x640) - English First
 {
   const page = await browser.newPage({ viewport: { width: 1280, height: 640 } })
   const html = `<!DOCTYPE html>
@@ -91,7 +93,7 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     width: 1280px; height: 640px;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: radial-gradient(circle at 75% 25%, #183842 0%, #0d2127 50%, #061216 100%);
     color: #eeeae5;
     position: relative;
@@ -136,26 +138,26 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     font-weight: 600;
   }
   h1 {
-    font-size: 42px;
+    font-size: 44px;
     line-height: 1.15;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: #fff;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
   }
   h1 span {
     background: linear-gradient(135deg, #90d5cd 0%, #bbf0e9 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .tagline-cn {
-    font-size: 19px;
+  .tagline {
+    font-size: 20px;
     color: #adc4cc;
-    font-weight: 400;
+    font-weight: 500;
     margin-bottom: 10px;
   }
   .description {
-    font-size: 13.5px;
+    font-size: 14px;
     color: #819ea8;
     line-height: 1.6;
     max-width: 440px;
@@ -245,8 +247,8 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     </div>
     <div class="headline-group">
       <h1>Your New Tab,<br><span>Designed by AI</span></h1>
-      <p class="tagline-cn">一句话，让 AI 为你设计新标签页</p>
-      <p class="description">Bring your own AI — ChatGPT, Claude, Kimi or DeepSeek. Free, local-first, zero tracking, and infinitely customizable.</p>
+      <p class="tagline">Describe it. Paste it. Done.</p>
+      <p class="description">Bring any AI you already use — ChatGPT, Claude, Kimi or DeepSeek. Free, local-first, zero tracking, and infinitely customizable.</p>
     </div>
     <div class="badges">
       <div class="badge"><span class="badge-dot"></span> Bring Your Own AI</div>
@@ -275,9 +277,9 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
   await page.close()
 }
 
-// 2. Showcase Grid (1280x800) featuring 4 original Promptab themes with their exact prompts
+// 2. Showcase Grid (1280x1180) - English First, Perfectly Proportioned, Zero Truncation
 {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+  const page = await browser.newPage({ viewport: { width: 1280, height: 1180 } })
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -285,14 +287,14 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    width: 1280px; height: 800px;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #0a1317;
+    width: 1280px; height: 1180px;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #091216;
     color: #eeeae5;
-    padding: 36px 40px;
+    padding: 40px;
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 26px;
   }
   .header {
     display: flex;
@@ -302,7 +304,7 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     padding-bottom: 18px;
   }
   .title-group h2 {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 800;
     letter-spacing: 0.04em;
     color: #fff;
@@ -314,38 +316,40 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
   .title-group p {
     font-size: 14px;
     color: #8da4ad;
-    margin-top: 4px;
+    margin-top: 6px;
   }
   .header-badge {
     font-size: 12px;
     color: #90d5cd;
     background: rgba(144, 213, 205, 0.12);
     border: 1px solid rgba(144, 213, 205, 0.3);
-    padding: 5px 12px;
+    padding: 6px 14px;
     border-radius: 999px;
     font-weight: 600;
+    letter-spacing: 0.05em;
   }
   .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 24px;
-    flex: 1;
+    grid-template-rows: auto auto;
+    gap: 26px;
   }
   .cell {
     border-radius: 14px;
     overflow: hidden;
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
     background: #121c22;
     display: flex;
     flex-direction: column;
   }
   .cell-preview {
-    flex: 1;
+    width: 100%;
+    height: 366px;
     overflow: hidden;
     position: relative;
+    background: #000;
   }
   .cell-preview img {
     width: 100%;
@@ -355,12 +359,12 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     display: block;
   }
   .cell-footer {
-    padding: 12px 16px;
-    background: rgba(12, 22, 27, 0.95);
+    padding: 16px 20px;
+    background: #0d161b;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
   }
   .cell-meta {
     display: flex;
@@ -368,16 +372,16 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     justify-content: space-between;
   }
   .cell-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: #fff;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
   }
   .cell-pill {
-    font-size: 10.5px;
-    padding: 2px 8px;
+    font-size: 11px;
+    padding: 3px 9px;
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.08);
     color: #90d5cd;
@@ -386,8 +390,8 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     font-weight: 600;
   }
   .cell-prompt {
-    font-size: 11.5px;
-    color: #92a8b0;
+    font-size: 12.5px;
+    color: #96adb5;
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
     white-space: nowrap;
     overflow: hidden;
@@ -400,7 +404,7 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
   <div class="header">
     <div class="title-group">
       <h2><span>✦</span> PROMPTAB ORIGINAL SHOWCASE</h2>
-      <p>每一套外观都对应一句自然的 AI 提示词，即说即用，完全本地渲染。</p>
+      <p>Every layout corresponds to a natural-language AI prompt, rendered 100% locally in your browser.</p>
     </div>
     <div class="header-badge">AI-NATIVE THEMES</div>
   </div>
@@ -411,8 +415,8 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
       </div>
       <div class="cell-footer">
         <div class="cell-meta">
-          <span class="cell-title">Warm Study · 书卷暖调</span>
-          <span class="cell-pill">Cormorant Serif</span>
+          <span class="cell-title">Warm Study</span>
+          <span class="cell-pill">Cormorant Serif · Amber Paper</span>
         </div>
         <div class="cell-prompt"><span class="prompt-quote">AI Prompt:</span> "${themesToCapture[0].promptEn}"</div>
       </div>
@@ -423,8 +427,8 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
       </div>
       <div class="cell-footer">
         <div class="cell-meta">
-          <span class="cell-title">Cyber Grid · 极客终端</span>
-          <span class="cell-pill">Mono Terminal</span>
+          <span class="cell-title">Cyber Grid</span>
+          <span class="cell-pill">Mono Terminal · Cyan Glow</span>
         </div>
         <div class="cell-prompt"><span class="prompt-quote">AI Prompt:</span> "${themesToCapture[1].promptEn}"</div>
       </div>
@@ -435,8 +439,8 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
       </div>
       <div class="cell-footer">
         <div class="cell-meta">
-          <span class="cell-title">Swiss Minimal · 瑞士极简</span>
-          <span class="cell-pill">Outfit Sans</span>
+          <span class="cell-title">Swiss Minimal</span>
+          <span class="cell-pill">Modern Sans · Crisp Alignment</span>
         </div>
         <div class="cell-prompt"><span class="prompt-quote">AI Prompt:</span> "${themesToCapture[2].promptEn}"</div>
       </div>
@@ -447,8 +451,8 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
       </div>
       <div class="cell-footer">
         <div class="cell-meta">
-          <span class="cell-title">Plum Night · 静谧梅紫</span>
-          <span class="cell-pill">Soft Glow</span>
+          <span class="cell-title">Plum Night</span>
+          <span class="cell-pill">Soft Glow · Deep Purple</span>
         </div>
         <div class="cell-prompt"><span class="prompt-quote">AI Prompt:</span> "${themesToCapture[3].promptEn}"</div>
       </div>
@@ -458,10 +462,10 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
 </html>`
   await page.setContent(html)
   await page.screenshot({ path: resolve(root, 'docs/assets/showcase-grid.png') })
-  console.log('Saved docs/assets/showcase-grid.png')
+  console.log('Saved uncropped docs/assets/showcase-grid.png')
   await page.close()
 }
 
 await browser.close()
 preview.kill()
-console.log('Done rendering original showcase!')
+console.log('All promotional assets generated successfully!')
