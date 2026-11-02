@@ -9,6 +9,7 @@ import { buildErrorFeedback, fixText, problemText, warningText } from '../../cor
 import type { MessageKey } from '../../i18n'
 import { Dropdown } from '../../ui/Dropdown'
 import { useAiState } from './aiState'
+import { ByokPanel } from './ByokPanel'
 import { Toggle } from './controls'
 import type { Ctx } from './rows'
 
@@ -124,6 +125,8 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
           <span className="sd-ai-notice" role="status">{notice ? t(notice) : ''}</span>
         </div>
       </section>
+
+      <ByokPanel ctx={ctx} prompt={buildPromptPack({ language: ctx.s.language, request: state.request, current: null })} onReply={reply => edit({ reply, pick: 0 })} />
 
       <section className="sd-ai-step" aria-labelledby="ai-step2">
         <h4 id="ai-step2">{t('ai.step2')}</h4>

@@ -27,7 +27,7 @@ The extension does not sell personal information or use these direct feature req
 
 ## Backups, exports, and AI features
 
-Backup and export actions create files or copied data only when you request them. The extension's AI workbench prepares and validates theme/profile data locally; it does not contain a built-in AI network client. If you copy generated content into another AI service yourself, that service's policy applies.
+Backup and export actions create files or copied data only when you request them. The AI workbench prepares and validates theme/profile data locally. You can copy a prompt to an AI service yourself, or optionally send it directly using your own Anthropic or OpenAI API key. Direct sending requests optional access to the selected provider's fixed origin, `https://api.anthropic.com/*` or `https://api.openai.com/*`, when you click send. It sends the prompt, selected model and API key to that provider. The direct-send prompt includes your request and does not automatically include your current theme, CSS or bookmarks; anything you enter in your request is included. The key is held in the interface's memory and is not saved to extension storage. Provider privacy policies and charges apply; API use may incur fees. Provider replies are placed in the workbench for local validation.
 
 ## Data deletion
 
@@ -44,5 +44,7 @@ This policy is informational and is not legal advice.
 ## 中文摘要
 
 Promptab 不包含账号、广告 SDK、分析或遥测服务。设置、配置文件、书签/快捷方式、主题、自定义 CSS 以及本地图片和字体保存在浏览器扩展存储中。`bookmarks` 权限为可选权限，仅在你主动选择导入浏览器书签时请求；拒绝后仍可使用其他功能。
+
+AI 工作台可以手动复制提示包，也可以使用你自己的 API 密钥直接发送给 Anthropic 或 OpenAI。点击发送时会请求所选服务商域名的可选访问权限，并向其发送提示包、模型和密钥；提示包包含你的需求，不会自动附带当前主题、CSS 或书签；你在需求中输入的内容会被包含。密钥仅保存在界面会话内，不写入扩展存储；服务商的隐私政策和收费标准适用，API 使用可能产生费用。
 
 自动网站图标会优先使用浏览器的 favicon 接口，并可能回退请求相应网站 origin 的 `/favicon.ico`。搜索提交会把查询发送到你配置的搜索服务，打开快捷方式会访问对应网站；远程壁纸或远程图片导入也会向相应地址发起请求。这些请求由你主动使用的功能触发，并受目标服务的隐私政策约束。扩展本身不通过这些请求进行分析或出售个人信息。
