@@ -2,13 +2,26 @@
 
 # Promptab
 
-English | [简体中文](README.zh-CN.md)
+English | [简体中文](README.zh-CN.md) · [Official Website](https://zanderh-code.github.io/promptab/) · [Theme Gallery](https://zanderh-code.github.io/promptab/gallery/index.json) · [Privacy Policy](https://zanderh-code.github.io/promptab/privacy/)
 
 **Describe it. Paste it. Done.**
 
 Your new tab, designed by your AI. Bring any AI you already use—ChatGPT, Claude, Kimi, DeepSeek, and more. No Promptab account, API key, or AI credits required. Preview changes, undo anytime, and keep your data on this device.
 
 ![Promptab demo: creating a paper theme with AI](docs/assets/demo.gif)
+
+## ✨ AI-Native Themes & Original Layouts
+
+Promptab transforms natural-language prompts into custom themes, layouts, typography, and color palettes—all rendered 100% locally in your browser.
+
+![Promptab original themes showcase](docs/assets/showcase-grid.png)
+
+| Theme | Style & Typography | Example AI Prompt |
+| --- | --- | --- |
+| **Warm Study** | Cormorant Serif · Amber Paper | `"An amber-lit study with literary type, warm paper tones, and minimal links"` |
+| **Cyber Grid** | Mono Terminal · Cyan Glow | `"Dark terminal-inspired page with cyan details and sharp monospace clock"` |
+| **Swiss Minimal** | Modern Sans · Crisp Alignment | `"Swiss graphic design: high-contrast layout, crisp borders and modern sans"` |
+| **Plum Night** | Soft Glow · Deep Purple | `"Quiet midnight desk: deep plum palette, soft glow on clock, and rounded cards"` |
 
 ## Features
 
