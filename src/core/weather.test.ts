@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
-import { fetchWeatherForecast, parseOpenMeteoForecast, weatherIconForCode, type WeatherCache } from './weather'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fetchWeatherForecast, parseOpenMeteoForecast, requestWeatherPermission, weatherIconForCode, type WeatherCache } from './weather'
+
+afterEach(() => vi.unstubAllGlobals())
 
 const payload = {
   current: { temperature_2m: 18.5, weather_code: 2 },
@@ -18,6 +20,24 @@ function memoryCache(): WeatherCache {
     setItem: (key, value) => { values.set(key, value) },
   }
 }
+
+describe('weather permissions', () => {
+  it.each(['forecast', 'geocoding'] as const)('requests Firefox location consent with %s access in the user gesture', async service => {
+    const request = vi.fn().mockResolvedValue(false)
+    vi.stubGlobal('browser', { permissions: { request } })
+    const result = requestWeatherPermission(service)
+    const origin = service === 'forecast' ? 'https://api.open-meteo.com/*' : 'https://geocoding-api.open-meteo.com/*'
+    expect(request).toHaveBeenCalledWith({ origins: [origin], data_collection: ['locationInfo'] })
+    await expect(result).resolves.toBe(false)
+  })
+
+  it('requests only host access on Chromium', async () => {
+    const request = vi.fn().mockResolvedValue(true)
+    vi.stubGlobal('chrome', { permissions: { request } })
+    await expect(requestWeatherPermission('forecast')).resolves.toBe(true)
+    expect(request).toHaveBeenCalledWith({ origins: ['https://api.open-meteo.com/*'] })
+  })
+})
 
 describe('weather data', () => {
   it('converts an Open-Meteo response into a compact forecast snapshot', () => {
