@@ -39,6 +39,20 @@ describe('profile store', () => {
     expect(store.getState().profiles.a.custom.css).toBe('one')
   })
 
+  it('keeps profile update timestamps monotonic, including undo after a cloud pull', async () => {
+    const { store } = setup()
+    await store.getState().initialize()
+    const original = store.getState().profiles.a.meta.updatedAt
+    await store.getState().updateProfile('a', p => ({ ...p, custom: { ...p.custom, css: 'local edit' } }))
+    const first = store.getState().profiles.a.meta.updatedAt
+    expect(Date.parse(first)).toBeGreaterThan(Date.parse(original))
+
+    await store.getState().updateProfile('a', p => ({ ...p, meta: { ...p.meta, name: 'Cloud', updatedAt: '2030-01-01T00:00:00.000Z' } }))
+    expect(store.getState().profiles.a.meta.updatedAt).toBe('2030-01-01T00:00:00.000Z')
+    await store.getState().undo('a')
+    expect(Date.parse(store.getState().profiles.a.meta.updatedAt)).toBeGreaterThan(Date.parse('2030-01-01T00:00:00.000Z'))
+  })
+
   it('keeps drafts and previews in memory only', async () => {
     const { store, writes } = setup()
     await store.getState().initialize()

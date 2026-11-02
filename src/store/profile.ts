@@ -52,6 +52,12 @@ function validateProfile(value: unknown, id?: string): ProfileV2 {
   return profile
 }
 
+function advanceUpdatedAt(profile: ProfileV2, previous: ProfileV2, now: number): ProfileV2 {
+  const previousTime = Date.parse(previous.meta.updatedAt)
+  if (Date.parse(profile.meta.updatedAt) <= previousTime) profile.meta.updatedAt = new Date(Math.max(now, previousTime + 1)).toISOString()
+  return profile
+}
+
 function validateHistoryEntry(entry: ProfileHistory<ProfileV2>, id: string): ProfileHistory<ProfileV2> {
   if (!entry || !Array.isArray(entry.snapshots) || !(entry.lastEditAt === null || (typeof entry.lastEditAt === 'number' && Number.isFinite(entry.lastEditAt)))) throw new Error('Invalid history entry')
   const snapshots = entry.snapshots.map(snapshot => {
@@ -146,7 +152,7 @@ export function createProfileStore(options: Options) {
     const current = (): Committed => ({ profiles: get().profiles, activeProfileId: get().activeProfileId, history: get().history, archived: get().archived })
     const update = (id: string, fn: (p: ProfileV2) => ProfileV2, kind: ChangeKind = 'edit') => transaction(() => {
       const old = existing(id)
-      const profile = validateProfile(fn(structuredClone(old)), id)
+      const profile = advanceUpdatedAt(validateProfile(fn(structuredClone(old)), id), old, historyOptions.now())
       const next = { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, kind, historyOptions) }
       return { next, after: () => { undos.set(id, [...(undos.get(id) ?? []), structuredClone(old)]) } }
     })
@@ -165,7 +171,7 @@ export function createProfileStore(options: Options) {
         const old = existing(id)
         const stack = undos.get(id)
         if (!stack?.length) throw new Error('Nothing to undo')
-        const profile = stack[stack.length - 1]
+        const profile = advanceUpdatedAt(structuredClone(stack[stack.length - 1]), old, historyOptions.now())
         return { next: { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, 'restore', historyOptions) }, after: () => { stack.pop() } }
       }),
       setDraft: (id, value) => { existing(id); set({ draft: { profileId: id, profile: validateProfile(value, id) } }) },
@@ -175,7 +181,8 @@ export function createProfileStore(options: Options) {
       restoreSnapshot: (id, snapshotId) => transaction(() => {
         const old = existing(id)
         const restored = restoreSnapshot(get().history, old, snapshotId, historyOptions)
-        return { next: { ...current(), history: restored.history, profiles: { ...get().profiles, [id]: validateProfile(restored.profile, id) } }, after: () => { undos.set(id, [...(undos.get(id) ?? []), structuredClone(old)]) } }
+        const profile = advanceUpdatedAt(validateProfile(restored.profile, id), old, historyOptions.now())
+        return { next: { ...current(), history: restored.history, profiles: { ...get().profiles, [id]: profile } }, after: () => { undos.set(id, [...(undos.get(id) ?? []), structuredClone(old)]) } }
       }),
       pinSnapshot: (id, snapshotId, pinned) => transaction(() => { existing(id); return { next: { ...current(), history: setSnapshotPin(get().history, id, snapshotId, pinned) } } }),
       createProfile: value => transaction(() => {

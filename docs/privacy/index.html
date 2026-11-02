@@ -43,8 +43,8 @@
         <li>The optional weather widget contacts Open-Meteo only after you click a weather action. City search sends the city name to <code>geocoding-api.open-meteo.com</code>; loading weather sends the selected city's coordinates, or coordinates from a one-time location request, to <code>api.open-meteo.com</code>. Location is requested only after you click its button, with no background tracking. Weather is cached locally for at least 30 minutes and may be shown with its last-updated time when offline.</li>
       </ul>
       <p>These services have their own privacy policies. Promptab does not use these requests for analytics or sell personal information.</p>
-      <h3>Backups and AI</h3>
-      <p>Backups and exports are created only when you request them. The AI workbench prepares and validates data locally and has no built-in AI network client. If you share content with an AI service yourself, that service's policy applies.</p>
+      <h3>Backups, browser sync and AI</h3>
+      <p>Backups and exports are created only when you request them. Browser Sync is off by default. If enabled, shortcut/group data, theme settings, layout and update metadata are written to <code>chrome.storage.sync</code>, which Chrome processes for your signed-in browser account under Google's terms. Wallpaper, video, uploaded fonts and bookmark images stay in local IndexedDB. Turning sync off removes Promptab's sync keys. The AI workbench prepares and validates data locally and has no built-in AI network client. If you share content with an AI service yourself, that service's policy applies.</p>
       <h3>Deleting data and policy changes</h3>
       <p>Use the extension's reset or delete controls, or your browser's extension storage controls, to remove data. Uninstalling removes browser-managed extension storage subject to browser behavior; exported files remain wherever you saved them. This policy may change when data practices change. The Promptab repository provides project contact details.</p>
     </section>
@@ -65,8 +65,8 @@
         <li>可选天气组件只在你点击相关操作后联系 Open-Meteo。城市搜索会向 <code>geocoding-api.open-meteo.com</code> 发送城市名称；加载天气会向 <code>api.open-meteo.com</code> 发送所选城市坐标或一次性定位得到的坐标。只有点击定位按钮后才请求位置，不会在后台持续跟踪。天气至少在本地缓存 30 分钟，离线时可以显示缓存和更新时间。</li>
       </ul>
       <p>这些服务适用各自的隐私政策。Promptab 不使用这些请求进行分析，也不出售个人信息。</p>
-      <h3>备份与 AI</h3>
-      <p>备份和导出只在你主动操作时生成。AI 工作台在本地准备和校验数据，没有内置 AI 网络客户端。如果你自行向 AI 服务分享内容，该服务的隐私政策适用。</p>
+      <h3>备份、浏览器同步与 AI</h3>
+      <p>备份和导出只在你主动操作时生成。浏览器同步默认关闭；启用后，快捷方式/分组、主题设置、布局和更新时间会写入 <code>chrome.storage.sync</code>，由 Chrome 根据 Google 条款为你已登录的浏览器账号处理。壁纸、视频、上传的字体和书签图片仍保存在本地 IndexedDB。关闭同步会删除 Promptab 的同步条目。AI 工作台在本地准备和校验数据，没有内置 AI 网络客户端。如果你自行向 AI 服务分享内容，该服务的隐私政策适用。</p>
       <h3>删除数据与政策变更</h3>
       <p>你可以通过扩展的重置或删除控件，或浏览器的扩展存储控件删除数据。卸载扩展会删除浏览器管理的扩展存储，具体取决于浏览器行为；你导出的文件仍保留在保存位置。如果数据处理方式发生变化，本政策可能更新。项目联系信息见 Promptab 仓库。</p>
     </section>

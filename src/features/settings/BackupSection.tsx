@@ -5,6 +5,7 @@ import { toMessageRef, type MessageKey, type MessageRef, type Translate } from '
 import { createBackupV2Service } from '../../storage/backup-v2'
 import { assets } from '../../app/useSettings'
 import { createAppProfileStorage, type AppProfileStore } from '../../app/useSettings'
+import { SyncSection } from './SyncSection'
 
 type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean; store?: AppProfileStore }
 
@@ -84,16 +85,19 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
   }
 
   return (
-    <section aria-labelledby="data-settings" aria-busy={busy}>
-      <h3 id="data-settings">{t('settings.data')}</h3>
-      <p>{t('settings.dataHint')}</p>
-      <div className="backup-actions">
-        {!recovery && <button className="reset" disabled={busy} onClick={() => void exportFile()}><Download size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.export')}</button>}
-        <button className="reset" disabled={busy} onClick={() => fileInput.current?.click()}><Upload size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.import')}</button>
-      </div>
-      <input ref={fileInput} className="visually-hidden" type="file" accept="application/json,.json" aria-label={t('settings.import')} disabled={busy} onChange={event => void importFile(event.target.files?.[0])} />
-      {status && <p role="status">{t(status)}</p>}
-    </section>
+    <>
+      <section aria-labelledby="data-settings" aria-busy={busy}>
+        <h3 id="data-settings">{t('settings.data')}</h3>
+        <p>{t('settings.dataHint')}</p>
+        <div className="backup-actions">
+          {!recovery && <button className="reset" disabled={busy} onClick={() => void exportFile()}><Download size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.export')}</button>}
+          <button className="reset" disabled={busy} onClick={() => fileInput.current?.click()}><Upload size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.import')}</button>
+        </div>
+        <input ref={fileInput} className="visually-hidden" type="file" accept="application/json,.json" aria-label={t('settings.import')} disabled={busy} onChange={event => void importFile(event.target.files?.[0])} />
+        {status && <p role="status">{t(status)}</p>}
+      </section>
+      {!recovery && <SyncSection settings={settings} store={store} />}
+    </>
   )
 }
 
