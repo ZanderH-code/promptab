@@ -94,6 +94,13 @@
 .sd-gallery article { min-width: 0; overflow-wrap: anywhere; font-size: var(--mnt-text-sm); }
 .sd-gallery .sd-preset, .sd-gallery .sd-preset-card { width: 100%; }
 .sd-gallery p { margin: 6px 0; }
+.sd-gallery .sd-gallery-preview { display: grid; gap: 3px; padding: 8px; }
+.sd-gallery-area { min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 3px; overflow: hidden; padding: 4px; border-radius: 3px; background: var(--mnt-surface); }
+.sd-gallery-widget { display: block; flex: 0 0 auto; width: 50%; height: 3px; border-radius: 2px; background: var(--mnt-text); opacity: .65; }
+.sd-gallery-widget-clock { width: 38%; height: 6px; opacity: .9; }
+.sd-gallery-widget-search { width: 85%; height: 5px; background: var(--mnt-accent); opacity: .75; }
+.sd-gallery-widget-bookmarks { width: 90%; height: 14px; background: repeating-linear-gradient(90deg, var(--mnt-accent) 0 8px, transparent 8px 11px); opacity: .8; }
+.sd-gallery-widget-spacer { background: transparent; }
 
 .sd-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--mnt-space-3) var(--mnt-space-2); padding: var(--mnt-space-2) 0; }
 .sd-preset { display: flex; flex-direction: column; gap: 6px; padding: 0; border: 0; background: none; color: var(--mnt-text); font: inherit; cursor: pointer; text-align: left; }

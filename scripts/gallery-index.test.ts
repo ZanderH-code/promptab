@@ -19,6 +19,7 @@ describe('gallery index generation', () => {
       const path = resolve(dir, 'docs/gallery/index.json')
       const first = readFileSync(path, 'utf8')
       const index = JSON.parse(first)
+      expect(index.version).toBe(2)
       expect(index.packs.length).toBeGreaterThanOrEqual(12)
       const packs = index.packs.map((entry: { file: string }) => JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8')))
       expect(packs.filter((pack: any) => ['gradient', 'accent'].includes(pack.background?.type)).length).toBeGreaterThanOrEqual(6)
@@ -31,6 +32,11 @@ describe('gallery index generation', () => {
       for (const entry of index.packs) {
         const pack = JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8'))
         expect(entry.colors).toEqual(entry.mode === 'light' ? (pack.theme.colorLight ?? pack.theme.color) : pack.theme.color)
+        expect(entry.layout).toBeDefined()
+        if (pack.layout) {
+          const firstArea = pack.layout.areas[0].trim().split(/\s+/)[0]
+          if (firstArea !== '.') expect(entry.layout.cells.some((cell: any) => cell.row === 1 && cell.column === 1 && cell.widgets.includes(pack.widgets.find((widget: any) => widget.area === firstArea && !widget.hidden)?.type))).toBe(true)
+        } else expect(entry.layout.cells.map((cell: any) => cell.widgets)).toEqual([['clock', 'date', 'search'], ['bookmarks']])
       }
       expect(index.packs.some((entry: { mode: string }) => entry.mode === 'light')).toBe(true)
       expect(index.packs.some((entry: { mode: string }) => entry.mode === 'dark')).toBe(true)

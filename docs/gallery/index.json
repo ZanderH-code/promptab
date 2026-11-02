@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "packs": [
     {
       "id": "arctic-day",
@@ -20,6 +20,32 @@
         "accent": "#225269"
       },
       "mode": "light",
+      "layout": {
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "bookmarks"
+            ]
+          }
+        ]
+      },
       "file": "packs/arctic-day.json"
     },
     {
@@ -41,6 +67,32 @@
         "accent": "#a8caff"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 1,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/business-navy.json"
     },
     {
@@ -62,6 +114,48 @@
         "accent": "#74e9f2"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 2,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "date"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "rowSpan": 2,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/cyber-grid.json"
     },
     {
@@ -83,6 +177,32 @@
         "accent": "#cdd9ff"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 1,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/indigo-ink.json"
     },
     {
@@ -104,6 +224,32 @@
         "accent": "#315d31"
       },
       "mode": "light",
+      "layout": {
+        "rows": 2,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          }
+        ]
+      },
       "file": "packs/natural-moss.json"
     },
     {
@@ -125,6 +271,39 @@
         "accent": "#a8e5ff"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 1,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/ocean-depths.json"
     },
     {
@@ -146,6 +325,32 @@
         "accent": "#58411d"
       },
       "mode": "light",
+      "layout": {
+        "rows": 1,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/paper-notes.json"
     },
     {
@@ -167,6 +372,32 @@
         "accent": "#f5c6ee"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 3,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date"
+            ]
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "search",
+              "bookmarks"
+            ]
+          }
+        ]
+      },
       "file": "packs/plum-night.json"
     },
     {
@@ -188,6 +419,48 @@
         "accent": "#c4e7ff"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 2,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "date"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "rowSpan": 2,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/slate-rain.json"
     },
     {
@@ -209,6 +482,32 @@
         "accent": "#a5241a"
       },
       "mode": "light",
+      "layout": {
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "bookmarks"
+            ]
+          }
+        ]
+      },
       "file": "packs/swiss-minimal.json"
     },
     {
@@ -230,6 +529,39 @@
         "accent": "#d9ccff"
       },
       "mode": "dark",
+      "layout": {
+        "rows": 1,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
       "file": "packs/violet-orbit.json"
     },
     {
@@ -251,6 +583,32 @@
         "accent": "#72451d"
       },
       "mode": "light",
+      "layout": {
+        "rows": 3,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date"
+            ]
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "search",
+              "bookmarks"
+            ]
+          }
+        ]
+      },
       "file": "packs/warm-study.json"
     }
   ]

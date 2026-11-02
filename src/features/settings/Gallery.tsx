@@ -7,17 +7,26 @@ import type { ProfileV2 } from '../../core/schema/profile'
 import type { Ctx } from './rows'
 
 const BASE = 'https://zanderh-code.github.io/promptab/gallery/'
-const CACHE = 'promptab.gallery.index.v1'
+const CACHE = 'promptab.gallery.index.v2'
 const MAX_BYTES = 512 * 1024
 const label = z.object({ en: z.string().min(1).max(500), 'zh-CN': z.string().min(1).max(500) }).strict()
 const color = z.string().regex(/^#[0-9a-f]{6}$/i)
+const dimension = z.number().int().min(1).max(16)
+const layout = z.object({ rows: dimension, columns: dimension, cells: z.array(z.object({
+  row: dimension, column: dimension, rowSpan: dimension, columnSpan: dimension,
+  widgets: z.array(z.enum(['clock', 'date', 'search', 'bookmarks', 'greeting', 'text', 'spacer', 'toolbar'])).max(16),
+}).strict()).max(256) }).strict().refine(value => value.cells.every(cell => cell.row + cell.rowSpan - 1 <= value.rows && cell.column + cell.columnSpan - 1 <= value.columns))
+const defaultLayout: z.infer<typeof layout> = { rows: 2, columns: 1, cells: [
+  { row: 1, column: 1, rowSpan: 1, columnSpan: 1, widgets: ['clock', 'date', 'search'] },
+  { row: 2, column: 1, rowSpan: 1, columnSpan: 1, widgets: ['bookmarks'] },
+] }
 const entry = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/).max(80), name: z.string().min(1).max(100), author: z.string().min(1).max(100),
   tags: z.array(z.string().min(1).max(50)).max(20), prompt: label,
   colors: z.object({ bg: color, surface: color, text: color, accent: color }).strict(),
-  mode: z.enum(['light', 'dark']), file: z.string(),
+  mode: z.enum(['light', 'dark']), layout: layout.optional(), file: z.string(),
 }).strict().refine(value => value.file === `packs/${value.id}.json`)
-const indexSchema = z.object({ version: z.literal(1), packs: z.array(entry).max(100) }).strict()
+const indexSchema = z.object({ version: z.literal(2), packs: z.array(entry).max(100) }).strict()
 type GalleryIndex = z.infer<typeof indexSchema>
 
 async function getText(path: string, signal: AbortSignal, maxBytes = MAX_BYTES): Promise<string> {
@@ -100,7 +109,11 @@ export function Gallery({ ctx, profile, onSelect }: { ctx: Ctx; profile: Profile
       const tokens = deriveTokens(item.colors, item.mode)
       return <article key={item.id}>
         <button type="button" className="sd-preset" disabled={loading} onClick={() => void select(item)}>
-          <span className="sd-preset-card" style={tokens as CSSProperties}><span className="sd-preset-title">Aa</span><span className="sd-preset-panel"><span className="sd-preset-line" /><span className="sd-preset-dot" /></span></span>
+          <span className="sd-preset-card sd-gallery-preview" style={{ ...tokens, gridTemplateRows: `repeat(${(item.layout ?? defaultLayout).rows}, minmax(0, 1fr))`, gridTemplateColumns: `repeat(${(item.layout ?? defaultLayout).columns}, minmax(0, 1fr))` } as CSSProperties} aria-hidden="true">
+            {(item.layout ?? defaultLayout).cells.map((cell, i) => <span className="sd-gallery-area" key={i} style={{ gridRow: `${cell.row} / span ${cell.rowSpan}`, gridColumn: `${cell.column} / span ${cell.columnSpan}` }}>
+              {cell.widgets.map((widget, j) => <span key={j} className={`sd-gallery-widget sd-gallery-widget-${widget}`} />)}
+            </span>)}
+          </span>
           <span className="sd-preset-name" data-user-content>{item.name}</span>
         </button>
         <p data-user-content>{item.author} · {item.tags.join(' · ')}</p>
