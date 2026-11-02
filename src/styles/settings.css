@@ -112,6 +112,7 @@
   font-family: var(--mnt-font-display); transition: box-shadow var(--mnt-dur-fast) var(--mnt-ease);
 }
 .sd-preset-title { font-size: var(--mnt-text-md); line-height: 1; }
+.sd-preset-title::before { content: 'Aa'; }
 .sd-preset-panel { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 5px 6px; border-radius: min(calc(var(--mnt-radius) * .5), 8px); background: var(--mnt-surface); }
 .sd-preset-line { flex: 1; height: 3px; border-radius: 2px; background: var(--mnt-text-muted); }
 .sd-preset-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mnt-accent); }

@@ -440,7 +440,7 @@
     border: 1px solid transparent;
     border-radius: 10px;
     background: var(--mnt-accent-soft);
-    color: var(--mnt-accent-text);
+    color: var(--mnt-text);
     font: inherit;
     cursor: pointer;
   }

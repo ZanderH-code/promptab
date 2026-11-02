@@ -237,6 +237,7 @@ export default function App() {
       onClick={closeMenu}
       onContextMenu={event => openMenu(event, 'background', { clamp: true })}
     >
+      <h1 className="visually-hidden">Promptab</h1>
       {imageStyle && (
         <div className="wallpaper" aria-hidden="true">
           <div className="wallpaper-image" style={imageStyle} />

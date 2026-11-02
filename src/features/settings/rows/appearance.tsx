@@ -75,8 +75,8 @@ export function appearanceItems(ctx: Ctx): Item[] {
             const name = preset.name[lang]
             return (
               <button key={preset.id} type="button" className="sd-preset" aria-pressed={theme.preset === preset.id} aria-label={name} title={name} onClick={() => change(p => touch(applyPreset(p, preset)), 'preset')}>
-                <span className="sd-preset-card" style={{ ...tokens, ...presetBackground(applied.background) } as CSSProperties}>
-                  <span className="sd-preset-title">Aa</span>
+                <span className="sd-preset-card" aria-hidden="true" style={{ ...tokens, ...presetBackground(applied.background) } as CSSProperties}>
+                  <span className="sd-preset-title" />
                   <span className="sd-preset-panel"><span className="sd-preset-line" /><span className="sd-preset-dot" /></span>
                 </span>
                 <span className="sd-preset-name">{name}{theme.preset === preset.id && <Check size={12} strokeWidth={1.5} aria-hidden="true" />}</span>

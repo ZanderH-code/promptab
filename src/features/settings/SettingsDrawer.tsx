@@ -150,7 +150,8 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const body = (id: TabId, items: Item[]) => {
     let group: MessageKey | undefined
     return items.map(item => {
-      const heading = item.group && item.group !== group ? <h4 className="sd-group">{t(item.group)}</h4> : null
+      const GroupHeading = searching ? 'h4' : 'h3'
+      const heading = item.group && item.group !== group ? <GroupHeading className="sd-group">{t(item.group)}</GroupHeading> : null
       group = item.group
       return <div className="sd-item" key={item.id}>{heading}{item.node}</div>
     }).concat(!searching && (RESETTABLE as readonly string[]).includes(id)
