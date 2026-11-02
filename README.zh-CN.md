@@ -36,6 +36,16 @@ Promptab 将自然的语言描述直接转化为浏览器主页的布局排版�
 
 在「设置 → 数据 → 导出备份」保存配置，并在卸载前将备份保存在浏览器之外。导入时会先校验备份，再覆盖当前配置。
 
+## 试用 Firefox 版本
+
+在项目目录构建 Firefox 版本：
+
+```bash
+npm run build:firefox
+```
+
+打开 `about:debugging#/runtime/this-firefox`，选择「此 Firefox」，点击「临时载入附加组件」，然后选择 `dist-firefox/manifest.json`。Firefox 关闭后会移除临时扩展。Firefox 版本目前尚未上架 AMO；详见 [Firefox 构建与 AMO 说明](docs/firefox.md)。
+
 ## 在 Edge 中安装
 
 安装 Node.js 22 和 npm，然后在项目目录运行：

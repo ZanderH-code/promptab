@@ -36,6 +36,16 @@ Promptab transforms natural-language prompts into custom themes, layouts, typogr
 
 Back up your setup via **Settings → Data → Export backup** and keep the file outside the browser before uninstalling. Import validates the backup before replacing your setup.
 
+## Try the Firefox build
+
+Build the Firefox version from the project directory:
+
+```bash
+npm run build:firefox
+```
+
+Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, and select `dist-firefox/manifest.json`. Temporary add-ons are removed when Firefox closes. The Firefox package is not available from AMO yet; see [Firefox build and AMO notes](docs/firefox.md).
+
 ## Install in Edge
 
 Install Node.js 22 and npm, then run these commands in the project directory:
