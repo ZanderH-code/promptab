@@ -50,6 +50,29 @@ for (const [id, name] of presets) {
   })
 }
 
+for (const language of ['zh-CN', 'en'] as const) {
+  test(`selected settings tab stays visible after search at 420px (${language})`, async ({ page }) => {
+    await page.setViewportSize({ width: 420, height: 800 })
+    await page.locator('.settings-button').click()
+    if (language === 'en') {
+      await openTab(page, 'about')
+      await page.getByRole('combobox', { name: '语言', exact: true }).click()
+      await page.getByRole('option', { name: 'English', exact: true }).click()
+    }
+    await openTab(page, 'ai')
+    const search = page.getByRole('searchbox', { name: language === 'en' ? 'Search settings' : '搜索设置' })
+    await search.fill('color')
+    await search.fill('')
+    const tab = page.getByRole('tab', { selected: true })
+    await expect(tab).toHaveText('AI')
+    await expect.poll(async () => tab.evaluate(element => {
+      const parent = element.closest('[role=tablist]')!.getBoundingClientRect()
+      const selected = element.getBoundingClientRect()
+      return selected.left >= parent.left && selected.right <= parent.right
+    })).toBe(true)
+  })
+}
+
 test('settings drawer fills a 400px viewport and supports keyboard navigation', async ({ page }) => {
   await page.setViewportSize({ width: 400, height: 800 })
   const opener = page.locator('.settings-button')

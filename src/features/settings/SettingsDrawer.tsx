@@ -78,6 +78,10 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const uid = useId()
   const searching = query.trim() !== ''
 
+  useEffect(() => {
+    if (!searching) tabRefs.current[tab]?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [tab, searching])
+
   // Focus moves into the drawer on open and returns to whatever opened it on close.
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null

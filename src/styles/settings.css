@@ -34,7 +34,8 @@
 .sd .sd-search input:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
 .sd-search .sd-icon-button { position: absolute; right: 2px; }
 
-.sd-tabs { display: flex; flex: none; gap: 2px; padding: 0 var(--mnt-space-3); overflow-x: auto; border-bottom: 1px solid var(--mnt-border); scrollbar-width: none; }
+.sd-tabs { display: flex; flex: none; gap: 2px; padding-left: var(--mnt-space-3); overflow-x: auto; overscroll-behavior-inline: contain; scroll-padding-inline: var(--mnt-space-3); border-bottom: 1px solid var(--mnt-border); scrollbar-width: none; }
+.sd-tabs::after { content: ''; flex: 0 0 var(--mnt-space-3); }
 .sd-tabs::-webkit-scrollbar { display: none; }
 .sd-tabs button {
   display: inline-flex; flex: none; align-items: center; gap: 6px; min-height: 36px; padding: 0 10px; border: 0; border-bottom: 2px solid transparent;
