@@ -13,5 +13,5 @@ export default defineConfig({
       },
     },
   },
-  test: { environment: 'jsdom', exclude: [...defaultExclude, 'e2e/**', 'node_modules/**', 'dist/**', '**/.local-review/**'] },
+  test: { environment: 'jsdom', exclude: [...defaultExclude, 'e2e/**', 'node_modules/**', 'dist/**', '**/.local-review/**', '**/.claude/**'] },
 })
