@@ -24,7 +24,7 @@ The extension does not operate a general background data-collection channel. Net
 - If you choose a remote wallpaper or import a remote image into a shortcut, the browser fetches that URL so the image can be displayed and stored locally. The remote host may receive the request.
 - The optional weather widget contacts Open-Meteo only after you click a weather action. City search sends the city name to `https://geocoding-api.open-meteo.com/*`. Loading weather sends the selected city's coordinates, or coordinates from a one-time location request, to `https://api.open-meteo.com/*`. Current location is requested only after you click the location button; the extension does not track location in the background. Weather responses are cached locally for at least 30 minutes and may be shown with their last-updated time when offline.
 
-When you enable Browser Sync in Settings, the extension writes only shortcut/group data, theme settings, profile layout and update metadata to `chrome.storage.sync`. Chrome's sync service processes that data for your signed-in browser account under Google's terms. Wallpaper images and video, uploaded fonts, and bookmark images remain in local IndexedDB and are not included. Sync is off by default; turning it off removes Promptab's sync keys from browser sync storage. The extension does not send these sync records to a Promptab server.
+When you enable Browser Sync in Settings, the extension writes only shortcut/group data, theme settings, profile layout and update metadata to `chrome.storage.sync`. Chrome's sync service processes that data for your signed-in browser account under Google's terms. Wallpaper images and video, uploaded fonts, and bookmark images remain in local IndexedDB and are not included. Sync is off by default; turning it off stops synchronization on that device. You can separately remove Promptab's browser sync data. The extension does not send these sync records to a Promptab server.
 
 The extension does not sell personal information or use these direct feature requests for its own analytics.
 
@@ -48,7 +48,7 @@ This policy is informational and is not legal advice.
 
 Promptab 不包含账号、广告 SDK、分析或遥测服务。设置、配置文件、书签/快捷方式、主题、自定义 CSS 以及本地图片和字体保存在浏览器扩展存储中。`bookmarks` 权限为可选权限，仅在你主动选择导入浏览器书签时请求；拒绝后仍可使用其他功能。
 
-浏览器同步默认关闭。启用后，快捷方式/分组、主题设置、布局和更新时间会写入 `chrome.storage.sync`，由 Chrome 根据 Google 条款为你已登录的浏览器账号处理。壁纸、视频、上传的字体和书签图片仍保存在本地 IndexedDB。关闭同步会删除 Promptab 的同步条目；扩展不会把同步记录发送到 Promptab 服务器。
+浏览器同步默认关闭。启用后，快捷方式/分组、主题设置、布局和更新时间会写入 `chrome.storage.sync`，由 Chrome 根据 Google 条款为你已登录的浏览器账号处理。壁纸、视频、上传的字体和书签图片仍保存在本地 IndexedDB。关闭同步只会停止当前设备的同步；你可以另行删除 Promptab 的同步数据。扩展不会把同步记录发送到 Promptab 服务器。
 
 AI 工作台可以手动复制提示包，也可以使用你自己的 API 密钥直接发送给 Anthropic 或 OpenAI。点击发送时会请求所选服务商域名的可选访问权限，并向其发送提示包、模型和密钥；提示包包含你的需求，不会自动附带当前主题、CSS 或书签；你在需求中输入的内容会被包含。密钥仅保存在界面会话内，不写入扩展存储；服务商的隐私政策和收费标准适用，API 使用可能产生费用。
 
