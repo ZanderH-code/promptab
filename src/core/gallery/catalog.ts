@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { aiPackSchema, partsOf, unknownKeys } from '../ai/pack'
+import { aiPackSchema, keyTree, partsOf, unknownKeys } from '../ai/pack'
+import { areaStyleSchema, variableDeclSchema, widgetSchema } from '../schema/profile'
 import { sanitizeCss } from '../css/sanitize'
 import { checkTheme } from '../tokens/quality'
 import { themeColorsFor } from '../tokens/derive'
@@ -20,7 +21,28 @@ export function validateGalleryPack(value: unknown): string[] {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [...errors, 'Pack must be an object']
   const raw = value as Record<string, unknown>
   if (raw.kind !== 'mnt.theme-pack' || raw.packVersion !== 2) errors.push('Gallery requires mnt.theme-pack version 2')
-  for (const key of ['layout', 'widgets', 'variables']) if (key in raw) errors.push(`${key} is not allowed in gallery packs`)
+  if (Array.isArray(raw.widgets)) {
+    for (const [index, value] of raw.widgets.entries()) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+      const widget = value as Record<string, unknown>
+      const schema = widgetSchema.options.find(option => option.shape.type.value === widget.type)
+      if (schema) errors.push(...unknownKeys(widget, keyTree(schema), `widgets.${index}`).map(key => `Unknown key: ${key}`))
+    }
+    if (!raw.widgets.some(value => value && typeof value === 'object' && value.type === 'bookmarks' && value.hidden !== true)) errors.push('A visible bookmarks widget is required')
+  }
+  if (raw.layout && !Array.isArray(raw.widgets)) errors.push('A layout requires a visible bookmarks widget')
+  if (Array.isArray(raw.variables)) {
+    for (const [index, value] of raw.variables.entries()) {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) continue
+      const variable = value as Record<string, unknown>
+      const schema = variableDeclSchema.options.find(option => option.shape.type.value === variable.type)
+      if (schema) errors.push(...unknownKeys(variable, keyTree(schema), `variables.${index}`).map(key => `Unknown key: ${key}`))
+    }
+  }
+  const styles = (raw.layout && typeof raw.layout === 'object' ? (raw.layout as Record<string, unknown>).areaStyles : undefined)
+  if (styles && typeof styles === 'object' && !Array.isArray(styles)) {
+    for (const [area, style] of Object.entries(styles)) errors.push(...unknownKeys(style, keyTree(areaStyleSchema), `layout.areaStyles.${area}`).map(key => `Unknown key: ${key}`))
+  }
   const metaResult = metadata.safeParse(raw.meta)
   if (!metaResult.success) errors.push(...metaResult.error.issues.map(issue => `Metadata ${issue.path.join('.')}: ${issue.message}`))
   const { tags: _tags, prompt: _prompt, ...packMeta } = (raw.meta && typeof raw.meta === 'object' && !Array.isArray(raw.meta) ? raw.meta : {}) as Record<string, unknown>
