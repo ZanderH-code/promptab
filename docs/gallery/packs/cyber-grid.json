@@ -10,8 +10,8 @@
       "cyber"
     ],
     "prompt": {
-      "en": "Create a cyber-inspired dark new tab with legible colors and matching typography.",
-      "zh-CN": "创建以赛博为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      "en": "A dark terminal-inspired page with cyan details, a sharp clock, and a compact grid of shortcuts.",
+      "zh-CN": "深色终端风格页面，以青色点缀、利落的时钟和紧凑书签网格为主。"
     }
   },
   "theme": {
@@ -33,6 +33,87 @@
     "iconShape": "square"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 135,
+      "stops": [
+        "#090f1c",
+        "#102a38"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "clock date links",
+      "search search links"
+    ],
+    "columns": [
+      "minmax(0, 1fr)",
+      "minmax(0, 1fr)",
+      "minmax(240px, 0.8fr)"
+    ],
+    "rows": [
+      "auto",
+      "1fr"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "clock",
+          "date",
+          "search",
+          "links"
+        ],
+        "columns": [
+          "1fr"
+        ]
+      }
+    },
+    "contentWidth": 1200,
+    "align": "center-left",
+    "gap": 18
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "clock",
+      "order": 0,
+      "props": {
+        "align": "center",
+        "hour12": false,
+        "size": 1.2
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "date",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "center"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "search",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "links",
+      "order": 3,
+      "props": {
+        "style": "tile",
+        "maxColumns": 4,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ],
+  "css": ".mnt-clock { letter-spacing: 0.08em; }\n.mnt-link-icon { border: 1px solid var(--mnt-accent); }"
 }

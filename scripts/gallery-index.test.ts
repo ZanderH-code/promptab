@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
+import { templateGrid } from '../src/core/layout/templates'
 
 const root = process.cwd()
 const cli = resolve(root, 'node_modules/vite-node/vite-node.mjs')
@@ -19,6 +20,14 @@ describe('gallery index generation', () => {
       const first = readFileSync(path, 'utf8')
       const index = JSON.parse(first)
       expect(index.packs.length).toBeGreaterThanOrEqual(12)
+      const packs = index.packs.map((entry: { file: string }) => JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8')))
+      expect(packs.filter((pack: any) => ['gradient', 'accent'].includes(pack.background?.type)).length).toBeGreaterThanOrEqual(6)
+      expect(packs.filter((pack: any) => pack.layout && pack.widgets).length).toBeGreaterThanOrEqual(5)
+      expect(packs.filter((pack: any) => typeof pack.css === 'string' && pack.css.trim()).length).toBeGreaterThanOrEqual(4)
+      expect(packs.filter((pack: any) => pack.variables?.length).length).toBeGreaterThanOrEqual(2)
+      expect(new Set(packs.map((pack: any) => pack.meta.prompt.en)).size).toBe(packs.length)
+      for (const template of ['split', 'icon-split', 'banner', 'dashboard', 'top-grid'] as const) expect(packs.some((pack: any) => JSON.stringify(pack.layout?.areas) === JSON.stringify(templateGrid(template).areas)), template).toBe(true)
+      for (const pack of packs.filter((pack: any) => pack.layout)) expect(pack.widgets.some((widget: any) => widget.type === 'bookmarks' && !widget.hidden)).toBe(true)
       for (const entry of index.packs) {
         const pack = JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8'))
         expect(entry.colors).toEqual(entry.mode === 'light' ? (pack.theme.colorLight ?? pack.theme.color) : pack.theme.color)

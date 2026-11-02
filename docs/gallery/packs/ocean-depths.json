@@ -10,8 +10,8 @@
       "ocean"
     ],
     "prompt": {
-      "en": "Create a ocean-inspired dark new tab with legible colors and matching typography.",
-      "zh-CN": "创建以海洋为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      "en": "Deep ocean blues, a luminous clock, and round shortcuts arranged like islands.",
+      "zh-CN": "深海蓝色背景，明亮的时钟与岛屿般排列的圆形快捷方式。"
     }
   },
   "theme": {
@@ -33,6 +33,100 @@
     "iconShape": "circle"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 170,
+      "stops": [
+        "#091a27",
+        "#123b50"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "bookmarks divider overview"
+    ],
+    "columns": [
+      "minmax(0, 1fr)",
+      "1px",
+      "minmax(280px, 0.7fr)"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "overview",
+          "bookmarks"
+        ],
+        "columns": [
+          "1fr"
+        ]
+      }
+    },
+    "areaStyles": {
+      "divider": {
+        "background": "accent"
+      }
+    },
+    "contentWidth": 1100,
+    "align": "top-center",
+    "gap": 26
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "overview",
+      "order": 0,
+      "props": {
+        "align": "center",
+        "hour12": false,
+        "size": 1.2
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "overview",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "center"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "overview",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "bookmarks",
+      "order": 3,
+      "props": {
+        "style": "icon-only",
+        "maxColumns": 3,
+        "showGroupTitles": true,
+        "showAdd": true,
+        "iconColor": "accent"
+      }
+    }
+  ],
+  "css": ".mnt-link-icon { box-shadow: 0 0 var(--ocean-glow, 8px) var(--mnt-accent-soft); }",
+  "variables": [
+    {
+      "name": "--ocean-glow",
+      "label": {
+        "en": "Glow radius",
+        "zh-CN": "光晕半径"
+      },
+      "type": "range",
+      "min": 0,
+      "max": 24,
+      "unit": "px",
+      "default": 8
+    }
+  ]
 }

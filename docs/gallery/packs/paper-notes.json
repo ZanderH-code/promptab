@@ -10,8 +10,8 @@
       "paper"
     ],
     "prompt": {
-      "en": "Create a paper-inspired light new tab with legible colors and matching typography.",
-      "zh-CN": "创建以纸张为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      "en": "A warm paper notebook with a serif heading, fine rules, and a practical list of bookmarks.",
+      "zh-CN": "暖纸色笔记本，衬线标题与细线条搭配，书签以实用列表呈现。"
     }
   },
   "theme": {
@@ -39,6 +39,79 @@
     "iconShape": "square"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 115,
+      "stops": [
+        "#f7f4e9",
+        "#eee5ce"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "bookmarks overview"
+    ],
+    "columns": [
+      "minmax(0, 1fr)",
+      "minmax(280px, 0.7fr)"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "overview",
+          "bookmarks"
+        ],
+        "columns": [
+          "1fr"
+        ]
+      }
+    },
+    "contentWidth": 1000,
+    "align": "top-left",
+    "gap": 22
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "overview",
+      "order": 0,
+      "props": {
+        "align": "left",
+        "hour12": false,
+        "size": 0.9
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "overview",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "left"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "overview",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "bookmarks",
+      "order": 3,
+      "props": {
+        "style": "list",
+        "maxColumns": 2,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ],
+  "css": ".mnt-group-title { letter-spacing: 0.08em; text-transform: uppercase; }\n.mnt-link { border-bottom: 1px solid var(--mnt-border); }"
 }

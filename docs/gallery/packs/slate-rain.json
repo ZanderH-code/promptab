@@ -10,8 +10,8 @@
       "rain"
     ],
     "prompt": {
-      "en": "Create a rain-inspired dark new tab with legible colors and matching typography.",
-      "zh-CN": "创建以雨夜为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      "en": "A rainy slate workspace with a restrained clock and clearly separated rows of links.",
+      "zh-CN": "雨天石板灰工作区，时钟低调克制，书签分行清晰。"
     }
   },
   "theme": {
@@ -33,6 +33,87 @@
     "iconShape": "rounded"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 155,
+      "stops": [
+        "#151b22",
+        "#2a3842"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "clock date links",
+      "search search links"
+    ],
+    "columns": [
+      "minmax(0, 1fr)",
+      "minmax(0, 1fr)",
+      "minmax(240px, 0.8fr)"
+    ],
+    "rows": [
+      "auto",
+      "1fr"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "clock",
+          "date",
+          "search",
+          "links"
+        ],
+        "columns": [
+          "1fr"
+        ]
+      }
+    },
+    "contentWidth": 1100,
+    "align": "top-left",
+    "gap": 20
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "clock",
+      "order": 0,
+      "props": {
+        "align": "left",
+        "hour12": false,
+        "size": 1
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "date",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "left"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "search",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "links",
+      "order": 3,
+      "props": {
+        "style": "list",
+        "maxColumns": 3,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ],
+  "css": ".mnt-clock { letter-spacing: -0.03em; }\n.mnt-link-icon { border: 1px solid var(--mnt-border-strong); }"
 }

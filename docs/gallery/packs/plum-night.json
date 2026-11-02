@@ -10,8 +10,8 @@
       "plum"
     ],
     "prompt": {
-      "en": "Create a plum-inspired dark new tab with legible colors and matching typography.",
-      "zh-CN": "创建以梅紫为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      "en": "A quiet plum evening with elegant type, soft corners, and a centered collection of links.",
+      "zh-CN": "安静的梅紫夜色，搭配优雅字体、柔和圆角和居中的书签。"
     }
   },
   "theme": {
@@ -33,6 +33,99 @@
     "iconShape": "circle"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 145,
+      "stops": [
+        "#211422",
+        "#42233e"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      ".",
+      "banner",
+      "websites"
+    ],
+    "columns": [
+      "1fr"
+    ],
+    "rows": [
+      "22vh",
+      "auto",
+      "1fr"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "banner",
+          "websites"
+        ],
+        "columns": [
+          "1fr"
+        ],
+        "rows": [
+          "auto",
+          "1fr"
+        ]
+      }
+    },
+    "areaStyles": {
+      "banner": {
+        "background": "surface",
+        "opacity": 85,
+        "padding": 24,
+        "align": "center-right",
+        "border": {
+          "bottom": 1
+        }
+      }
+    },
+    "contentWidth": 960,
+    "align": "center-center",
+    "gap": 30
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "banner",
+      "order": 0,
+      "props": {
+        "align": "center",
+        "hour12": false,
+        "size": 1.2
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "banner",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "center"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "websites",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "websites",
+      "order": 3,
+      "props": {
+        "style": "card",
+        "maxColumns": 4,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ]
 }

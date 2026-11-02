@@ -10,8 +10,8 @@
       "business"
     ],
     "prompt": {
-      "en": "Create a business-inspired dark new tab with legible colors and matching typography.",
-      "zh-CN": "创建以商务为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      "en": "A composed navy workspace with a compact overview and an orderly list of links.",
+      "zh-CN": "沉稳的海军蓝工作台，顶部简洁概览，书签整齐排列。"
     }
   },
   "theme": {
@@ -33,6 +33,78 @@
     "iconShape": "rounded"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 160,
+      "stops": [
+        "#101a2c",
+        "#172d48"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "bookmarks overview"
+    ],
+    "columns": [
+      "minmax(0, 1fr)",
+      "minmax(280px, 0.7fr)"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "overview",
+          "bookmarks"
+        ],
+        "columns": [
+          "1fr"
+        ]
+      }
+    },
+    "contentWidth": 1100,
+    "align": "top-left",
+    "gap": 20
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "overview",
+      "order": 0,
+      "props": {
+        "align": "left",
+        "hour12": false,
+        "size": 1
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "overview",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "left"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "overview",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "bookmarks",
+      "order": 3,
+      "props": {
+        "style": "list",
+        "maxColumns": 3,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ]
 }

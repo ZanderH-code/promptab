@@ -10,8 +10,8 @@
       "arctic"
     ],
     "prompt": {
-      "en": "Create a arctic-inspired light new tab with legible colors and matching typography.",
-      "zh-CN": "创建以极地为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      "en": "A clear winter morning: pale ice, generous space, and a crisp blue clock above your links.",
+      "zh-CN": "清亮的冬日早晨：冰白底色、宽松留白和蓝色时钟，书签放在下方。"
     }
   },
   "theme": {
@@ -39,6 +39,79 @@
     "iconShape": "rounded"
   },
   "background": {
-    "type": "theme"
-  }
+    "type": "gradient",
+    "gradient": {
+      "angle": 145,
+      "stops": [
+        "#eaf4f6",
+        "#d5e9ee"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "overview overview",
+      "bookmarks bookmarks"
+    ],
+    "columns": [
+      "1fr",
+      "1fr"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "overview",
+          "bookmarks"
+        ],
+        "columns": [
+          "1fr"
+        ]
+      }
+    },
+    "contentWidth": 960,
+    "align": "center-center",
+    "gap": 24
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "overview",
+      "order": 0,
+      "props": {
+        "align": "center",
+        "hour12": false,
+        "size": 1.1
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "overview",
+      "order": 1,
+      "props": {
+        "format": "full",
+        "align": "center"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "overview",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "bookmarks",
+      "order": 3,
+      "props": {
+        "style": "tile",
+        "maxColumns": 5,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ]
 }
