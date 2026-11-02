@@ -14,6 +14,6 @@ export function aboutItems(ctx: Ctx): Item[] {
         </Row>
       ),
     },
-    { id: 'about', keys: ['settings.about', 'settings.aboutText', 'settings.intro'], node: <div className="sd-note"><p>{t('settings.aboutText')}</p><p>{t('settings.intro')}</p></div> },
+    { id: 'about', keys: ['settings.about', 'settings.aboutText', 'settings.intro', 'settings.privacy'], node: <div className="sd-note"><p>{t('settings.aboutText')}</p><p>{t('settings.intro')}</p><p><a href="https://zanderh-code.github.io/promptab/privacy/" target="_blank" rel="noopener noreferrer">{t('settings.privacy')}</a></p></div> },
   ]
 }

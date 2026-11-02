@@ -105,6 +105,8 @@ The tests freeze the clock and compare four viewport baselines stored in `e2e/ba
 
 The extension requests `storage`, `unlimitedStorage`, and `favicon` permissions. `unlimitedStorage` supports local profiles and history without Chrome's standard local storage quota. `favicon` reads website icons cached by the browser. If the cache is unavailable, it requests the site's `/favicon.ico`, so the website may receive a connection request. Importing browser bookmarks requests the optional `bookmarks` permission. Settings are stored locally in the browser, and uninstalling the extension may delete them.
 
+Read the [privacy policy](https://zanderh-code.github.io/promptab/privacy/).
+
 ## License
 
 Minimal New Tab is released under the [MIT License](LICENSE). Third-party runtime dependencies retain their own licenses; see [third-party notices](licenses/THIRD_PARTY_NOTICES.md).

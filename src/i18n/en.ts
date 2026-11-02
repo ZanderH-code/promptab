@@ -274,6 +274,7 @@ export const en: Record<MessageKey, string> = {
   'settings.restoreSection': 'Restore section defaults',
   'settings.languageSystem': 'Follow system',
   'settings.about': 'About',
+  'settings.privacy': 'Privacy policy',
   'settings.aboutText': 'Promptab is your new tab, designed by your AI. Preview changes, undo anytime, and keep your data on this device.',
 
   'profile.heading': 'Profiles',

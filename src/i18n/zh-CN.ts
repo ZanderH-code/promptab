@@ -273,6 +273,7 @@ export const zhCN = {
   'settings.restoreSection': '恢复本区默认',
   'settings.languageSystem': '跟随系统',
   'settings.about': '关于',
+  'settings.privacy': '隐私政策',
   'settings.aboutText': 'Promptab 是由你的 AI 设计的新标签页。修改可以预览、随时撤销，数据只保存在这台设备。',
 
   'profile.heading': '配置',

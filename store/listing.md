@@ -55,7 +55,9 @@ Promptab stores settings and assets in browser-managed extension storage. It doe
 
 ## Support / privacy URL
 
-Publish `store/privacy-policy.md` at the project's public policy URL before submitting the listing. Keep the published policy in sync with the extension behavior and manifest permissions.
+Privacy policy: https://zanderh-code.github.io/promptab/privacy/
+
+Keep the published policy in sync with the extension behavior and manifest permissions.
 
 ## Open-source license
 

@@ -46,6 +46,9 @@ for (const language of ['zh-CN', 'en'] as const) {
       for (const tab of ['appearance', 'background', 'layout', 'widgets', 'shortcuts', 'search', 'style', 'ai', 'data', 'about'] as const) {
         await openTab(page, tab)
         await expectLocalizedSurface(page)
+        if (tab === 'about') {
+          await expect(page.getByRole('link', { name: language === 'en' ? 'Privacy policy' : '隐私政策' })).toHaveAttribute('href', 'https://zanderh-code.github.io/promptab/privacy/')
+        }
       }
     })
 
