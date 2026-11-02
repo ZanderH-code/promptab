@@ -1,0 +1,44 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Paper Notes",
+    "author": "Promptab",
+    "tags": [
+      "light",
+      "paper"
+    ],
+    "prompt": {
+      "en": "Create a paper-inspired light new tab with legible colors and matching typography.",
+      "zh-CN": "创建以纸张为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#10141b",
+      "surface": "#161b22",
+      "text": "#ffffff",
+      "accent": "#a8f0db"
+    },
+    "colorLight": {
+      "bg": "#f7f4e9",
+      "surface": "#fffdf5",
+      "text": "#29261f",
+      "accent": "#58411d"
+    },
+    "font": {
+      "display": "serif",
+      "ui": "system"
+    },
+    "radius": 3,
+    "shadow": 10,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "square"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Indigo Ink",
+    "author": "Promptab",
+    "tags": [
+      "dark",
+      "indigo"
+    ],
+    "prompt": {
+      "en": "Create a indigo-inspired dark new tab with legible colors and matching typography.",
+      "zh-CN": "创建以靛蓝为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#14182a",
+      "surface": "#202640",
+      "text": "#f7f8ff",
+      "accent": "#cdd9ff"
+    },
+    "font": {
+      "display": "mono",
+      "ui": "mono"
+    },
+    "radius": 10,
+    "shadow": 25,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "rounded"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

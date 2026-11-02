@@ -1,0 +1,44 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Arctic Day",
+    "author": "Promptab",
+    "tags": [
+      "light",
+      "arctic"
+    ],
+    "prompt": {
+      "en": "Create a arctic-inspired light new tab with legible colors and matching typography.",
+      "zh-CN": "创建以极地为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#10141b",
+      "surface": "#161b22",
+      "text": "#ffffff",
+      "accent": "#a8f0db"
+    },
+    "colorLight": {
+      "bg": "#eaf4f6",
+      "surface": "#f8fdff",
+      "text": "#19313b",
+      "accent": "#225269"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 14,
+    "shadow": 10,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "rounded"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

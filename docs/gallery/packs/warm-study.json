@@ -1,0 +1,44 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Warm Study",
+    "author": "Promptab",
+    "tags": [
+      "light",
+      "study"
+    ],
+    "prompt": {
+      "en": "Create a study-inspired light new tab with legible colors and matching typography.",
+      "zh-CN": "创建以温暖书房为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#10141b",
+      "surface": "#161b22",
+      "text": "#ffffff",
+      "accent": "#a8f0db"
+    },
+    "colorLight": {
+      "bg": "#f4ead7",
+      "surface": "#fff6e6",
+      "text": "#352519",
+      "accent": "#72451d"
+    },
+    "font": {
+      "display": "cormorant",
+      "ui": "system"
+    },
+    "radius": 6,
+    "shadow": 10,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "rounded"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

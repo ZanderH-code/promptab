@@ -1,0 +1,38 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Violet Orbit",
+    "author": "Promptab",
+    "tags": [
+      "dark",
+      "space"
+    ],
+    "prompt": {
+      "en": "Create a space-inspired dark new tab with legible colors and matching typography.",
+      "zh-CN": "创建以星空为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#181429",
+      "surface": "#242039",
+      "text": "#faf8ff",
+      "accent": "#d9ccff"
+    },
+    "font": {
+      "display": "outfit",
+      "ui": "system"
+    },
+    "radius": 20,
+    "shadow": 25,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "circle"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

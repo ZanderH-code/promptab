@@ -1,0 +1,38 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Business Navy",
+    "author": "Promptab",
+    "tags": [
+      "dark",
+      "business"
+    ],
+    "prompt": {
+      "en": "Create a business-inspired dark new tab with legible colors and matching typography.",
+      "zh-CN": "创建以商务为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#101a2c",
+      "surface": "#1a2940",
+      "text": "#f3f7ff",
+      "accent": "#a8caff"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 8,
+    "shadow": 25,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "rounded"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

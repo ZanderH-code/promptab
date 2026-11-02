@@ -1,0 +1,44 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Swiss Minimal",
+    "author": "Promptab",
+    "tags": [
+      "light",
+      "swiss"
+    ],
+    "prompt": {
+      "en": "Create a swiss-inspired light new tab with legible colors and matching typography.",
+      "zh-CN": "创建以瑞士极简为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#10141b",
+      "surface": "#161b22",
+      "text": "#ffffff",
+      "accent": "#a8f0db"
+    },
+    "colorLight": {
+      "bg": "#f5f5f2",
+      "surface": "#ffffff",
+      "text": "#151515",
+      "accent": "#a5241a"
+    },
+    "font": {
+      "display": "outfit",
+      "ui": "system"
+    },
+    "radius": 0,
+    "shadow": 10,
+    "glass": 0,
+    "density": "compact",
+    "iconShape": "square"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

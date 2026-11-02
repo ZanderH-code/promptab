@@ -1,0 +1,38 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Cyber Grid",
+    "author": "Promptab",
+    "tags": [
+      "dark",
+      "cyber"
+    ],
+    "prompt": {
+      "en": "Create a cyber-inspired dark new tab with legible colors and matching typography.",
+      "zh-CN": "创建以赛博为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#090f1c",
+      "surface": "#101c2d",
+      "text": "#f1faff",
+      "accent": "#74e9f2"
+    },
+    "font": {
+      "display": "mono",
+      "ui": "mono"
+    },
+    "radius": 2,
+    "shadow": 25,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "square"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

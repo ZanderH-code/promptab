@@ -1,0 +1,44 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Natural Moss",
+    "author": "Promptab",
+    "tags": [
+      "light",
+      "nature"
+    ],
+    "prompt": {
+      "en": "Create a nature-inspired light new tab with legible colors and matching typography.",
+      "zh-CN": "创建以自然苔藓为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#10141b",
+      "surface": "#161b22",
+      "text": "#ffffff",
+      "accent": "#a8f0db"
+    },
+    "colorLight": {
+      "bg": "#eef3e6",
+      "surface": "#f8fbf3",
+      "text": "#1e3020",
+      "accent": "#315d31"
+    },
+    "font": {
+      "display": "serif",
+      "ui": "system"
+    },
+    "radius": 20,
+    "shadow": 10,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "rounded"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

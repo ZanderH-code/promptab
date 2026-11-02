@@ -1,0 +1,38 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {
+    "name": "Ocean Depths",
+    "author": "Promptab",
+    "tags": [
+      "dark",
+      "ocean"
+    ],
+    "prompt": {
+      "en": "Create a ocean-inspired dark new tab with legible colors and matching typography.",
+      "zh-CN": "创建以海洋为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+    }
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#091a27",
+      "surface": "#102535",
+      "text": "#f4faff",
+      "accent": "#a8e5ff"
+    },
+    "font": {
+      "display": "system",
+      "ui": "system"
+    },
+    "radius": 18,
+    "shadow": 25,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "circle"
+  },
+  "background": {
+    "type": "theme"
+  }
+}

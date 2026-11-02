@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "id": "arctic-day",
+      "name": "Arctic Day",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "arctic"
+      ],
+      "prompt": {
+        "en": "Create a arctic-inspired light new tab with legible colors and matching typography.",
+        "zh-CN": "创建以极地为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#eaf4f6",
+        "surface": "#f8fdff",
+        "text": "#19313b",
+        "accent": "#225269"
+      },
+      "mode": "light",
+      "file": "packs/arctic-day.json"
+    },
+    {
+      "id": "business-navy",
+      "name": "Business Navy",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "business"
+      ],
+      "prompt": {
+        "en": "Create a business-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以商务为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#101a2c",
+        "surface": "#1a2940",
+        "text": "#f3f7ff",
+        "accent": "#a8caff"
+      },
+      "mode": "dark",
+      "file": "packs/business-navy.json"
+    },
+    {
+      "id": "cyber-grid",
+      "name": "Cyber Grid",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "cyber"
+      ],
+      "prompt": {
+        "en": "Create a cyber-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以赛博为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#090f1c",
+        "surface": "#101c2d",
+        "text": "#f1faff",
+        "accent": "#74e9f2"
+      },
+      "mode": "dark",
+      "file": "packs/cyber-grid.json"
+    },
+    {
+      "id": "indigo-ink",
+      "name": "Indigo Ink",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "indigo"
+      ],
+      "prompt": {
+        "en": "Create a indigo-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以靛蓝为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#14182a",
+        "surface": "#202640",
+        "text": "#f7f8ff",
+        "accent": "#cdd9ff"
+      },
+      "mode": "dark",
+      "file": "packs/indigo-ink.json"
+    },
+    {
+      "id": "natural-moss",
+      "name": "Natural Moss",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "nature"
+      ],
+      "prompt": {
+        "en": "Create a nature-inspired light new tab with legible colors and matching typography.",
+        "zh-CN": "创建以自然苔藓为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#eef3e6",
+        "surface": "#f8fbf3",
+        "text": "#1e3020",
+        "accent": "#315d31"
+      },
+      "mode": "light",
+      "file": "packs/natural-moss.json"
+    },
+    {
+      "id": "ocean-depths",
+      "name": "Ocean Depths",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "ocean"
+      ],
+      "prompt": {
+        "en": "Create a ocean-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以海洋为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#091a27",
+        "surface": "#102535",
+        "text": "#f4faff",
+        "accent": "#a8e5ff"
+      },
+      "mode": "dark",
+      "file": "packs/ocean-depths.json"
+    },
+    {
+      "id": "paper-notes",
+      "name": "Paper Notes",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "paper"
+      ],
+      "prompt": {
+        "en": "Create a paper-inspired light new tab with legible colors and matching typography.",
+        "zh-CN": "创建以纸张为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#f7f4e9",
+        "surface": "#fffdf5",
+        "text": "#29261f",
+        "accent": "#58411d"
+      },
+      "mode": "light",
+      "file": "packs/paper-notes.json"
+    },
+    {
+      "id": "plum-night",
+      "name": "Plum Night",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "plum"
+      ],
+      "prompt": {
+        "en": "Create a plum-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以梅紫为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#211422",
+        "surface": "#301d30",
+        "text": "#fff7ff",
+        "accent": "#f5c6ee"
+      },
+      "mode": "dark",
+      "file": "packs/plum-night.json"
+    },
+    {
+      "id": "slate-rain",
+      "name": "Slate Rain",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "rain"
+      ],
+      "prompt": {
+        "en": "Create a rain-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以雨夜为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#151b22",
+        "surface": "#202b34",
+        "text": "#f5faff",
+        "accent": "#c4e7ff"
+      },
+      "mode": "dark",
+      "file": "packs/slate-rain.json"
+    },
+    {
+      "id": "swiss-minimal",
+      "name": "Swiss Minimal",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "swiss"
+      ],
+      "prompt": {
+        "en": "Create a swiss-inspired light new tab with legible colors and matching typography.",
+        "zh-CN": "创建以瑞士极简为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#f5f5f2",
+        "surface": "#ffffff",
+        "text": "#151515",
+        "accent": "#a5241a"
+      },
+      "mode": "light",
+      "file": "packs/swiss-minimal.json"
+    },
+    {
+      "id": "violet-orbit",
+      "name": "Violet Orbit",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "space"
+      ],
+      "prompt": {
+        "en": "Create a space-inspired dark new tab with legible colors and matching typography.",
+        "zh-CN": "创建以星空为灵感的深色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#181429",
+        "surface": "#242039",
+        "text": "#faf8ff",
+        "accent": "#d9ccff"
+      },
+      "mode": "dark",
+      "file": "packs/violet-orbit.json"
+    },
+    {
+      "id": "warm-study",
+      "name": "Warm Study",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "study"
+      ],
+      "prompt": {
+        "en": "Create a study-inspired light new tab with legible colors and matching typography.",
+        "zh-CN": "创建以温暖书房为灵感的浅色新标签页，搭配清晰配色与合适的字体。"
+      },
+      "colors": {
+        "bg": "#f4ead7",
+        "surface": "#fff6e6",
+        "text": "#352519",
+        "accent": "#72451d"
+      },
+      "mode": "light",
+      "file": "packs/warm-study.json"
+    }
+  ]
+}
