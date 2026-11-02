@@ -53,7 +53,7 @@ test('rotates local images on opening, hour and day and restores them from backu
   const parallel = await Promise.all([page.context().newPage(), page.context().newPage()])
   await Promise.all(parallel.map(tab => tab.goto('/')))
   const parallelImages = await Promise.all(parallel.map(waitImage))
-  console.log(`Simultaneous new-tab wallpaper samples: ${JSON.stringify(parallelImages)}`)
+  expect(new Set(parallelImages.map(image => image.join(','))).size).toBe(2)
   await Promise.all(parallel.map(tab => tab.close()))
   await page.locator('.mnt-settings-entry').click()
   await openTab(page, 'background')

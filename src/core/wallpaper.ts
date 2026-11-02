@@ -1,3 +1,18 @@
+type SequenceLock = { request(name: string, callback: () => number): Promise<number> }
+
+export async function allocateOpenSequence(locks: SequenceLock | undefined): Promise<number> {
+  try {
+    if (locks) return await locks.request('mnt:wallpaper:open-sequence:v1', () => {
+      const key = 'mnt:wallpaper:open-sequence:v1'
+      const current = Number.parseInt(localStorage.getItem(key) ?? '0', 10)
+      const next = Number.isSafeInteger(current) && current >= 0 && current < Number.MAX_SAFE_INTEGER ? current : 0
+      localStorage.setItem(key, String(next + 1))
+      return next
+    })
+  } catch { /* Fall back without modifying the shared counter. */ }
+  return Math.floor(Math.random() * 0x100000000)
+}
+
 export type WallpaperRotation = { images: string[]; interval: 'open' | 'hour' | 'day' }
 
 export function wallpaperRotationIndex(rotation: WallpaperRotation, now = Date.now(), openSequence = 0): number {

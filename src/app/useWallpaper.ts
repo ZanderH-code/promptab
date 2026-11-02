@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { validateImage } from '../core/image'
-import { wallpaperRotationIndex } from '../core/wallpaper'
+import { allocateOpenSequence, wallpaperRotationIndex } from '../core/wallpaper'
 import { MAX_WALLPAPER_VIDEO_BYTES, validateVideo } from '../core/video'
 import type { ProfileV2 } from '../core/schema/profile'
 import { toMessageRef, type MessageRef } from '../i18n'
@@ -36,22 +36,18 @@ async function videoPoster(file: File): Promise<Blob> {
   } finally { URL.revokeObjectURL(url) }
 }
 
-function nextOpenSequence(): number {
-  const key = 'mnt:wallpaper:open-sequence:v1'
-  try {
-    const current = Number.parseInt(localStorage.getItem(key) ?? '0', 10)
-    const next = Number.isSafeInteger(current) && current >= 0 ? current : 0
-    localStorage.setItem(key, String(next + 1))
-    return next
-  } catch { return Date.now() }
-}
-
 export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (error: MessageRef) => void) {
   const [url, setUrl] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [posterUrl, setPosterUrl] = useState('')
-  const openSequence = useRef<number | null>(null)
-  if (openSequence.current === null) openSequence.current = nextOpenSequence()
+  const sequencePromise = useRef<Promise<number> | null>(null)
+  const [openSequence, setOpenSequence] = useState<number | null>(null)
+  useEffect(() => {
+    let alive = true
+    sequencePromise.current ??= allocateOpenSequence(navigator.locks)
+    void sequencePromise.current.then(value => { if (alive) setOpenSequence(value) })
+    return () => { alive = false }
+  }, [])
   const background = profile?.background
   const rotation = background?.type === 'image' ? background.rotation : undefined
   const [, setRotationTick] = useState(0)
@@ -71,7 +67,8 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
     schedule()
     return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibility) }
   }, [rotation?.interval])
-  const rotatedReference = rotation?.images[wallpaperRotationIndex(rotation, Date.now(), openSequence.current)]
+  const rotatedReference = rotation && (rotation.interval !== 'open' || openSequence !== null)
+    ? rotation.images[wallpaperRotationIndex(rotation, Date.now(), openSequence ?? 0)] : undefined
   const imageReference = background?.type === 'image' ? rotatedReference ?? background.image?.asset : undefined
   const videoReference = background?.type === 'video' ? background.video?.asset : undefined
   const posterReference = background?.type === 'video' ? background.video?.poster : undefined
