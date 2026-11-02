@@ -36,7 +36,7 @@ try {
       await page.getByRole('button', { name: 'Close settings' }).click()
       await expect(page.locator('.shortcut')).toHaveCount(6)
       await page.evaluate(() => document.fonts.ready)
-      const image = await page.screenshot({ animations: 'disabled' })
+      const image = await page.screenshot({ animations: 'disabled', style: '.undo-toast { visibility: hidden !important; }' })
       captures.push({ name: theme.name, image: image.toString('base64') })
       console.log(`Captured ${theme.name}`)
     } finally { await context.close() }
