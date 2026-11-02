@@ -36,13 +36,30 @@ try {
   await setup.getByRole('combobox', { name: '语言', exact: true }).click()
   await setup.getByRole('option', { name: 'English', exact: true }).click()
   await expect(setup.locator('html')).toHaveAttribute('lang', 'en')
+  await setup.getByRole('button', { name: 'Close settings' }).click()
+  const websites = [
+    ['GitHub', 'https://github.com'], ['YouTube', 'https://youtube.com'],
+    ['Gmail', 'https://mail.google.com'], ['Notion', 'https://notion.so'], ['Figma', 'https://figma.com'],
+  ]
+  for (const [name, url] of websites) {
+    if (name === 'GitHub') await setup.getByRole('button', { name: 'Add first website' }).click()
+    else await setup.locator('.add-shortcut').click()
+    await setup.getByLabel('URL', { exact: true }).fill(url)
+    await setup.getByLabel('Name', { exact: true }).fill(name)
+    await setup.locator('.icon-choice').filter({ hasText: 'Brand' }).click()
+    await setup.getByLabel('Search brands').fill(name)
+    await setup.locator('.icon-picker-results').getByRole('button', { name, exact: true }).click()
+    await setup.getByRole('button', { name: 'Save website', exact: true }).click()
+    await expect(setup.locator('.shortcut').filter({ hasText: name })).toBeVisible()
+  }
   await setup.close()
   const page = await context.newPage()
   await page.clock.setFixedTime(new Date('2026-08-01T10:24:00Z'))
   await page.goto(serverUrl, { waitUntil: 'networkidle' })
-  await expect(page.getByRole('button', { name: 'Create with AI' })).toBeVisible()
+  await expect(page.locator('.shortcut')).toHaveCount(websites.length)
   await delay(2000)
-  await page.getByRole('button', { name: 'Create with AI' }).click()
+  await page.getByRole('button', { name: 'Open settings' }).click()
+  await page.getByRole('tab', { name: 'AI', exact: true }).click()
   await expect(page.locator('.sd-ai')).toBeVisible()
   await delay(1300)
   const request = page.getByLabel('What kind of home page do you want (optional)')
