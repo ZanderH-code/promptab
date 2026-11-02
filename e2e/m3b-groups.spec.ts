@@ -21,6 +21,7 @@ async function setup(page: Page) {
   await expect(page.getByText('First', { exact: true })).toBeVisible()
   await page.locator('.app').click({ button: 'right', position: { x: 10, y: 10 } })
   await page.getByRole('menuitem', { name: /Manage groups|管理分组/ }).click()
+  await expect(page.locator('.drag-handle').first()).toBeEnabled()
 }
 
 test('mouse drags a bookmark to another group', async ({ page }) => {
