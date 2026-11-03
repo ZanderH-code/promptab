@@ -162,7 +162,7 @@ test('imports a v1 backup when saved profiles cannot be loaded', async ({ page }
   page.once('dialog', dialog => dialog.accept())
   const reloaded = page.waitForEvent('load')
   await page.getByLabel('Import backup', { exact: true }).setInputFiles({ name: 'valid.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings: v1Settings('#aabbcc') })) })
-  await page.getByRole('button', { name: 'Restore', exact: true }).click()
+  await page.getByRole('button', { name: 'Restore backup', exact: true }).click()
   await reloaded
   await expect(page.locator('.clock')).toBeVisible()
   expect((await activeProfile(page)).theme.color.accent).toBe('#aabbcc')
@@ -180,7 +180,7 @@ test('imports a v2 backup when saved profiles cannot be loaded', async ({ page }
   page.once('dialog', dialog => dialog.accept())
   const reloaded = page.waitForEvent('load')
   await page.getByLabel('Import backup', { exact: true }).setInputFiles({ name: 'v2.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: '2026-10-31T10:24:00Z', activeProfileId: profile.meta.id, profiles: [profile], assets: [] })) })
-  await page.getByRole('button', { name: 'Restore', exact: true }).click()
+  await page.getByRole('button', { name: 'Restore backup', exact: true }).click()
   await reloaded
   await expect(page.locator('.clock')).toBeVisible()
   expect(await activeProfile(page)).toEqual(profile)
@@ -201,7 +201,7 @@ test('invalid and cancelled imports preserve the current setup', async ({ page }
     name: 'valid.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings: v1Settings('#abcdef') })),
   })
-  await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复', exact: true }).click()
+  await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复备份', exact: true }).click()
   await expect(page.locator('section[aria-busy]').first()).toHaveAttribute('aria-busy', 'false')
   expect(await page.evaluate(key => localStorage.getItem(key), INDEX_KEY)).toBe(before)
 })
@@ -216,7 +216,7 @@ test('full restore can be undone', async ({ page }) => {
   await openTab(page, 'data')
   await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: '2026-10-31T10:24:00Z', activeProfileId: incoming.meta.id, profiles: [incoming], assets: [] })) })
   page.once('dialog', dialog => dialog.accept())
-  await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复', exact: true }).click()
+  await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复备份', exact: true }).click()
   await expect(page.getByText('备份已导入。')).toBeVisible()
   expect((await activeProfile(page)).bookmarks.groups[0].name).toBe('Restored group')
   await page.getByRole('button', { name: '撤销', exact: true }).click()
@@ -240,7 +240,7 @@ test('partial theme restore preserves bookmarks', async ({ page }) => {
   await page.getByLabel('布局和组件', { exact: true }).uncheck()
   await page.getByLabel('已保存的主题', { exact: true }).uncheck()
   await page.locator('fieldset').getByLabel('设置', { exact: true }).uncheck()
-  await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复', exact: true }).click()
+  await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复备份', exact: true }).click()
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#112233')
   expect((await activeProfile(page)).bookmarks).toEqual(before.bookmarks)
   await page.getByRole('button', { name: '撤销', exact: true }).click()

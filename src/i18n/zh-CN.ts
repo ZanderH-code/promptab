@@ -408,7 +408,7 @@ export const zhCN = {
   'backup.part.layout': '布局和组件',
   'backup.part.savedThemes': '已保存的主题',
   'backup.part.settings': '设置',
-  'backup.restore': '恢复',
+  'backup.restore': '恢复备份',
   'backup.cancel': '取消',
   'backup.imported': '备份已导入。',
   'backup.exported': '备份已导出。',

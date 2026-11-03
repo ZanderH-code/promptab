@@ -409,7 +409,7 @@ export const en: Record<MessageKey, string> = {
   'backup.part.layout': 'Layout and widgets',
   'backup.part.savedThemes': 'Saved themes',
   'backup.part.settings': 'Settings',
-  'backup.restore': 'Restore',
+  'backup.restore': 'Restore backup',
   'backup.cancel': 'Cancel',
   'backup.imported': 'Backup imported.',
   'backup.exported': 'Backup exported.',

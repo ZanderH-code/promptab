@@ -125,7 +125,7 @@ test('Template B plays a local video after its poster is visible', async ({ page
   expect(content.assets.some((item: { mime: string }) => item.mime === 'image/jpeg')).toBe(true)
   page.once('dialog', dialog => void dialog.accept())
   await page.getByLabel('Import backup', { exact: true }).setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: backup })
-  await page.getByRole('button', { name: 'Restore', exact: true }).click()
+  await page.getByRole('button', { name: 'Restore backup', exact: true }).click()
   await expect(page.getByText('Backup imported.')).toBeVisible()
   await expect(video).toHaveAttribute('data-first-frame-ms', /\d+/)
 })
