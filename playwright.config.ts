@@ -9,7 +9,7 @@ export default defineConfig({
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: !process.env.CI,
   },
-  use: { baseURL: 'http://127.0.0.1:4173', timezoneId: 'UTC', locale: 'en-US' },
+  use: { baseURL: 'http://127.0.0.1:4173', timezoneId: 'UTC', locale: 'en-US', trace: 'retain-on-failure' },
   snapshotPathTemplate: '{testDir}/baselines/{arg}{ext}',
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.002, stylePath: './e2e/screenshot.css', animations: 'disabled', caret: 'hide' } },
   projects: [
