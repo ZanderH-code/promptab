@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { extensionApi, isFirefoxExtension } from '../../platform/extension'
+import { extensionApi, isExtensionEnvironment, isFirefoxExtension } from '../../platform/extension'
 
 export type ByokProvider = 'anthropic' | 'openai'
 type Input = { provider: ByokProvider; model: string; key: string; prompt: string; signal?: AbortSignal }
@@ -30,15 +30,18 @@ async function boundedFetch(url: RequestInfo | URL, options?: RequestInit): Prom
 export async function sendByok(input: Input): Promise<string> {
   const origin = origins[input.provider]
   if (!origin || !input.key.trim() || !input.model.trim() || !input.prompt.trim() || input.prompt.length > 100000 || input.prompt.includes(input.key)) throw new Error('input')
+  const extension = isExtensionEnvironment()
   const permissions = extensionApi()?.permissions
-  if (!permissions) throw new Error('permission')
-  // Keep every browser permission request in the click handler before the first await.
-  const permissionRequest = { origins: [`${origin}/*`] as string[] }
-  if (isFirefoxExtension()) Object.assign(permissionRequest, { data_collection: ['authenticationInfo', 'personalCommunications'] })
-  let granted: boolean
-  try { granted = await permissions.request(permissionRequest) }
-  catch { throw new Error('permission') }
-  if (!granted) throw new Error('permission')
+  if (extension && !permissions) throw new Error('permission')
+  if (permissions && extension) {
+    // Keep every browser permission request in the click handler before the first await.
+    const permissionRequest = { origins: [`${origin}/*`] as string[] }
+    if (isFirefoxExtension()) Object.assign(permissionRequest, { data_collection: ['authenticationInfo', 'personalCommunications'] })
+    let granted: boolean
+    try { granted = await permissions.request(permissionRequest) }
+    catch { throw new Error('permission') }
+    if (!granted) throw new Error('permission')
+  }
   if (input.signal?.aborted) throw new Error('cancelled')
   const controller = new AbortController()
   const cancel = () => controller.abort()

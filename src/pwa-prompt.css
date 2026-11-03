@@ -1,0 +1,13 @@
+.pwa-update-prompt {
+  position: fixed;
+  z-index: 10000;
+  inset: auto 16px 16px auto;
+  border: 1px solid var(--mnt-border-strong);
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: var(--mnt-bg-elevated);
+  color: var(--mnt-text);
+  box-shadow: var(--mnt-elev-1);
+  font: 600 14px/1.2 var(--mnt-font-ui);
+  cursor: pointer;
+}

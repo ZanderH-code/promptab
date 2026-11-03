@@ -9,6 +9,7 @@ import type { Ctx } from './rows/shared'
 
 const tree = [{ id: 'root', title: '', children: [{ id: 'folder', title: 'Reading', children: [{ id: 'link', title: 'Read', url: 'https://read.example' }] }] }]
 const chromeMock = (granted: boolean) => ({
+  runtime: { getURL: vi.fn() },
   permissions: { request: vi.fn().mockResolvedValue(granted), contains: vi.fn().mockResolvedValue(false) },
   bookmarks: { getTree: vi.fn().mockResolvedValue(tree) },
 })
@@ -49,9 +50,10 @@ describe('BrowserBookmarkImport', () => {
     expect(api.bookmarks.getTree).not.toHaveBeenCalled()
   })
 
-  it('explains the unavailable development preview', async () => {
+  it('explains that browser bookmark import is unavailable on the web', async () => {
+    Object.defineProperty(window, 'chrome', { configurable: true, value: { permissions: { request: vi.fn() }, bookmarks: { getTree: vi.fn() } } })
     await setup()
-    expect(screen.getByText(/unavailable in the development preview/i)).toBeInTheDocument()
+    expect(screen.getByText(/needs extension APIs and is unavailable in the web app/i)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Choose folders' })).toBeNull()
   })
 })

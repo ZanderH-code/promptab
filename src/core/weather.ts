@@ -1,4 +1,4 @@
-import { extensionApi, isFirefoxExtension } from '../platform/extension'
+import { extensionApi, isExtensionEnvironment, isFirefoxExtension } from '../platform/extension'
 
 export type WeatherUnit = 'celsius' | 'fahrenheit'
 
@@ -28,8 +28,9 @@ export type WeatherCity = { id: number; name: string; country: string; latitude:
 
 export async function requestWeatherPermission(service: 'forecast' | 'geocoding') {
   const origin = service === 'forecast' ? 'https://api.open-meteo.com' : 'https://geocoding-api.open-meteo.com'
+  if (!isExtensionEnvironment()) return true
   const permissions = extensionApi()?.permissions
-  if (!permissions) return true
+  if (!permissions) return false
   const permissionRequest = { origins: [`${origin}/*`] }
   if (isFirefoxExtension()) Object.assign(permissionRequest, { data_collection: ['locationInfo'] })
   return permissions.request(permissionRequest)

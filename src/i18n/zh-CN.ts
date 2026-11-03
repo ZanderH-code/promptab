@@ -56,7 +56,7 @@ export const zhCN = {
 
   'onboarding.kicker': '开始使用',
   'onboarding.title': '打造你的新标签页',
-  'onboarding.description': '添加网站、导入书签、选择主题，或用 AI 开始设计。',
+  'onboarding.description': '添加网站、选择主题，或用 AI 开始设计。网页版数据与扩展分开保存；可在「设置 → 数据」导出备份，再导入到另一版本。',
   'onboarding.add': '添加第一个网站',
   'onboarding.import': '导入浏览器书签',
   'onboarding.theme': '选择主题',
@@ -200,7 +200,7 @@ export const zhCN = {
   'bookmarks.chooseFolders': '选择文件夹',
   'bookmarks.folderList': '书签文件夹',
   'bookmarks.importSelected': '导入所选文件夹',
-  'bookmarks.unavailable': '开发预览中没有浏览器书签权限。请在扩展环境中使用。',
+  'bookmarks.unavailable': '导入浏览器书签需要扩展 API，网页版暂不支持。请使用已安装的浏览器扩展。',
   'bookmarks.permissionDenied': '没有获得书签权限。',
   'bookmarks.loadFailed': '无法读取浏览器书签。',
   'bookmarks.nothingFound': '所选文件夹中没有新的网页书签。',

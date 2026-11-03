@@ -28,6 +28,10 @@ export function extensionApi(): ExtensionApi | undefined {
   return globals.browser ?? globals.chrome
 }
 
+export function isExtensionEnvironment(): boolean {
+  return typeof extensionApi()?.runtime?.getURL === 'function'
+}
+
 export function isFirefoxExtension(): boolean {
   return typeof (globalThis as typeof globalThis & { browser?: ExtensionApi }).browser !== 'undefined'
 }

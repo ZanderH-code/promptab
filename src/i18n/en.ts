@@ -57,7 +57,7 @@ export const en: Record<MessageKey, string> = {
 
   'onboarding.kicker': 'GET STARTED',
   'onboarding.title': 'Make this page yours',
-  'onboarding.description': 'Add a website, import bookmarks, choose a theme, or start with AI.',
+  'onboarding.description': 'Add a website, choose a theme, or start with AI. Web data is separate from the extension; move setups with Settings → Data → Export backup.',
   'onboarding.add': 'Add first website',
   'onboarding.import': 'Import browser bookmarks',
   'onboarding.theme': 'Choose a theme',
@@ -201,7 +201,7 @@ export const en: Record<MessageKey, string> = {
   'bookmarks.chooseFolders': 'Choose folders',
   'bookmarks.folderList': 'Bookmark folders',
   'bookmarks.importSelected': 'Import selected folders',
-  'bookmarks.unavailable': 'Browser bookmark access is unavailable in the development preview. Use the extension build.',
+  'bookmarks.unavailable': 'Browser bookmark import needs extension APIs and is unavailable in the web app. Use the installed extension.',
   'bookmarks.permissionDenied': 'Bookmark permission was not granted.',
   'bookmarks.loadFailed': 'Could not read browser bookmarks.',
   'bookmarks.nothingFound': 'The selected folders contain no new web bookmarks.',

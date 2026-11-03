@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { appendImportedBookmarkGroups, collectBookmarkFolders, importBookmarkFolders, type BookmarkFolder, type BookmarkNode } from '../../core/bookmarks/import'
 import type { MessageKey } from '../../i18n'
 import type { Ctx } from './rows/shared'
-import { extensionApi } from '../../platform/extension'
+import { extensionApi, isExtensionEnvironment } from '../../platform/extension'
 
 type Props = { ctx: Ctx }
 
@@ -14,7 +14,7 @@ export function BrowserBookmarkImport({ ctx }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<MessageKey | null>(null)
-  const available = !!browserApi()?.permissions?.request && !!browserApi()?.bookmarks?.getTree
+  const available = isExtensionEnvironment() && !!browserApi()?.permissions?.request && !!browserApi()?.bookmarks?.getTree
 
   const openPicker = async () => {
     const api = browserApi()

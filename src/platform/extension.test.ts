@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { extensionApi, isFirefoxExtension } from './extension'
+import { extensionApi, isExtensionEnvironment, isFirefoxExtension } from './extension'
 
 const restore = () => {
   delete (globalThis as typeof globalThis & { browser?: unknown }).browser
@@ -23,8 +23,17 @@ describe('extension API selection', () => {
     expect(isFirefoxExtension()).toBe(false)
   })
 
+  it('detects the extension runtime separately from browser API shims', () => {
+    Object.defineProperty(globalThis, 'chrome', { configurable: true, value: { permissions: {} } })
+    expect(extensionApi()).toBeDefined()
+    expect(isExtensionEnvironment()).toBe(false)
+    Object.defineProperty(globalThis, 'chrome', { configurable: true, value: { runtime: { getURL: () => 'extension:///' } } })
+    expect(isExtensionEnvironment()).toBe(true)
+  })
+
   it('returns no extension API in a regular web preview', () => {
     expect(extensionApi()).toBeUndefined()
+    expect(isExtensionEnvironment()).toBe(false)
     expect(isFirefoxExtension()).toBe(false)
   })
 })
