@@ -133,7 +133,7 @@ const wallpaperRotation = z.object({ images: z.array(asset).min(2).max(20), inte
 export const profileV2Schema = z.object({
   schemaVersion: z.literal(2),
   meta: z.object({ id: nonempty, name: nonempty, builtinName: z.literal('default-profile').optional(), createdAt: date, updatedAt: date }),
-  prefs: z.object({ language: z.enum(['system', 'zh-CN', 'en']), openIn: z.enum(['same-tab', 'new-tab']), reduceMotion: z.enum(['system', 'on', 'off']), reduceTransparency: z.enum(['system', 'on', 'off']) }),
+  prefs: z.object({ language: z.enum(['system', 'zh-CN', 'en']), openIn: z.enum(['same-tab', 'new-tab']), openShortcutsInNewTab: z.boolean().default(false), openSearchInNewTab: z.boolean().default(false), keyboardShortcuts: z.boolean().default(true), accentOnOpen: z.enum(['off', 'random', 'cycle']).default('off'), liftOnHover: z.boolean().default(false), reduceMotion: z.enum(['system', 'on', 'off']), reduceTransparency: z.enum(['system', 'on', 'off']) }),
   theme: z.object({
     preset: nonempty.optional(), mode: z.enum(['dark', 'light', 'system']), color: baseColorsSchema, colorLight: baseColorsSchema.optional(),
     font: z.object({ display: fontRefSchema, ui: fontRefSchema }), radius: ranged(RANGES.radius), shadow: ranged(RANGES.shadow), glass: ranged(RANGES.glass),

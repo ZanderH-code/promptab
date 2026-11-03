@@ -4,7 +4,7 @@ import type { Settings } from '../../core/model'
 import { toMessageRef, type MessageKey, type MessageRef, type Translate } from '../../i18n'
 import { createBackupV2Service } from '../../storage/backup-v2'
 import { assets } from '../../app/useSettings'
-import { createAppProfileStorage, type AppProfileStore } from '../../app/useSettings'
+import { createAppProfileStorage, createAppThemeLibrary, type AppProfileStore } from '../../app/useSettings'
 import { SyncSection } from './SyncSection'
 
 type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean; store?: AppProfileStore }
@@ -20,7 +20,7 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
     setStatus(null)
     try {
       const { persistence } = createAppProfileStorage()
-      const json = await createBackupV2Service({ profiles: persistence, assets }).exportBackup()
+      const json = await createBackupV2Service({ profiles: persistence, assets, themes: createAppThemeLibrary() }).exportBackup()
       const size = new Blob([json]).size / (1024 * 1024)
       if (size >= 10 && !confirm(t('backup.largeExport', { size: size.toFixed(1) }))) return
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
@@ -45,7 +45,7 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
     try {
       const json = await file.text()
       const { persistence } = createAppProfileStorage()
-      const service = createBackupV2Service({ profiles: persistence, assets })
+      const service = createBackupV2Service({ profiles: persistence, assets, themes: createAppThemeLibrary() })
       const expectedRevision = recovery ? null : store?.getState().revision ?? revision
       fallback = 'error.loadSettings'
       const analysis = await service.analyzeBackup(json, expectedRevision, recovery)

@@ -1,6 +1,7 @@
 import { MessageError } from '../i18n'
 import { DEFAULT_MAX_ASSET_BYTES } from '../storage/assets'
 import { parseProfileV2, type ProfileV2 } from './schema/profile'
+import { parseSavedThemes, type SavedTheme } from './themes/library'
 
 export const MAX_BACKUP_ASSET_BYTES = DEFAULT_MAX_ASSET_BYTES
 export const MAX_BACKUP_VIDEO_BYTES = 30 * 1024 * 1024
@@ -11,14 +12,14 @@ const maxBytesForMime = (mime: string) => mime.startsWith('video/') ? MAX_BACKUP
 const assetId = /^[a-f0-9]{64}$/
 
 export type BackupV2Asset = { id: string; blob: Blob }
-export type BackupV2Input = { activeProfileId: string; profiles: ProfileV2[]; assets: BackupV2Asset[] }
-export type ParsedBackupV2 = BackupV2Input & { exportedAt: string }
+export type BackupV2Input = { activeProfileId: string; profiles: ProfileV2[]; assets: BackupV2Asset[]; themes?: SavedTheme[] }
+export type ParsedBackupV2 = BackupV2Input & { exportedAt: string; themes: SavedTheme[] }
 type EncodedAsset = { id: string; mime: string; base64: string }
 
-function record(value: unknown, keys: string[]): Record<string, unknown> {
+function record(value: unknown, keys: string[], optional: string[] = []): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid backup object')
   const result = value as Record<string, unknown>
-  if (Object.keys(result).some(key => !keys.includes(key)) || keys.some(key => !Object.hasOwn(result, key))) throw new Error('Invalid backup fields')
+  if (Object.keys(result).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !Object.hasOwn(result, key))) throw new Error('Invalid backup fields')
   return result
 }
 
@@ -97,7 +98,7 @@ export async function parseBackupV2(json: string): Promise<ParsedBackupV2> {
 }
 
 async function parseBackupV2Value(value: unknown): Promise<ParsedBackupV2> {
-  const raw = record(value, ['kind', 'backupVersion', 'exportedAt', 'activeProfileId', 'profiles', 'assets'])
+  const raw = record(value, ['kind', 'backupVersion', 'exportedAt', 'activeProfileId', 'profiles', 'assets'], ['themes'])
   if (raw.kind !== 'mnt.backup' || raw.backupVersion !== 2 || typeof raw.exportedAt !== 'string' || !Number.isFinite(Date.parse(raw.exportedAt))) throw new Error('Invalid backup header')
   const profiles = checkProfiles(raw.profiles, raw.activeProfileId)
   if (!Array.isArray(raw.assets)) throw new Error('Invalid assets')
@@ -125,7 +126,8 @@ async function parseBackupV2Value(value: unknown): Promise<ParsedBackupV2> {
     if (total > MAX_BACKUP_TOTAL_ASSET_BYTES || await hash(bytes) !== item.id) throw new Error('Invalid asset hash or total size')
     assets.push({ id: item.id, blob: new Blob([bytes], { type: item.mime }) })
   }
-  return { exportedAt: raw.exportedAt, activeProfileId: raw.activeProfileId as string, profiles, assets }
+  const themes = raw.themes === undefined ? [] : parseSavedThemes(raw.themes)
+  return { exportedAt: raw.exportedAt, activeProfileId: raw.activeProfileId as string, profiles, assets, themes }
 }
 
 /** Serialize profiles and assets, validating the same invariants as import. */
@@ -141,7 +143,8 @@ export async function serializeBackupV2(input: BackupV2Input): Promise<string> {
     const bytes = new Uint8Array(await item.blob.arrayBuffer())
     assets.push({ id: item.id, mime: item.blob.type, base64: encode(bytes) })
   }
-  const json = JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: new Date().toISOString(), activeProfileId: input.activeProfileId, profiles, assets })
+  const themes = parseSavedThemes(input.themes ?? [])
+  const json = JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: new Date().toISOString(), activeProfileId: input.activeProfileId, profiles, assets, themes })
   await parseBackupV2(json)
   return json
 }

@@ -24,8 +24,8 @@ const BackupSection = lazy(() => import('../features/settings/BackupSection').th
 const ShortcutEditor = lazy(() => import('../features/shortcut-editor/ShortcutEditor').then(m => ({ default: m.ShortcutEditor })))
 const WallpaperVideo = lazy(() => import('../features/wallpaper/WallpaperVideo').then(m => ({ default: m.WallpaperVideo })))
 
-type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut'
-type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut }
+type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut' | 'group'
+type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut; group?: ProfileV2['bookmarks']['groups'][number] }
 type MoveState = { shortcut: Shortcut; groupId: string }
 
 const MENU_MARGIN = 180
@@ -55,20 +55,28 @@ export default function App() {
     }) })
     return () => { alive = false; cancelAnimationFrame(first); cancelAnimationFrame(second) }
   }, [store])
+  const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false)
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
-      if (!event.repeat && event.key.toLowerCase() === 'e' && !target?.closest('input, textarea, select, [contenteditable="true"]')) {
-        setEditMode(value => !value)
-      }
-      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !target?.closest('input, textarea, select, [contenteditable="true"]')) {
+      const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) {
         event.preventDefault()
         undo()
+        return
       }
+      if (!profile?.prefs.keyboardShortcuts || typing || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.shiftKey && event.key !== '?')) return
+      const key = event.key.toLowerCase()
+      if (key === '/') { event.preventDefault(); document.querySelector<HTMLInputElement>('#search')?.focus() }
+      else if (key === 'e') setEditMode(value => !value)
+      else if (key === 'a') { addGroupId.current = undefined; setEditing(newShortcut('#90d5cd')) }
+      else if (key === ',') { event.preventDefault(); openSettings() }
+      else if (key === 'd') patch({ theme: settings?.theme === 'light' ? 'dark' : 'light' })
+      else if (event.key === '?') { event.preventDefault(); setKeyboardHelpOpen(true) }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [undo])
+  }, [undo, settings, patch])
   const [drawer, setDrawer] = useState(false)
   useEffect(() => { if (drawer) setSyncMounted(true) }, [drawer])
   const [managingGroups, setManagingGroups] = useState(false)
@@ -163,12 +171,12 @@ export default function App() {
   const videoBackground = profile?.background.type === 'video' ? profile.background.video : undefined
   const t =(key: MessageKey, params?: MessageParams) => translate(s.language, key, params)
 
-  const openMenu = (event: ContextMenuEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut } = {}) => {
+  const openMenu = (event: ContextMenuEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut; group?: ProfileV2['bookmarks']['groups'][number] } = {}) => {
     event.preventDefault()
     event.stopPropagation()
     const x = options.clamp ? Math.min(event.clientX, window.innerWidth - MENU_MARGIN) : event.clientX
     const y = options.clamp ? Math.min(event.clientY, window.innerHeight - MENU_MARGIN) : event.clientY
-    setMenu({ x, y, target, shortcut: options.shortcut })
+    setMenu({ x, y, target, shortcut: options.shortcut, group: options.group })
   }
 
   const openSettings = (section?: string) => {
@@ -176,6 +184,11 @@ export default function App() {
     setManagingGroups(false)
     setDrawerSection(section)
     setDrawer(true)
+  }
+
+  const openGroupLinks = (group: ProfileV2['bookmarks']['groups'][number]) => {
+    if (group.items.length > 8 && !confirm(t('groups.confirmOpenAll', { count: group.items.length }))) return
+    group.items.forEach(item => { window.open(item.url, '_blank', 'noopener') })
   }
 
   const newShortcut = (color: string): Shortcut => ({ id: crypto.randomUUID(), name: '', url: 'https://', color, icon: '' })
@@ -214,6 +227,7 @@ export default function App() {
 
   function menuItems(state: MenuState): ContextMenuItem[] {
     const { shortcut } = state
+    if (state.target === 'group' && state.group) return [{ label: t('groups.openAll'), onSelect: () => openGroupLinks(state.group!) }]
     if (state.target === 'shortcut' && shortcut) {
       return [
         { label: t('shortcuts.edit'), onSelect: () => setEditing(shortcut) },
@@ -306,6 +320,7 @@ export default function App() {
         onError={setError}
         onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
         onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } })))}
+        onGroupContextMenu={(event, group) => openMenu(event, 'group', { clamp: true, group })}
         onEdit={setEditing}
         onRemove={removeShortcut}
         onMove={openMoveDialog}
@@ -317,6 +332,7 @@ export default function App() {
       />}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
+      {keyboardHelpOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) setKeyboardHelpOpen(false) }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="keyboard-help-title" onKeyDown={event => { if (event.key === 'Escape') setKeyboardHelpOpen(false) }}><h2 id="keyboard-help-title">{t('keyboard.helpTitle')}</h2><ul>{(['edit', 'add', 'settings', 'theme', 'search', 'help'] as const).map((action, index) => <li key={action}><kbd>{['E', 'A', ',', 'D', '/', '?'][index]}</kbd> {t(`keyboard.${action}` as MessageKey)}</li>)}</ul><button type="button" autoFocus className="sd-button" onClick={() => setKeyboardHelpOpen(false)}>{t('common.close')}</button></div></div>}
       {moving && profile && <div className="modal-backdrop" role="presentation">
         <form className="modal" role="dialog" aria-modal="true" aria-labelledby="move-bookmark-title" onSubmit={moveShortcut} onKeyDown={event => { if (event.key === 'Escape') setMoving(null) }}>
           <h2 id="move-bookmark-title">{t('shortcuts.moveDialog')}</h2>

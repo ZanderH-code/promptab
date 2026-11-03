@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { defaults } from '../core/model'
 import { migrateV1 } from '../core/migrate/v1'
 import { parseBackupV2, serializeBackupV2 } from '../core/backup-v2'
+import { exportThemePack } from '../core/ai/apply'
+import type { SavedTheme } from '../core/themes/library'
 import { createAssetLibrary, type AssetRecord, type AssetStore } from './assets'
 import { createProfileStorage, type AsyncKeyValueBackend } from './profiles'
 import { createBackupV2Service } from './backup-v2'
@@ -48,6 +50,19 @@ describe('backup storage service', () => {
     expect((await s.profiles.read())?.history).toMatchObject({ profiles: { old: { snapshots: [{ kind: 'import' }] } } })
     expect(await s.assets.get(s.oldRef)).toBeDefined()
     expect((await parseBackupV2(await s.service.exportBackup())).activeProfileId).toBe('old')
+  })
+
+  it('exports and restores the local theme library with a full backup', async () => {
+    const s = await setup()
+    const profile = ((s.initial.profiles as ProfileCollection).profiles.old)
+    const saved: SavedTheme[] = [{ id: 'saved-1', name: 'Saved palette', savedAt: '2026-01-01T00:00:00Z', pack: exportThemePack(profile) }]
+    let themes = saved
+    const service = createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: { read: async () => themes, write: async value => { themes = value } } })
+    const backup = await service.exportBackup()
+    expect((await parseBackupV2(backup)).themes.map(theme => theme.name)).toEqual(['Saved palette'])
+    themes = []
+    await service.importBackup(backup, 1)
+    expect(themes.map(theme => theme.name)).toEqual(['Saved palette'])
   })
 
   it('imports and exports video assets larger than the image limit', async () => {

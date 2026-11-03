@@ -8,6 +8,7 @@ import type { MessageKey } from '../../../i18n'
 import { ColorField, RangeField, Row, Segmented, Toggle } from '../controls'
 import { FontUpload } from '../FontUpload'
 import { WallpaperContrast } from '../WallpaperContrast'
+import { MyThemes } from '../MyThemes'
 import { FONT_KEYS, PRESETS, applyPreset, colorsFor, contrastIssues, editTheme, fixedColors, isFontKey, thumbnailTokens, withColors, type BaseColors, type ThemeMode } from '../themeApi'
 import { Select, touch, type Ctx, type Item } from './shared'
 
@@ -120,5 +121,10 @@ export function appearanceItems(ctx: Ctx): Item[] {
       ),
     },
     range('scale', 'settings.scale', theme.scale, RANGES.scale, value => setTheme({ scale: value }), { step: 0.05, unit: '×' }),
+    { id: 'shortcuts-new-tab', group: 'settings.shortcuts', keys: ['settings.openShortcutsNewTab'], node: <Toggle label={t('settings.openShortcutsNewTab')} checked={profile.prefs.openShortcutsInNewTab} onChange={openShortcutsInNewTab => change(p => touch({ ...p, prefs: { ...p.prefs, openShortcutsInNewTab } }))} /> },
+    { id: 'lift-hover', group: 'settings.shortcuts', keys: ['settings.liftHover'], node: <Toggle label={t('settings.liftHover')} checked={profile.prefs.liftOnHover} onChange={liftOnHover => change(p => touch({ ...p, prefs: { ...p.prefs, liftOnHover } }))} /> },
+    { id: 'keyboard-shortcuts', group: 'settings.shortcuts', keys: ['settings.keyboardShortcuts'], node: <Toggle label={t('settings.keyboardShortcuts')} checked={profile.prefs.keyboardShortcuts} onChange={keyboardShortcuts => change(p => touch({ ...p, prefs: { ...p.prefs, keyboardShortcuts } }))} /> },
+    { id: 'accent-on-open', group: 'settings.colors', keys: ['settings.accentOnOpen'], node: <Row label={t('settings.accentOnOpen')}><Select ctx={ctx} label={t('settings.accentOnOpen')} value={profile.prefs.accentOnOpen} options={[{ value: 'off', label: t('settings.accentOff') }, { value: 'random', label: t('settings.accentRandom') }, { value: 'cycle', label: t('settings.accentCycle') }]} onChange={accentOnOpen => change(p => touch({ ...p, prefs: { ...p.prefs, accentOnOpen: accentOnOpen as typeof p.prefs.accentOnOpen } }))} /></Row> },
+    { id: 'my-themes', group: 'settings.theme', keys: ['themes.title', 'themes.saveCurrent'], node: <MyThemes ctx={ctx} /> },
   ]
 }

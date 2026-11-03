@@ -21,6 +21,7 @@ describe('v1 migration', () => {
     const settings = { ...defaults, language: 'en' as const, theme: 'light' as const, showClock: false, showDate: false, showSearch: false, hour12: true, columns: 9, alignment: 'left' as const, layout: 'split' as const, reverse: true, overlay: 68, shortcuts: [{ ...defaults.shortcuts[0], iconMode: 'text' as const }] }
     const profile = await migrateV1(settings, deps)
     expect(profile.meta).toMatchObject({ id: 'profile-id', createdAt: deps.now(), updatedAt: deps.now() })
+    expect(profile.prefs).toMatchObject({ openShortcutsInNewTab: false, openSearchInNewTab: false, keyboardShortcuts: true, accentOnOpen: 'off', liftOnHover: false })
     expect((await projectV1(profile, deps)).settings).toEqual(settings)
     expect(profile.background.dim).toBe(68)
   })

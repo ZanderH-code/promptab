@@ -1,5 +1,5 @@
 import { searchUrl } from '../../../core/model'
-import { Row } from '../controls'
+import { Row, Toggle } from '../controls'
 import { Select, type Ctx, type Item } from './shared'
 
 const SEARCH_ENGINES = [
@@ -17,6 +17,7 @@ export function searchItems(ctx: Ctx): Item[] {
   ]
   return [
     { id: 'engine', keys: ['settings.searchEngine', 'settings.engineBaidu'], words: ['Google', 'Bing'], node: <Row label={t('settings.searchEngine')} stack><Select ctx={ctx} wide label={t('settings.searchEngine')} value={s.searchTemplate} options={options} onChange={searchTemplate => patch({ searchTemplate })} /></Row> },
+    { id: 'search-new-tab', keys: ['settings.openSearchNewTab'], node: <Toggle label={t('settings.openSearchNewTab')} checked={ctx.profile.prefs.openSearchInNewTab} onChange={openSearchInNewTab => ctx.change(p => ({ ...p, prefs: { ...p.prefs, openSearchInNewTab } }))} /> },
     {
       id: 'engine-custom', keys: ['settings.searchCustom'],
       node: (

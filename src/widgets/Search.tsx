@@ -1,33 +1,24 @@
 import { Search as SearchIcon, ArrowUpRight } from 'lucide-react'
-import { useEffect, useState, type FormEvent, type MouseEvent } from 'react'
+import { useState, type FormEvent, type MouseEvent } from 'react'
 import { searchUrl } from '../core/model'
 import { toMessageRef, type MessageRef, type Translate } from '../i18n'
 
 type Props = {
   template: string
+  openInNewTab: boolean
   t: Translate
   onContextMenu: (event: MouseEvent) => void
   onError: (error: MessageRef) => void
 }
 
-export function Search({ template, t, onContextMenu, onError }: Props) {
+export function Search({ template, openInNewTab, t, onContextMenu, onError }: Props) {
   const [query, setQuery] = useState('')
-
-  useEffect(() => {
-    const focusOnSlash = (event: KeyboardEvent) => {
-      if (event.key !== '/' || event.target instanceof HTMLInputElement) return
-      event.preventDefault()
-      document.querySelector<HTMLInputElement>('#search')?.focus()
-    }
-    window.addEventListener('keydown', focusOnSlash)
-    return () => window.removeEventListener('keydown', focusOnSlash)
-  }, [])
 
   function submit(event: FormEvent) {
     event.preventDefault()
     try {
       const url = searchUrl(template, query)
-      if (url) window.location.assign(url)
+      if (url) openInNewTab ? window.open(url, '_blank', 'noopener') : window.location.assign(url)
     } catch (error) {
       onError(toMessageRef(error, 'error.searchTemplate'))
     }

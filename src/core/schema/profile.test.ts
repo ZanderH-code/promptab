@@ -5,7 +5,7 @@ import { profileV2Schema, parseProfileV2, profileIssues, type ProfileV2 } from '
 const profile = {
   schemaVersion: 2,
   meta: { id: 'main', name: 'Main', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
-  prefs: { language: 'system', openIn: 'same-tab', reduceMotion: 'system', reduceTransparency: 'off' },
+  prefs: { language: 'system', openIn: 'same-tab', openShortcutsInNewTab: false, openSearchInNewTab: false, keyboardShortcuts: true, accentOnOpen: 'off', liftOnHover: false, reduceMotion: 'system', reduceTransparency: 'off' },
   theme: { mode: 'dark', color: { bg: '#102932', surface: '#203942', text: '#ffffff', accent: '#90d5cd' }, font: { display: 'serif', ui: 'system' }, radius: 16, shadow: 40, glass: 0, density: 'comfortable', scale: 1, iconShape: 'circle', iconSize: 72 },
   background: { type: 'theme', dim: 35 },
   layout: { contentWidth: 1000, align: 'center-center', gap: 16, areas: ['clock search', 'links links'] },
@@ -18,6 +18,11 @@ const profile = {
 describe('profile v2 schema', () => {
   it('accepts a profile with current features and custom variables', () => {
     expect(parseProfileV2(profile)).toEqual(profile)
+  })
+
+  it('defaults new preferences when reading older v2 profiles', () => {
+    const { openShortcutsInNewTab: _shortcuts, openSearchInNewTab: _search, keyboardShortcuts: _keyboard, accentOnOpen: _accent, liftOnHover: _lift, ...prefs } = profile.prefs
+    expect(parseProfileV2({ ...profile, prefs }).prefs).toMatchObject({ openShortcutsInNewTab: false, openSearchInNewTab: false, keyboardShortcuts: true, accentOnOpen: 'off', liftOnHover: false })
   })
 
   it.each(['tile', 'list', 'minimal', 'card', 'icon-only'])('preserves the %s bookmark style and group source', style => {

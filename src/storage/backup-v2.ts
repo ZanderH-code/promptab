@@ -2,6 +2,7 @@ import { parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_VI
 import { parseBackup } from '../core/backup'
 import { migrateV1 } from '../core/migrate/v1'
 import type { ProfileV2 } from '../core/schema/profile'
+import type { SavedTheme } from '../core/themes/library'
 import { planImport, validateStored, type Committed, type ImportCollection, type ProfileCollection } from '../store/profile'
 import type { HistoryOptions } from '../store/history'
 import type { createAssetLibrary } from './assets'
@@ -35,6 +36,7 @@ function backupFormat(json: string): 1 | 2 {
 export function createBackupV2Service(deps: {
   profiles: Pick<ReturnType<typeof createProfileStorage>, 'read' | 'write'>
   assets: Pick<ReturnType<typeof createAssetLibrary>, 'add' | 'get'>
+  themes?: { read: () => Promise<SavedTheme[]>; write: (themes: SavedTheme[]) => Promise<void> }
   now?: () => number
   createId?: () => string
 }) {
@@ -92,12 +94,14 @@ export function createBackupV2Service(deps: {
     async importBackup(json: string, expectedRevision: number | null) {
       const committed = await readCommitted(expectedRevision)
       let next: Committed
+      let importedThemes: SavedTheme[] | undefined
       if (backupFormat(json) === 1) {
         const parsed = parseBackup(json)
         const profile = await migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
         next = planImport(committed, v1Collection(committed, profile), options)
       } else {
         const backup = await parseBackupV2(json)
+        importedThemes = backup.themes
         next = planImport(committed, backup, options)
         for (const asset of backup.assets) {
           const reference = `mnt-asset:${asset.id}`
@@ -111,7 +115,9 @@ export function createBackupV2Service(deps: {
         }
       }
       const profiles: ProfileCollection = { activeProfileId: next.activeProfileId, profiles: next.profiles, ...(Object.keys(next.archived).length ? { archived: next.archived } : {}) }
-      return deps.profiles.write({ profiles, history: next.history }, expectedRevision)
+      const result = await deps.profiles.write({ profiles, history: next.history }, expectedRevision)
+      if (importedThemes && deps.themes) await deps.themes.write(importedThemes)
+      return result
     },
 
     /** Export committed profiles and their referenced assets, excluding history. */
@@ -136,7 +142,7 @@ export function createBackupV2Service(deps: {
         if (!blob) throw new Error(`Missing asset: ${id}`)
         return { id, blob }
       }))
-      return serializeBackupV2({ activeProfileId: collection.activeProfileId, profiles, assets })
+      return serializeBackupV2({ activeProfileId: collection.activeProfileId, profiles, assets, themes: await deps.themes?.read() ?? [] })
     },
   }
 }

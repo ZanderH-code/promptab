@@ -13,6 +13,14 @@ const fixture = async () => {
 }
 
 describe('v2 backups', () => {
+  it('round trips a bounded theme library as part of the backup', async () => {
+    const input = await fixture()
+    const theme = { id: 'theme-1', name: 'Warm Study', savedAt: '2026-01-01T00:00:00Z', pack: { kind: 'mnt.theme-pack', packVersion: 2, meta: { name: 'Warm Study' }, theme: { mode: 'dark', color: { bg: '#102932', surface: '#203942', text: '#eeeae5', accent: '#90d5cd' } } } }
+    const json = await serializeBackupV2({ ...input, themes: [theme] as never[] })
+    expect((await parseBackupV2(json)).themes.map(item => item.name)).toEqual(['Warm Study'])
+    await expect(serializeBackupV2({ ...input, themes: Array.from({ length: 51 }, (_, index) => ({ ...theme, id: `theme-${index}` })) as never[] })).rejects.toThrow()
+  })
+
   it('round trips profiles and assets without history', async () => {
     const input = await fixture()
     const json = await serializeBackupV2(input)

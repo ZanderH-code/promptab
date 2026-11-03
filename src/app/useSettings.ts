@@ -9,6 +9,7 @@ import { createAssetLibrary } from '../storage/assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage } from '../storage/profiles'
 import { extensionApi } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
+import type { SavedTheme } from '../core/themes/library'
 
 export const assets = createAssetLibrary()
 export type AppProfileStore = ReturnType<typeof createProfileStore>
@@ -17,6 +18,21 @@ export function createAppProfileStorage() {
   const local = extensionApi()?.storage?.local
   const backend = local ? createChromeStorageBackend(local) : createLocalStorageBackend(localStorage)
   return { backend, persistence: createProfileStorage(backend) }
+}
+
+export function createAppThemeLibrary() {
+  const backend = createAppProfileStorage().backend
+  const library = async () => {
+    const { createThemeLibrary } = await import('../core/themes/library')
+    return createThemeLibrary(backend)
+  }
+  return {
+    read: async () => (await library()).read(),
+    write: async (themes: SavedTheme[]) => (await library()).write(themes),
+    save: async (profile: ProfileV2, name: string) => (await library()).save(profile, name),
+    rename: async (id: string, name: string) => (await library()).rename(id, name),
+    remove: async (id: string) => (await library()).remove(id),
+  }
 }
 
 async function dataUrl(blob: Blob): Promise<string> {

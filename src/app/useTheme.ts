@@ -3,6 +3,7 @@ import { useLayoutEffect, type CSSProperties } from 'react'
 import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/derive'
 import { assetFontFamily, isAssetFont } from '../core/font'
 import { mixOklch } from '../core/tokens/oklch'
+import { accentPalette } from '../core/tokens/accent'
 import type { ProfileV2 } from '../core/schema/profile'
 
 const FONTS: Record<string, string> = {
@@ -19,10 +20,20 @@ const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
 export const fontStack = (ref: string) => FONTS[ref] ?? (isAssetFont(ref) ? `"${assetFontFamily(ref)}", ${FONTS.system}` : ref)
 
+const ACCENT_SELECTION_KEY = 'mnt:accent-selection:v1'
+
+function selectedAccent(profile: ProfileV2, mode: ThemeMode): string | undefined {
+  if (profile.prefs.accentOnOpen === 'off') return undefined
+  try {
+    const accent = sessionStorage.getItem(ACCENT_SELECTION_KEY)
+    return accent && accentPalette(profile.theme, mode).includes(accent) ? accent : undefined
+  } catch { return undefined }
+}
+
 /** Every CSS custom property the theme writes on the root, so stale ones can be cleared. */
-function themeProperties(profile: ProfileV2, mode: ThemeMode): Record<string, string> {
+function themeProperties(profile: ProfileV2, mode: ThemeMode, accent = selectedAccent(profile, mode)): Record<string, string> {
   const { theme } = profile
-  const colors = themeColorsFor(theme, mode)
+  const colors = { ...themeColorsFor(theme, mode), ...(accent ? { accent } : {}) }
   const tokens: Record<string, string> = { ...deriveTokens(colors, mode, { minContrast: theme.preset === 'contrast' ? 7 : 4.5 }) }
   tokens['--mnt-scheme-bg'] = colors.bg
   const shadowAlpha = theme.shadow * (mode === 'dark' ? 1 : 0.4)
@@ -50,6 +61,7 @@ export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | unde
     if (!profile || !mode) return
     const root = document.documentElement
     const properties = themeProperties(profile, mode)
+    const accentVariants = profile.prefs.accentOnOpen === 'off' ? [] : accentPalette(profile.theme, mode).map(accent => ({ accent, properties: themeProperties(profile, mode, accent) }))
     const background = profile.background.type === 'color' && profile.background.color
       ? profile.background.color
       : profile.background.type === 'gradient' && mode === 'dark' && profile.background.gradient
@@ -59,7 +71,7 @@ export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | unde
     root.dataset.glass = profile.theme.glass > 0 ? 'on' : 'off'
     for (const [name, value] of Object.entries(properties)) root.style.setProperty(name, value)
     try {
-      if (cache) localStorage.setItem('mnt:theme-cache:v1', JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) }))
+      if (cache) localStorage.setItem('mnt:theme-cache:v1', JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, accentMode: profile.prefs.accentOnOpen, accentVariants, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) }))
       else localStorage.removeItem('mnt:theme-cache:v1')
     } catch { /* Storage can be unavailable. */ }
     return () => { for (const name of Object.keys(properties)) root.style.removeProperty(name) }
@@ -69,7 +81,8 @@ export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | unde
 /** Inline styles for the page background (colour, gradient or accent wash); images use <Wallpaper>. */
 export function backgroundStyle(profile: ProfileV2, mode: ThemeMode): CSSProperties {
   const { background } = profile
-  const colors = themeColorsFor(profile.theme, mode)
+  const accent = selectedAccent(profile, mode)
+  const colors = { ...themeColorsFor(profile.theme, mode), ...(accent ? { accent } : {}) }
   switch (background.type) {
     case 'color': return { background: mode === 'dark' || !profile.theme.colorLight ? background.color ?? colors.bg : colors.bg }
     // One gradient serves both modes, so light falls back to the plain background to stay readable.

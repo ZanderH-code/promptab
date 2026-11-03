@@ -89,7 +89,7 @@ export async function migrateV1(input: unknown, options: MigrationOptions): Prom
   return parseProfileV2({
     schemaVersion: 2,
     meta: { id: options.id(), name: names.profile[language], builtinName: 'default-profile', createdAt: timestamp, updatedAt: timestamp },
-    prefs: { language: v.language, openIn: 'same-tab', reduceMotion: 'system', reduceTransparency: 'system' },
+    prefs: { language: v.language, openIn: 'same-tab', openShortcutsInNewTab: false, openSearchInNewTab: false, keyboardShortcuts: true, accentOnOpen: 'off', liftOnHover: false, reduceMotion: 'system', reduceTransparency: 'system' },
     theme: {
       mode: v.theme,
       color: { bg, surface: darkSurface(bg), text: DARK_COLORS.text, accent },
