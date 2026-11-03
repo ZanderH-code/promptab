@@ -1,0 +1,11 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "meta": { "name": "Garden Reading Room" },
+  "theme": {
+    "mode": "light",
+    "colorLight": { "bg": "#f3f4ec", "text": "#26352d", "accent": "#527b5c" },
+    "font": { "display": "Georgia", "ui": "system" },
+    "radius": 16
+  }
+}

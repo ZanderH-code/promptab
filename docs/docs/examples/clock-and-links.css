@@ -1,0 +1,14 @@
+.mnt-clock {
+  letter-spacing: -0.025em;
+  color: var(--mnt-accent-strong);
+}
+
+.mnt-link:hover .mnt-link-icon {
+  box-shadow: 0 0 0 2px var(--mnt-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mnt-link-icon {
+    transition: box-shadow var(--mnt-dur-base) var(--mnt-ease);
+  }
+}

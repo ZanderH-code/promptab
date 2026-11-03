@@ -1,0 +1,13 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "meta": { "name": "Terminal Glow" },
+  "theme": {
+    "mode": "dark",
+    "color": { "bg": "#101b20", "text": "#e5f0ed", "accent": "#75d6c2" },
+    "font": { "display": "system", "ui": "ui-monospace" },
+    "radius": 10,
+    "density": "compact"
+  },
+  "css": ".mnt-clock { letter-spacing: 0.08em; text-shadow: 0 0 20px color-mix(in srgb, var(--mnt-accent) 28%, transparent); }\n.mnt-link:hover { border-color: var(--mnt-accent); }"
+}

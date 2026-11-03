@@ -1,0 +1,14 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "meta": { "name": "Quiet Morning" },
+  "theme": {
+    "mode": "system",
+    "color": { "bg": "#24312f", "text": "#edf1e8", "accent": "#d5ad72" },
+    "colorLight": { "bg": "#f5f1e8", "text": "#303b36", "accent": "#8a612e" },
+    "radius": 12,
+    "shadow": 24,
+    "scale": 0.98
+  },
+  "background": { "type": "theme", "dim": 24 }
+}
