@@ -96,6 +96,94 @@
       "file": "packs/business-navy.json"
     },
     {
+      "id": "cloud-margins",
+      "name": "Cloud Margins",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "editorial",
+        "top-grid"
+      ],
+      "prompt": {
+        "en": "Create an airy editorial top-grid with rounded display lettering, ink-dark text, and generous cloud-white space.",
+        "zh-CN": "创作轻盈的编辑式顶部网格，使用圆润展示字体、墨色文字和宽阔的云白留白。"
+      },
+      "colors": {
+        "bg": "#f4f7fa",
+        "surface": "#ffffff",
+        "text": "#202b39",
+        "accent": "#315a83"
+      },
+      "mode": "light",
+      "layout": {
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 2,
+            "widgets": [
+              "bookmarks"
+            ]
+          }
+        ]
+      },
+      "file": "packs/cloud-margins.json"
+    },
+    {
+      "id": "copper-canyon",
+      "name": "Copper Canyon",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "copper",
+        "zen"
+      ],
+      "prompt": {
+        "en": "Make a focused copper-hour zen page with a warm serif clock, sparse controls, and a compact shortcut strip.",
+        "zh-CN": "制作专注的铜色黄昏禅意页面，以温暖衬线时钟、简约控件和紧凑快捷栏呈现。"
+      },
+      "colors": {
+        "bg": "#211915",
+        "surface": "#34251f",
+        "text": "#fff5ec",
+        "accent": "#efb27e"
+      },
+      "mode": "dark",
+      "layout": {
+        "rows": 1,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search",
+              "bookmarks"
+            ]
+          }
+        ]
+      },
+      "file": "packs/copper-canyon.json"
+    },
+    {
       "id": "cyber-grid",
       "name": "Cyber Grid",
       "author": "Promptab",
@@ -159,6 +247,173 @@
       "file": "packs/cyber-grid.json"
     },
     {
+      "id": "deep-current",
+      "name": "Deep Current",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "ocean",
+        "dashboard"
+      ],
+      "prompt": {
+        "en": "Design a deep-water dashboard with a calm slab-serif clock, sea-glass accents, and aligned daily cards.",
+        "zh-CN": "设计深海色仪表板，以沉静的衬线时钟、海玻璃点缀和对齐的每日卡片呈现。"
+      },
+      "colors": {
+        "bg": "#101d26",
+        "surface": "#1c303a",
+        "text": "#f0f8fa",
+        "accent": "#8ad8df"
+      },
+      "mode": "dark",
+      "layout": {
+        "rows": 3,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 3,
+            "widgets": [
+              "clock"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "date"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "search"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 3,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 3,
+            "widgets": [
+              "bookmarks"
+            ]
+          }
+        ]
+      },
+      "file": "packs/deep-current.json"
+    },
+    {
+      "id": "ember-observatory",
+      "name": "Ember Observatory",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "amber",
+        "banner"
+      ],
+      "prompt": {
+        "en": "Set an observatory clock beneath a low amber banner, with restrained serif lettering and clear bookmark cards.",
+        "zh-CN": "在低矮的琥珀色横幅下呈现观星时钟，搭配克制的衬线字和清晰书签卡片。"
+      },
+      "colors": {
+        "bg": "#211a16",
+        "surface": "#33251d",
+        "text": "#fff8ef",
+        "accent": "#f3c078"
+      },
+      "mode": "dark",
+      "layout": {
+        "rows": 3,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date"
+            ]
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "search",
+              "bookmarks"
+            ]
+          }
+        ]
+      },
+      "file": "packs/ember-observatory.json"
+    },
+    {
+      "id": "glacier-index",
+      "name": "Glacier Index",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "glacier",
+        "banner"
+      ],
+      "prompt": {
+        "en": "Compose a cool glacier-blue start page with a narrow banner, precise sans-serif labels, and open bookmark rows.",
+        "zh-CN": "构建冰川蓝色起始页，配以窄横幅、精准无衬线标签和舒展的书签行。"
+      },
+      "colors": {
+        "bg": "#edf5f7",
+        "surface": "#ffffff",
+        "text": "#1e333b",
+        "accent": "#24586a"
+      },
+      "mode": "light",
+      "layout": {
+        "rows": 3,
+        "columns": 1,
+        "cells": [
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date"
+            ]
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "search",
+              "bookmarks"
+            ]
+          }
+        ]
+      },
+      "file": "packs/glacier-index.json"
+    },
+    {
       "id": "indigo-ink",
       "name": "Indigo Ink",
       "author": "Promptab",
@@ -206,6 +461,54 @@
       "file": "packs/indigo-ink.json"
     },
     {
+      "id": "moss-library",
+      "name": "Moss Library",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "moss",
+        "split"
+      ],
+      "prompt": {
+        "en": "Arrange a quiet moss-green library in a split layout with literary serif headlines and a tidy reading list.",
+        "zh-CN": "用分栏布局呈现静谧的苔绿色图书馆，搭配文学衬线标题与整洁的阅读清单。"
+      },
+      "colors": {
+        "bg": "#f3f5ed",
+        "surface": "#ffffff",
+        "text": "#263128",
+        "accent": "#355d3a"
+      },
+      "mode": "light",
+      "layout": {
+        "rows": 1,
+        "columns": 2,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
+      "file": "packs/moss-library.json"
+    },
+    {
       "id": "natural-moss",
       "name": "Natural Moss",
       "author": "Promptab",
@@ -251,6 +554,61 @@
         ]
       },
       "file": "packs/natural-moss.json"
+    },
+    {
+      "id": "nocturne-signal",
+      "name": "Nocturne Signal",
+      "author": "Promptab",
+      "tags": [
+        "dark",
+        "signal",
+        "icon-split"
+      ],
+      "prompt": {
+        "en": "Build a midnight signal desk with a crisp mono clock, teal markers, and a quiet icon rail.",
+        "zh-CN": "打造午夜信号桌面，以清晰的等宽时钟、青绿色标记和安静的图标栏呈现。"
+      },
+      "colors": {
+        "bg": "#101923",
+        "surface": "#1c2b35",
+        "text": "#f3f8f8",
+        "accent": "#72e0cf"
+      },
+      "mode": "dark",
+      "layout": {
+        "rows": 1,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "bookmarks"
+            ]
+          },
+          {
+            "row": 1,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 1,
+            "column": 3,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "clock",
+              "date",
+              "search"
+            ]
+          }
+        ]
+      },
+      "file": "packs/nocturne-signal.json"
     },
     {
       "id": "ocean-depths",
@@ -399,6 +757,77 @@
         ]
       },
       "file": "packs/plum-night.json"
+    },
+    {
+      "id": "saffron-ledger",
+      "name": "Saffron Ledger",
+      "author": "Promptab",
+      "tags": [
+        "light",
+        "saffron",
+        "dashboard"
+      ],
+      "prompt": {
+        "en": "Shape a sunlit planner dashboard with a compact mono clock, saffron accents, and paper-like task cards.",
+        "zh-CN": "打造阳光感规划仪表板，搭配紧凑等宽时钟、藏红花色点缀和纸感任务卡片。"
+      },
+      "colors": {
+        "bg": "#f7f2e7",
+        "surface": "#fffdf7",
+        "text": "#302719",
+        "accent": "#805019"
+      },
+      "mode": "light",
+      "layout": {
+        "rows": 3,
+        "columns": 3,
+        "cells": [
+          {
+            "row": 1,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 3,
+            "widgets": [
+              "clock"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "date"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
+              "search"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 3,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 3,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 3,
+            "widgets": [
+              "bookmarks"
+            ]
+          }
+        ]
+      },
+      "file": "packs/saffron-ledger.json"
     },
     {
       "id": "slate-rain",

@@ -1,0 +1,11 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {"name": "Moss Library", "author": "Promptab", "tags": ["light", "moss", "split"], "prompt": {"en": "Arrange a quiet moss-green library in a split layout with literary serif headlines and a tidy reading list.", "zh-CN": "用分栏布局呈现静谧的苔绿色图书馆，搭配文学衬线标题与整洁的阅读清单。"}},
+  "theme": {"mode": "light", "color": {"bg": "#f3f5ed", "surface": "#ffffff", "text": "#263128", "accent": "#355d3a"}, "font": {"display": "cormorant", "ui": "outfit"}, "radius": 10, "shadow": 14, "glass": 0, "density": "comfortable", "iconShape": "circle"},
+  "background": {"type": "gradient", "gradient": {"angle": 120, "stops": ["#f3f5ed", "#dfe9d8"]}},
+  "layout": {"areas": ["bookmarks overview"], "columns": ["minmax(0, 1fr)", "minmax(280px, 0.7fr)"], "breakpoints": {"narrow": {"areas": ["overview", "bookmarks"], "columns": ["1fr"]}}, "contentWidth": 1020, "align": "center-center", "gap": 26},
+  "widgets": [{"id": "clock", "type": "clock", "area": "overview", "order": 0, "props": {"hour12": false, "size": 1.25}}, {"id": "date", "type": "date", "area": "overview", "order": 1, "props": {"format": "full"}}, {"id": "search", "type": "search", "area": "overview", "order": 2, "props": {}}, {"id": "bookmarks", "type": "bookmarks", "area": "bookmarks", "order": 3, "props": {"style": "list", "maxColumns": 2, "showGroupTitles": true, "showAdd": true}}],
+  "css": ".mnt-group-title { color: var(--mnt-accent); font-variant: small-caps; letter-spacing: 0.09em; }\n.mnt-link { border-bottom: 1px solid var(--mnt-border); }"
+}

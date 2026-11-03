@@ -1,0 +1,11 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {"name": "Saffron Ledger", "author": "Promptab", "tags": ["light", "saffron", "dashboard"], "prompt": {"en": "Shape a sunlit planner dashboard with a compact mono clock, saffron accents, and paper-like task cards.", "zh-CN": "打造阳光感规划仪表板，搭配紧凑等宽时钟、藏红花色点缀和纸感任务卡片。"}},
+  "theme": {"mode": "light", "color": {"bg": "#f7f2e7", "surface": "#fffdf7", "text": "#302719", "accent": "#805019"}, "font": {"display": "barlow-condensed", "ui": "outfit"}, "radius": 8, "shadow": 14, "glass": 0, "density": "compact", "iconShape": "square"},
+  "background": {"type": "gradient", "gradient": {"angle": 110, "stops": ["#f7f2e7", "#eee0c2"]}},
+  "layout": {"areas": ["clock clock clock", "date search links", "bookmarks bookmarks bookmarks"], "columns": ["minmax(0, 1fr)", "minmax(0, 1fr)", "minmax(0, 1fr)"], "rows": ["auto", "auto", "auto"], "breakpoints": {"narrow": {"areas": ["clock", "date", "search", "links", "bookmarks"], "columns": ["1fr"]}}, "contentWidth": 1100, "align": "top-center", "gap": 22},
+  "widgets": [{"id": "clock", "type": "clock", "area": "clock", "order": 0, "props": {"hour12": false, "size": 1.25}}, {"id": "date", "type": "date", "area": "date", "order": 1, "props": {"format": "full"}}, {"id": "search", "type": "search", "area": "search", "order": 2, "props": {}}, {"id": "bookmarks", "type": "bookmarks", "area": "bookmarks", "order": 3, "props": {"style": "card", "maxColumns": 4, "showGroupTitles": true, "showAdd": true}}],
+  "css": ".mnt-widget-frame { letter-spacing: 0.01em; }\n.mnt-link { border: 1px solid var(--mnt-border); }"
+}

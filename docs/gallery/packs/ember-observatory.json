@@ -1,0 +1,11 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {"name": "Ember Observatory", "author": "Promptab", "tags": ["dark", "amber", "banner"], "prompt": {"en": "Set an observatory clock beneath a low amber banner, with restrained serif lettering and clear bookmark cards.", "zh-CN": "在低矮的琥珀色横幅下呈现观星时钟，搭配克制的衬线字和清晰书签卡片。"}},
+  "theme": {"mode": "dark", "color": {"bg": "#211a16", "surface": "#33251d", "text": "#fff8ef", "accent": "#f3c078"}, "font": {"display": "cormorant", "ui": "barlow-condensed"}, "radius": 8, "shadow": 20, "glass": 4, "density": "comfortable", "iconShape": "square"},
+  "background": {"type": "gradient", "gradient": {"angle": 120, "stops": ["#211a16", "#54351f"]}},
+  "layout": {"areas": [".", "banner", "websites"], "columns": ["1fr"], "rows": ["22vh", "auto", "1fr"], "breakpoints": {"narrow": {"areas": ["banner", "websites"], "columns": ["1fr"], "rows": ["auto", "1fr"]}}, "areaStyles": {"banner": {"background": "surface", "opacity": 86, "padding": 24, "align": "center-right", "border": {"bottom": 1}}}, "contentWidth": 1040, "align": "center-center", "gap": 24},
+  "widgets": [{"id": "clock", "type": "clock", "area": "banner", "order": 0, "props": {"hour12": false, "size": 1.3}}, {"id": "date", "type": "date", "area": "banner", "order": 1, "props": {"format": "full"}}, {"id": "search", "type": "search", "area": "websites", "order": 2, "props": {}}, {"id": "bookmarks", "type": "bookmarks", "area": "websites", "order": 3, "props": {"style": "card", "maxColumns": 4, "showGroupTitles": true, "showAdd": true}}],
+  "css": ".mnt-clock { font-weight: 500; letter-spacing: 0.04em; }\n.mnt-link { border-radius: 8px; }"
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "mnt.theme-pack",
+  "packVersion": 2,
+  "cssApiVersion": 1,
+  "meta": {"name": "Cloud Margins", "author": "Promptab", "tags": ["light", "editorial", "top-grid"], "prompt": {"en": "Create an airy editorial top-grid with rounded display lettering, ink-dark text, and generous cloud-white space.", "zh-CN": "创作轻盈的编辑式顶部网格，使用圆润展示字体、墨色文字和宽阔的云白留白。"}},
+  "theme": {"mode": "light", "color": {"bg": "#f4f7fa", "surface": "#ffffff", "text": "#202b39", "accent": "#315a83"}, "font": {"display": "rounded", "ui": "system"}, "radius": 20, "shadow": 12, "glass": 0, "density": "comfortable", "iconShape": "circle"},
+  "background": {"type": "gradient", "gradient": {"angle": 135, "stops": ["#f4f7fa", "#e0eaf3"]}},
+  "layout": {"areas": ["overview overview", "bookmarks bookmarks"], "columns": ["1fr", "1fr"], "breakpoints": {"narrow": {"areas": ["overview", "bookmarks"], "columns": ["1fr"]}}, "contentWidth": 1160, "align": "top-center", "gap": 20},
+  "widgets": [{"id": "clock", "type": "clock", "area": "overview", "order": 0, "props": {"hour12": false, "size": 1.35}}, {"id": "date", "type": "date", "area": "overview", "order": 1, "props": {"format": "full"}}, {"id": "search", "type": "search", "area": "overview", "order": 2, "props": {}}, {"id": "bookmarks", "type": "bookmarks", "area": "bookmarks", "order": 3, "props": {"style": "card", "maxColumns": 5, "showGroupTitles": true, "showAdd": true}}],
+  "css": ".mnt-clock { font-weight: 500; letter-spacing: -0.03em; }\n.mnt-link { border-radius: 18px; }"
+}

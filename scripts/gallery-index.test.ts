@@ -20,7 +20,7 @@ describe('gallery index generation', () => {
       const first = readFileSync(path, 'utf8')
       const index = JSON.parse(first)
       expect(index.version).toBe(2)
-      expect(index.packs.length).toBeGreaterThanOrEqual(12)
+      expect(index.packs).toHaveLength(20)
       const packs = index.packs.map((entry: { file: string }) => JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8')))
       expect(packs.filter((pack: any) => ['gradient', 'accent'].includes(pack.background?.type)).length).toBeGreaterThanOrEqual(6)
       expect(packs.filter((pack: any) => pack.layout && pack.widgets).length).toBeGreaterThanOrEqual(5)
@@ -28,7 +28,7 @@ describe('gallery index generation', () => {
       expect(packs.filter((pack: any) => pack.variables?.length).length).toBeGreaterThanOrEqual(2)
       expect(new Set(packs.map((pack: any) => pack.meta.prompt.en)).size).toBe(packs.length)
       // Built-in dashboard geometry does not need to be duplicated by a gallery theme pack.
-      for (const template of ['split', 'icon-split', 'banner', 'top-grid'] as const) expect(packs.some((pack: any) => JSON.stringify(pack.layout?.areas) === JSON.stringify(templateGrid(template).areas)), template).toBe(true)
+      for (const template of ['split', 'icon-split', 'banner', 'top-grid', 'dashboard'] as const) expect(packs.some((pack: any) => JSON.stringify(pack.layout?.areas) === JSON.stringify(templateGrid(template).areas)), template).toBe(true)
       for (const pack of packs.filter((pack: any) => pack.layout)) expect(pack.widgets.some((widget: any) => widget.type === 'bookmarks' && !widget.hidden)).toBe(true)
       for (const entry of index.packs) {
         const pack = JSON.parse(readFileSync(resolve(dir, 'docs/gallery', entry.file), 'utf8'))
