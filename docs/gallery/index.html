@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102932">
+  <title>Theme gallery | Promptab</title>
+  <link rel="stylesheet" href="gallery.css">
+  <script src="gallery.js" defer></script>
+</head>
+<body>
+  <header class="bar"><a class="brand" href="../">Promptab</a><button id="language" type="button">中文</button></header>
+  <main>
+    <p class="eyebrow">PROMPTAB ORIGINALS</p>
+    <h1 data-text="title">Find your next new tab</h1>
+    <p class="intro" data-text="intro">Explore original themes, copy the prompt, or preview one in the web app.</p>
+    <form class="filters" role="search" onsubmit="return false">
+      <label><span data-text="search">Search themes</span><input id="search" type="search" autocomplete="off"></label>
+      <label><span data-text="mode">Appearance</span><select id="mode"><option value="" data-text="all">All</option><option value="light" data-text="light">Light</option><option value="dark" data-text="dark">Dark</option></select></label>
+      <label><span data-text="layout">Layout template</span><select id="layout"><option value="" data-text="all">All</option></select></label>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+    <div id="gallery" class="grid"></div>
+  </main>
+</body>
+</html>
