@@ -77,6 +77,17 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
     await page.mouse.up()
     await expect(page.locator('.shortcut-wrap').first()).toContainText('Two')
+    // dnd-kit temporarily captures clicks after dragging. Wait until events reach
+    // their targets so the subsequent real edit click cannot be swallowed.
+    await expect.poll(() => page.evaluate(() => {
+      const probe = document.createElement('button')
+      document.body.append(probe)
+      let received = false
+      probe.addEventListener('click', () => { received = true })
+      probe.click()
+      probe.remove()
+      return received
+    })).toBe(true)
     await page.getByRole('button', { name: 'Edit One', exact: true }).click()
     await expect(page.getByLabel('Name', { exact: true })).toHaveValue('One')
     expect(scripts.some(url => /ShortcutEditor-/.test(url))).toBe(true)
