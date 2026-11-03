@@ -10,14 +10,23 @@ type PackColors = NonNullable<NonNullable<AiPack['theme']>['color']>
 /** Fills in the surface colour a pack may leave out, the same way the settings panel derives it. */
 const withSurface = (colors: PackColors, derive: (bg: string, text: string) => string) => ({ ...colors, surface: colors.surface ?? derive(colors.bg, colors.text) })
 
-function portableWidget(widget: ProfileV2['widgets'][number]): ProfileV2['widgets'][number] {
-  const allowed: Record<string, string[]> = {
+type ProfileWidget = ProfileV2['widgets'][number]
+
+function portableWidget(widget: ProfileWidget): ProfileWidget | null {
+  const allowed: Partial<Record<ProfileWidget['type'], string[]>> = {
     clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow'],
     date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase'],
     search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor'],
     greeting: ['size', 'align'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
+    weather: ['size', 'align', 'unit', 'showForecast'],
   }
-  return { ...widget, props: Object.fromEntries(Object.entries(widget.props).filter(([key]) => allowed[widget.type].includes(key))) } as typeof widget
+  const props = allowed[widget.type]
+  if (!props) return null
+  return { ...widget, props: Object.fromEntries(Object.entries(widget.props).filter(([key]) => props.includes(key))) } as ProfileWidget
+}
+
+function portableCss(css: string): string | undefined {
+  return /mnt-asset:|data:image\//i.test(css) ? undefined : css
 }
 
 /** A shareable theme excludes personal content and wallpaper assets. */
@@ -30,8 +39,11 @@ export function exportThemePack(profile: ProfileV2): AiPack {
     theme: { mode, color, colorLight, font, radius, shadow, glass, density, scale, iconShape, iconSize },
     background: { type: type === 'image' || type === 'video' ? 'theme' : type, ...(type === 'color' ? { color: backgroundColor } : {}), ...(type === 'gradient' ? { gradient } : {}), dim },
     layout: profile.layout,
-    widgets: profile.widgets.map(portableWidget),
-    css: profile.custom.css,
+    widgets: profile.widgets.flatMap(widget => {
+      const portable = portableWidget(widget)
+      return portable ? [portable] : []
+    }),
+    css: portableCss(profile.custom.css),
     variables: profile.custom.variables.map(variable => ({ ...variable, default: variableValue(variable, profile.custom.values[variable.name]) } as Variable)),
   }
 }

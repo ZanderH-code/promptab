@@ -170,6 +170,48 @@ describe('theme pack variables', () => {
     expect(aiPackSchema.parse(JSON.parse(json)).background?.type).toBe('theme')
   })
 
+  it('round-trips portable theme appearance through the workbench pack', () => {
+    const source: ProfileV2 = {
+      ...profile,
+      background: { type: 'gradient', dim: 24, gradient: { angle: 135, stops: ['#123456', '#789abc'] } },
+      custom: { ...profile.custom, css: '.mnt-clock { letter-spacing: 0.12em; }', cssEnabled: true },
+    }
+    const pack = aiPackSchema.parse(JSON.parse(JSON.stringify(exportThemePack(source))))
+    const restored = applyPack(source, pack)
+    const appearance = ({ theme, background, layout, widgets, custom }: ProfileV2) => ({ theme, background, layout, widgets, css: custom.css, variables: custom.variables, values: custom.values })
+    expect(appearance(restored)).toEqual(appearance(source))
+    expect(pack).not.toHaveProperty('bookmarks')
+  })
+
+  it('never exports personal profile, bookmark, sync, key, location or uploaded asset data', () => {
+    const secret = 'private-export-fixture'
+    const source = {
+      ...profile,
+      meta: { ...profile.meta, id: `${secret}-profile-id`, name: `${secret}-profile-name` },
+      theme: { ...profile.theme, font: { display: asset, ui: 'system' } },
+      background: { ...profile.background, type: 'image' as const, image: { asset, blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' } },
+      widgets: [
+        { id: 'clock', type: 'clock' as const, area: 'clock', order: 0, props: { hour12: false } },
+        { id: 'weather', type: 'weather' as const, area: 'clock', order: 1, props: { city: secret, latitude: 12.3, longitude: 45.6, unit: 'celsius' as const } },
+        { id: 'note', type: 'note' as const, area: 'clock', order: 2, props: { title: secret, content: secret } },
+      ],
+      custom: { ...profile.custom, css: `.mnt-clock { background-image: url(\"data:image/png;base64,${secret}\"); }` },
+      sync: { manifest: secret },
+      apiKey: secret,
+    } as unknown as ProfileV2
+    const exported = exportThemePack(source)
+    const json = JSON.stringify(exported)
+    expect(exported).not.toHaveProperty('bookmarks')
+    expect(exported).not.toHaveProperty('sync')
+    expect(exported).not.toHaveProperty('apiKey')
+    expect(exported.meta).not.toHaveProperty('id')
+    expect(json).not.toContain(secret)
+    expect(json).not.toContain('mnt-asset:')
+    expect(json).not.toContain('data:image/')
+    expect(json).not.toContain('latitude')
+    expect(json).not.toContain('longitude')
+  })
+
   it('exports widget presentation without private widget content', () => {
     const source: ProfileV2 = { ...profile, widgets: [
       { id: 'greeting', type: 'greeting', area: 'clock', order: 0, props: { name: 'Private Name', size: 2 } },
