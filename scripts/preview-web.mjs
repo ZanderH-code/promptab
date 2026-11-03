@@ -28,6 +28,16 @@ createServer(async (request, response) => {
     response.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' }).end(worker + versionResponder)
     return
   }
+  if (updateFixture && pathname.startsWith('/promptab/gallery/')) {
+    const galleryRoot = resolve(fileURLToPath(new URL('../docs/gallery', import.meta.url)))
+    const relative = decodeURIComponent(pathname.slice('/promptab/gallery/'.length)).replaceAll('/', sep)
+    const galleryFile = resolve(galleryRoot, relative || 'index.html')
+    if (!galleryFile.startsWith(`${galleryRoot}${sep}`)) { response.writeHead(403).end(); return }
+    try { await stat(galleryFile) } catch { response.writeHead(404).end(); return }
+    response.writeHead(200, { 'content-type': types[extname(galleryFile)] ?? 'application/octet-stream', 'cache-control': 'no-cache' })
+    createReadStream(galleryFile).pipe(response)
+    return
+  }
   if (pathname !== prefix.slice(0, -1) && !pathname.startsWith(prefix)) {
     response.writeHead(404).end('Not found')
     return

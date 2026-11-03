@@ -31,7 +31,9 @@ type GalleryIndex = z.infer<typeof indexSchema>
 
 async function getText(path: string, signal: AbortSignal, maxBytes = MAX_BYTES): Promise<string> {
   const url = new URL(path, BASE)
-  const response = await fetch(url, { signal, credentials: 'omit', redirect: 'error' })
+  let response: Response
+  try { response = await fetch(url, { signal, credentials: 'omit', redirect: 'error' }) }
+  catch { throw new Error('fetch failed') }
   if (!response.ok || (response.url && response.url !== url.href)) throw new Error('fetch failed')
   if (Number(response.headers.get('content-length')) > maxBytes || !response.body) throw new Error('too large')
   const reader = response.body.getReader(), chunks: Uint8Array[] = []
@@ -65,6 +67,16 @@ function validatedPack(text: string, profile: ProfileV2, language: Ctx['s']['lan
   const analysis = analyzeCandidate({ lang: 'json', code: source }, profile, language)
   if (!analysis.pack || analysis.problems.length || analysis.warnings.some(w => w.kind === 'unknown-key')) throw new Error('invalid pack')
   return { source, analysis }
+}
+
+export async function loadGalleryPreview(id: string, profile: ProfileV2, language: Ctx['s']['language']) {
+  if (!/^[a-z0-9-]{1,80}$/.test(id)) throw new Error('invalid')
+  const signal = new AbortController().signal
+  const index = indexSchema.parse(JSON.parse(await getText('index.json', signal)))
+  const item = index.packs.find(entry => entry.id === id)
+  if (!item) throw new Error('invalid')
+  const result = validatedPack(await getText(item.file, signal, MAX_GALLERY_BYTES), profile, language)
+  return result.analysis
 }
 
 export function Gallery({ ctx, profile, onSelect }: { ctx: Ctx; profile: ProfileV2; onSelect: (source: string, analysis: ReturnType<typeof analyzeCandidate>) => void }) {

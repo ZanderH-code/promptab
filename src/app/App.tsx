@@ -80,6 +80,32 @@ export default function App() {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [moving, setMoving] = useState<MoveState | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
+  const tryGeneration = useRef(0)
+  useEffect(() => {
+    if (!__WEB_BUILD__ || !settings || !store) return
+    const handleTry = () => {
+      if (!location.hash.startsWith('#try=')) return
+      const id = new URLSearchParams(location.hash.slice(1)).get('try') ?? ''
+      const generation = ++tryGeneration.current
+      history.replaceState(history.state, '', location.pathname + location.search)
+      const state = store.getState()
+      const activeId = state.activeProfileId
+      const active = state.profiles[activeId]
+      setError(null)
+      void import('../features/settings/Gallery').then(async ({ loadGalleryPreview }) => {
+        const analysis = await loadGalleryPreview(id, active, settings.language)
+        if (!analysis.pack) throw new Error('invalid')
+        const { applyPack } = await import('../core/ai/apply')
+        const current = store.getState()
+        if (generation !== tryGeneration.current) return
+        if (current.activeProfileId !== activeId || current.profiles[activeId] !== active) throw new Error('profile changed')
+        current.setPreview(activeId, applyPack(active, analysis.pack), analysis.pack.meta?.name || id)
+      }).catch(error => { if (generation === tryGeneration.current) setError({ key: error instanceof Error && error.message === 'fetch failed' ? 'gallery.error' : 'gallery.invalid' }) })
+    }
+    window.addEventListener('hashchange', handleTry)
+    handleTry()
+    return () => window.removeEventListener('hashchange', handleTry)
+  }, [settings, store, setError])
 
   useEffect(() => {
     if (!settings) return

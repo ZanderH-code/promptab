@@ -17,6 +17,17 @@ async function openGallery(page: Page) {
   await page.getByRole('button', { name: 'Open theme gallery' }).click()
 }
 
+test('extension build ignores gallery try fragments', async ({ page }) => {
+  let requests = 0
+  await page.route(`${base}**`, route => { requests++; return route.abort() })
+  await seedExistingUser(page, { language: 'en' })
+  await page.goto('/#try=sample')
+  await expect(page.locator('.clock')).toBeVisible()
+  await page.waitForLoadState('networkidle')
+  expect(requests).toBe(0)
+  await expect(page.locator('.mnt-banner[data-kind="preview"]')).toHaveCount(0)
+})
+
 test('loads only when opened, previews, applies and undoes a gallery theme', async ({ page }) => {
   let requests = 0
   const galleryChunks: string[] = []

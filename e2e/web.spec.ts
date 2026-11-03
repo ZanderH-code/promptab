@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
+import AxeBuilder from '@axe-core/playwright'
 import { openTab, seedExistingUser } from './helpers'
 
 const GOOD_PACK = {
@@ -156,6 +157,85 @@ test('phone viewport has no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await openApp(page)
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0)
+})
+
+test('public gallery supports filters, copying and previewing a theme', async ({ page, context }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const index = JSON.parse(await readFile('docs/gallery/index.json', 'utf8'))
+  await page.route('https://zanderh-code.github.io/promptab/gallery/**', async route => {
+    const path = new URL(route.request().url()).pathname.replace('/promptab/gallery/', '')
+    await route.fulfill({ body: await readFile(`docs/gallery/${path}`), contentType: 'application/json', headers: { 'access-control-allow-origin': '*' } })
+  })
+  await seedExistingUser(page, { language: 'en' })
+  await page.goto('../gallery/')
+  await expect(page.locator('.card')).toHaveCount(index.packs.length)
+  await page.getByRole('button', { name: '中文' }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  expect(await page.evaluate(() => localStorage.getItem('promptab_lang'))).toBe('zh-CN')
+  await page.getByRole('button', { name: 'English' }).click()
+  await page.locator('#mode').selectOption('light')
+  await expect(page.locator('.card')).toHaveCount(index.packs.filter((item: { mode: string }) => item.mode === 'light').length)
+  await page.locator('#mode').selectOption('')
+  const layout = await page.locator('#layout option').nth(1).getAttribute('value')
+  await page.locator('#layout').selectOption(layout!)
+  expect(await page.locator('.card').count()).toBeGreaterThan(0)
+  await page.locator('#layout').selectOption('')
+  await page.locator('#search').fill(index.packs[0].name)
+  await expect(page.locator('.card')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Copy prompt' }).click()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(index.packs[0].prompt.en)
+  const axe = await new AxeBuilder({ page }).analyze()
+  expect(axe.violations.filter(item => item.impact === 'critical' || item.impact === 'serious' || item.impact === 'moderate')).toEqual([])
+  expect(errors).toEqual([])
+  await page.getByRole('link', { name: 'Try in web app' }).click()
+  const banner = page.locator('.mnt-banner[data-kind="preview"]')
+  await expect(banner).toContainText(index.packs[0].name)
+  const before = await page.evaluate(() => localStorage.getItem('profiles:v2:index'))
+  await banner.getByRole('button', { name: 'Discard', exact: true }).click()
+  expect(await page.evaluate(() => localStorage.getItem('profiles:v2:index'))).toBe(before)
+})
+
+test('gallery deep links preview safely and discard without saving', async ({ page }) => {
+  const base = 'https://zanderh-code.github.io/promptab/gallery/'
+  const index = JSON.parse(await readFile('docs/gallery/index.json', 'utf8'))
+  const item = index.packs[0]
+  const pack = JSON.parse(await readFile(`docs/gallery/${item.file}`, 'utf8'))
+  await page.route(`${base}**`, route => route.fulfill({ json: route.request().url().endsWith('index.json') ? index : pack, headers: { 'access-control-allow-origin': '*' } }))
+  await seedExistingUser(page, { language: 'en' })
+  await page.goto(`./#try=${item.id}`)
+  const banner = page.locator('.mnt-banner[data-kind="preview"]')
+  await expect(banner).toContainText(item.name)
+  expect(new URL(page.url()).hash).toBe('')
+  const before = await page.evaluate(() => localStorage.getItem('profiles:v2:index'))
+  await banner.getByRole('button', { name: 'Discard', exact: true }).click()
+  await expect(banner).toHaveCount(0)
+  expect(await page.evaluate(() => localStorage.getItem('profiles:v2:index'))).toBe(before)
+})
+
+test('gallery deep links reject unknown and unsafe packs', async ({ page }) => {
+  const base = 'https://zanderh-code.github.io/promptab/gallery/'
+  const index = JSON.parse(await readFile('docs/gallery/index.json', 'utf8'))
+  await page.route(`${base}**`, route => route.fulfill({ json: route.request().url().endsWith('index.json') ? index : { kind: 'mnt.theme-pack', css: '@import "https://evil.example/style.css";' }, headers: { 'access-control-allow-origin': '*' } }))
+  await seedExistingUser(page, { language: 'en' })
+  await page.goto('./#try=unknown-id')
+  await expect(page.getByRole('alert')).toContainText('invalid or unsafe')
+  await expect(page.locator('.mnt-banner[data-kind="preview"]')).toHaveCount(0)
+  await page.goto(`./#try=${index.packs[0].id}`)
+  await expect(page.getByRole('alert')).toContainText('invalid or unsafe')
+  await expect(page.locator('.mnt-banner[data-kind="preview"]')).toHaveCount(0)
+  expect(new URL(page.url()).hash).toBe('')
+})
+
+test('gallery deep links report network failures without previewing', async ({ page }) => {
+  await page.route('https://zanderh-code.github.io/promptab/gallery/**', route => route.abort())
+  await seedExistingUser(page, { language: 'en' })
+  await page.goto('./#try=arctic-day')
+  await expect(page.getByRole('alert')).toContainText('Could not load')
+  await expect(page.locator('.mnt-banner[data-kind="preview"]')).toHaveCount(0)
+  expect(new URL(page.url()).hash).toBe('')
 })
 
 test('weather and gallery support cross-origin browser fetches', async ({ page }) => {
