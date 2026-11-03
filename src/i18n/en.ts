@@ -239,6 +239,7 @@ export const en: Record<MessageKey, string> = {
   'settings.bookmarkCard': 'Cards',
   'settings.bookmarkIconOnly': 'Icons only',
   'settings.data': 'Data',
+  'settings.removeStarterSites': 'Remove starter sites',
   'bookmarks.importTitle': 'Import browser bookmarks',
   'bookmarks.importHint': 'Only web bookmarks are read; choose one or more folders.',
   'bookmarks.chooseFolders': 'Choose folders',

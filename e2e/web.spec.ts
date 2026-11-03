@@ -18,11 +18,21 @@ async function openApp(page: Page, settings: Record<string, unknown> = {}) {
   await expect(page.locator('.mnt-settings-entry').first()).toBeVisible()
 }
 
-test('fresh web visitors start in English while saved language is respected', async ({ page }) => {
+test('fresh web visitors see bundled starter sites and onboarding until dismissed', async ({ page }) => {
+  const starterRequests: string[] = []
+  page.on('request', request => { if (/youtube\.com|mail\.google\.com|maps\.google\.com|wikipedia\.org|reddit\.com|amazon\.com|chatgpt\.com|outlook\.live\.com/i.test(request.url())) starterRequests.push(request.url()) })
   await page.goto('./')
   await expect(page.locator('.clock')).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page).toHaveTitle('New Tab')
+  await expect(page.locator('.shortcut')).toHaveCount(8)
+  await expect(page.locator('.onboarding-card')).toBeVisible()
+  expect(starterRequests).toEqual([])
+  await page.getByRole('button', { name: 'Choose a theme', exact: true }).click()
+  await expect(page.locator('.onboarding-card')).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('.shortcut')).toHaveCount(8)
+  await expect(page.locator('.onboarding-card')).toHaveCount(0)
 })
 
 test('saved Chinese language updates the web document title and language', async ({ page }) => {

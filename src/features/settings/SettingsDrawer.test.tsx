@@ -9,6 +9,7 @@ import { translate, type Language } from '../../i18n'
 import type { ProfileStore } from '../../store/profile'
 import { SettingsDrawer, initialTab, matches } from './SettingsDrawer'
 import { parsePosition } from './rows'
+import { STARTER_SITES } from '../../core/starter-sites'
 
 vi.mock('./BackupSection', () => ({ BackupSection: () => <p>backup-stub</p> }))
 vi.mock('./ProfileSection', () => ({ ProfileSection: () => <p>profiles-stub</p> }))
@@ -95,6 +96,17 @@ describe('SettingsDrawer tabs', () => {
     expect(screen.getByText('profiles-stub')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('backup-stub')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Reset settings' })).toBeInTheDocument()
+  })
+
+  it('removes only unchanged starter sites as one undoable change', () => {
+    const profile = structuredClone(base)
+    profile.bookmarks.groups[0].items = [structuredClone(STARTER_SITES[0]), { ...STARTER_SITES[1], name: 'My Gmail' }]
+    const props = setup({ profile })
+    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove starter sites' }))
+    const { next, kind } = lastUpdate(props)
+    expect(kind).toBe('import')
+    expect(next.bookmarks.groups[0].items).toEqual([{ ...STARTER_SITES[1], name: 'My Gmail' }])
   })
 
   it('previews Infinity import counts, adds into Quick links as one undoable change', async () => {

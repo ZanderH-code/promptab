@@ -3,6 +3,7 @@ import { defaults } from './model'
 import { bootstrap } from '../storage/bootstrap'
 import { createLocalStorageBackend, createProfileStorage } from '../storage/profiles'
 import type { ProfileSnapshot } from '../storage/profiles'
+import { STARTER_SITES } from './starter-sites'
 
 function memoryStorage() {
   const values = new Map<string, string>()
@@ -15,7 +16,7 @@ function memoryStorage() {
   } as Storage
 }
 
-it('starts a fresh profile without the example bookmark', async () => {
+it('starts a fresh profile with the bundled starter sites', async () => {
   const storage = memoryStorage()
   const backend = createLocalStorageBackend(storage)
   const lock = async <T,>(task: () => Promise<T>) => task()
@@ -28,6 +29,6 @@ it('starts a fresh profile without the example bookmark', async () => {
     id: () => 'fresh', now: () => new Date(0).toISOString(),
   }) as ProfileSnapshot
   const profile = (snapshot.profiles as { profiles: Record<string, { bookmarks: { groups: { items: unknown[] }[] } }> }).profiles.fresh
-  expect(profile.bookmarks.groups.flatMap(group => group.items)).toEqual([])
+  expect(profile.bookmarks.groups.flatMap(group => group.items)).toEqual(STARTER_SITES)
   expect(defaults.shortcuts).toHaveLength(1)
 })

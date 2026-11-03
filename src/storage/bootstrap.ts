@@ -1,4 +1,5 @@
 import { defaults, type Settings } from '../core/model'
+import { STARTER_SITES } from '../core/starter-sites'
 import { migrateV1 } from '../core/migrate/v1'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
 import { createHistory, type History } from '../store/history'
@@ -62,6 +63,7 @@ async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnap
   // Store the envelope, including absence and the exact localStorage string.
   if (await backend.get('backup:v1-original') === null) await backend.set('backup:v1-original', JSON.stringify(raw))
   const initial = options.defaultSettings ?? defaults
+  const fresh = raw.backend === 'local' ? raw.value === null : !raw.present
   const input = raw.backend === 'local'
     ? raw.value === null ? { ...initial, shortcuts: [] } : JSON.parse(raw.value)
     : raw.present ? raw.value : { ...initial, shortcuts: [] }
@@ -73,5 +75,14 @@ async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnap
     add: blob => assets.add(blob),
     wallpaper,
   })
-  return validateSnapshot(await profiles.write({ profiles: { activeProfileId: profile.meta.id, profiles: { [profile.meta.id]: profile } }, history: createHistory<ProfileV2>() }, null))
+  if (fresh) profile.bookmarks.groups[0].items = structuredClone(STARTER_SITES)
+  const snapshot = validateSnapshot(await profiles.write({ profiles: { activeProfileId: profile.meta.id, profiles: { [profile.meta.id]: profile } }, history: createHistory<ProfileV2>() }, null))
+  if (fresh && typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem('mnt:onboarding:eligible', 'true')
+      localStorage.removeItem('mnt:onboarding:dismissed')
+      window.dispatchEvent(new Event('mnt:onboarding-ready'))
+    } catch { /* Storage can be unavailable. */ }
+  }
+  return snapshot
 }

@@ -1,6 +1,7 @@
 import { RotateCcw } from 'lucide-react'
 import { lazy, Suspense } from 'react'
 import { ProfileSection } from '../ProfileSection'
+import { countUnchangedStarterSites, removeUnchangedStarterSites } from '../../../core/starter-sites'
 import type { Ctx, Item } from './shared'
 
 const BackupSection = lazy(() => import('../BackupSection').then(module => ({ default: module.BackupSection })))
@@ -16,6 +17,7 @@ export function dataItems(ctx: Ctx): Item[] {
     { id: 'browser-bookmarks', keys: ['bookmarks.importTitle', 'bookmarks.importHint', 'bookmarks.chooseFolders', 'bookmarks.importSelected'], node: <Suspense fallback={null}><BrowserBookmarkImport ctx={ctx} /></Suspense> },
     { id: 'nighttab-import', keys: ['nighttab.title', 'nighttab.hint', 'nighttab.chooseFile'], node: <Suspense fallback={null}><NightTabImport ctx={ctx} /></Suspense> },
     { id: 'infinity-import', keys: ['infinity.title', 'infinity.hint', 'infinity.chooseFile'], node: <Suspense fallback={null}><InfinityImport ctx={ctx} /></Suspense> },
+    ...(countUnchangedStarterSites(ctx.profile) ? [{ id: 'remove-starters', keys: ['settings.removeStarterSites'] as Item['keys'], node: <button type="button" className="sd-button" onClick={() => ctx.change(removeUnchangedStarterSites, 'import')}>{t('settings.removeStarterSites')}</button> }] : []),
     {
       id: 'reset-all', keys: ['settings.reset'],
       node: <button type="button" className="sd-button sd-danger" onClick={() => { if (confirm(t('settings.confirmReset'))) onReset() }}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.reset')}</button>,

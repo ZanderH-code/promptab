@@ -30,7 +30,7 @@ Promptab transforms natural-language prompts into custom themes, layouts, typogr
 - Browse the online theme gallery, copy example prompts, and preview themes before applying them.
 
 - Clock, date, search, greetings and other configurable widgets; layout templates and editable widget areas
-- Website shortcuts with groups, drag-and-drop sorting, browser bookmark import, and automatic, image or text icons
+- Website shortcuts with groups, drag-and-drop sorting, browser bookmark import, automatic, image or text icons, and eight starter sites on fresh installs
 - Preset themes, colors, fonts, shapes, custom CSS and local wallpaper
 - Multiple profiles, undo history, JSON backups, and nightTab and Infinity backup imports
 - AI workbench for creating, validating, previewing and sharing theme packs with your own AI assistant

@@ -238,6 +238,7 @@ export const zhCN = {
   'settings.bookmarkCard': '卡片',
   'settings.bookmarkIconOnly': '仅图标',
   'settings.data': '数据',
+  'settings.removeStarterSites': '移除初始网站',
   'bookmarks.importTitle': '导入浏览器书签',
   'bookmarks.importHint': '只读取网页书签；你可以选择一个或多个文件夹。',
   'bookmarks.chooseFolders': '选择文件夹',

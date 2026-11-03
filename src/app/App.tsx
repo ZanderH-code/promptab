@@ -81,7 +81,14 @@ export default function App() {
   useEffect(() => { if (drawer) setSyncMounted(true) }, [drawer])
   const [managingGroups, setManagingGroups] = useState(false)
   const [editMode, setEditMode] = useState(false)
+  const [onboardingEligible, setOnboardingEligible] = useState(() => localStorage.getItem('mnt:onboarding:eligible') === 'true')
   const [onboardingDismissed, setOnboardingDismissed] = useState(() => localStorage.getItem('mnt:onboarding:dismissed') === 'true')
+  useEffect(() => {
+    const refresh = () => setOnboardingEligible(localStorage.getItem('mnt:onboarding:eligible') === 'true')
+    refresh()
+    window.addEventListener('mnt:onboarding-ready', refresh)
+    return () => window.removeEventListener('mnt:onboarding-ready', refresh)
+  }, [])
   const [drawerSection, setDrawerSection] = useState<string | undefined>()
   const [editing, setEditing] = useState<Shortcut | null>(null)
   const addGroupId = useRef<string | undefined>(undefined)
@@ -308,7 +315,7 @@ export default function App() {
         language={s.language}
         shortcuts={s.shortcuts}
         editing={editMode || managingGroups}
-        onboarding={!!profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && profile.bookmarks.groups.every(group => group.items.length === 0)}
+        onboarding={!!profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && (onboardingEligible || profile.bookmarks.groups.every(group => group.items.length === 0))}
         onOnboardingAction={action => {
           localStorage.setItem('mnt:onboarding:dismissed', 'true')
           setOnboardingDismissed(true)
