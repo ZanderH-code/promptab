@@ -18,7 +18,7 @@ function portableWidget(widget: ProfileWidget): ProfileWidget | null {
     clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow'],
     date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'weekNumber', 'weekStart', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase'],
     search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor'],
-    greeting: ['size', 'align'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
+    greeting: ['size', 'align', 'transitional'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
     weather: ['size', 'align', 'unit', 'showForecast'],
   }
   const props = allowed[widget.type]

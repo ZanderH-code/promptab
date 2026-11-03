@@ -64,6 +64,11 @@ export function widgetsItems(ctx: Ctx): Item[] {
     formatRows.push({ id: 'date-preview', keys: ['settings.widgets'], node: <WidgetFormatPreview type="date" props={p} language={s.language} /> })
   }
   const productTypes: ProductivityWidgetType[] = ['todo', 'note', 'countdown', 'weather']
+  const addGreeting = () => change(profile => {
+    const area = profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).find(name => name !== '.') ?? 'overview'
+    const order = Math.max(-1, ...profile.widgets.filter(widget => widget.area === area).map(widget => widget.order)) + 1
+    return touch({ ...profile, widgets: [...profile.widgets, { id: crypto.randomUUID(), type: 'greeting', area, order, props: {} }] })
+  })
   const productLabel: Record<Exclude<ProductivityWidgetType, 'weather'>, MessageKey> = { todo: 'widgets.todo', note: 'widgets.note', countdown: 'widgets.countdown' }
   const productTitle = (type: ProductivityWidgetType) => type === 'weather' ? weatherText(s.language, 'title') : t(productLabel[type])
   const addProductivityWidget = (type: ProductivityWidgetType) => change(profile => {
@@ -73,7 +78,7 @@ export function widgetsItems(ctx: Ctx): Item[] {
     return touch({ ...profile, widgets: [...profile.widgets, { ...widget, order }] })
   })
   const productivityItems: Item[] = [
-    { id: 'productivity-add', keys: ['settings.addProductivityWidget'], node: <div className="sd-note"><strong>{t('settings.addProductivityWidget')}</strong><div className="sd-widget-actions">{productTypes.map(type => <button className="sd-button" type="button" key={type} onClick={() => addProductivityWidget(type)}>{productTitle(type)}</button>)}</div></div> },
+    { id: 'productivity-add', keys: ['settings.addProductivityWidget', 'settings.addGreeting'], node: <div className="sd-note"><strong>{t('settings.addProductivityWidget')}</strong><div className="sd-widget-actions"><button className="sd-button" type="button" onClick={addGreeting}>{t('settings.addGreeting')}</button>{productTypes.map(type => <button className="sd-button" type="button" key={type} onClick={() => addProductivityWidget(type)}>{productTitle(type)}</button>)}</div></div> },
     ...ctx.profile.widgets.filter(widget => widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown' || widget.type === 'weather').map((widget): Item => {
       const patchWidget = (updates: Record<string, unknown>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } as typeof item.props } : item) as typeof profile.widgets }))
       const title = widget.type === 'countdown' ? widget.props.title : widget.type === 'weather' ? '' : widget.props.title ?? ''

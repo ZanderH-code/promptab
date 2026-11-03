@@ -118,6 +118,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} onChange={size => patchWidget(widget.id, { size })} />
       <Row label={t('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget(widget.id, { align })} /></Row>
       {widget.type === 'clock' && <Toggle label={t('settings.widgetEyebrow')} checked={widget.props.eyebrow === true} onChange={eyebrow => patchWidget(widget.id, { eyebrow })} />}
+      {widget.type === 'greeting' && <Toggle label={t('settings.greetingTransition')} checked={widget.props.transitional === true} onChange={transitional => patchWidget(widget.id, { transitional })} />}
     </div>,
   }))
   const areaControls: Item[] = areas.map(area => {
