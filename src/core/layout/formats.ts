@@ -37,6 +37,10 @@ export function formatClock(date: Date, language: string, props: ClockProps): st
   return parts.join(`${' '.repeat(Math.round(spacing * 4))}${separator}${' '.repeat(Math.round(spacing * 4))}`)
 }
 
+export function defaultWeekStart(language: string): 'monday' | 'sunday' {
+  return language === 'zh-CN' ? 'monday' : 'sunday'
+}
+
 export function weekNumber(date: Date, start: 'monday' | 'sunday' | 'saturday'): number {
   const day = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
   if (start === 'monday') {
@@ -50,7 +54,7 @@ export function weekNumber(date: Date, start: 'monday' | 'sunday' | 'saturday'):
 }
 
 export function formatDate(date: Date, language: string, props: DateProps): string {
-  const week = props.weekNumber ? translate(language === 'zh-CN' ? 'zh-CN' : 'en', 'date.weekNumber', { number: weekNumber(date, props.weekStart ?? (language === 'zh-CN' ? 'monday' : 'sunday')) }) : ''
+  const week = props.weekNumber ? translate(language === 'zh-CN' ? 'zh-CN' : 'en', 'date.weekNumber', { number: weekNumber(date, props.weekStart ?? defaultWeekStart(language)) }) : ''
   if (props.format !== 'custom') return [date.toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }), week].filter(Boolean).join(' ')
   const configuredOrder = props.order ?? ['weekday', 'month', 'day', 'year']
   const order = props.weekNumber && !configuredOrder.includes('weekNumber') ? [...configuredOrder, 'weekNumber'] : configuredOrder
