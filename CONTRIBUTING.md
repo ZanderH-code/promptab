@@ -7,6 +7,14 @@
 3. Gallery packs are limited to 64 KiB. They must pass schema, CSS sanitizer and contrast checks, contain no external URLs, and keep the bookmarks widget visible when providing a layout.
 4. Run `npm run gallery` to validate the packs and regenerate `docs/gallery/index.json`. Run `npm test -- --run src/core/gallery/catalog.test.ts` and include the pack and regenerated index in a pull request.
 
+## Submit a theme
+
+Submit an original Promptab v2 theme pack as `docs/gallery/packs/<lowercase-kebab-case-id>.json`. Use a short, descriptive name with lowercase ASCII letters, numbers, and hyphens; the ID must match the filename. Include the pack metadata and a concise English example prompt. Keep the JSON under 64 KiB, retain visible bookmarks, and pass the schema, CSS sanitizer, and contrast checks with `npm run gallery -- --check` and `npx vitest run src/core/gallery/catalog.test.ts scripts/gallery-index.test.ts`.
+
+Include an original 1280×800 PNG preview at `docs/gallery/previews/<id>.png`. The screenshot should show the theme running in Promptab, use only assets you created or are licensed to redistribute, and avoid personal data. By submitting a pack, you confirm that your contribution is original or that you have the rights needed to contribute it, and you license the pack and its preview image under the MIT License. Do not copy another product's theme, layout artwork, or copyrighted images.
+
+Open a pull request with the pack, preview image, and regenerated `docs/gallery/index.json`. The theme submission issue form can be used to propose a pack before opening a pull request.
+
 ## 简体中文
 
 1. 在 Promptab 的 AI 工作台复制提示包，交给你使用的 AI 并请它设计主题。画廊里的提示是可供尝试的例句，不代表主题一定由该句生成。

@@ -1,0 +1,54 @@
+name: Theme submission proposal
+description: Propose an original theme for the community gallery
+title: "[Theme]: "
+labels: [theme submission]
+body:
+  - type: markdown
+    attributes:
+      value: Propose an original Promptab theme. Do not attach copyrighted artwork or copy another product's theme.
+  - type: input
+    id: name
+    attributes:
+      label: Theme name
+    validations:
+      required: true
+  - type: input
+    id: pack-id
+    attributes:
+      label: Proposed lowercase pack ID
+      description: Use lowercase ASCII letters, numbers, and hyphens.
+      placeholder: quiet-forest
+    validations:
+      required: true
+  - type: textarea
+    id: prompt
+    attributes:
+      label: English example prompt
+      description: One short sentence describing the original visual direction.
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Main color mode
+      options:
+        - Light
+        - Dark
+    validations:
+      required: true
+  - type: textarea
+    id: layout
+    attributes:
+      label: Layout and typography
+      description: Name the layout template and font pairing you have in mind.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rights
+    attributes:
+      label: Rights and license
+      options:
+        - label: This theme is original and does not copy another product's theme or copyrighted images.
+          required: true
+        - label: I can license the contributed pack and preview image under the MIT License.
+          required: true
