@@ -1,4 +1,5 @@
 import { defineConfig } from '@playwright/test'
+import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   testDir: '.',
@@ -6,7 +7,7 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   webServer: {
-    cwd: '..',
+    cwd: fileURLToPath(new URL('..', import.meta.url)),
     command: 'npx vite --host 127.0.0.1 --port 4178 --strictPort',
     url: 'http://127.0.0.1:4178',
     reuseExistingServer: false,

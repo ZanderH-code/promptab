@@ -17,6 +17,7 @@ import { useSettings } from './useSettings'
 import { useAssetFonts } from './useAssetFonts'
 import { useUserCss } from './useUserCss'
 import { useWallpaper } from './useWallpaper'
+import { KeyboardHelp } from './KeyboardHelp'
 
 const SyncApp = lazy(() => import('./syncRuntime').then(m => ({ default: m.SyncApp })))
 const SettingsDrawer = lazy(() => import('../features/settings/SettingsDrawer').then(m => ({ default: m.SettingsDrawer })))
@@ -60,6 +61,7 @@ export default function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
+      if (keyboardHelpOpen) return
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) {
         event.preventDefault()
         undo()
@@ -76,7 +78,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [undo, settings, patch])
+  }, [undo, settings, patch, profile, keyboardHelpOpen])
   const [drawer, setDrawer] = useState(false)
   useEffect(() => { if (drawer) setSyncMounted(true) }, [drawer])
   const [managingGroups, setManagingGroups] = useState(false)
@@ -339,7 +341,7 @@ export default function App() {
       />}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} returnFocus={menu.focusTarget} />}
-      {keyboardHelpOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) setKeyboardHelpOpen(false) }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="keyboard-help-title" onKeyDown={event => { if (event.key === 'Escape') setKeyboardHelpOpen(false) }}><h2 id="keyboard-help-title">{t('keyboard.helpTitle')}</h2><ul>{(['edit', 'add', 'settings', 'theme', 'search', 'help'] as const).map((action, index) => <li key={action}><kbd>{['E', 'A', ',', 'D', '/', '?'][index]}</kbd> {t(`keyboard.${action}` as MessageKey)}</li>)}</ul><button type="button" autoFocus className="sd-button" onClick={() => setKeyboardHelpOpen(false)}>{t('common.close')}</button></div></div>}
+      {keyboardHelpOpen && <KeyboardHelp t={t} onClose={() => setKeyboardHelpOpen(false)} />}
       {moving && profile && <div className="modal-backdrop" role="presentation">
         <form className="modal" role="dialog" aria-modal="true" aria-labelledby="move-bookmark-title" onSubmit={moveShortcut} onKeyDown={event => { if (event.key === 'Escape') setMoving(null) }}>
           <h2 id="move-bookmark-title">{t('shortcuts.moveDialog')}</h2>

@@ -10,7 +10,7 @@ test('generate original store screenshots', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
-  await page.clock.install({ time: new Date('2026-08-01T19:17:00Z') })
+  await page.clock.setFixedTime(new Date('2026-08-01T19:17:00Z'))
   await seedExistingUser(page, { language: 'en', theme: 'light', shortcuts: templateBookmarks.slice(0, 3), columns: 3 })
   await page.route('**/favicon.ico', route => route.abort())
   await page.route('https://zanderh-code.github.io/promptab/gallery/**', async route => {
@@ -129,6 +129,49 @@ test('generate original store screenshots', async ({ page }) => {
   await page.keyboard.press('?')
   await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible()
   await capture('07-keyboard-shortcuts')
+
+  async function checkKeyboardHelp(title: string, closeLabel: string) {
+    const dialog = page.getByRole('dialog', { name: title })
+    const close = dialog.getByRole('button', { name: closeLabel, exact: true })
+    await expect(close).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(close).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(close).toBeFocused()
+    await expect(dialog.locator('kbd')).toHaveCount(6)
+    await expect(dialog.locator('ul')).toHaveCSS('list-style-type', 'none')
+    await expect(dialog.locator('li').first()).toHaveCSS('display', 'grid')
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page.locator('.settings-button')).toBeFocused()
+    await page.keyboard.press('?')
+    await expect(dialog).toBeVisible()
+    await page.locator('.modal-backdrop').click({ position: { x: 8, y: 8 } })
+    await expect(dialog).toHaveCount(0)
+    await expect(page.locator('.settings-button')).toBeFocused()
+    await page.keyboard.press('?')
+    await close.click()
+    await expect(dialog).toHaveCount(0)
+    await expect(page.locator('.settings-button')).toBeFocused()
+  }
+  await checkKeyboardHelp('Keyboard shortcuts', 'Close')
+  for (const theme of ['swiss-minimal', 'plum-night']) {
+    await applyGalleryTheme(theme)
+    await page.locator('.settings-button').focus()
+    await page.keyboard.press('?')
+    await checkKeyboardHelp('Keyboard shortcuts', 'Close')
+  }
+  await page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const key = `profiles:v2:generation:${index.generation}`
+    const snapshot = JSON.parse(localStorage.getItem(key)!)
+    snapshot.profiles.profiles[snapshot.profiles.activeProfileId].prefs.language = 'zh-CN'
+    localStorage.setItem(key, JSON.stringify(snapshot))
+  })
+  await page.reload()
+  await page.locator('.settings-button').focus()
+  await page.keyboard.press('?')
+  await checkKeyboardHelp('键盘快捷键', '关闭')
   for (const file of await readdir(output)) {
     if (!file.toLowerCase().endsWith('.png')) continue
     const image = await readFile(resolve(output, file))

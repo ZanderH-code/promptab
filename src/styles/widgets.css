@@ -392,6 +392,15 @@
     border-radius: 12px;
   }
 
+  .keyboard-help h2 { margin: 0 0 20px; }
+  .keyboard-help-list { list-style: none; margin: 0; padding: 0; display: grid; }
+  .keyboard-help-list li { display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 16px; padding: 9px 0; border-bottom: 1px solid var(--mnt-border); }
+  .keyboard-help-list kbd { display: inline-grid; place-items: center; min-width: 32px; min-height: 30px; padding: 0 6px; border-radius: 6px; background: var(--mnt-surface-hover); color: var(--mnt-text); font: inherit; font-weight: 600; }
+  .keyboard-help-actions { display: flex; justify-content: flex-end; margin-top: 20px; }
+  .keyboard-help .sd-button { min-height: 36px; padding: 0 14px; border: 1px solid var(--mnt-border-strong); border-radius: 10px; background: none; color: var(--mnt-text); font: inherit; cursor: pointer; }
+  .keyboard-help .sd-button:hover { border-color: var(--mnt-accent); }
+  .keyboard-help .sd-button:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
+
   .primary {
     width: 100%;
     padding: 12px;
