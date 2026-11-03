@@ -1,5 +1,6 @@
+import { readFile } from 'node:fs/promises'
 import { test, expect, type Page } from '@playwright/test'
-import { openTab, seedExistingUser } from './helpers'
+import { openTab, seedExistingUser, setAccent } from './helpers'
 
 const BAD_PACK = {
   kind: 'mnt.theme-pack',
@@ -85,6 +86,51 @@ test('discarding a preview leaves the saved theme alone', async ({ page }) => {
   await banner.getByRole('button', { name: /^(放弃|Discard)$/ }).click()
   await expect(banner).toHaveCount(0)
   await expect.poll(() => accent(page)).toBe(before)
+})
+
+test('exported theme files round-trip through preview, apply, undo and AI reply', async ({ page }) => {
+  await settingsEntry(page).click()
+  await openTab(page, 'appearance')
+  const originalAccent = await accent(page)
+  await openTab(page, 'ai')
+  await page.getByRole('button', { name: /^(导出主题包|Export theme pack)$/ }).click()
+  await expect(page.getByText(/Local wallpapers|本地壁纸/)).toBeVisible()
+
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /^(下载 \.json|Download \.json)$/ }).click()
+  const download = await downloadPromise
+  const bytes = await readFile((await download.path())!)
+  const pack = JSON.parse(bytes.toString())
+  expect(pack.kind).toBe('mnt.theme-pack')
+  expect(pack.packVersion).toBe(2)
+
+  await page.getByRole('button', { name: /^(复制为 AI 回复|Copy as AI reply)$/ }).click()
+  const copied = await page.evaluate(() => navigator.clipboard.readText())
+  expect(copied).toContain('```json')
+  expect(copied.match(/```/g)).toHaveLength(2)
+  const submissionLink = page.getByRole('link', { name: /^(提交到画廊|Submit to gallery)$/ })
+  await expect(submissionLink).toBeVisible()
+  const submission = new URL(await submissionLink.getAttribute('href')!)
+  expect(submission.searchParams.get('template')).toBe('theme_submission.yml')
+  expect(submission.searchParams.get('title')).toContain('Exported theme')
+  expect(await submissionLink.getAttribute('href')).not.toContain('mnt.theme-pack')
+
+  await page.getByRole('button', { name: /^(取消|Cancel)$/ }).click()
+  await replyBox(page).fill(copied)
+  await expect(page.locator('.sd-ai-ok')).toBeVisible()
+  await setAccent(page, '#223344')
+  await expect.poll(() => accent(page)).toBe('#223344')
+  await openTab(page, 'ai')
+  await page.locator('.sd-ai input[type="file"]').setInputFiles({ name: 'theme-pack.json', mimeType: 'application/json', buffer: bytes })
+  await expect(page.locator('.sd-ai-ok')).toBeVisible()
+  await page.locator('.sd-ai .sd-button', { hasText: /^(预览|Preview)$/ }).click()
+  const banner = page.locator('.mnt-banner[data-kind="preview"]')
+  await expect(banner).toBeVisible()
+  await expect.poll(() => accent(page)).toBe(originalAccent)
+  await banner.getByRole('button', { name: /^(应用|Apply)$/ }).click()
+  await expect(page.locator('.undo-toast')).toBeVisible()
+  await page.locator('.undo-toast').getByRole('button', { name: /^(撤销|Undo)$/i }).click()
+  await expect.poll(() => accent(page)).toBe('#223344')
 })
 
 test('loads the CSS editor only when the style tab opens', async ({ page }) => {

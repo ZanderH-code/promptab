@@ -34,15 +34,13 @@ export function exportThemePack(profile: ProfileV2): AiPack {
   const { mode, color, colorLight, radius, shadow, glass, density, scale, iconShape, iconSize } = profile.theme
   const font = Object.fromEntries(Object.entries(profile.theme.font).filter(([, value]) => !value.startsWith('mnt-asset:'))) as Partial<ProfileV2['theme']['font']>
   const { type, color: backgroundColor, gradient, dim } = profile.background
+  const widgets = profile.widgets.map(portableWidget).filter(Boolean) as ProfileWidget[]
   return {
     kind: PACK_KIND, packVersion: PACK_VERSION, meta: { name: profile.custom.sourcePack?.name ?? 'Exported theme' },
     theme: { mode, color, colorLight, font, radius, shadow, glass, density, scale, iconShape, iconSize },
     background: { type: type === 'image' || type === 'video' ? 'theme' : type, ...(type === 'color' ? { color: backgroundColor } : {}), ...(type === 'gradient' ? { gradient } : {}), dim },
     layout: profile.layout,
-    widgets: profile.widgets.flatMap(widget => {
-      const portable = portableWidget(widget)
-      return portable ? [portable] : []
-    }),
+    widgets,
     css: portableCss(profile.custom.css),
     variables: profile.custom.variables.map(variable => ({ ...variable, default: variableValue(variable, profile.custom.values[variable.name]) } as Variable)),
   }
@@ -87,10 +85,11 @@ export function applyPack(profile: ProfileV2, pack: AiPack, parts: Iterable<Pack
   if (chosen.has('widgets') && pack.widgets?.length) {
     const byId = new Map(pack.widgets.map(widget => [widget.id, widget]))
     const existingIds = new Set(next.widgets.map(widget => widget.id))
+    const newWidgets = pack.widgets.filter(widget => !existingIds.has(widget.id)).map(portableWidget).filter(Boolean) as ProfileWidget[]
     next = { ...next, widgets: [...next.widgets.map(widget => {
       const incoming = byId.get(widget.id)
       return incoming && incoming.type === widget.type ? { ...incoming, props: { ...widget.props, ...incoming.props } } as typeof widget : widget
-    }), ...pack.widgets.filter(widget => !existingIds.has(widget.id)).map(portableWidget)] }
+    }), ...newWidgets] }
     if (chosen.has('layout') && pack.layout && Object.keys(pack.layout).length) {
       const grids = [next.layout.areas, ...Object.values(next.layout.breakpoints ?? {}).map(grid => grid.areas)]
       const common = areaNames(grids[0]).filter(area => grids.every(grid => areaNames(grid).includes(area)))

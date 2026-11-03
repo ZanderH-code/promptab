@@ -35,6 +35,11 @@ function warningContent(t: Ctx['t'], warning: Parameters<typeof warningText>[1])
   return markDynamicText(text, values)
 }
 
+function gallerySubmissionUrl(name: string) {
+  const params = new URLSearchParams({ template: 'theme_submission.yml', title: `[Theme]: ${name}` })
+  return `https://github.com/zanderh-code/promptab/issues/new?${params}`
+}
+
 /**
  * Bring-your-own-AI theme workbench: builds the prompt to copy out, reads the pasted reply, shows what was fixed,
  * what is wrong and what is risky, and previews or applies only the parts the person keeps ticked.
@@ -44,18 +49,40 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
   const [state, set] = useAiState()
   const [notice, setNotice] = useState<MessageKey | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  const [exportComplete, setExportComplete] = useState(false)
+  const [exportedName, setExportedName] = useState('')
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [excludeCss, setExcludeCss] = useState(false)
   const exportButton = useRef<HTMLButtonElement>(null)
   const cancelExport = useRef<HTMLButtonElement>(null)
   useEffect(() => { if (exportOpen) cancelExport.current?.focus() }, [exportOpen])
   const closeExport = () => { setExportOpen(false); exportButton.current?.focus() }
-  function downloadTheme() {
+  function createExportPack() {
     const pack = exportThemePack(active)
     if (excludeCss) delete pack.css
+    return pack
+  }
+
+  function markExported(name: string) {
+    setExportedName(name)
+    setExportComplete(true)
+  }
+
+  function downloadTheme() {
+    const pack = createExportPack()
     const url = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' }))
     const link = document.createElement('a'); link.href = url; link.download = 'theme-pack.json'; link.click(); URL.revokeObjectURL(url)
-    closeExport()
+    markExported(pack.meta?.name ?? t('ai.defaultName'))
+  }
+
+  async function copyThemeReply() {
+    const pack = createExportPack()
+    const reply = ['```json', JSON.stringify(pack, null, 2), '```'].join('\n')
+    try {
+      await navigator.clipboard.writeText(reply)
+      flash('ai.copied')
+      markExported(pack.meta?.name ?? t('ai.defaultName'))
+    } catch { onError({ key: 'ai.copyFailed' }) }
   }
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const file = useRef<HTMLInputElement>(null)
@@ -137,7 +164,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
         />
         <div className="sd-css-actions">
           <input ref={file} type="file" hidden accept=".json,.jsonc,.css,.md,.txt,application/json,text/css,text/plain,text/markdown" aria-label={t('ai.openFile')} onChange={event => { void readFile(event.target.files?.[0]); event.target.value = '' }} />
-          <button ref={exportButton} type="button" className="sd-button" onClick={() => { setExcludeCss(false); setExportOpen(true) }}>{t('ai.exportTitle')}</button>
+          <button ref={exportButton} type="button" className="sd-button" onClick={() => { setExcludeCss(false); setExportComplete(false); setExportOpen(true) }}>{t('ai.exportTitle')}</button>
           <button type="button" className="sd-button" onClick={() => file.current?.click()}>{t('ai.openFile')}</button>
         </div>
         {candidates.length > 1 && (
@@ -158,12 +185,15 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
           }
         }}>
           <h3 id="theme-export-title">{t('ai.exportTitle')}</h3>
+          <p className="sd-hint">{t('ai.exportAssetsWarning')}</p>
           {active.custom.css.trim() !== '' && <p className="sd-hint">{t('ai.exportCssWarning')}</p>}
           <Toggle label={t('ai.exportExcludeCss')} checked={excludeCss} onChange={setExcludeCss} />
           <div className="sd-css-actions">
             <button ref={cancelExport} type="button" className="sd-button" onClick={closeExport}>{t('ai.exportCancel')}</button>
+            <button type="button" className="sd-button" onClick={() => void copyThemeReply()}>{t('ai.copyThemeReply')}</button>
             <button type="button" className="sd-button sd-primary" onClick={downloadTheme}>{t('ai.exportConfirm')}</button>
           </div>
+          {exportComplete && <div className="sd-hint"><p>{t('ai.submitGalleryHint')}</p><a href={gallerySubmissionUrl(exportedName)} target="_blank" rel="noreferrer">{t('ai.submitGallery')}</a></div>}
         </div>
       </div>}
       {state.reply.trim() !== '' && (

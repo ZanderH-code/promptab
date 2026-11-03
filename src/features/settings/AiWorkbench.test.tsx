@@ -39,7 +39,7 @@ describe('theme export', () => {
     expect(within(dialog).getByText(/custom CSS.*included/i)).toBeInTheDocument()
     expect(create).not.toHaveBeenCalled()
     fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Exclude custom CSS' }))
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Export' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Download .json' }))
     const blob = create.mock.calls[0][0] as Blob
     const text = await readBlob(blob)
     const pack = JSON.parse(text)
@@ -54,9 +54,24 @@ describe('theme export', () => {
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
     expect(create).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Export theme pack' }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Export' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Download .json' }))
     const pack = JSON.parse(await readBlob(create.mock.calls[0][0]))
     expect(pack.css).toBe('.clock { color: red }')
+  })
+
+  it('copies a fenced workbench reply and offers the gallery submission form', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    await setup('')
+    fireEvent.click(screen.getByRole('button', { name: 'Export theme pack' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy as AI reply' }))
+    const link = await screen.findByRole('link', { name: 'Submit to gallery' })
+    const copied = writeText.mock.calls[0][0] as string
+    expect(copied.startsWith('```json\n')).toBe(true)
+    expect(copied.endsWith('\n```')).toBe(true)
+    expect(link.getAttribute('href')).toContain('template=theme_submission.yml')
+    expect(link.getAttribute('href')).toContain('title=%5BTheme%5D%3A+Exported+theme')
+    expect(link.getAttribute('href')).not.toContain('mnt.theme-pack')
   })
 
   it('omits the warning for empty CSS and localizes the dialog', async () => {
