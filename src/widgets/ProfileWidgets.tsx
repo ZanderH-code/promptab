@@ -78,7 +78,11 @@ function ClockBlock({ widget, language, onContextMenu, theme, custom }: { widget
     void document.fonts.ready.then(fit)
     return () => { disposed = true; observer.disconnect(); document.fonts.removeEventListener('loadingdone', fit); refit.current = () => {} }
   }, [])
-  useLayoutEffect(() => { refit.current() }, [formatted, p, theme, custom])
+  useLayoutEffect(() => { refit.current() }, [formatted, p])
+  useLayoutEffect(() => {
+    const frame = requestAnimationFrame(() => refit.current())
+    return () => cancelAnimationFrame(frame)
+  }, [theme, custom])
   return <div className="intro" onContextMenu={onContextMenu}>{p.eyebrow === true && <div className="eyebrow"><span className="dot" /> {language === 'en' ? 'YOUR SPACE, YOUR PACE' : '你的空间，你的节奏'}</div>}<div ref={clock} className="clock mnt-clock"><span style={{ whiteSpace: 'nowrap' }}>{formatted}</span></div></div>
 }
 

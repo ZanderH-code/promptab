@@ -2,10 +2,100 @@
   "kind": "mnt.theme-pack",
   "packVersion": 2,
   "cssApiVersion": 1,
-  "meta": {"name": "Copper Canyon", "author": "Promptab", "tags": ["dark", "copper", "zen"], "prompt": {"en": "Make a focused copper-hour zen page with a warm serif clock, sparse controls, and a compact shortcut strip.", "zh-CN": "制作专注的铜色黄昏禅意页面，以温暖衬线时钟、简约控件和紧凑快捷栏呈现。"}},
-  "theme": {"mode": "dark", "color": {"bg": "#211915", "surface": "#34251f", "text": "#fff5ec", "accent": "#efb27e"}, "font": {"display": "serif", "ui": "rounded"}, "radius": 18, "shadow": 18, "glass": 5, "density": "comfortable", "iconShape": "circle"},
-  "background": {"type": "gradient", "gradient": {"angle": 145, "stops": ["#211915", "#4a2e22"]}},
-  "layout": {"areas": ["overview"], "breakpoints": {"narrow": {"areas": ["overview"]}}, "contentWidth": 920, "align": "center-center", "gap": 32},
-  "widgets": [{"id": "clock", "type": "clock", "area": "overview", "order": 0, "props": {"hour12": false, "size": 1.7}}, {"id": "date", "type": "date", "area": "overview", "order": 1, "props": {"format": "full"}}, {"id": "search", "type": "search", "area": "overview", "order": 2, "props": {}}, {"id": "bookmarks", "type": "bookmarks", "area": "overview", "order": 3, "props": {"style": "minimal", "maxColumns": 4, "showAdd": true}}],
-  "css": ".mnt-clock { letter-spacing: 0.02em; }\n.mnt-link-icon { filter: saturate(0.75); }"
+  "meta": {
+    "name": "Copper Canyon",
+    "author": "Promptab",
+    "tags": [
+      "dark",
+      "copper",
+      "zen"
+    ],
+    "prompt": {
+      "en": "Make a focused copper-hour zen page with a warm serif clock, sparse controls, and a compact shortcut strip.",
+      "zh-CN": "制作专注的铜色黄昏禅意页面，以温暖衬线时钟、简约控件和紧凑快捷栏呈现。"
+    }
+  },
+  "theme": {
+    "mode": "dark",
+    "color": {
+      "bg": "#211915",
+      "surface": "#34251f",
+      "text": "#fff5ec",
+      "accent": "#efb27e"
+    },
+    "font": {
+      "display": "serif",
+      "ui": "rounded"
+    },
+    "radius": 18,
+    "shadow": 18,
+    "glass": 5,
+    "density": "comfortable",
+    "iconShape": "circle"
+  },
+  "background": {
+    "type": "gradient",
+    "gradient": {
+      "angle": 145,
+      "stops": [
+        "#211915",
+        "#4a2e22"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      "overview"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "overview"
+        ]
+      }
+    },
+    "contentWidth": 920,
+    "align": "center-center",
+    "gap": 32
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "overview",
+      "order": 0,
+      "props": {
+        "hour12": false,
+        "size": 1.7
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "overview",
+      "order": 1,
+      "props": {
+        "format": "full"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "overview",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "overview",
+      "order": 3,
+      "props": {
+        "style": "tile",
+        "maxColumns": 4,
+        "showAdd": true
+      }
+    }
+  ],
+  "css": ".mnt-clock { letter-spacing: 0.02em; }\n.mnt-search { margin-top: 28px; }\n.mnt-link-icon { filter: saturate(0.75); }"
 }

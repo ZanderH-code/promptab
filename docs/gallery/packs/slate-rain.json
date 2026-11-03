@@ -44,7 +44,7 @@
   },
   "layout": {
     "areas": [
-      "clock date links",
+      "overview overview links",
       "search search links"
     ],
     "columns": [
@@ -54,13 +54,12 @@
     ],
     "rows": [
       "auto",
-      "1fr"
+      "auto"
     ],
     "breakpoints": {
       "narrow": {
         "areas": [
-          "clock",
-          "date",
+          "overview",
           "search",
           "links"
         ],
@@ -77,7 +76,7 @@
     {
       "id": "clock",
       "type": "clock",
-      "area": "clock",
+      "area": "overview",
       "order": 0,
       "props": {
         "align": "left",
@@ -88,7 +87,7 @@
     {
       "id": "date",
       "type": "date",
-      "area": "date",
+      "area": "overview",
       "order": 1,
       "props": {
         "format": "full",

@@ -52,7 +52,7 @@
       "1fr"
     ],
     "rows": [
-      "22vh",
+      "4vh",
       "auto",
       "1fr"
     ],
@@ -84,7 +84,7 @@
     },
     "contentWidth": 960,
     "align": "center-center",
-    "gap": 30
+    "gap": 16
   },
   "widgets": [
     {
@@ -127,5 +127,6 @@
         "showAdd": true
       }
     }
-  ]
+  ],
+  "css": ".mnt-search { margin-top: 28px; }"
 }

@@ -107,12 +107,12 @@
       "area": "bookmarks",
       "order": 3,
       "props": {
-        "style": "minimal",
+        "style": "tile",
         "maxColumns": 3,
         "showGroupTitles": true,
         "showAdd": true
       }
     }
   ],
-  "css": ".mnt-clock { letter-spacing: -0.04em; }\n.mnt-group-title { text-transform: uppercase; letter-spacing: 0.12em; }"
+  "css": ".mnt-clock { letter-spacing: -0.04em; }\n.mnt-search { margin-top: 28px; }\n.mnt-group-title { text-transform: uppercase; letter-spacing: 0.12em; }"
 }

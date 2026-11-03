@@ -210,17 +210,9 @@
             "row": 1,
             "column": 1,
             "rowSpan": 1,
-            "columnSpan": 1,
+            "columnSpan": 2,
             "widgets": [
-              "clock"
-            ]
-          },
-          {
-            "row": 1,
-            "column": 2,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": [
+              "clock",
               "date"
             ]
           },
@@ -267,7 +259,7 @@
       },
       "mode": "dark",
       "layout": {
-        "rows": 3,
+        "rows": 2,
         "columns": 3,
         "cells": [
           {
@@ -276,36 +268,13 @@
             "rowSpan": 1,
             "columnSpan": 3,
             "widgets": [
-              "clock"
-            ]
-          },
-          {
-            "row": 2,
-            "column": 1,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": [
-              "date"
-            ]
-          },
-          {
-            "row": 2,
-            "column": 2,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": [
+              "clock",
+              "date",
               "search"
             ]
           },
           {
             "row": 2,
-            "column": 3,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": []
-          },
-          {
-            "row": 3,
             "column": 1,
             "rowSpan": 1,
             "columnSpan": 3,
@@ -779,7 +748,7 @@
       },
       "mode": "light",
       "layout": {
-        "rows": 3,
+        "rows": 2,
         "columns": 3,
         "cells": [
           {
@@ -788,36 +757,13 @@
             "rowSpan": 1,
             "columnSpan": 3,
             "widgets": [
-              "clock"
-            ]
-          },
-          {
-            "row": 2,
-            "column": 1,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": [
-              "date"
-            ]
-          },
-          {
-            "row": 2,
-            "column": 2,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": [
+              "clock",
+              "date",
               "search"
             ]
           },
           {
             "row": 2,
-            "column": 3,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": []
-          },
-          {
-            "row": 3,
             "column": 1,
             "rowSpan": 1,
             "columnSpan": 3,
@@ -856,17 +802,9 @@
             "row": 1,
             "column": 1,
             "rowSpan": 1,
-            "columnSpan": 1,
+            "columnSpan": 2,
             "widgets": [
-              "clock"
-            ]
-          },
-          {
-            "row": 1,
-            "column": 2,
-            "rowSpan": 1,
-            "columnSpan": 1,
-            "widgets": [
+              "clock",
               "date"
             ]
           },

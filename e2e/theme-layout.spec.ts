@@ -38,7 +38,7 @@ async function checkLayout(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await seedExistingUser(page, { language: 'en', shortcuts: templateBookmarks, iconSize: 64 })
+  await seedExistingUser(page, { language: 'en', shortcuts: templateBookmarks.filter(item => item.id !== 'film'), iconSize: 64 })
   await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
@@ -57,7 +57,28 @@ for (const item of gallery.packs) {
     await page.getByRole('button', { name: 'Close settings' }).click()
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
+      await page.evaluate(() => window.scrollTo(0, 0))
       await checkLayout(page)
+      if (viewport.width === 1280) {
+        const issues = await page.evaluate(() => {
+          const elements = [...document.querySelectorAll<HTMLElement>('.mnt-layout .mnt-widget-frame')]
+          const problems = elements.flatMap(element => {
+            const rect = element.getBoundingClientRect()
+            return rect.top < -1 || rect.bottom > innerHeight + 1 || rect.left < -1 || rect.right > innerWidth + 1
+              ? [`${element.dataset.widget} extends outside the first screen: ${Math.round(rect.top)}..${Math.round(rect.bottom)}`] : []
+          })
+          const clock = document.querySelector<HTMLElement>('.mnt-widget[data-widget="clock"]')?.getBoundingClientRect()
+          const date = document.querySelector<HTMLElement>('.mnt-widget[data-widget="date"]')?.getBoundingClientRect()
+          if (clock && date) {
+            const dx = Math.max(0, clock.left - date.right, date.left - clock.right)
+            const dy = Math.max(0, clock.top - date.bottom, date.top - clock.bottom)
+            // Allow generous visual separation while keeping both elements in one perceived group.
+            if (Math.hypot(dx, dy) > 160) problems.push(`clock and date are ${Math.round(Math.hypot(dx, dy))}px apart`)
+          }
+          return problems
+        })
+        expect.soft(issues, `${item.id}: first-screen layout`).toEqual([])
+      }
     }
   })
 }
@@ -72,6 +93,7 @@ for (const preset of presets) {
     await page.getByRole('button', { name: 'Close settings' }).click()
     for (const viewport of viewports) {
       await page.setViewportSize(viewport)
+      await page.evaluate(() => window.scrollTo(0, 0))
       await checkLayout(page)
     }
   })

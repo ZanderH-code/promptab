@@ -2,10 +2,130 @@
   "kind": "mnt.theme-pack",
   "packVersion": 2,
   "cssApiVersion": 1,
-  "meta": {"name": "Glacier Index", "author": "Promptab", "tags": ["light", "glacier", "banner"], "prompt": {"en": "Compose a cool glacier-blue start page with a narrow banner, precise sans-serif labels, and open bookmark rows.", "zh-CN": "构建冰川蓝色起始页，配以窄横幅、精准无衬线标签和舒展的书签行。"}},
-  "theme": {"mode": "light", "color": {"bg": "#edf5f7", "surface": "#ffffff", "text": "#1e333b", "accent": "#24586a"}, "font": {"display": "outfit", "ui": "barlow-condensed"}, "radius": 6, "shadow": 10, "glass": 0, "density": "comfortable", "iconShape": "square"},
-  "background": {"type": "gradient", "gradient": {"angle": 160, "stops": ["#edf5f7", "#d4e8ee"]}},
-  "layout": {"areas": [".", "banner", "websites"], "columns": ["1fr"], "rows": ["22vh", "auto", "1fr"], "breakpoints": {"narrow": {"areas": ["banner", "websites"], "columns": ["1fr"], "rows": ["auto", "1fr"]}}, "areaStyles": {"banner": {"background": "surface", "opacity": 90, "padding": 20, "align": "center-right", "border": {"bottom": 1}}}, "contentWidth": 1080, "align": "center-center", "gap": 20},
-  "widgets": [{"id": "clock", "type": "clock", "area": "banner", "order": 0, "props": {"hour12": false, "size": 1.2}}, {"id": "date", "type": "date", "area": "banner", "order": 1, "props": {"format": "full"}}, {"id": "search", "type": "search", "area": "websites", "order": 2, "props": {}}, {"id": "bookmarks", "type": "bookmarks", "area": "websites", "order": 3, "props": {"style": "list", "maxColumns": 3, "showGroupTitles": true, "showAdd": true}}],
+  "meta": {
+    "name": "Glacier Index",
+    "author": "Promptab",
+    "tags": [
+      "light",
+      "glacier",
+      "banner"
+    ],
+    "prompt": {
+      "en": "Compose a cool glacier-blue start page with a narrow banner, precise sans-serif labels, and open bookmark rows.",
+      "zh-CN": "构建冰川蓝色起始页，配以窄横幅、精准无衬线标签和舒展的书签行。"
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "color": {
+      "bg": "#edf5f7",
+      "surface": "#ffffff",
+      "text": "#1e333b",
+      "accent": "#24586a"
+    },
+    "font": {
+      "display": "outfit",
+      "ui": "barlow-condensed"
+    },
+    "radius": 6,
+    "shadow": 10,
+    "glass": 0,
+    "density": "comfortable",
+    "iconShape": "square"
+  },
+  "background": {
+    "type": "gradient",
+    "gradient": {
+      "angle": 160,
+      "stops": [
+        "#edf5f7",
+        "#d4e8ee"
+      ]
+    }
+  },
+  "layout": {
+    "areas": [
+      ".",
+      "banner",
+      "websites"
+    ],
+    "columns": [
+      "1fr"
+    ],
+    "rows": [
+      "4vh",
+      "auto",
+      "1fr"
+    ],
+    "breakpoints": {
+      "narrow": {
+        "areas": [
+          "banner",
+          "websites"
+        ],
+        "columns": [
+          "1fr"
+        ],
+        "rows": [
+          "auto",
+          "1fr"
+        ]
+      }
+    },
+    "areaStyles": {
+      "banner": {
+        "background": "surface",
+        "opacity": 90,
+        "padding": 20,
+        "align": "center-right",
+        "border": {
+          "bottom": 1
+        }
+      }
+    },
+    "contentWidth": 1080,
+    "align": "center-center",
+    "gap": 16
+  },
+  "widgets": [
+    {
+      "id": "clock",
+      "type": "clock",
+      "area": "banner",
+      "order": 0,
+      "props": {
+        "hour12": false,
+        "size": 1.2
+      }
+    },
+    {
+      "id": "date",
+      "type": "date",
+      "area": "banner",
+      "order": 1,
+      "props": {
+        "format": "full"
+      }
+    },
+    {
+      "id": "search",
+      "type": "search",
+      "area": "websites",
+      "order": 2,
+      "props": {}
+    },
+    {
+      "id": "bookmarks",
+      "type": "bookmarks",
+      "area": "websites",
+      "order": 3,
+      "props": {
+        "style": "card",
+        "maxColumns": 3,
+        "showGroupTitles": true,
+        "showAdd": true
+      }
+    }
+  ],
   "css": ".mnt-group-title { letter-spacing: 0.1em; text-transform: uppercase; }\n.mnt-link { border-bottom: 1px solid var(--mnt-border); }"
 }
