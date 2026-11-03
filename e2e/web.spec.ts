@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 import { openTab, seedExistingUser } from './helpers'
 
 const GOOD_PACK = {
@@ -142,4 +143,97 @@ test('weather and gallery support cross-origin browser fetches', async ({ page }
   })
   expect(results[0]).toMatchObject({ ok: true })
   expect(results[1]).toMatchObject({ ok: true })
+})
+
+async function checkWebByok(page: Page, provider: 'anthropic' | 'openai', key: string) {
+  const origin = provider === 'anthropic' ? 'https://api.anthropic.com' : 'https://api.openai.com'
+  let preflightHeaders = ''
+  let preflightCount = 0
+  let observedOptions: Record<string, string> = {}
+  let requestHeaders: Record<string, string> = {}
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Network.enable')
+  await cdp.send('Fetch.enable', { patterns: [{ urlPattern: `${origin}/*`, requestStage: 'Request' }] })
+  cdp.on('Network.requestWillBeSent', event => {
+    if (event.request.url.startsWith(origin) && event.request.method === 'OPTIONS') observedOptions = event.request.headers
+  })
+  cdp.on('Fetch.requestPaused', event => {
+    const respond = async () => {
+      const headers = event.request.headers as Record<string, string>
+      const findHeader = (name: string) => Object.entries(headers).find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1] ?? ''
+      if (event.request.method === 'OPTIONS') {
+        preflightCount++
+        preflightHeaders = findHeader('access-control-request-headers')
+        await cdp.send('Fetch.fulfillRequest', { requestId: event.requestId, responseCode: 204, responseHeaders: [
+          { name: 'Access-Control-Allow-Origin', value: '*' },
+          { name: 'Access-Control-Allow-Methods', value: 'POST, OPTIONS' },
+          { name: 'Access-Control-Allow-Headers', value: preflightHeaders },
+        ] })
+        return
+      }
+      requestHeaders = headers
+      const body = provider === 'anthropic'
+        ? { id: 'msg_mock', type: 'message', role: 'assistant', model: 'test-model', content: [{ type: 'text', text: reply }], stop_reason: 'end_turn', stop_sequence: null, usage: { input_tokens: 1, output_tokens: 1 } }
+        : { choices: [{ finish_reason: 'stop', message: { content: reply } }] }
+      await cdp.send('Fetch.fulfillRequest', { requestId: event.requestId, responseCode: 200, responseHeaders: [
+        { name: 'Access-Control-Allow-Origin', value: '*' },
+        { name: 'Content-Type', value: 'application/json' },
+      ], body: Buffer.from(JSON.stringify(body)).toString('base64') })
+    }
+    void respond()
+  })
+  await seedExistingUser(page, { language: 'en' })
+  await page.goto('./')
+  await page.locator('.mnt-settings-entry').first().click()
+  await openTab(page, 'ai')
+  if (provider === 'openai') await page.locator('#byok-provider').selectOption('openai')
+  await page.locator('#byok-model').fill('test-model')
+  await page.locator('#byok-key').fill(key)
+  await page.locator('#byok-send-button').click()
+  await expect(page.locator('.sd-ai-ok')).toBeVisible()
+  expect(preflightCount).toBe(1)
+  const observedHeader = (name: string) => Object.entries(observedOptions).find(([header]) => header.toLowerCase() === name.toLowerCase())?.[1] ?? ''
+  expect(observedHeader('Access-Control-Request-Method')).toBe('POST')
+  const requested = preflightHeaders.split(',').map(header => header.trim().toLowerCase())
+  if (provider === 'anthropic') {
+    expect(requested).toEqual(expect.arrayContaining(['anthropic-dangerous-direct-browser-access', 'anthropic-version', 'authorization', 'content-type']))
+    expect(requestHeaders['anthropic-dangerous-direct-browser-access']).toBe('true')
+    expect(requestHeaders.authorization).toBe(`Bearer ${key}`)
+  } else {
+    expect(requested).toEqual(expect.arrayContaining(['authorization', 'content-type']))
+    expect(requestHeaders.authorization).toBe(`Bearer ${key}`)
+  }
+  const persisted = await page.evaluate(async () => {
+    const local = JSON.stringify(localStorage)
+    if (!(await indexedDB.databases()).some(database => database.name === 'assets')) return { local, assets: '' }
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('assets')
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    const records = database.objectStoreNames.contains('assets')
+      ? await new Promise<unknown[]>((resolve, reject) => {
+        const request = database.transaction('assets', 'readonly').objectStore('assets').getAll()
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      : []
+    database.close()
+    return { local, assets: JSON.stringify(records) }
+  })
+  expect(persisted.local).not.toContain(key)
+  expect(persisted.assets).not.toContain(key)
+  await openTab(page, 'data')
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export backup', exact: true }).click()
+  const backup = await readFile((await (await download).path())!, 'utf8')
+  expect(backup).not.toContain(key)
+}
+
+test('Anthropic BYOK uses direct browser headers without persisting its key', async ({ page }) => {
+  await checkWebByok(page, 'anthropic', 'anthropic-mock-secret')
+})
+
+test('OpenAI BYOK handles browser CORS without persisting its key', async ({ page }) => {
+  await checkWebByok(page, 'openai', 'openai-mock-secret')
 })
