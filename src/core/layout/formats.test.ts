@@ -28,6 +28,8 @@ describe('clock and date formatting', () => {
     const boundary = new Date(2021, 0, 3, 12)
     expect(formatDate(boundary, 'en', { format: 'custom', weekNumber: true, weekStart: 'monday', order: ['weekNumber'] })).toBe('Week 53')
     expect(formatDate(boundary, 'en', { format: 'custom', weekNumber: true, weekStart: 'sunday', order: ['weekNumber'] })).toBe('Week 2')
+    expect(formatDate(new Date(2021, 0, 2, 12), 'en', { weekNumber: true, weekStart: 'saturday' })).toContain('Week 2')
+    expect(formatDate(new Date(2021, 0, 4, 12), 'en', { format: 'custom', weekNumber: true, weekStart: 'monday', order: ['weekNumber'] })).toBe('Week 1')
     expect(formatDate(boundary, 'zh-CN', { format: 'custom', weekNumber: true, order: ['weekNumber'] })).toBe('第53周')
     expect(formatDate(boundary, 'en', { format: 'custom', weekNumber: true, order: ['weekNumber'] })).toBe('Week 2')
   })
