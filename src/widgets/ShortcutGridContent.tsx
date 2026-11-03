@@ -1,9 +1,62 @@
-import { useRef, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useRef, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
 import { WebsiteIcon } from './WebsiteIcon'
 
-export type ContextMenuEvent = Pick<MouseEvent, 'clientX' | 'clientY' | 'preventDefault' | 'stopPropagation'>
+export type ContextMenuEvent = Pick<MouseEvent, 'clientX' | 'clientY' | 'preventDefault' | 'stopPropagation'> & { focusTarget?: HTMLElement }
+
+export function GroupMenuTrigger({ group, ariaLabel, className, children, onGroupContextMenu }: {
+  group: ProfileV2['bookmarks']['groups'][number]; ariaLabel: string; className: string; children: ReactNode
+  onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void
+}) {
+  const heading = useRef<HTMLDivElement>(null)
+  const pressTimer = useRef<number | undefined>(undefined)
+  const start = useRef<{ x: number; y: number } | undefined>(undefined)
+  const longPressed = useRef(false)
+  const cancelLongPress = () => {
+    if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current)
+    pressTimer.current = undefined
+    start.current = undefined
+  }
+  const openContextMenu = (event: ContextMenuEvent) => {
+    cancelLongPress()
+    onGroupContextMenu({
+      clientX: event.clientX,
+      clientY: event.clientY,
+      preventDefault: () => event.preventDefault(),
+      stopPropagation: () => event.stopPropagation(),
+      focusTarget: heading.current ?? undefined,
+    }, group)
+  }
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'touch' || event.button !== 0 || (event.target instanceof Element && event.target.closest('button'))) return
+    cancelLongPress()
+    longPressed.current = false
+    start.current = { x: event.clientX, y: event.clientY }
+    const x = event.clientX, y = event.clientY
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true
+      openContextMenu({ clientX: x, clientY: y, preventDefault() {}, stopPropagation() {} })
+    }, 550)
+  }
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (start.current && Math.hypot(event.clientX - start.current.x, event.clientY - start.current.y) > 10) cancelLongPress()
+  }
+  const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu')) return
+    event.preventDefault()
+    event.stopPropagation()
+    const rect = event.currentTarget.getBoundingClientRect()
+    openContextMenu({ clientX: rect.left, clientY: rect.bottom, preventDefault() {}, stopPropagation() {} })
+  }
+  return <div ref={heading} className={className} tabIndex={0} aria-label={ariaLabel} aria-haspopup="menu" onContextMenu={event => openContextMenu(event)} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={cancelLongPress} onPointerCancel={cancelLongPress} onClick={event => {
+    if (!longPressed.current) return
+    event.preventDefault()
+    event.stopPropagation()
+    longPressed.current = false
+  }}>{children}</div>
+}
 
 const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
 

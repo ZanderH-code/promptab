@@ -159,6 +159,20 @@ test('a long press opens a shortcut menu and reaches its edit action', async ({ 
   await expect(page.getByRole('heading', { name: 'Edit website' })).toBeVisible()
 })
 
+test('a long press on a group title opens its menu', async ({ page }) => {
+  await launch(page)
+  const heading = page.locator('.shortcuts-heading').first()
+  const box = await heading.boundingBox()
+  expect(box).not.toBeNull()
+  const cdp = await page.context().newCDPSession(page)
+  const x = box!.x + box!.width / 2, y = box!.y + box!.height / 2
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1 }] })
+  await page.waitForTimeout(600)
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await expect(page.getByRole('menu')).toBeVisible()
+  await expect(page.getByRole('menuitem', { name: 'Open all' })).toBeVisible()
+})
+
 test('touch drag sorts shortcuts after a long press on the drag handle', async ({ page }) => {
   await launch(page)
   await openSettings(page)

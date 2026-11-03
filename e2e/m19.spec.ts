@@ -176,3 +176,29 @@ test('group context menu confirms opening more than eight links', async ({ page 
   await page.getByRole('menuitem', { name: 'Open all' }).click()
   expect(confirmation).toContain('9')
 })
+
+test('group menu opens from the focused title and returns focus on Escape', async ({ page }) => {
+  await openApp(page)
+  const keys = ['profiles:v2:index', 'profiles:v2:generation:']
+  await page.evaluate(([indexKey, generationPrefix]) => {
+    const index = JSON.parse(localStorage.getItem(indexKey)!)
+    const key = generationPrefix + index.generation
+    const snapshot = JSON.parse(localStorage.getItem(key)!)
+    const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+    profile.bookmarks.groups[0].items = Array.from({ length: 9 }, (_, i) => ({ ...profile.bookmarks.groups[0].items[0], id: `keyboard-link-${i}`, name: `Link ${i}`, url: `https://example.com/${i}` }))
+    localStorage.setItem(key, JSON.stringify(snapshot))
+  }, keys)
+  await page.reload()
+  const heading = page.locator('.shortcuts-heading').first()
+  await heading.focus()
+  await expect(heading).toHaveAttribute('aria-label', 'Actions for Quick links')
+  await page.keyboard.press('Shift+F10')
+  await expect(page.getByRole('menuitem', { name: 'Open all' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(heading).toBeFocused()
+  await page.keyboard.press('Shift+F10')
+  let confirmation = ''
+  page.once('dialog', dialog => { confirmation = dialog.message(); void dialog.dismiss() })
+  await page.getByRole('menuitem', { name: 'Open all' }).click()
+  expect(confirmation).toContain('9')
+})

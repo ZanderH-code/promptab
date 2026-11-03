@@ -1,17 +1,17 @@
 import { useEffect, useRef } from 'react'
 
 export type ContextMenuItem = { label: string; onSelect: () => void }
-type Props = { x: number; y: number; items: ContextMenuItem[]; onClose: () => void }
+type Props = { x: number; y: number; items: ContextMenuItem[]; onClose: () => void; returnFocus?: HTMLElement }
 
-export function ContextMenu({ x, y, items, onClose }: Props) {
+export function ContextMenu({ x, y, items, onClose, returnFocus }: Props) {
   const menuRef = useRef<HTMLDivElement>(null)
   const firstItemRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') { onClose(); returnFocus?.focus() } }
     window.addEventListener('keydown', close)
     firstItemRef.current?.focus()
     return () => window.removeEventListener('keydown', close)
-  }, [onClose])
+  }, [onClose, returnFocus])
 
   return (
     <div ref={menuRef} className="context-menu" role="menu" style={{ left: x, top: y }} onClick={event => event.stopPropagation()} onKeyDown={event => {

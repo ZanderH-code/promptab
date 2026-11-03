@@ -33,6 +33,7 @@ export const en: Record<MessageKey, string> = {
   'groups.deleteSelected': 'Delete selected',
   'groups.selected': '{count} selected',
   'groups.openAll': 'Open all',
+  'groups.menuLabel': 'Actions for {name}',
   'groups.confirmOpenAll': 'Open all {count} links in new tabs?',
   'groups.moveSelected': 'Move selected to group',
   'groups.moveTo': 'Move to…',

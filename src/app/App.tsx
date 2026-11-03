@@ -25,7 +25,7 @@ const ShortcutEditor = lazy(() => import('../features/shortcut-editor/ShortcutEd
 const WallpaperVideo = lazy(() => import('../features/wallpaper/WallpaperVideo').then(m => ({ default: m.WallpaperVideo })))
 
 type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut' | 'group'
-type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut; group?: ProfileV2['bookmarks']['groups'][number] }
+type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut; group?: ProfileV2['bookmarks']['groups'][number]; focusTarget?: HTMLElement }
 type MoveState = { shortcut: Shortcut; groupId: string }
 
 const MENU_MARGIN = 180
@@ -176,7 +176,7 @@ export default function App() {
     event.stopPropagation()
     const x = options.clamp ? Math.min(event.clientX, window.innerWidth - MENU_MARGIN) : event.clientX
     const y = options.clamp ? Math.min(event.clientY, window.innerHeight - MENU_MARGIN) : event.clientY
-    setMenu({ x, y, target, shortcut: options.shortcut, group: options.group })
+    setMenu({ x, y, target, shortcut: options.shortcut, group: options.group, focusTarget: event.focusTarget })
   }
 
   const openSettings = (section?: string) => {
@@ -331,7 +331,7 @@ export default function App() {
         onWidgetChange={widget => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widget.id ? widget : item) })))}
       />}
 
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} />}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} returnFocus={menu.focusTarget} />}
       {keyboardHelpOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) setKeyboardHelpOpen(false) }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="keyboard-help-title" onKeyDown={event => { if (event.key === 'Escape') setKeyboardHelpOpen(false) }}><h2 id="keyboard-help-title">{t('keyboard.helpTitle')}</h2><ul>{(['edit', 'add', 'settings', 'theme', 'search', 'help'] as const).map((action, index) => <li key={action}><kbd>{['E', 'A', ',', 'D', '/', '?'][index]}</kbd> {t(`keyboard.${action}` as MessageKey)}</li>)}</ul><button type="button" autoFocus className="sd-button" onClick={() => setKeyboardHelpOpen(false)}>{t('common.close')}</button></div></div>}
       {moving && profile && <div className="modal-backdrop" role="presentation">
         <form className="modal" role="dialog" aria-modal="true" aria-labelledby="move-bookmark-title" onSubmit={moveShortcut} onKeyDown={event => { if (event.key === 'Escape') setMoving(null) }}>

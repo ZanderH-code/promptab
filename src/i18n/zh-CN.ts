@@ -32,6 +32,7 @@ export const zhCN = {
   'groups.deleteSelected': '删除所选',
   'groups.selected': '已选择 {count} 项',
   'groups.openAll': '全部打开',
+  'groups.menuLabel': '{name}的操作',
   'groups.confirmOpenAll': '要在新标签页打开全部 {count} 个链接吗？',
   'groups.moveSelected': '移动所选项目到分组',
   'groups.moveTo': '移动到…',

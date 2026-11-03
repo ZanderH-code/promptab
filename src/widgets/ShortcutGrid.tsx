@@ -3,7 +3,7 @@ import { lazy, Suspense, type CSSProperties } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
-import { ShortcutLink, OnboardingCard, type ContextMenuEvent } from './ShortcutGridContent'
+import { GroupMenuTrigger, ShortcutLink, OnboardingCard, type ContextMenuEvent } from './ShortcutGridContent'
 
 export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
@@ -31,10 +31,10 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
     {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
     {editing && <div className="bookmark-edit-tools"><button type="button" disabled>{t('groups.add')}</button></div>}
     {visibleGroups.map(group => <div key={group.id} data-drop-group={group.id}>
-      {(showGroupTitles || editing) && !(onboarding && group.items.length === 0) && <div className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} onContextMenu={event => onGroupContextMenu(event, group)}>
+      {(showGroupTitles || editing) && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
         {editing || group.collapsed || groups.length > 1 ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => onGroups(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
         <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>        {editing && <div className="group-actions"><button type="button" aria-label={t('groups.rename')} disabled><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} disabled><X size={15} aria-hidden="true" /></button></div>}
-      </div>}
+      </GroupMenuTrigger>}
       {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
         {group.items.map(stored => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
           return <div className="shortcut-wrap" data-sortable-id={item.id} key={item.id}>
