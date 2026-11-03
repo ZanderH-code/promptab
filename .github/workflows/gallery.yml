@@ -2,6 +2,7 @@ name: Validate theme gallery
 on:
   pull_request:
     paths:
+      - 'docs/gallery/packs/**'
       - 'docs/gallery/**'
       - 'src/core/gallery/**'
       - 'src/core/ai/**'
@@ -21,5 +22,5 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run gallery -- --check
-      - run: npm test -- --run src/core/gallery/catalog.test.ts scripts/gallery-index.test.ts
+      - run: npx vite-node scripts/gallery-index.ts --check
+      - run: npx vitest run src/core/gallery/catalog.test.ts scripts/gallery-index.test.ts

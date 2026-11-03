@@ -16,7 +16,7 @@
 - [ ] `npx tsc -b --pretty false`
 - [ ] `npm run build`
 - [ ] Relevant Playwright checks
-- [ ] `npm run gallery -- --check` (when gallery packs or tooling change)
+- [ ] `npx vite-node scripts/gallery-index.ts --check` (when gallery packs or tooling change)
 
 ## Theme contribution checklist
 
