@@ -1,4 +1,4 @@
-import { generate, parse, tokenTypes, tokenize, walk, type CssNode } from 'css-tree'
+import { generate, parse, tokenTypes, tokenize, walk, type CssNode, type WalkOptionsNoVisit } from 'css-tree'
 
 export const CSS_SANITIZER_POLICY = {
   maxBytes: 64 * 1024,
@@ -162,6 +162,41 @@ export function sanitizeCss(source: string): SanitizedCss {
     layered: ok && css ? `@layer user{${css}}` : '',
     classNames: [...classNames], assets: [...assets],
   }
+}
+
+/** Removes declarations containing local assets before sharing CSS. */
+export function portableCss(source: string): { css: string | undefined; removed: number } {
+  const checked = sanitizeCss(source)
+  if (!checked.ok) return { css: undefined, removed: 0 }
+  if (!checked.css) return { css: '', removed: 0 }
+  const ast = parse(checked.css, { parseValue: true, parseCustomProperty: true })
+  let removed = 0
+  const affectedRules = new WeakSet<CssNode>()
+  const visitor: WalkOptionsNoVisit = {
+    leave(node, item, list) {
+      if (node.type === 'Declaration' && item && list) {
+        let referencesAsset = false
+        const localUrl = (value: string) => ASSET_URL.test(value) || value.toLowerCase().startsWith(CSS_SANITIZER_POLICY.allowedImageUrlPrefix)
+        walk(node.value, value => {
+          if (value.type === 'Url' && localUrl(value.value)) referencesAsset = true
+          else if (value.type === 'Function' && URL_STRING_FUNCTIONS.has(value.name.toLowerCase())) {
+            for (const child of value.children) if (child.type === 'String' && localUrl(child.value)) referencesAsset = true
+          }
+        })
+        if (referencesAsset) {
+          if (this.rule) affectedRules.add(this.rule)
+          if (this.atrule) affectedRules.add(this.atrule)
+          list.remove(item)
+          removed++
+        }
+      } else if ((node.type === 'Rule' || node.type === 'Atrule') && item && list && affectedRules.has(node) && node.block?.children.isEmpty) {
+        list.remove(item)
+      }
+    },
+  }
+  walk(ast, visitor)
+  const css = removed ? generate(ast) : source
+  return { css: sanitizeCss(css).ok ? css : undefined, removed }
 }
 
 /** Replaces `mnt-asset:` references with resolved URLs; unknown assets become an empty data URL. */

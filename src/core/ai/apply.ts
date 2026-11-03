@@ -3,6 +3,7 @@ import { darkSurface, lightSurface } from '../schema/defaults'
 import { areaNames } from '../layout/grid'
 import { PACK_KIND, PACK_VERSION, PACK_PARTS, type AiPack, type PackPart } from './pack'
 import { variableValue } from './variable'
+import { portableCss } from '../css/sanitize'
 
 type Variable = ProfileV2['custom']['variables'][number]
 type PackColors = NonNullable<NonNullable<AiPack['theme']>['color']>
@@ -25,10 +26,6 @@ function portableWidget(widget: ProfileWidget): ProfileWidget | null {
   return { ...widget, props: Object.fromEntries(Object.entries(widget.props).filter(([key]) => props.includes(key))) } as ProfileWidget
 }
 
-function portableCss(css: string): string | undefined {
-  return /mnt-asset:|data:image\//i.test(css) ? undefined : css
-}
-
 /** A shareable theme excludes personal content and wallpaper assets. */
 export function exportThemePack(profile: ProfileV2): AiPack {
   const { mode, color, colorLight, radius, shadow, glass, density, scale, iconShape, iconSize } = profile.theme
@@ -41,7 +38,7 @@ export function exportThemePack(profile: ProfileV2): AiPack {
     background: { type: type === 'image' || type === 'video' ? 'theme' : type, ...(type === 'color' ? { color: backgroundColor } : {}), ...(type === 'gradient' ? { gradient } : {}), dim },
     layout: profile.layout,
     widgets,
-    css: portableCss(profile.custom.css),
+    css: portableCss(profile.custom.css).css,
     variables: profile.custom.variables.map(variable => ({ ...variable, default: variableValue(variable, profile.custom.values[variable.name]) } as Variable)),
   }
 }

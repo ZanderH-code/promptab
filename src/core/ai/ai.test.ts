@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { translate } from '../../i18n'
 import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES } from '../css/api'
+import { portableCss, sanitizeCss } from '../css/sanitize'
 import { applyTemplate } from '../layout/profile'
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
@@ -181,6 +182,32 @@ describe('theme pack variables', () => {
     const appearance = ({ theme, background, layout, widgets, custom }: ProfileV2) => ({ theme, background, layout, widgets, css: custom.css, variables: custom.variables, values: custom.values })
     expect(appearance(restored)).toEqual(appearance(source))
     expect(pack).not.toHaveProperty('bookmarks')
+  })
+
+  it('retains portable declarations while removing image assets, including in media rules', () => {
+    const asset = `mnt-asset:${'a'.repeat(64)}`
+    const source = { ...profile, custom: { ...profile.custom, css: `.a{color:red;background:url(${asset})}@media (min-width:1px){.b{color:blue;background:url(data:image/png;base64,AAAA)}.c{background:url(${asset})}}` } }
+    const css = exportThemePack(source).css ?? ''
+    expect(css).toContain('color:red')
+    expect(css).toContain('color:blue')
+    expect(css).not.toContain('mnt-asset:')
+    expect(css).not.toContain('data:image/')
+    expect(css).not.toContain('.c{')
+    expect(sanitizeCss(css).ok).toBe(true)
+    expect(portableCss(source.custom.css).removed).toBe(3)
+    expect(exportThemePack({ ...source, custom: { ...source.custom, css: `.a{background:url(${asset})}` } }).css).toBe('')
+  })
+
+  it('preserves ordinary strings while stripping URL string functions and font assets', () => {
+    const reference = `mnt-asset:${'a'.repeat(64)}`
+    const source = `.a{content:"data:image/ is a prefix";background:image-set("${reference}" 1x);color:red}@font-face{src:url(${reference})}`
+    const result = portableCss(source)
+    expect(result.removed).toBe(2)
+    expect(result.css).toContain('content:"data:image/ is a prefix"')
+    expect(result.css).toContain('color:red')
+    expect(result.css).not.toContain('@font-face')
+    expect(result.css).not.toContain(reference)
+    expect(sanitizeCss(result.css ?? '').ok).toBe(true)
   })
 
   it('never exports personal profile, bookmark, sync, key, location or uploaded asset data', () => {
