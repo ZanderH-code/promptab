@@ -128,7 +128,7 @@ export default function App() {
   })
 
   if (!settings) {
-    const language = systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
+    const language = __WEB_BUILD__ ? 'en' : systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
     return <main className="loading">{error ? <><p role="alert">{translate(language, error.key, error.params)}</p><Suspense fallback={null}><BackupSection settings={{ ...defaults, language }} t={(key, params) => translate(language, key, params)} onError={setError} recovery /></Suspense></> : translate(language, 'app.loading')}</main>
   }
 

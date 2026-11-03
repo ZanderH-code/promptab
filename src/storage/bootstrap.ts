@@ -1,4 +1,4 @@
-import { defaults } from '../core/model'
+import { defaults, type Settings } from '../core/model'
 import { migrateV1 } from '../core/migrate/v1'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
 import { createHistory, type History } from '../store/history'
@@ -17,6 +17,7 @@ export type BootstrapOptions = {
   profiles?: Pick<ReturnType<typeof createProfileStorage>, 'read' | 'write'>
   assets?: Pick<ReturnType<typeof createAssetLibrary>, 'add'>
   readRawSettings?: () => Promise<RawSettings>
+  defaultSettings?: Settings
   readWallpaper?: () => Promise<Blob | undefined>
   id?: () => string
   now?: () => string
@@ -60,9 +61,10 @@ async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnap
   const raw = await (options.readRawSettings ?? readRawSettings)()
   // Store the envelope, including absence and the exact localStorage string.
   if (await backend.get('backup:v1-original') === null) await backend.set('backup:v1-original', JSON.stringify(raw))
+  const initial = options.defaultSettings ?? defaults
   const input = raw.backend === 'local'
-    ? raw.value === null ? { ...defaults, shortcuts: [] } : JSON.parse(raw.value)
-    : raw.present ? raw.value : { ...defaults, shortcuts: [] }
+    ? raw.value === null ? { ...initial, shortcuts: [] } : JSON.parse(raw.value)
+    : raw.present ? raw.value : { ...initial, shortcuts: [] }
   const wallpaper = await (options.readWallpaper ?? readWallpaper)()
   const assets = options.assets ?? createAssetLibrary()
   const profile = await migrateV1(input, {

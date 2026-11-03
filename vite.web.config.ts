@@ -53,6 +53,8 @@ export default defineConfig({
         order: 'pre',
         handler(html) {
           return html
+            .replace('<html lang="zh-CN">', '<html lang="en">')
+            .replace('<title>新标签页</title>', '<title>New Tab</title>')
             .replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; object-src \'none\'; font-src \'self\' data: blob:; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob: https:; connect-src \'self\' https://api.anthropic.com https://api.openai.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://zanderh-code.github.io; media-src \'self\' blob:"/><link rel="apple-touch-icon" href="/promptab/app/icons/apple-touch-icon-180.png"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-title" content="Promptab"/><meta name="apple-mobile-web-app-status-bar-style" content="default"/>')
             .replace('</body>', '<script type="module" src="/src/pwa-register.ts"></script></body>')
         },

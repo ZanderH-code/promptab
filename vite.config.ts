@@ -4,6 +4,7 @@ import { defaultExclude } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   base: './',
+  define: { __WEB_BUILD__: 'false' },
   build: {
     rollupOptions: {
       output: {

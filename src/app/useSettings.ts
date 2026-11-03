@@ -145,7 +145,7 @@ export function useSettings() {
     Promise.resolve().then(() => assets.openSession({ profiles: persistence }))
       .then(session => { if (session.collection.status === 'failed' || ('missing' in session.collection && session.collection.missing.length)) console.warn('Asset collection', session.collection) })
       .catch(error => console.warn('Asset session unavailable', error))
-      .then(() => bootstrap({ backend, profiles: persistence, assets })).then(async snapshot => {
+      .then(() => bootstrap({ backend, profiles: persistence, assets, defaultSettings: __WEB_BUILD__ ? { ...defaults, language: 'en' } : defaults })).then(async snapshot => {
       const initial = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
       const next = createProfileStore({ persistence, initialProfile: initial })
       await next.getState().initialize()

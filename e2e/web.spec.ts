@@ -16,6 +16,19 @@ async function openApp(page: Page, settings: Record<string, unknown> = {}) {
   await expect(page.locator('.mnt-settings-entry').first()).toBeVisible()
 }
 
+test('fresh web visitors start in English while saved language is respected', async ({ page }) => {
+  await page.goto('./')
+  await expect(page.locator('.clock')).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page).toHaveTitle('New Tab')
+})
+
+test('saved Chinese language updates the web document title and language', async ({ page }) => {
+  await openApp(page, { language: 'zh-CN' })
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  await expect(page).toHaveTitle('新标签页')
+})
+
 test('web first screen has no chrome errors and stays under 500 KB', async ({ page }) => {
   const chromeErrors: string[] = []
   const scripts: Promise<number>[] = []

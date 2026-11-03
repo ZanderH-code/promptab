@@ -114,7 +114,16 @@ describe('bootstrap', () => {
   it('uses defaults for absent settings and preserves the absent marker', async () => {
     const raw: RawSettings = { backend: 'chrome', present: false }
     const db = setup(raw)
-    expect((await bootstrap(db.options)).profiles.profiles['profile-id'].schemaVersion).toBe(2)
+    const snapshot = await bootstrap(db.options)
+    expect(snapshot.profiles.profiles['profile-id'].schemaVersion).toBe(2)
+    expect(snapshot.profiles.profiles['profile-id'].prefs.language).toBe(defaults.language)
     expect(JSON.parse(db.data.get('backup:v1-original')!)).toEqual(raw)
+  })
+
+  it('uses caller-provided defaults only for a fresh profile', async () => {
+    const db = setup({ backend: 'local', value: null })
+    const webDefaults = { ...defaults, language: 'en' as const }
+    const snapshot = await bootstrap({ ...db.options, defaultSettings: webDefaults })
+    expect(snapshot.profiles.profiles['profile-id'].prefs.language).toBe('en')
   })
 })
