@@ -19,6 +19,13 @@ describe('clock and date formatting', () => {
     expect([1, 2, 3, 4, 11, 12, 13, 21, 22, 23].map(day => ordinalDay(day, 'en'))).toEqual(['1st','2nd','3rd','4th','11th','12th','13th','21st','22nd','23rd'])
     expect(ordinalDay(21, 'zh-CN')).toBe('21')
   })
+  it('formats week numbers with language defaults and explicit week starts', () => {
+    const boundary = new Date(2021, 0, 3, 12)
+    expect(formatDate(boundary, 'en', { format: 'custom', weekNumber: true, weekStart: 'monday', order: ['weekNumber'] })).toBe('Week 53')
+    expect(formatDate(boundary, 'en', { format: 'custom', weekNumber: true, weekStart: 'sunday', order: ['weekNumber'] })).toBe('Week 2')
+    expect(formatDate(boundary, 'zh-CN', { format: 'custom', weekNumber: true, order: ['weekNumber'] })).toBe('第53周')
+    expect(formatDate(boundary, 'en', { format: 'custom', weekNumber: true, order: ['weekNumber'] })).toBe('Week 2')
+  })
   it('formats selected date parts in the requested order and case', () => {
     const result = formatDate(date, 'en', { format: 'custom', order: ['day', 'month'], ordinal: true, monthStyle: 'short', uppercase: true, separator: '/' })
     expect(result).toMatch(/^21ST\//)

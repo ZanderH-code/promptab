@@ -39,7 +39,7 @@ const textAlign = z.enum(['left', 'center', 'right'])
 const common = { size: ranged({ min: 0.5, max: 3 }).optional(), align: textAlign.optional() }
 const separator = z.string().max(8)
 const separatorSpacing = ranged({ min: 0, max: 1 })
-export const DATE_PARTS = ['weekday', 'day', 'month', 'year'] as const
+export const DATE_PARTS = ['weekday', 'day', 'month', 'year', 'weekNumber'] as const
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const parsed = new Date(`${value}T00:00:00.000Z`)
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
@@ -56,7 +56,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
     ...widgetBase, type: z.literal('date'),
     props: z.looseObject({
       ...common, format: z.enum(['full', 'custom']).optional(), weekday: z.boolean().optional(), day: z.boolean().optional(), month: z.boolean().optional(), year: z.boolean().optional(),
-      order: z.array(z.enum(DATE_PARTS)).max(4).optional(), separator: separator.optional(), separatorSpacing: separatorSpacing.optional(),
+      order: z.array(z.enum(DATE_PARTS)).max(5).optional(), weekNumber: z.boolean().optional(), weekStart: z.enum(['monday', 'sunday', 'saturday']).optional(), separator: separator.optional(), separatorSpacing: separatorSpacing.optional(),
       weekdayStyle: z.enum(['long', 'short']).optional(), monthStyle: z.enum(['long', 'short', 'numeric']).optional(), ordinal: z.boolean().optional(), uppercase: z.boolean().optional(),
     }),
   }),
