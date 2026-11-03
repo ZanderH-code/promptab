@@ -202,7 +202,6 @@ export const zhCN = {
   'settings.showSearch': '显示搜索框',
   'settings.hour12': '12 小时制',
   'settings.searchEngine': '搜索引擎',
-  'settings.engineBaidu': '百度',
   'settings.searchCustom': '自定义地址（包含 {query}）',
   'settings.shortcuts': '快捷方式',
   'settings.shortcutsHint': '打开设置时，可在桌面上编辑、移动或删除网站。',

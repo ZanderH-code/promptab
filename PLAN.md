@@ -51,7 +51,7 @@ Remaining: submit the store listings; perform manual checks in real Firefox; con
 | 模块 | 状态 | 说明 |
 | --- | --- | --- |
 | MV3 扩展骨架、构建 | ✅ 完成 | `chrome_url_overrides.newtab`，权限 `storage`、`favicon` |
-| 时钟、日期、搜索 | ✅ 完成 | 12/24 小时制；Google/Bing/百度/自定义模板；`/` 聚焦 |
+| 时钟、日期、搜索 | ✅ 完成 | 12/24 小时制；Google、Bing、DuckDuckGo、Brave Search、Startpage、Ecosia、Qwant、Yahoo、Yandex、Kagi、Perplexity 和自定义模板；`/` 聚焦 |
 | 快捷方式 | ✅ 完成 | 增删改、dnd-kit 拖拽与键盘排序、自动 favicon、文字或上传图标 |
 | 外观与布局 | ✅ 基础 | 深浅主题、强调色、背景色、列数、图标尺寸与形状、对齐、上下或左右布局 |
 | 壁纸 | ✅ 基础 | 本地图片存 IndexedDB，可调遮罩 |

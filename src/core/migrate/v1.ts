@@ -1,4 +1,5 @@
 import { defaults, validate, type Settings } from '../model'
+import { recognizeSearchEngine } from '../search/engines'
 import { DARK_COLORS, DEFAULT_CONTENT_WIDTH, DEFAULT_GAP, DEFAULT_GLASS, DEFAULT_RADIUS, DEFAULT_SHADOW, LIGHT_COLORS, darkSurface, lightSurface } from '../schema/defaults'
 import { parseProfileV2, type ProfileV2 } from '../schema/profile'
 
@@ -41,25 +42,11 @@ async function readAsset(reader: AssetReader, reference: string): Promise<Blob> 
   return blob
 }
 
-type Language = 'zh-CN' | 'en'
 const names = {
   profile: { 'zh-CN': '默认', en: 'Default' },
   group: { 'zh-CN': '常用', en: 'Quick links' },
   custom: { 'zh-CN': '自定义', en: 'Custom' },
 } as const
-const knownEngines: { host: RegExp; id: string; name: Record<Language, string> }[] = [
-  { host: /(^|\.)google\./, id: 'google', name: { 'zh-CN': 'Google', en: 'Google' } },
-  { host: /(^|\.)bing\.com$/, id: 'bing', name: { 'zh-CN': 'Bing', en: 'Bing' } },
-  { host: /(^|\.)baidu\.com$/, id: 'baidu', name: { 'zh-CN': '百度', en: 'Baidu' } },
-  { host: /(^|\.)duckduckgo\.com$/, id: 'duckduckgo', name: { 'zh-CN': 'DuckDuckGo', en: 'DuckDuckGo' } },
-]
-
-function recognizeEngine(template: string, language: Language) {
-  let host = ''
-  try { host = new URL(template.replaceAll('{query}', 'test')).hostname.toLowerCase() } catch { /* already validated */ }
-  const known = knownEngines.find(engine => engine.host.test(host))
-  return known ? { id: known.id, name: known.name[language] } : { id: 'custom', name: names.custom[language] }
-}
 
 const BOOKMARKS = 'bookmarks', OVERVIEW = 'overview'
 
@@ -84,7 +71,7 @@ export async function migrateV1(input: unknown, options: MigrationOptions): Prom
   const timestamp = options.now()
   const bg = v.background.toLowerCase(), accent = v.accent.toLowerCase()
   const stacked = v.reverse ? [BOOKMARKS, OVERVIEW] : [OVERVIEW, BOOKMARKS]
-  const engine = recognizeEngine(v.searchTemplate, language)
+  const engine = recognizeSearchEngine(v.searchTemplate, language) ?? { id: 'custom', name: names.custom[language] }
   const engineMetadata = engine.id === 'custom' ? { builtinName: 'custom-search' as const } : {}
   return parseProfileV2({
     schemaVersion: 2,

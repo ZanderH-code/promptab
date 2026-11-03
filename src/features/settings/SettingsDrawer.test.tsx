@@ -3,7 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { migrateV1 } from '../../core/migrate/v1'
-import { defaults } from '../../core/model'
+import { defaults, type Settings } from '../../core/model'
 import { profileIssues, type ProfileV2 } from '../../core/schema/profile'
 import { translate, type Language } from '../../i18n'
 import type { ProfileStore } from '../../store/profile'
@@ -22,13 +22,13 @@ beforeAll(async () => {
 })
 afterEach(cleanup)
 
-function setup(options: { profile?: ProfileV2; language?: Language; initialSection?: string; themeMode?: 'dark' | 'light' } = {}) {
+function setup(options: { profile?: ProfileV2; settings?: Partial<Settings>; language?: Language; initialSection?: string; themeMode?: 'dark' | 'light' } = {}) {
   const language = options.language ?? 'en'
   const profile = options.profile ?? base
   const t = (key: Parameters<typeof translate>[1], params?: Parameters<typeof translate>[2]) => translate(language, key, params)
   const props = {
     store: createStore<ProfileStore>(() => ({}) as ProfileStore),
-    settings: { ...defaults, language, theme: options.themeMode ?? 'dark' },
+    settings: { ...defaults, language, theme: options.themeMode ?? 'dark', ...options.settings },
     profile, t, initialSection: options.initialSection,
     onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperFiles: vi.fn(), onWallpaperVideoFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(),
   }
@@ -99,6 +99,19 @@ describe('SettingsDrawer tabs', () => {
 })
 
 describe('SettingsDrawer search', () => {
+  it('offers all shared search presets in order and does not offer Baidu', () => {
+    setup({ initialSection: 'search' })
+    fireEvent.click(screen.getByRole('combobox', { name: 'Search engine' }))
+    const options = screen.getAllByRole('option').map(option => option.textContent)
+    expect(options).toEqual(['Google', 'Bing', 'DuckDuckGo', 'Brave Search', 'Startpage', 'Ecosia', 'Qwant', 'Yahoo', 'Yandex', 'Kagi', 'Perplexity'])
+  })
+
+  it('keeps a saved Baidu template as a Custom setting', () => {
+    setup({ initialSection: 'search', settings: { searchTemplate: 'https://www.baidu.com/s?wd={query}' } })
+    fireEvent.click(screen.getByRole('combobox', { name: 'Search engine' }))
+    expect(screen.getByRole('option', { name: /^Custom$/ })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /^Baidu$/ })).toBeNull()
+  })
   it('matches localized labels across sections and groups the results', () => {
     setup({ language: 'zh-CN' })
     fireEvent.change(screen.getByRole('searchbox', { name: '搜索设置' }), { target: { value: '圆角' } })

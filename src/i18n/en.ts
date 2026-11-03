@@ -203,7 +203,6 @@ export const en: Record<MessageKey, string> = {
   'settings.showSearch': 'Show search',
   'settings.hour12': '12-hour clock',
   'settings.searchEngine': 'Search engine',
-  'settings.engineBaidu': 'Baidu',
   'settings.searchCustom': 'Custom URL (include {query})',
   'settings.shortcuts': 'Shortcuts',
   'settings.shortcutsHint': 'Open settings to edit, move or remove websites.',

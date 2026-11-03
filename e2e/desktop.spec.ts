@@ -64,6 +64,21 @@ test('default widgets remain visible at a narrow viewport', async ({ page }) => 
   for (const selector of ['.mnt-clock', '.mnt-date', '.mnt-search', '.mnt-group']) await expect(page.locator(selector)).toBeVisible()
 })
 
+test('searches through the selected DuckDuckGo preset', async ({ page }) => {
+  await page.route('https://duckduckgo.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Intercepted search</title>' }))
+  await open(page)
+  await page.locator('.settings-button').click()
+  await openTab(page, 'search')
+  await page.getByRole('combobox', { name: 'Search engine' }).click()
+  await page.getByRole('option', { name: 'DuckDuckGo', exact: true }).click()
+  await page.getByRole('button', { name: '关闭设置' }).click()
+  await page.locator('.mnt-search-input').fill('cats & dogs')
+  const navigation = page.waitForURL('https://duckduckgo.com/?q=cats%20%26%20dogs')
+  await page.locator('.mnt-search button').click()
+  await navigation
+  await expect(page).toHaveTitle('Intercepted search')
+})
+
 for (const [width, height] of [[1440, 900], [1920, 1080], [800, 600], [400, 800]]) {
   test(`desktop baseline ${width}x${height}`, async ({ page }) => {
     await page.setViewportSize({ width, height })

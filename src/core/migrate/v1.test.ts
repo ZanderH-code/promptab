@@ -81,6 +81,7 @@ describe('v1 migration', () => {
     const override = await migrateV1({ ...defaults, searchTemplate: 'https://www.baidu.com/s?wd={query}' }, { ...dependencies(), language: 'en' })
     expect([override.meta.name, override.search.engines[0].name]).toEqual(['Default', 'Baidu'])
     expect((await migrateV1({ ...defaults, searchTemplate: 'https://www.baidu.com/s?wd={query}' }, dependencies())).search.engines[0].name).toBe('百度')
+    expect((await migrateV1({ ...defaults, searchTemplate: 'https://search.brave.com/search?q={query}' }, dependencies())).search.engines[0].name).toBe('Brave Search')
     expect((await migrateV1({ ...defaults, searchTemplate: 'https://bing.com/search?q={query}' }, dependencies())).search.engines[0].name).toBe('Bing')
     expect((await migrateV1({ ...defaults, searchTemplate: 'https://example.com/?q={query}' }, dependencies())).search.engines[0].name).toBe('自定义')
     expect((await migrateV1({ ...defaults, language: 'en', searchTemplate: 'https://example.com/?q={query}' }, dependencies())).search.engines[0].name).toBe('Custom')
