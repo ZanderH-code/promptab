@@ -19,8 +19,8 @@
       "accent": "#b3472a"
     },
     "font": {
-      "display": "serif",
-      "ui": "system"
+      "display": "cormorant",
+      "ui": "outfit"
     },
     "radius": 16,
     "shadow": 45,

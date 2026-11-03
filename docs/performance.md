@@ -25,6 +25,10 @@ In the same local environment, the companion paint test produced the following m
 
 The automated app-frame regression limit is 300 ms; the design target remains 100 ms for first paint. The frame does not imply wallpaper, custom CSS, or font completion. `public/theme-bootstrap.js` runs synchronously before the module entry to restore cached theme tokens; the extension CSP retains `script-src 'self'`.
 
+## Visual baseline fonts
+
+Screenshot baselines are generated on Windows and compared on `windows-latest`. Presets used in screenshot comparisons should use bundled fonts where a system font can change glyph metrics or fallback across Windows images. Paper and Dusk use bundled Cormorant and Outfit for this reason. Keep screenshot comparisons strict, and retain separate geometry assertions for layout requirements; pixel tolerance must not replace those assertions. CI writes an HTML Playwright report so image diffs are available when a comparison fails.
+
 Run the production checks with:
 
 ```bash
