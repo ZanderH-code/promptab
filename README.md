@@ -1,5 +1,7 @@
 <img src="docs/brand/logo.svg" width="96" alt="Promptab logo">
 
+[![CI](https://github.com/ZanderH-code/promptab/actions/workflows/ci.yml/badge.svg)](https://github.com/ZanderH-code/promptab/actions/workflows/ci.yml)
+
 # Promptab
 
 English | [简体中文](README.zh-CN.md) · [Official Website](https://zanderh-code.github.io/promptab/) · [Theme Gallery](https://zanderh-code.github.io/promptab/gallery/index.json) · [Privacy Policy](https://zanderh-code.github.io/promptab/privacy/)
