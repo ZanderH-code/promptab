@@ -2,23 +2,25 @@
 
 ## Release status — 0.10.0
 
-M6–M20 are complete; the 0.10.0 release refresh also includes eleven search presets, local Infinity backup import, starter sites for fresh installs, and a themed keyboard-shortcuts dialog. Packaging and final release checks are being refreshed. Main commits:
+M6–M21 are complete, including the 0.10.0 release refresh and package verification. Main commits:
 
-- M6 optional AI, wallpaper, widgets, weather, and sync: `cb7ad67`, `c2a7c5c`, `16b98b5`, `17f1d62`, `15a8d62`
-- M7 Firefox runtime and package: `7a24801`, `2415cb6`
-- M8 0.10.0 packaging and store materials: `4c6cd36`, `6eb1c24`, `7842086`
-- M9 mobile and touch support: `14f4a8b`
-- M10 hosted web app and PWA: `a108b64`, `61cf0d0`
-- M11 public theme gallery: `6d4720e`, `94ccc93`
-- M12 gallery links into web previews: `1ae41cf`
-- M13 public guides and API references: `4bccf1b`, `e76fbfc`
-- M14 gallery layout and visual quality: `f0d3c3a`
-- M15 responsive clock and layout fixes: `5fb7cb5`, `18ff047`, `40dea60`
-- M16 runtime localization: `7c1fe12`
-- M17 portable theme export and sharing: `ff47a94`, `878b659`
-- M18 export fidelity and filenames: `c3de9c1`, `1fe9a69`
-- M19 new-tab preferences and saved themes: `cf01dc8`
-- M20 keyboard/touch menus, date/greeting options, and selective backup restore: `ce11152`, `59219df`, `35834a1`, `a1fb099`, `5be14f4`
+- M6a–f BYOK, wallpaper and rotation, widgets, weather, and browser sync: `c2a7c5c`, `dac14aa`, `16b98b5`, `17c3836`, `ea2c9b0`
+- M6g startup performance: `9862f27`
+- M7 Firefox: `e25613a`
+- M8 0.10.0 packaging, accessibility, and store materials: `7842086`
+- M9 CI, community templates, and 20-pack gallery: `06d8909`; M9b CI screenshot stability: `47afa71`
+- M10 mobile and touch: `14f4a8b`
+- M11 hosted web app and PWA: `db876c0`
+- M12 web install polish: `6ea865d`
+- M13 public gallery page and “Try in web app”: `5fb7cb5`
+- M14/M14b theme quality pass and banner layout: `f0d3c3a`, `40dea60`
+- M15 test hygiene and i18n completeness: `7c1fe12`, `08e585d`
+- M16 public docs: `ea5e0d0`
+- M17 theme export and sharing: `878b659`
+- M18 export fidelity: `1fe9a69`
+- M19/M19b new-tab preferences, saved themes, accent on open, shortcuts, and group menu access: `cf01dc8`, `ce11152`
+- M20 week numbers, greeting line, and selective restore: `5be14f4`
+- M21 0.10.0 refresh, search presets, Infinity import, starter sites, and shortcut dialog: `1bdd6b3`, `92a6f76`, `ba04896`, `8b0c234`, `debbfc9`, `5bcb071`, `60fe360`, `07fedab`
 
 Remaining: submit the store listings; perform manual checks in real Firefox; consider embedding wallpapers in theme packs after a format change; remote image wallpapers remain intentionally unsupported.
 
@@ -523,6 +525,15 @@ scripts/
 - 本地视频背景、壁纸轮换。
 - 跨设备同步：`storage.sync` 只同步配置不同步资源，或使用用户自己的 WebDAV 或 Gist；需单独设计冲突处理与隐私。
 
+### M21：0.10.0 发布更新（已完成）
+
+- 更新发布说明、商店介绍、隐私说明和七张商店截图；构建并验证 Chromium 与 Firefox 安装包，不更改版本号或提交商店。
+- 提供 11 个搜索引擎预设，并保留自定义搜索模板。
+- 在本地导入 Infinity New Tab 备份，预览支持的数据，以追加或替换方式导入并支持一次撤销；不下载远程图片和云端壁纸。
+- 全新安装提供八个可编辑的初始网站和内置图标，可在设置中移除未修改的初始网站并撤销；首次使用引导保留至用户选择操作。
+- 优化键盘快捷键帮助对话框的主题样式、焦点管理和键盘操作，并验证中英文及浅色、深色显示。
+- 验证单元测试、TypeScript、构建、发布包、文档、Chromium、Web、Firefox 和首屏 JavaScript 预算。
+
 ---
 
 ## 9. 风险与待决事项
@@ -541,7 +552,7 @@ scripts/
 
 ## 10. 设计与实施约定
 
-- 默认配置中没有推广链接和任何真实网站之外的预置内容；首次使用由引导卡片取代示例网站。
+- 默认配置不含推广链接；全新安装提供可编辑和移除的初始网站，并保留首次使用引导卡片。
 - 不默认读取浏览器书签和历史记录，不联网获取图标之外的资源；所有联网功能单独开关并说明去向。
 - 不把大图写进 `chrome.storage`；资源一律进入 IndexedDB 资源库。
 - 新增任何配置字段都要同时更新：zod schema、默认值、迁移（如需要）、i18n 文案、提示包字段说明、测试。由 `scripts/gen-schema.ts` 和 CI 检查保证 schema 与文档同步。
