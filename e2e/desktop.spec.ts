@@ -69,7 +69,7 @@ test('searches through the selected DuckDuckGo preset', async ({ page }) => {
   await open(page)
   await page.locator('.settings-button').click()
   await openTab(page, 'search')
-  await page.getByRole('combobox', { name: 'Search engine' }).click()
+  await page.getByRole('combobox', { name: '搜索引擎' }).click()
   await page.getByRole('option', { name: 'DuckDuckGo', exact: true }).click()
   await page.getByRole('button', { name: '关闭设置' }).click()
   await page.locator('.mnt-search-input').fill('cats & dogs')

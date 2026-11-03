@@ -19,6 +19,11 @@ test('a fresh install can reproduce the icon-split template through the UI', asy
     await page.clock.install({ time: new Date('2026-08-01T19:17:00Z') })
     await page.goto('http://127.0.0.1:4173/')
     await expect(page.locator('.onboarding-card')).toBeVisible()
+    await page.locator('.mnt-header .mnt-settings-entry').click()
+    await openTab(page, 'data')
+    await page.getByRole('button', { name: '移除初始网站', exact: true }).click()
+    await expect(page.locator('.shortcut')).toHaveCount(0)
+    await page.getByRole('button', { name: '关闭设置', exact: true }).click()
 
     for (const [index, site] of sites.entries()) {
       if (index === 0) await page.getByRole('button', { name: '添加第一个网站', exact: true }).click()
