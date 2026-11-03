@@ -5,6 +5,10 @@ import { styleEn } from './style'
 export const en: Record<MessageKey, string> = {
   'app.title': 'New Tab',
   'app.loading': 'Preparing your desktop…',
+  'clock.eyebrow': 'YOUR SPACE, YOUR PACE',
+  'pwa.update': 'New version available · Refresh',
+  'undo.saved': 'Changes saved',
+  'undo.action': 'Undo',
 
   'common.close': 'Close',
   'common.cancel': 'Cancel',

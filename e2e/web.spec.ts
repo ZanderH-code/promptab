@@ -145,12 +145,25 @@ test('a waiting service worker prompts in the saved language and preserves the p
   expect((await page.request.post('./__test__/worker-version')).status()).toBe(204)
   await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())!.update())
   await expect(page.locator('.pwa-update-prompt')).toHaveText('新版本可用 · 刷新')
+  await page.locator('.mnt-settings-entry').first().click()
+  await openTab(page, 'about')
+  await page.getByRole('combobox', { name: '语言', exact: true }).click()
+  await page.getByRole('option', { name: 'English', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page).toHaveTitle('New Tab')
+  await expect(page.locator('.pwa-update-prompt')).toHaveText('New version available · Refresh')
+  await page.getByRole('button', { name: 'Close settings', exact: true }).click()
   const reloaded = page.waitForEvent('load')
   await page.locator('.pwa-update-prompt').click()
   await reloaded
   await expect(page.locator('.clock')).toBeVisible()
   expect(await version()).toBe('B')
-  expect(await profile()).toEqual(before)
+  const withoutLanguageMetadata = (value: ReturnType<typeof JSON.parse>) => {
+    const { updatedAt: _updatedAt, ...meta } = value.meta
+    const { language: _language, ...prefs } = value.prefs
+    return { ...value, meta, prefs }
+  }
+  expect(withoutLanguageMetadata(await profile())).toEqual(withoutLanguageMetadata(before))
 })
 
 test('phone viewport has no horizontal overflow', async ({ page }) => {

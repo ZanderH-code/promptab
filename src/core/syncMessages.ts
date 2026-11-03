@@ -1,8 +1,8 @@
 import type { Language } from '../i18n'
 
-export type SyncMessage = 'title' | 'hint' | 'enable' | 'extensionOnly' | 'conflict' | 'keepLocal' | 'pullCloud' | 'undo' | 'saved' | 'disabled' | 'pulled' | 'undone' | 'quota' | 'error' | 'deleteCloud' | 'deleteConfirm' | 'deleted' | 'missing' | 'undoUnavailable'
+export type SyncMessage = 'title' | 'hint' | 'enable' | 'extensionOnly' | 'conflict' | 'keepLocal' | 'pullCloud' | 'undo' | 'saved' | 'disabled' | 'pulled' | 'undone' | 'quota' | 'error' | 'deleteCloud' | 'deleteConfirm' | 'deleted' | 'missing' | 'undoUnavailable' | 'dismiss'
 
-const messages: Record<Language, Record<SyncMessage, string>> = {
+export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
   en: {
     title: 'Browser sync',
     hint: 'Optional browser sync sends shortcuts, groups, theme settings and layout to your signed-in browser account. Wallpaper, uploaded fonts and bookmark images stay on this device. Full backups remain available as files.',
@@ -23,6 +23,7 @@ const messages: Record<Language, Record<SyncMessage, string>> = {
     deleted: 'Browser sync data deleted; sync is off on this device.',
     missing: 'The browser sync copy is missing. Your local profile was kept.',
     undoUnavailable: 'Undo is no longer available because the profile has changed.',
+    dismiss: 'Dismiss',
   },
   'zh-CN': {
     title: '浏览器同步',
@@ -44,7 +45,8 @@ const messages: Record<Language, Record<SyncMessage, string>> = {
     deleted: '浏览器同步数据已删除，此设备上的同步已关闭。',
     missing: '浏览器同步副本不存在。本地配置已保留。',
     undoUnavailable: '配置已更改，无法撤销拉取。',
+    dismiss: '关闭',
   },
 }
 
-export const syncText = (language: Language, key: SyncMessage) => messages[language][key]
+export const syncText = (language: Language, key: SyncMessage) => syncMessages[language][key]

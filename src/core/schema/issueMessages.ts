@@ -29,7 +29,7 @@ export type LocalizedIssue = { path: string; expected: string; value: string }
 
 type Translation = (params: Record<string, string | number>) => string
 
-const translations: Record<Language, Record<SchemaExpectationKey, Translation>> = {
+export const schemaMessages: Record<Language, Record<SchemaExpectationKey, Translation>> = {
   en: {
     range: p => `${p.kind} ${p.min}-${p.max}`,
     'non-empty': () => 'non-empty string',
@@ -120,7 +120,7 @@ export function schemaExpectation(expected: string): SchemaExpectation {
 
 export function localizeExpectation(expected: string, language: Language): string {
   const parsed = schemaExpectation(expected)
-  return translations[language][parsed.key](parsed.params ?? {})
+  return schemaMessages[language][parsed.key](parsed.params ?? {})
 }
 
 export function localizeIssue<T extends LocalizedIssue>(issue: T, language: Language): T {

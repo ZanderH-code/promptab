@@ -6,7 +6,7 @@ export type WeatherMessage =
   | 'locationUnavailable' | 'locationFailed' | 'loading' | 'refresh' | 'offline' | 'updatedAt' | 'tapToLoad'
   | 'chooseLocation' | 'refreshFailed' | 'title'
 
-const messages: Record<Language, Record<WeatherMessage, string>> = {
+export const weatherMessages: Record<Language, Record<WeatherMessage, string>> = {
   en: {
     title: 'Weather', city: 'City', searchCity: 'Search cities', useLocation: 'Use current location', cityResults: 'City search results',
     unit: 'Temperature unit', celsius: 'Celsius', fahrenheit: 'Fahrenheit', showForecast: 'Show 3-day forecast',
@@ -30,5 +30,5 @@ const messages: Record<Language, Record<WeatherMessage, string>> = {
 }
 
 export function weatherText(language: Language, key: WeatherMessage, params?: Record<string, string | number>) {
-  return messages[language][key].replace(/\{(\w+)\}/g, (placeholder, name: string) => params && name in params ? String(params[name]) : placeholder)
+  return weatherMessages[language][key].replace(/\{(\w+)\}/g, (placeholder, name: string) => params && name in params ? String(params[name]) : placeholder)
 }

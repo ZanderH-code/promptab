@@ -28,7 +28,7 @@ function CountdownWidget({ widget, language, t }: Props & { widget: Extract<Prod
   const now = new Date()
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
   const days = Math.ceil((target - today) / 86_400_000)
-  const date = new Intl.DateTimeFormat(language === 'en' ? 'en' : 'zh-CN', { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(target))
+  const date = new Intl.DateTimeFormat(language, { dateStyle: 'long', timeZone: 'UTC' }).format(new Date(target))
   const countdown = days < 0 ? t('widgets.countdown.past', { days: Math.abs(days) }) : days === 0 ? t('widgets.countdown.today') : t('widgets.countdown.future', { days })
   return <section className="mnt-productivity mnt-countdown" aria-label={widget.props.title}>
     <h2>{widget.props.title}</h2>

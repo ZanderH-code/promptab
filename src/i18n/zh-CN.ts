@@ -4,6 +4,10 @@ import { styleZh } from './style'
 export const zhCN = {
   'app.title': '新标签页',
   'app.loading': '正在准备桌面…',
+  'clock.eyebrow': '你的空间，你的节奏',
+  'pwa.update': '新版本可用 · 刷新',
+  'undo.saved': '更改已保存',
+  'undo.action': '撤销',
 
   'common.close': '关闭',
   'common.cancel': '取消',

@@ -1,5 +1,6 @@
 /// <reference types="vite-plugin-pwa/client" />
 import { registerSW } from 'virtual:pwa-register'
+import { translate } from './i18n'
 import './pwa-prompt.css'
 
 const updateSW = registerSW({
@@ -8,7 +9,13 @@ const updateSW = registerSW({
     const button = document.createElement('button')
     button.type = 'button'
     button.className = 'pwa-update-prompt'
-    button.textContent = document.documentElement.lang.startsWith('zh') ? '新版本可用 · 刷新' : 'New version available · Refresh'
+    const updateLabel = () => {
+      const language = document.documentElement.lang.startsWith('zh') ? 'zh-CN' : 'en'
+      button.textContent = translate(language, 'pwa.update')
+    }
+    updateLabel()
+    const languageObserver = new MutationObserver(updateLabel)
+    languageObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] })
     button.addEventListener('click', () => updateSW(true), { once: true })
     document.body.append(button)
   },

@@ -161,7 +161,7 @@ export function SyncApp({ store, language }: { store: StoreApi<ProfileStore>; la
       <span>{text(state.conflict ? 'conflict' : state.status ?? 'pulled')}</span>
       {state.conflict && <><button type="button" disabled={state.busy} onClick={() => void syncActions.keepLocal()}>{text('keepLocal')}</button><button type="button" disabled={state.busy} onClick={() => void syncActions.pullCloud()}>{text('pullCloud')}</button></>}
       {state.canUndo && !state.conflict && <button type="button" disabled={state.busy} onClick={() => void syncActions.undo()}>{text('undo')}</button>}
-      {!state.conflict && <button type="button" onClick={syncActions.dismiss} aria-label={language === 'en' ? 'Dismiss' : '关闭'}>×</button>}
+      {!state.conflict && <button type="button" onClick={syncActions.dismiss} aria-label={text('dismiss')}>×</button>}
     </div>}
   </>
 }

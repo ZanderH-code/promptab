@@ -325,7 +325,7 @@ export default function App() {
           <button type="submit">{t('shortcuts.moveConfirm')}</button>
         </form>
       </div>}
-      {undoNotice && <div className="undo-toast" role="status"><span>{s.language === 'en' ? 'Changes saved' : '更改已保存'}</span><button type="button" onClick={undo}>{s.language === 'en' ? 'Undo' : '撤销'}</button></div>}
+      {undoNotice && <div className="undo-toast" role="status"><span>{t('undo.saved')}</span><button type="button" onClick={undo}>{t('undo.action')}</button></div>}
       {error && <div className="error" role="alert">{t(error.key, error.params)}<button aria-label={t('common.close')} onClick={() => setError(null)}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>}
       <Suspense fallback={null}>{drawer && store && (
         <SettingsDrawer

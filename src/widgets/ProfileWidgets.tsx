@@ -45,7 +45,7 @@ function useNow(precision: 'second' | 'minute') {
   return now
 }
 
-function ClockBlock({ widget, language, onContextMenu, theme, custom }: { widget: Extract<Widget, {type:'clock'}>; language: Settings['language']; onContextMenu: (event: ContextMenuEvent) => void; theme: ProfileV2['theme']; custom: ProfileV2['custom'] }) {
+function ClockBlock({ widget, language, onContextMenu, theme, custom, t }: { widget: Extract<Widget, {type:'clock'}>; language: Settings['language']; onContextMenu: (event: ContextMenuEvent) => void; theme: ProfileV2['theme']; custom: ProfileV2['custom']; t: Translate }) {
   const p = widget.props
   const now = useNow(p.seconds ? 'second' : 'minute')
   const formatted = formatClock(now, language, p)
@@ -83,7 +83,7 @@ function ClockBlock({ widget, language, onContextMenu, theme, custom }: { widget
     const frame = requestAnimationFrame(() => refit.current())
     return () => cancelAnimationFrame(frame)
   }, [theme, custom])
-  return <div className="intro" onContextMenu={onContextMenu}>{p.eyebrow === true && <div className="eyebrow"><span className="dot" /> {language === 'en' ? 'YOUR SPACE, YOUR PACE' : '你的空间，你的节奏'}</div>}<div ref={clock} className="clock mnt-clock"><span style={{ whiteSpace: 'nowrap' }}>{formatted}</span></div></div>
+  return <div className="intro" onContextMenu={onContextMenu}>{p.eyebrow === true && <div className="eyebrow"><span className="dot" /> {t('clock.eyebrow')}</div>}<div ref={clock} className="clock mnt-clock"><span style={{ whiteSpace: 'nowrap' }}>{formatted}</span></div></div>
 }
 
 function DateBlock({ widget, language }: { widget: Extract<Widget, {type:'date'}>; language: Settings['language'] }) {
@@ -106,7 +106,7 @@ export function ProfileWidgets(props: Props) {
         const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
         const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} style={common}>{child}</div>
         switch (widget.type) {
-          case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} theme={profile.theme} custom={profile.custom} />)
+          case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} theme={profile.theme} custom={profile.custom} t={t} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)
           case 'search': return frame(<Search template={searchTemplate} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
           case 'bookmarks': return frame(<ShortcutGrid groups={profile.bookmarks.groups} shortcuts={shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} onManageDone={props.onManageDone} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} showAdd={editing || widget.props.showAdd !== false} iconColor={widget.props.iconColor ?? 'per-site'} onGroups={props.onGroups} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} />)

@@ -25,13 +25,43 @@ async function open(page: Page) {
 
 async function switchLanguage(page: Page, language: 'zh-CN' | 'en') {
   if (language === 'zh-CN') return
-  await page.locator('.settings-button').click()
+  await page.locator('.mnt-settings-entry').first().click()
   await openTab(page, 'about')
   await page.getByRole('combobox', { name: '语言', exact: true }).click()
   await page.getByRole('option', { name: 'English', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await page.getByRole('button', { name: 'Close settings', exact: true }).click()
 }
+
+test('switching language updates the first screen without reloading', async ({ page }) => {
+  await seedExistingUser(page, {
+    language: 'zh-CN',
+    shortcuts: [{ id: 'example', name: 'Example', url: 'https://example.com', color: '#90d5cd', icon: 'E' }],
+  })
+  await page.clock.install({ time: new Date('2026-10-31T10:24:00Z') })
+  let loadCount = 0
+  page.on('load', () => { loadCount++ })
+  await page.goto('/')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
+  await expect(page).toHaveTitle('新标签页')
+  await expect(page.locator('.clock')).toBeVisible()
+  await page.locator('.settings-button').click()
+  await openTab(page, 'layout')
+  await page.getByRole('combobox', { name: '布局方式', exact: true }).click()
+  await page.getByRole('option', { name: '顶栏横幅', exact: true }).click()
+  await page.getByRole('button', { name: '关闭设置', exact: true }).click()
+  await expect(page.getByRole('toolbar')).toHaveAttribute('aria-label', '工具栏')
+
+  await switchLanguage(page, 'en')
+
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page).toHaveTitle('New Tab')
+  await expect(page.locator('.clock')).toBeVisible()
+  await expect(page.getByRole('toolbar')).toHaveAttribute('aria-label', 'Toolbar')
+  await expect(page.locator('.mnt-settings-entry')).toHaveAttribute('aria-label', 'Open settings')
+  await expectLocalizedSurface(page)
+  expect(loadCount).toBe(1)
+})
 
 for (const language of ['zh-CN', 'en'] as const) {
   test.describe(`${language} visible text regression`, () => {

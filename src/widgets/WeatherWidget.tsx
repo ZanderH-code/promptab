@@ -16,7 +16,7 @@ function temperature(value: number, unit: WeatherUnit) {
 
 function WeatherDay({ day, unit, language }: { day: WeatherForecast['days'][number]; unit: WeatherUnit; language: string }) {
   const Icon = icons[weatherIconForCode(day.code)]
-  const date = new Intl.DateTimeFormat(language === 'zh-CN' ? 'zh-CN' : 'en', { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day.date}T00:00:00Z`))
+  const date = new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: 'UTC' }).format(new Date(`${day.date}T00:00:00Z`))
   return <li><span>{date}</span><Icon aria-hidden="true" size={18} /><span>{temperature(day.high, unit)} / {temperature(day.low, unit)}</span></li>
 }
 
