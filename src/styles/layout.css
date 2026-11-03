@@ -64,7 +64,7 @@
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar button::before { content: none; }
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar { flex: 0 0 auto; justify-content: flex-end; }
   .mnt-layout[data-layout-template="banner"] [data-area="websites"] { display: grid; }
-  .mnt-layout[data-layout-template="dashboard"] { align-items: start; column-gap: max(var(--mnt-layout-gap), 16px); }
+  .mnt-layout[data-layout-template="dashboard"] { align-items: start; column-gap: max(var(--mnt-layout-gap), 16px); row-gap: max(var(--mnt-layout-gap), 24px); }
   .mnt-layout[data-layout-template="dashboard"] .mnt-area { align-self: start; }
   .mnt-layout[data-layout-template="dashboard"] [data-area="clock"] { text-align: center; }
   .mnt-weather { width: min(100%, 420px); margin-inline: auto; padding: var(--mnt-space-4); border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: color-mix(in oklch, var(--mnt-surface) 72%, transparent); color: var(--mnt-text); text-align: left; }

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { openTab, seedExistingUser, templateBookmarks } from '../e2e/helpers'
 
@@ -7,6 +7,7 @@ const output = resolve(process.cwd(), 'store/screenshots')
 
 test('generate original store screenshots', async ({ page }) => {
   test.setTimeout(180_000)
+  await page.setViewportSize({ width: 1280, height: 800 })
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.clock.install({ time: new Date('2026-08-01T19:17:00Z') })
@@ -152,5 +153,11 @@ test('generate original store screenshots', async ({ page }) => {
   await expect(page.getByRole('checkbox', { name: 'Sync this profile across devices' })).toBeEnabled()
   await page.getByText('Import from nightTab', { exact: true }).evaluate(element => element.closest('.sd-item')?.setAttribute('data-store-screenshot-hide', ''))
   await capture('07-sync-settings', '[data-store-screenshot-hide] { display: none !important }')
+  for (const file of await readdir(output)) {
+    if (!file.toLowerCase().endsWith('.png')) continue
+    const image = await readFile(resolve(output, file))
+    expect(image.readUInt32BE(16), `${file} width`).toBe(1280)
+    expect(image.readUInt32BE(20), `${file} height`).toBe(800)
+  }
   expect(errors).toEqual([])
 })

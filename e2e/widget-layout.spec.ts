@@ -42,6 +42,7 @@ for (const preset of ['Paper', 'Tide'] as const) {
     const cards = await Promise.all(['weather', 'note', 'todo'].map(type => page.locator(`[data-widget="${type}"]`).boundingBox()))
     expect(date!.y).toBeGreaterThanOrEqual(clock!.y + clock!.height - 1)
     expect(date!.y - (clock!.y + clock!.height)).toBeLessThan(20)
+    expect(cards[0]!.y - (date!.y + date!.height)).toBeGreaterThanOrEqual(24)
     const clockText = await page.locator('.clock').boundingBox()
     const dateText = await page.locator('.mnt-date').boundingBox()
     expect(Math.abs((clockText!.x + clockText!.width / 2) - (dateText!.x + dateText!.width / 2))).toBeLessThan(2)
