@@ -2,7 +2,7 @@
 
 ## Release status — 0.10.0
 
-M6–M20 are complete; release materials are being refreshed. Main commits:
+M6–M20 are complete; the 0.10.0 release refresh also includes eleven search presets, local Infinity backup import, starter sites for fresh installs, and a themed keyboard-shortcuts dialog. Packaging and final release checks are being refreshed. Main commits:
 
 - M6 optional AI, wallpaper, widgets, weather, and sync: `cb7ad67`, `c2a7c5c`, `16b98b5`, `17f1d62`, `15a8d62`
 - M7 Firefox runtime and package: `7a24801`, `2415cb6`

@@ -20,11 +20,15 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 - Show week numbers, choose the week start, and optionally add a greeting transition line.
 - Restore selected backup sections and undo the restore as one change.
 - Build and temporarily install a separate Firefox extension package.
+- Choose from eleven search presets, including Brave Search, Startpage, Ecosia, Qwant, Kagi, and Perplexity; existing custom templates remain supported.
+- Import Infinity New Tab backups locally, preview supported links, search engines, Todo and Note content, and add or replace imported sections with one-step undo.
+- Start fresh installs with eight editable starter sites and embedded icons; remove unchanged starter sites from Settings with undo.
 
 ### Changed
 
 - Load bookmark editing and the brand icon catalog on demand to reduce startup JavaScript.
 - Improve mobile and dashboard layouts, profile sync handling, local recovery, and simultaneous wallpaper rotation.
+- Present keyboard shortcuts in a themed dialog with focus trapping, restored focus, and keyboard or backdrop dismissal.
 
 ## [0.9.0]
 

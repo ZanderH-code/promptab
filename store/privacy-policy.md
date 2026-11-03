@@ -29,6 +29,8 @@ The extension does not sell personal information or use these direct feature req
 
 ## Backups, exports, and AI features
 
+Infinity New Tab backups are parsed locally after you choose a file. Promptab does not upload the backup or download its remote images and cloud wallpapers. Fresh installs include editable starter sites with bundled icons; displaying them does not contact their websites.
+
 Backup and export actions create files or copied data only when you request them. The AI workbench prepares and validates theme/profile data locally. You can copy a prompt to an AI service yourself, or optionally send it directly using your own Anthropic or OpenAI API key. Direct sending requests optional access to the selected provider's fixed origin, `https://api.anthropic.com/*` or `https://api.openai.com/*`, when you click send. It sends the prompt, selected model and API key directly to that provider. Anthropic browser requests include `anthropic-dangerous-direct-browser-access: true`; OpenAI requests use bearer authentication. The prompt includes your request and does not automatically include your current theme, CSS or bookmarks; anything you enter in your request is included. The key is held only in active page session memory and is not written to browser storage or uploaded to Promptab; it is cleared when the page session ends. Provider privacy policies and charges apply; API use may incur fees. Provider replies are placed in the workbench for local validation.
 
 ## Web version storage and network behavior
@@ -58,5 +60,7 @@ Promptab 不包含账号、广告 SDK、分析或遥测服务。设置、配置�
 AI 工作台可以手动复制提示包，也可以使用你自己的 API 密钥直接发送给 Anthropic 或 OpenAI。点击发送时会请求所选服务商域名的可选访问权限，并向其发送提示包、模型和密钥；提示包包含你的需求，不会自动附带当前主题、CSS 或书签；你在需求中输入的内容会被包含。密钥仅保留在当前页面会话内存中，不写入浏览器存储，也不会上传给 Promptab；页面会话结束后即被清除。Anthropic 浏览器直连请求会带有 `anthropic-dangerous-direct-browser-access: true` 请求头。服务商的隐私政策和收费标准适用，API 使用可能产生费用。
 
 网页版将设置保存在网站本地存储中，并将较大的资源保存在浏览器本地 IndexedDB 中，与扩展存储分开。可通过「设置 → 数据 → 导出备份」再在另一个版本中导入来迁移配置。网页版不支持依赖扩展 API 的浏览器同步和浏览器书签导入。使用画廊、天气、搜索、快捷方式或 BYOK 时，浏览器会直接联系相应的网站或服务提供商；提供商条款和隐私政策适用。
+
+Infinity 新标签页备份在你选择文件后仅在本地解析，不上传备份，也不下载其中的远程图片或云端壁纸。全新安装提供可编辑的初始网站和内置图标，展示时不会联系对应网站。
 
 自动网站图标会优先使用浏览器的 favicon 接口，并可能回退请求相应网站 origin 的 `/favicon.ico`。搜索提交会把查询发送到你配置的搜索服务，打开快捷方式会访问对应网站。壁纸和快捷方式图片在本地管理，不会从远程网址获取。可选天气组件只在你点击相关操作后联系 Open-Meteo：城市搜索会发送城市名称，加载天气会发送所选城市坐标或一次性定位得到的坐标。只有点击定位按钮后才请求当前位置，不会在后台持续跟踪。天气结果至少在本地缓存 30 分钟，离线时可以显示缓存和更新时间。这些请求由你主动使用的功能触发，并受目标服务的隐私政策约束。扩展本身不通过这些请求进行分析或出售个人信息。

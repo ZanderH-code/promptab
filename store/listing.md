@@ -18,6 +18,9 @@ A new tab for your themes, shortcuts, and daily flow.
 - Set new-tab links to open where you prefer, use keyboard shortcuts, and choose an accent on open or cycle through its palette.
 - Keep separate profiles, undo changes, and restore selected backup sections with one undo action.
 - Opt in to browser sync for profile preferences, theme settings, layout, and shortcuts across signed-in devices. Wallpapers, videos, fonts, uploaded shortcut images, and saved themes stay local.
+- Choose from eleven search presets or enter a custom search template.
+- Import Infinity New Tab backups locally, preview supported content, and add or replace it with one-step undo. Remote Infinity images are skipped.
+- Get eight editable starter sites on fresh installs, with embedded icons and an option to remove unchanged starter sites.
 - Import selected browser-bookmark folders only after granting the optional bookmarks permission.
 - Choose automatic website icons, brand icons, Lucide icons, text, emoji, or your own images.
 - Use the extension in English or Simplified Chinese. A separate desktop Firefox build is available, with touch-friendly mobile layouts and group menus.
@@ -60,6 +63,9 @@ Promptab stores its data in browser-managed extension storage and has no Prompta
 - 设置链接打开方式，使用键盘快捷键，并选择打开时更换强调色或循环调色板。
 - 创建多个配置档、撤销更改，并选择恢复备份内容；整次恢复可一步撤销。
 - 可选择开启浏览器同步，在已登录的设备之间同步配置偏好、主题、布局和快捷方式；壁纸、视频、字体、上传的快捷方式图片及已保存主题保留在本地。
+- 从 11 种搜索预设中选择，或填写自定义搜索模板。
+- 在本地导入 Infinity 新标签页备份，预览支持的内容后追加或替换，并可一步撤销；跳过 Infinity 远程图片。
+- 全新安装提供八个可编辑的常用网站及内置图标；可一键移除未修改的初始网站。
 - 仅在你授权可选书签权限后，导入所选浏览器书签文件夹。
 - 使用网站自动图标、品牌图标、Lucide 图标、文字、表情或自己的图片。
 - 支持中文和英文界面、移动触控布局及分组菜单，并提供独立的桌面 Firefox 构建。
