@@ -22,6 +22,7 @@ const templates = [
 const presets = ['Tide', 'Paper', 'Graphite', 'Mist', 'Moss', 'Dusk', 'Terminal', 'Glass', 'Contrast']
 
 async function launch(page: Page) {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   await page.route('**/favicon.ico', route => route.abort())
   await page.setViewportSize({ width: 412, height: 915 })
   await seedExistingUser(page, { language: 'en', shortcuts: templateBookmarks, columns: 6 })

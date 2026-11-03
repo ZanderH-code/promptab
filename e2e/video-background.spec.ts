@@ -32,6 +32,7 @@ async function createWebm(page: import('@playwright/test').Page) {
 }
 
 async function prepareBanner(page: import('@playwright/test').Page) {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   await page.route('**/favicon.ico', route => route.abort())
   await page.setViewportSize({ width: 1440, height: 900 })
   await seedTemplateUser(page, 'en')
