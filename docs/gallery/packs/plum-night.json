@@ -128,5 +128,5 @@
       }
     }
   ],
-  "css": ".mnt-search { margin-top: 28px; }"
+  "css": ".mnt-search { margin-top: 0px; }"
 }

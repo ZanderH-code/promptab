@@ -259,7 +259,7 @@
       },
       "mode": "dark",
       "layout": {
-        "rows": 2,
+        "rows": 3,
         "columns": 3,
         "cells": [
           {
@@ -269,12 +269,34 @@
             "columnSpan": 3,
             "widgets": [
               "clock",
-              "date",
+              "date"
+            ]
+          },
+          {
+            "row": 2,
+            "column": 1,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 2,
+            "column": 2,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": [
               "search"
             ]
           },
           {
             "row": 2,
+            "column": 3,
+            "rowSpan": 1,
+            "columnSpan": 1,
+            "widgets": []
+          },
+          {
+            "row": 3,
             "column": 1,
             "rowSpan": 1,
             "columnSpan": 3,

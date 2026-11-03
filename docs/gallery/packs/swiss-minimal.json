@@ -114,5 +114,5 @@
       }
     }
   ],
-  "css": ".mnt-clock { letter-spacing: -0.04em; }\n.mnt-search { margin-top: 28px; }\n.mnt-group-title { text-transform: uppercase; letter-spacing: 0.12em; }"
+  "css": ".mnt-clock { letter-spacing: -0.04em; }\n.mnt-search { margin-top: 0px; }\n.mnt-group-title { text-transform: uppercase; letter-spacing: 0.12em; }"
 }

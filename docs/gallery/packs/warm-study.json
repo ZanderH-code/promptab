@@ -134,5 +134,5 @@
       }
     }
   ],
-  "css": ".mnt-date { letter-spacing: 0.1em; }\n.mnt-search { margin-top: 28px; }\n.mnt-link { border-bottom: 1px solid var(--mnt-border); }"
+  "css": ".mnt-date { letter-spacing: 0.1em; }\n.mnt-search { margin-top: 0px; }\n.mnt-link { border-bottom: 1px solid var(--mnt-border); }"
 }

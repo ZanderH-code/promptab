@@ -45,7 +45,8 @@
   },
   "layout": {
     "areas": [
-      "overview overview overview",
+      "clock clock clock",
+      "date search links",
       "bookmarks bookmarks bookmarks"
     ],
     "columns": [
@@ -56,7 +57,8 @@
     "breakpoints": {
       "narrow": {
         "areas": [
-          "overview",
+          "clock",
+          "search",
           "bookmarks"
         ],
         "columns": [
@@ -72,7 +74,7 @@
     {
       "id": "clock",
       "type": "clock",
-      "area": "overview",
+      "area": "clock",
       "order": 0,
       "props": {
         "hour12": false,
@@ -82,7 +84,7 @@
     {
       "id": "date",
       "type": "date",
-      "area": "overview",
+      "area": "clock",
       "order": 1,
       "props": {
         "format": "full"
@@ -91,7 +93,7 @@
     {
       "id": "search",
       "type": "search",
-      "area": "overview",
+      "area": "search",
       "order": 2,
       "props": {}
     },
@@ -108,5 +110,5 @@
       }
     }
   ],
-  "css": ".mnt-weather { border-radius: 16px; }\n.mnt-widget-frame { letter-spacing: 0.01em; }"
+  "css": ".mnt-weather { border-radius: 16px; }\n.mnt-search { margin-top: 16px; }\n.mnt-widget-frame { letter-spacing: 0.01em; }"
 }
