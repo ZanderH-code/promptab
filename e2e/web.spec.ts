@@ -123,6 +123,34 @@ test('service worker keeps the app shell available offline', async ({ page, cont
   await expect(page.locator('.clock')).toBeVisible()
 })
 
+test('a waiting service worker prompts for refresh and preserves the profile', async ({ page }) => {
+  await openApp(page, { accent: '#abcdef' })
+  await page.evaluate(() => navigator.serviceWorker.ready)
+  await page.reload()
+  await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true)
+  const version = () => page.evaluate(() => new Promise<string>(resolve => {
+    const channel = new MessageChannel()
+    channel.port1.onmessage = event => resolve(event.data)
+    navigator.serviceWorker.controller!.postMessage({ type: 'TEST_VERSION' }, [channel.port2])
+  }))
+  expect(await version()).toBe('A')
+  const profile = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+  })
+  const before = await profile()
+  expect((await page.request.post('./__test__/worker-version')).status()).toBe(204)
+  await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())!.update())
+  await expect(page.locator('.pwa-update-prompt')).toHaveText('New version available · Refresh')
+  const reloaded = page.waitForEvent('load')
+  await page.locator('.pwa-update-prompt').click()
+  await reloaded
+  await expect(page.locator('.clock')).toBeVisible()
+  expect(await version()).toBe('B')
+  expect(await profile()).toEqual(before)
+})
+
 test('phone viewport has no horizontal overflow', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 })
   await openApp(page)

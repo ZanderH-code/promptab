@@ -5,6 +5,8 @@ import { extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(fileURLToPath(new URL('../dist-web', import.meta.url)))
+const updateFixture = process.env.PROMPTAB_SW_UPDATE_TEST === '1'
+let workerVersion = 'A'
 const prefix = '/promptab/app/'
 const types = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.ico': 'image/x-icon',
@@ -14,6 +16,18 @@ const types = {
 
 createServer(async (request, response) => {
   const pathname = new URL(request.url ?? '/', 'http://localhost').pathname
+  if (updateFixture && pathname === `${prefix}__test__/worker-version` && request.method === 'POST') {
+    workerVersion = 'B'
+    response.writeHead(204, { 'cache-control': 'no-store' }).end()
+    return
+  }
+  if (updateFixture && pathname === `${prefix}sw.js`) {
+    const { readFile } = await import('node:fs/promises')
+    const worker = await readFile(resolve(root, 'sw.js'), 'utf8')
+    const versionResponder = `\nself.addEventListener('message', event => { if (event.data?.type === 'TEST_VERSION' && event.ports[0]) event.ports[0].postMessage('${workerVersion}') })\n`
+    response.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' }).end(worker + versionResponder)
+    return
+  }
   if (pathname !== prefix.slice(0, -1) && !pathname.startsWith(prefix)) {
     response.writeHead(404).end('Not found')
     return
