@@ -17,9 +17,10 @@ const readBlob = (blob: Blob) => new Promise<string>((resolve, reject) => {
 
 afterEach(() => { cleanup(); resetAiState(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
-async function setup(css: string, language: Language = 'en') {
+async function setup(css: string, language: Language = 'en', name?: string) {
   const profile = await migrateV1({ ...defaults, shortcuts: [] }, { id: () => 'p', now: () => '2026-01-01T00:00:00.000Z', add: () => Promise.reject(new Error('none')) })
   profile.custom.css = css
+  if (name !== undefined) profile.custom.sourcePack = { name, importedAt: '2026-01-01T00:00:00.000Z' }
   profile.custom.variables = [{ name: '--glow', label: { en: 'Glow', 'zh-CN': '光' }, type: 'range', min: 0, max: 10, unit: 'px', default: 2 }]
   profile.custom.values = { '--glow': 5 }
   const state = { activeProfileId: profile.meta.id, profiles: { [profile.meta.id]: profile }, preview: null }
@@ -40,6 +41,7 @@ describe('theme export', () => {
     expect(create).not.toHaveBeenCalled()
     fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Exclude custom CSS' }))
     fireEvent.click(within(dialog).getByRole('button', { name: 'Download .json' }))
+    expect((vi.mocked(HTMLAnchorElement.prototype.click).mock.instances[0] as unknown as HTMLAnchorElement).download).toBe('exported-theme.theme-pack.json')
     const blob = create.mock.calls[0][0] as Blob
     const text = await readBlob(blob)
     const pack = JSON.parse(text)
@@ -72,6 +74,19 @@ describe('theme export', () => {
     expect(link.getAttribute('href')).toContain('template=theme_submission.yml')
     expect(link.getAttribute('href')).toContain('title=%5BTheme%5D%3A+Exported+theme')
     expect(link.getAttribute('href')).not.toContain('mnt.theme-pack')
+  })
+
+  it.each([['Warm Study', 'warm-study'], ['主题', 'theme'], ['', 'theme']])('uses a safe filename for %s', async (name, slug) => {
+    await setup('', 'en', name)
+    fireEvent.click(screen.getByRole('button', { name: 'Export theme pack' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Download .json' }))
+    expect((vi.mocked(HTMLAnchorElement.prototype.click).mock.instances[0] as unknown as HTMLAnchorElement).download).toBe(`${slug}.theme-pack.json`)
+  })
+
+  it.each([['en', 'Export theme pack', '2 CSS declarations'], ['zh-CN', '导出主题包', '已省略 2 条'] ] as const)('reports removed declarations in %s', async (language, title, expected) => {
+    await setup(`.a{color:red;background:url(mnt-asset:${'a'.repeat(64)});mask:url(data:image/png;base64,AAAA)}`, language)
+    fireEvent.click(screen.getByRole('button', { name: title }))
+    expect(within(screen.getByRole('dialog')).getByText(new RegExp(expected))).toBeInTheDocument()
   })
 
   it('omits the warning for empty CSS and localizes the dialog', async () => {

@@ -5,6 +5,7 @@ import { applyPack, exportThemePack } from '../../core/ai/apply'
 import { PACK_PARTS, type PackPart } from '../../core/ai/pack'
 import { extractCandidates } from '../../core/ai/parse'
 import { buildPromptPack } from '../../core/ai/prompt'
+import { portableCss } from '../../core/css/sanitize'
 import { buildErrorFeedback, fixText, problemText, warningText } from '../../core/ai/report'
 import type { MessageKey } from '../../i18n'
 import { Dropdown } from '../../ui/Dropdown'
@@ -33,6 +34,11 @@ function warningContent(t: Ctx['t'], warning: Parameters<typeof warningText>[1])
   const text = warningText(t, warning)
   const values = warning.kind === 'unknown-key' ? [warning.path] : warning.kind === 'font' ? [warning.path, warning.value] : warning.kind === 'css-foreign' ? [warning.name] : []
   return markDynamicText(text, values)
+}
+
+function themeFilename(name: string) {
+  const slug = name.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+  return `${slug || 'theme'}.theme-pack.json`
 }
 
 function gallerySubmissionUrl(name: string) {
@@ -71,7 +77,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
   function downloadTheme() {
     const pack = createExportPack()
     const url = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' }))
-    const link = document.createElement('a'); link.href = url; link.download = 'theme-pack.json'; link.click(); URL.revokeObjectURL(url)
+    const link = document.createElement('a'); link.href = url; link.download = themeFilename(pack.meta?.name ?? ''); link.click(); URL.revokeObjectURL(url)
     markExported(pack.meta?.name ?? t('ai.defaultName'))
   }
 
@@ -90,6 +96,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
 
   // Analysis always runs against the saved profile, never against the preview it may itself have produced.
   const active = store.getState().profiles[store.getState().activeProfileId]
+  const removedCssDeclarations = useMemo(() => exportOpen && !excludeCss ? portableCss(active.custom.css).removed : 0, [exportOpen, excludeCss, active.custom.css])
   const preview = store.getState().preview
   const previewing = !!preview?.label && preview.profileId === active.meta.id
 
@@ -187,6 +194,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
           <h3 id="theme-export-title">{t('ai.exportTitle')}</h3>
           <p className="sd-hint">{t('ai.exportAssetsWarning')}</p>
           {active.custom.css.trim() !== '' && <p className="sd-hint">{t('ai.exportCssWarning')}</p>}
+          {removedCssDeclarations > 0 && <p className="sd-hint">{t('ai.exportCssRemoved', { count: removedCssDeclarations })}</p>}
           <Toggle label={t('ai.exportExcludeCss')} checked={excludeCss} onChange={setExcludeCss} />
           <div className="sd-css-actions">
             <button ref={cancelExport} type="button" className="sd-button" onClick={closeExport}>{t('ai.exportCancel')}</button>

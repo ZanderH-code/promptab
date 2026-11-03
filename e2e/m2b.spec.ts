@@ -133,6 +133,30 @@ test('exported theme files round-trip through preview, apply, undo and AI reply'
   await expect.poll(() => accent(page)).toBe('#223344')
 })
 
+test('theme export retains portable CSS and reports removed asset declarations', async ({ page }) => {
+  await settingsEntry(page).click()
+  await openTab(page, 'style')
+  await cssEditor(page).fill('.mnt-clock { color: red; background-image: url(data:image/png;base64,AAAA) }')
+  await page.locator('.sd-css .sd-button', { hasText: /^(应用|Apply)$/ }).click()
+  await openTab(page, 'ai')
+  await page.getByRole('button', { name: /^(导出主题包|Export theme pack)$/ }).click()
+  const dialog = page.getByRole('dialog', { name: /^(导出主题包|Export theme pack)$/ })
+  const removed = dialog.getByText(/1 CSS declarations|已省略 1 条/)
+  await expect(removed).toBeVisible()
+  const exclude = dialog.getByRole('checkbox', { name: /^(不导出自定义 CSS|Exclude custom CSS)$/ })
+  await exclude.check()
+  await expect(removed).toHaveCount(0)
+  await exclude.uncheck()
+  await expect(removed).toBeVisible()
+  const downloadPromise = page.waitForEvent('download')
+  await dialog.getByRole('button', { name: /^(下载 \.json|Download \.json)$/ }).click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('exported-theme.theme-pack.json')
+  const pack = JSON.parse((await readFile((await download.path())!)).toString())
+  expect(pack.css).toContain('color:red')
+  expect(pack.css).not.toContain('data:image/')
+})
+
 test('loads the CSS editor only when the style tab opens', async ({ page }) => {
   const editorRequests: string[] = []
   page.on('request', request => { if (/\/CssCodeMirror-[^/]+\.js(?:\?|$)/.test(request.url())) editorRequests.push(request.url()) })
