@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { migrateV1 } from '../migrate/v1'
 import { defaults } from '../model'
-import { parseInfinityBackup } from './import'
+import { applyInfinityBackup, parseInfinityBackup } from './import'
 
 const fixture = JSON.stringify({
   version: 'v2', extVersion: '11.0.43', backupType: 'local', time: 1,
@@ -35,6 +35,18 @@ async function profile() {
 }
 
 describe('Infinity backup importer', () => {
+  it.each([false, true])('applies against the latest profile (replace=%s)', async replace => {
+    const current = await profile()
+    parseInfinityBackup(fixture, current) // Preview before subsequent edits.
+    current.meta.name = 'Edited after preview'
+    current.theme.iconShape = 'square'
+    current.bookmarks.groups[0].items.push({ id: 'later', name: 'Later edit', url: 'https://edit.example', color: '#123456', icon: 'E' })
+    const result = applyInfinityBackup(fixture, current, replace)
+    expect(result.meta.name).toBe('Edited after preview')
+    expect(result.theme.iconShape).toBe('circle') // explicitly imported setting
+    expect(result.bookmarks.groups.flatMap(group => group.items).some(item => item.id === 'later')).toBe(!replace)
+    expect(result.bookmarks.groups.flatMap(group => group.items).some(item => item.name === 'Docs & Guides')).toBe(true)
+  })
   it('decodes names, maps pages and folders, converts colors and safely summarizes unsupported data', async () => {
     const result = parseInfinityBackup(fixture, await profile())
     const groups = result.profile.bookmarks.groups

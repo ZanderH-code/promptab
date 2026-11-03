@@ -1,7 +1,21 @@
 import { expect, it } from 'vitest'
 import { migrateV1 } from './migrate/v1'
 import { defaults } from './model'
-import { countUnchangedStarterSites, removeUnchangedStarterSites, STARTER_SITES } from './starter-sites'
+import { countUnchangedStarterSites, isUnchangedStarterSite, removeUnchangedStarterSites, STARTER_SITES } from './starter-sites'
+
+it('recognizes unchanged starters from the earlier bundled icon set', () => {
+  const amazon = { ...STARTER_SITES[5], iconMode: 'lucide' as const, iconName: 'shopping-bag' }
+  const outlook = { ...STARTER_SITES[7], iconMode: 'lucide' as const, iconName: 'mail' }
+  expect(isUnchangedStarterSite(amazon)).toBe(true)
+  expect(isUnchangedStarterSite(outlook)).toBe(true)
+  expect(isUnchangedStarterSite({ ...amazon, name: 'My Amazon' })).toBe(false)
+})
+
+it('uses text fallbacks for Amazon and Outlook without external icons', () => {
+  expect(STARTER_SITES.filter(site => ['starter-amazon', 'starter-outlook'].includes(site.id))).toMatchObject([
+    { icon: 'A', iconMode: 'text' }, { icon: 'O', iconMode: 'text' },
+  ])
+})
 
 it('removes only unchanged starter shortcuts, even when moved to another group', async () => {
   const profile = await migrateV1({ ...defaults, shortcuts: [] }, { id: () => 'p', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unused') } })

@@ -214,6 +214,23 @@ function unsupportedNotices(data: RecordValue): InfinityNotice[] {
   return notices
 }
 
+export function applyInfinityBackup(json: string, current: ProfileV2, replaceBookmarks: boolean): ProfileV2 {
+  const imported = parseInfinityBackup(json, current).profile
+  if (!replaceBookmarks) {
+    const existingQuick = current.bookmarks.groups.find(group => group.builtinName === 'quick-links')
+    const importedQuick = imported.bookmarks.groups.find(group => group.builtinName === 'quick-links')
+    const importedOther = imported.bookmarks.groups.filter(group => group.builtinName !== 'quick-links')
+    if (existingQuick && importedQuick) {
+      const urls = new Set(existingQuick.items.map(item => item.url))
+      const additions = importedQuick.items.filter(item => !urls.has(item.url))
+      imported.bookmarks.groups = current.bookmarks.groups.map(group => group === existingQuick ? { ...group, items: [...group.items, ...additions] } : group).concat(importedOther)
+    } else {
+      imported.bookmarks.groups = [...current.bookmarks.groups, ...importedOther, ...(importedQuick && !existingQuick ? [importedQuick] : [])]
+    }
+  }
+  return imported
+}
+
 /** Convert an Infinity v2 backup locally; remote image references are never read or fetched. */
 export function parseInfinityBackup(json: string, current: ProfileV2): InfinityImportResult {
   if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new Error('Invalid Infinity backup size')
