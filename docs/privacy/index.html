@@ -30,7 +30,7 @@
       <h2>Privacy policy</h2>
       <p>Promptab is available as a browser extension and a separately hosted web app. The developer does not collect user data. Promptab has no account system, advertising SDK, analytics, telemetry, or developer-operated application server.</p>
       <h3>Extension and web data are separate</h3>
-      <p>The extension stores settings, profiles, bookmarks and shortcuts, layouts, themes, custom CSS, imported themes, and locally added images and fonts in browser-managed extension storage. The web version stores its settings in that website's local storage and its larger assets in browser-local IndexedDB. These stores are separate: using the same browser does not automatically share settings between the extension and web app. Neither sends saved settings to a Promptab server.</p>
+      <p>The extension stores settings and preferences (including keyboard shortcuts and accent behavior), profiles, bookmarks and shortcuts, layouts, themes, custom CSS, saved and imported themes, and locally added images and fonts in browser-managed extension storage. The web version stores its settings in that website's local storage and its larger assets in browser-local IndexedDB. These stores are separate: using the same browser does not automatically share settings between the extension and web app. These features do not contact a Promptab service. Saved themes stay local and are not part of Browser Sync.</p>
       <p>To migrate between versions, export a backup from <strong>Settings → Data → Export backup</strong>, save the file, then use the other version's import control. Import validates the backup before applying it. Backups are files you control; protect or delete them as you choose. Extension-only features such as Browser Sync and browser bookmark import are unavailable on the web version because it has no extension permission APIs.</p>
       <h3>Optional extension bookmark access</h3>
       <p>The extension's <code>bookmarks</code> permission is optional and requested only when you start browser-bookmark import. If granted, Promptab reads the bookmark tree to show available folders, then copies the folders and links you select into the extension's local profile. It does not continuously monitor bookmarks. The web version cannot request this extension permission.</p>
@@ -38,14 +38,14 @@
       <p>Promptab does not run a general data-collection channel. Features you choose can contact other services directly:</p>
       <ul>
         <li>Automatic extension icons use the browser's favicon endpoint when available. The fallback requests <code>/favicon.ico</code> from the shortcut's website. The web version does not have the extension favicon permission; opening shortcuts still contacts their websites.</li>
-        <li>Searches navigate to your selected provider with your query. Remote wallpapers and imported remote images are fetched from their configured URLs.</li>
+        <li>Searches navigate to your selected provider with your query. Wallpaper and shortcut images are managed locally; Promptab does not fetch remote wallpaper or shortcut-image URLs.</li>
         <li>Opening the theme gallery fetches its list from <code>zanderh-code.github.io</code>; selecting a theme fetches its pack from the same host. The list is cached locally for offline browsing.</li>
         <li>The optional weather widget contacts Open-Meteo only after you use a weather action. City search sends the city name to <code>geocoding-api.open-meteo.com</code>; loading weather sends coordinates to <code>api.open-meteo.com</code>. Location is requested only after you click its button, with no background tracking. Weather is cached locally for at least 30 minutes.</li>
         <li>If you choose direct BYOK sending, the browser sends your prompt, selected model, and API key directly to <code>api.anthropic.com</code> or <code>api.openai.com</code>. The web app makes these requests from the browser without a Promptab relay. Anthropic requests include the <code>anthropic-dangerous-direct-browser-access: true</code> header required for direct browser requests; OpenAI requests use bearer authentication. The provider receives the request and handles it under its own terms and privacy policy; API charges may apply.</li>
       </ul>
       <p>BYOK keys are held only in the active page session's memory. They are not written to browser storage or uploaded to Promptab, and are cleared when the page session ends. Promptab does not use feature requests for analytics or sell personal information.</p>
       <h3>Browser Sync and deletion</h3>
-      <p>Browser Sync is an extension-only feature and is off by default. If enabled, shortcut/group data, theme settings, layout and update metadata are written to <code>chrome.storage.sync</code>, which Chrome processes for your signed-in browser account under Google's terms. Wallpaper, video, uploaded fonts and bookmark images stay in local IndexedDB. The web version does not support Browser Sync. Use each version's reset controls or the browser's site/extension data controls to remove local data. Uninstalling removes extension storage subject to browser behavior; exported backups remain wherever saved. This policy may change when data practices change. The Promptab repository provides project contact details.</p>
+      <p>Browser Sync is an extension-only feature and is off by default. If enabled, profile preferences (including keyboard-shortcut and accent-on-open settings), shortcut/group data, theme settings, layout and update metadata are written to <code>chrome.storage.sync</code>, which Chrome processes for your signed-in browser account under Google's terms. Saved themes, wallpaper, video, uploaded fonts and bookmark images stay local and are not synced. The web version does not support Browser Sync. Use each version's reset controls or the browser's site/extension data controls to remove local data. Uninstalling removes extension storage subject to browser behavior; exported backups remain wherever saved. This policy may change when data practices change. The Promptab repository provides project contact details.</p>
     </section>
     <section id="chinese" lang="zh-CN">
       <h2>隐私政策</h2>
@@ -59,14 +59,14 @@
       <p>Promptab 不会通过通用渠道收集数据。你主动使用的功能可能直接联系其他服务：</p>
       <ul>
         <li>扩展的自动网站图标会在可用时使用浏览器 favicon 接口，后备方式会请求快捷方式网站的 <code>/favicon.ico</code>。网页版没有扩展 favicon 权限；打开快捷方式仍会访问相应网站。</li>
-        <li>搜索会携带查询内容跳转到你选择的搜索服务。远程壁纸或导入的远程图片会从配置的网址获取。</li>
+        <li>搜索会携带查询内容跳转到你选择的搜索服务。壁纸和快捷方式图片由本地管理；Promptab 不会获取远程壁纸或快捷方式图片网址。</li>
         <li>打开主题画廊时会从 <code>zanderh-code.github.io</code> 获取主题列表；选择主题时会从同一主机获取主题包。列表会缓存在本地，供离线浏览。</li>
         <li>可选天气组件只在你使用相关操作后联系 Open-Meteo。城市搜索会向 <code>geocoding-api.open-meteo.com</code> 发送城市名称；加载天气会向 <code>api.open-meteo.com</code> 发送坐标。只有点击定位按钮后才请求位置，不会在后台持续跟踪。天气至少在本地缓存 30 分钟。</li>
         <li>如选择 BYOK 直连，你的提示、所选模型和 API 密钥会由浏览器直接发送到 <code>api.anthropic.com</code> 或 <code>api.openai.com</code>，不经过 Promptab 中转。Anthropic 请求会带有其浏览器直连所需的 <code>anthropic-dangerous-direct-browser-access: true</code> 请求头；OpenAI 请求使用 Bearer 身份验证。服务提供商会依据自己的条款和隐私政策处理请求，API 使用可能收费。</li>
       </ul>
       <p>BYOK 密钥只保留在当前页面会话的内存中，不写入浏览器存储，也不会上传给 Promptab；页面会话结束后即被清除。Promptab 不使用这些功能请求进行分析，也不出售个人信息。</p>
       <h3>浏览器同步与数据删除</h3>
-      <p>浏览器同步仅适用于扩展，默认关闭。启用后，快捷方式/分组、主题设置、布局和更新时间会写入 <code>chrome.storage.sync</code>，由 Chrome 根据 Google 条款为你已登录的浏览器账号处理。壁纸、视频、上传的字体和书签图片仍保存在本地 IndexedDB。网页版不支持浏览器同步。你可以使用各版本的重置控件，或浏览器的站点/扩展数据设置删除本地数据。卸载扩展会删除浏览器管理的扩展存储，具体取决于浏览器行为；导出的备份仍保留在保存位置。如果数据处理方式发生变化，本政策可能更新。项目联系信息见 Promptab 仓库。</p>
+      <p>浏览器同步仅适用于扩展，默认关闭。启用后，配置偏好（包括键盘快捷键和打开时的强调色设置）、快捷方式/分组、主题设置、布局和更新时间会写入 <code>chrome.storage.sync</code>，由 Chrome 根据 Google 条款为你已登录的浏览器账号处理。已保存主题、壁纸、视频、上传的字体和书签图片仍保存在本地，不会同步。网页版不支持浏览器同步。你可以使用各版本的重置控件，或浏览器的站点/扩展数据设置删除本地数据。卸载扩展会删除浏览器管理的扩展存储，具体取决于浏览器行为；导出的备份仍保留在保存位置。如果数据处理方式发生变化，本政策可能更新。项目联系信息见 Promptab 仓库。</p>
     </section>
   </main>
 </body>

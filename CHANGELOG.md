@@ -9,16 +9,22 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 ### Added
 
 - Use your own Anthropic or OpenAI API key to send a theme request directly, or continue using the manual copy-and-paste workflow. Keys remain in the interface session and provider charges may apply.
-- Browse the theme gallery and preview theme packs before applying them.
-- Use local video wallpapers and rotate selected wallpapers.
+- Browse the public theme gallery, preview packs, and try themes in the hosted web app.
+- Use the hosted web app as an installable PWA, with public guides and API references.
+- Share themes by exporting portable theme packs. Save themes locally for later use.
+- Use local image and video wallpapers, rotate selected wallpapers, and customize the new-tab experience with more layout and opening options.
+- Open all links in a group, including large groups, with keyboard- and touch-friendly group menus.
 - Add Todo, Note, Countdown, and optional weather widgets to the new tab.
 - Opt in to browser profile sync across devices. Large local assets remain on the device.
+- Find keyboard shortcuts, choose an accent on open, and use the accent palette cycle.
+- Show week numbers, choose the week start, and optionally add a greeting transition line.
+- Restore selected backup sections and undo the restore as one change.
 - Build and temporarily install a separate Firefox extension package.
 
 ### Changed
 
 - Load bookmark editing and the brand icon catalog on demand to reduce startup JavaScript.
-- Improve profile sync handling, local recovery, and simultaneous wallpaper rotation.
+- Improve mobile and dashboard layouts, profile sync handling, local recovery, and simultaneous wallpaper rotation.
 
 ## [0.9.0]
 

@@ -1,5 +1,29 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.10.0
+
+M6–M20 are complete; release materials are being refreshed. Main commits:
+
+- M6 optional AI, wallpaper, widgets, weather, and sync: `cb7ad67`, `c2a7c5c`, `16b98b5`, `17f1d62`, `15a8d62`
+- M7 Firefox runtime and package: `7a24801`, `2415cb6`
+- M8 0.10.0 packaging and store materials: `4c6cd36`, `6eb1c24`, `7842086`
+- M9 mobile and touch support: `14f4a8b`
+- M10 hosted web app and PWA: `a108b64`, `61cf0d0`
+- M11 public theme gallery: `6d4720e`, `94ccc93`
+- M12 gallery links into web previews: `1ae41cf`
+- M13 public guides and API references: `4bccf1b`, `e76fbfc`
+- M14 gallery layout and visual quality: `f0d3c3a`
+- M15 responsive clock and layout fixes: `5fb7cb5`, `18ff047`, `40dea60`
+- M16 runtime localization: `7c1fe12`
+- M17 portable theme export and sharing: `ff47a94`, `878b659`
+- M18 export fidelity and filenames: `c3de9c1`, `1fe9a69`
+- M19 new-tab preferences and saved themes: `cf01dc8`
+- M20 keyboard/touch menus, date/greeting options, and selective backup restore: `ce11152`, `59219df`, `35834a1`, `a1fb099`, `5be14f4`
+
+Remaining: submit the store listings; perform manual checks in real Firefox; consider embedding wallpapers in theme packs after a format change; remote image wallpapers remain intentionally unsupported.
+
+---
+
 日期：2026-10-31（取代同日的 v1 计划）  
 产品名：Promptab  
 配套文档：[docs/DESIGN.md](docs/DESIGN.md)（美学设计指南）

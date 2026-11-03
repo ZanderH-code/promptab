@@ -137,8 +137,14 @@ test('touch controls meet the 44 pixel target size', async ({ page }) => {
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Edit desktop' }).click()
   await page.mouse.move(0, 0)
   await expect(page.locator('.shortcut-actions').first()).toHaveCSS('opacity', '1')
-  for (const target of await page.locator('.shortcut-actions button, .drag-handle').all()) {
+  await expect(page.locator('.drag-handle').first()).toBeEnabled()
+  const shortcutControls = page.locator('.shortcut-actions button, .drag-handle')
+  const controlCount = await shortcutControls.count()
+  for (let index = 0; index < controlCount; index++) {
+    const target = shortcutControls.nth(index)
+    await expect(target).toBeVisible()
     const box = await target.boundingBox()
+    expect(box).not.toBeNull()
     expect(box!.width).toBeGreaterThanOrEqual(44)
     expect(box!.height).toBeGreaterThanOrEqual(44)
   }

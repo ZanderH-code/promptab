@@ -125,34 +125,10 @@ test('generate original store screenshots', async ({ page }) => {
   await expect(weather.getByText('22°C')).toBeVisible()
   await capture('06-widgets-weather')
 
-  await applyGalleryTheme('slate-rain')
-  // A local storage mock makes the sync controls available in this web-preview capture.
-  const stored = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage).map(([key, value]) => [key, key === 'settings' ? JSON.parse(value) : value])))
-  await page.addInitScript((initial: Record<string, unknown>) => {
-    const local: Record<string, unknown> = { ...initial }
-    const sync: Record<string, unknown> = {}
-    const area = (data: Record<string, unknown>) => ({
-      async get(keys: string[] | string | null) {
-        if (keys === null) return { ...data }
-        const list = Array.isArray(keys) ? keys : [keys]
-        return Object.fromEntries(list.filter(key => Object.hasOwn(data, key)).map(key => [key, data[key]]))
-      },
-      async set(items: Record<string, unknown>) { Object.assign(data, items) },
-      async remove(keys: string[] | string) { for (const key of Array.isArray(keys) ? keys : [keys]) delete data[key] },
-      async getKeys() { return Object.keys(data) },
-    })
-    Object.defineProperty(globalThis, 'chrome', { configurable: true, value: { storage: {
-      local: area(local), sync: area(sync), onChanged: { addListener() {}, removeListener() {} },
-    } } })
-  }, stored)
-  await page.reload()
-  await expect(page.locator('.clock')).toBeVisible()
-  await settings()
-  await openTab(page, 'data')
-  await page.getByRole('heading', { name: 'Browser sync', exact: true }).scrollIntoViewIfNeeded()
-  await expect(page.getByRole('checkbox', { name: 'Sync this profile across devices' })).toBeEnabled()
-  await page.getByText('Import from nightTab', { exact: true }).evaluate(element => element.closest('.sd-item')?.setAttribute('data-store-screenshot-hide', ''))
-  await capture('07-sync-settings', '[data-store-screenshot-hide] { display: none !important }')
+  await page.locator('.settings-button').focus()
+  await page.keyboard.press('?')
+  await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible()
+  await capture('07-keyboard-shortcuts')
   for (const file of await readdir(output)) {
     if (!file.toLowerCase().endsWith('.png')) continue
     const image = await readFile(resolve(output, file))
