@@ -26,6 +26,13 @@ jobs:
       - run: node scripts/package-extension.mjs dist-firefox && node scripts/verify-package.mjs firefox
       - run: npm run test:release
       - run: npx --yes web-ext lint --source-dir dist-firefox
+      - name: Ensure tests leave a clean tree
+        shell: bash
+        run: |
+          git diff --exit-code
+          status="$(git status --porcelain)"
+          printf '%s\n' "$status"
+          test -z "$status"
 
   playwright:
     runs-on: windows-latest
@@ -42,6 +49,13 @@ jobs:
       - run: npm ci
       - run: npx playwright install chromium
       - run: npx playwright test --workers=1
+      - name: Ensure tests leave a clean tree
+        shell: bash
+        run: |
+          git diff --exit-code
+          status="$(git status --porcelain)"
+          printf '%s\n' "$status"
+          test -z "$status"
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

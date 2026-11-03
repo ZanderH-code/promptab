@@ -45,7 +45,7 @@ async function prepareBanner(page: import('@playwright/test').Page) {
   await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', 'banner')
 }
 
-test('Template B plays a local video after its poster is visible', async ({ page }) => {
+test('Template B plays a local video after its poster is visible', async ({ page }, testInfo) => {
   await prepareBanner(page)
   const file = await createWebm(page)
   await page.locator('.mnt-settings-entry').click()
@@ -76,7 +76,7 @@ test('Template B plays a local video after its poster is visible', async ({ page
   expect(firstFrameMs).toBeLessThan(3000)
   await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', 'banner')
   await page.getByRole('button', { name: 'Close settings' }).click()
-  await page.screenshot({ path: 'store/video-background.png', animations: 'disabled', style: '.undo-toast { visibility: hidden !important; }' })
+  await page.screenshot({ path: testInfo.outputPath('video-background.png'), animations: 'disabled', style: '.undo-toast { visibility: hidden !important; }' })
   console.log(`Video wallpaper first frame after upload: ${firstFrameMs} ms`)
   await page.addInitScript(() => {
     const times: Record<string, number> = {}
