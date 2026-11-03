@@ -123,8 +123,9 @@ test('service worker keeps the app shell available offline', async ({ page, cont
   await expect(page.locator('.clock')).toBeVisible()
 })
 
-test('a waiting service worker prompts for refresh and preserves the profile', async ({ page }) => {
-  await openApp(page, { accent: '#abcdef' })
+test('a waiting service worker prompts in the saved language and preserves the profile', async ({ page }) => {
+  await openApp(page, { accent: '#abcdef', language: 'zh-CN' })
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN')
   await page.evaluate(() => navigator.serviceWorker.ready)
   await page.reload()
   await expect.poll(() => page.evaluate(() => navigator.serviceWorker.controller !== null)).toBe(true)
@@ -142,7 +143,7 @@ test('a waiting service worker prompts for refresh and preserves the profile', a
   const before = await profile()
   expect((await page.request.post('./__test__/worker-version')).status()).toBe(204)
   await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())!.update())
-  await expect(page.locator('.pwa-update-prompt')).toHaveText('New version available · Refresh')
+  await expect(page.locator('.pwa-update-prompt')).toHaveText('新版本可用 · 刷新')
   const reloaded = page.waitForEvent('load')
   await page.locator('.pwa-update-prompt').click()
   await reloaded
