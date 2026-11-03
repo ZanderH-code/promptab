@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process'
 import { siYoutube, siReddit, siGmail, siGithub, siGoogledrive, siGooglecalendar } from 'simple-icons'
 
 const root = resolve('.')
+const version = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).version
 const galleryPack = name => JSON.parse(readFileSync(resolve(root, `docs/gallery/packs/${name}.json`), 'utf8'))
 
 const templateShortcuts = [
@@ -243,7 +244,7 @@ const logoSvg = `data:image/svg+xml;base64,${readFileSync(resolve(root, 'docs/br
     <div class="brand-row">
       <img src="${logoSvg}" width="42" height="42" alt="Promptab Logo">
       <span class="brand-name">PROMPTAB</span>
-      <span class="brand-tag">v0.9.0</span>
+      <span class="brand-tag">v${version}</span>
     </div>
     <div class="headline-group">
       <h1>Your New Tab,<br><span>Designed by AI</span></h1>
