@@ -96,6 +96,38 @@ describe('SettingsDrawer tabs', () => {
     await waitFor(() => expect(screen.getByText('backup-stub')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Reset settings' })).toBeInTheDocument()
   })
+
+  it('previews Infinity import counts, adds into Quick links as one undoable change', async () => {
+    const props = setup()
+    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    const backup = JSON.stringify({ version: 'v2', data: { site: { sites: [[{ type: 'web', name: 'Imported', target: 'https://imported.example', bgType: 'image' }]] } } })
+    const file = new File([backup], 'backup.infinity', { type: 'application/json' })
+    Object.defineProperty(file, 'text', { value: async () => backup })
+    await waitFor(() => expect(screen.getByLabelText('Choose Infinity backup')).toBeInTheDocument())
+    fireEvent.change(screen.getByLabelText('Choose Infinity backup'), { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByText(/Groups: 1.*Links: 1/)).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Add to my bookmarks' }))
+    const { next, kind } = lastUpdate(props)
+    expect(kind).toBe('import')
+    expect(next.bookmarks.groups.filter(group => group.builtinName === 'quick-links')).toHaveLength(1)
+    expect(next.bookmarks.groups.find(group => group.builtinName === 'quick-links')?.items.map(item => item.name)).toContain('Imported')
+    expect(screen.getByRole('status')).toHaveTextContent('Infinity backup imported')
+  })
+
+  it('replaces bookmarks from an Infinity import with one undoable change', async () => {
+    const props = setup()
+    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    const backup = JSON.stringify({ version: 'v2', data: { site: { sites: [[{ type: 'web', name: 'Imported', target: 'https://imported.example', bgType: 'image' }]] } } })
+    const file = new File([backup], 'backup.infinity', { type: 'application/json' })
+    Object.defineProperty(file, 'text', { value: async () => backup })
+    await waitFor(() => expect(screen.getByLabelText('Choose Infinity backup')).toBeInTheDocument())
+    fireEvent.change(screen.getByLabelText('Choose Infinity backup'), { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Replace my bookmarks' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: 'Replace my bookmarks' }))
+    const { next, kind } = lastUpdate(props)
+    expect(kind).toBe('import')
+    expect(next.bookmarks.groups.flatMap(group => group.items).map(item => item.name)).toEqual(['Imported'])
+  })
 })
 
 describe('SettingsDrawer search', () => {

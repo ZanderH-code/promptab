@@ -6,7 +6,7 @@ import { parseSavedThemes, type SavedTheme } from './themes/library'
 export const MAX_BACKUP_ASSET_BYTES = DEFAULT_MAX_ASSET_BYTES
 export const MAX_BACKUP_VIDEO_BYTES = 30 * 1024 * 1024
 export const MAX_BACKUP_TOTAL_ASSET_BYTES = 50 * 1024 * 1024
-const MAX_BACKUP_JSON_CHARS = 80 * 1024 * 1024
+export const MAX_BACKUP_JSON_CHARS = 80 * 1024 * 1024
 const mimeTypes = new Set(['image/png', 'image/jpeg', 'image/webp', 'video/mp4', 'video/webm'])
 const maxBytesForMime = (mime: string) => mime.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
 const assetId = /^[a-f0-9]{64}$/

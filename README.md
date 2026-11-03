@@ -32,11 +32,11 @@ Promptab transforms natural-language prompts into custom themes, layouts, typogr
 - Clock, date, search, greetings and other configurable widgets; layout templates and editable widget areas
 - Website shortcuts with groups, drag-and-drop sorting, browser bookmark import, and automatic, image or text icons
 - Preset themes, colors, fonts, shapes, custom CSS and local wallpaper
-- Multiple profiles, undo history, JSON backups, and nightTab import
+- Multiple profiles, undo history, JSON backups, and nightTab and Infinity backup imports
 - AI workbench for creating, validating, previewing and sharing theme packs with your own AI assistant
 - English and Simplified Chinese interface
 
-Back up your setup via **Settings → Data → Export backup** and keep the file outside the browser before uninstalling. Import validates the backup before replacing your setup.
+Back up your setup via **Settings → Data → Export backup** and keep the file outside the browser before uninstalling. Import validates the backup before replacing your setup. To move from Infinity New Tab, choose its local `.infinity` or JSON backup in **Settings → Data → Import from Infinity New Tab**; review the summary, then add its bookmarks or replace yours. Infinity images and cloud wallpapers are not downloaded.
 
 ## Use the web version
 

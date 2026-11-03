@@ -31,7 +31,7 @@
       <p>Promptab is available as a browser extension and a separately hosted web app. The developer does not collect user data. Promptab has no account system, advertising SDK, analytics, telemetry, or developer-operated application server.</p>
       <h3>Extension and web data are separate</h3>
       <p>The extension stores settings and preferences (including keyboard shortcuts and accent behavior), profiles, bookmarks and shortcuts, layouts, themes, custom CSS, saved and imported themes, and locally added images and fonts in browser-managed extension storage. The web version stores its settings in that website's local storage and its larger assets in browser-local IndexedDB. These stores are separate: using the same browser does not automatically share settings between the extension and web app. These features do not contact a Promptab service. Saved themes stay local and are not part of Browser Sync.</p>
-      <p>To migrate between versions, export a backup from <strong>Settings → Data → Export backup</strong>, save the file, then use the other version's import control. Import validates the backup before applying it. Backups are files you control; protect or delete them as you choose. Extension-only features such as Browser Sync and browser bookmark import are unavailable on the web version because it has no extension permission APIs.</p>
+      <p>To migrate between versions, export a backup from <strong>Settings → Data → Export backup</strong>, save the file, then use the other version's import control. Import validates the backup before applying it. Infinity New Tab backups are read locally in the active page; remote image references and cloud wallpapers in those files are not downloaded. Backups are files you control; protect or delete them as you choose. Extension-only features such as Browser Sync and browser bookmark import are unavailable on the web version because it has no extension permission APIs.</p>
       <h3>Optional extension bookmark access</h3>
       <p>The extension's <code>bookmarks</code> permission is optional and requested only when you start browser-bookmark import. If granted, Promptab reads the bookmark tree to show available folders, then copies the folders and links you select into the extension's local profile. It does not continuously monitor bookmarks. The web version cannot request this extension permission.</p>
       <h3>Network requests and navigation</h3>
@@ -52,7 +52,7 @@
       <p>Promptab 提供浏览器扩展和单独托管的网页版。开发者不收集用户数据；Promptab 不包含账号系统、广告 SDK、分析、遥测或开发者运营的应用服务器。</p>
       <h3>扩展与网页版数据分开保存</h3>
       <p>扩展将设置、配置文件、书签和快捷方式、布局、主题、自定义 CSS、导入的主题以及本地添加的图片和字体保存在设备的浏览器扩展存储中。网页版将设置保存在该网站的本地存储中，并将较大的资源保存在浏览器本地 IndexedDB 中。两者使用独立存储；即使在同一浏览器中使用，也不会自动共享配置。保存的数据不会发送给 Promptab 服务器。</p>
-      <p>如需在两个版本之间迁移，请在「设置 → 数据 → 导出备份」中导出并保存文件，再在另一个版本中使用导入功能。导入前会校验备份。备份文件由你自行保管或删除。浏览器同步和浏览器书签导入仅适用于扩展，网页版没有扩展权限 API，无法使用这些功能。</p>
+      <p>如需在两个版本之间迁移，请在「设置 → 数据 → 导出备份」中导出并保存文件，再在另一个版本中使用导入功能。导入前会校验备份。Infinity New Tab 备份只在当前页面本地解析；文件中的远程图片引用和云端壁纸不会被下载。备份文件由你自行保管或删除。浏览器同步和浏览器书签导入仅适用于扩展，网页版没有扩展权限 API，无法使用这些功能。</p>
       <h3>扩展的可选书签权限</h3>
       <p>扩展的 <code>bookmarks</code> 是可选权限，仅在你开始导入浏览器书签时请求。授权后，Promptab 会读取书签树以展示可选文件夹，并将你选择的文件夹和链接复制到扩展本地配置中；不会持续监控书签。网页版无法请求此扩展权限。</p>
       <h3>网络请求与访问网站</h3>

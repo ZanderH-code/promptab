@@ -314,3 +314,27 @@ test('split and reversed layouts remain inside narrow windows with many shortcut
     expect(boxes.every(Boolean)).toBe(true)
   }
 })
+
+test('imports an Infinity backup locally, previews counts, adds and supports undo', async ({ page }) => {
+  const remoteImageRequests: string[] = []
+  page.on('request', request => { if (/infinitynewtab\.com/i.test(request.url())) remoteImageRequests.push(request.url()) })
+  await open(page)
+  await page.locator('.settings-button').click()
+  await openTab(page, 'data')
+  const backup = {
+    version: 'v2',
+    data: { site: { sites: [[
+      { type: 'web', name: 'Imported', target: 'https://imported.example', bgType: 'image', bgImage: 'https://infinitypro-img.infinitynewtab.com/private.png' },
+    ]] } },
+  }
+  await page.getByLabel('选择 Infinity 备份', { exact: true }).setInputFiles({ name: 'backup.infinity', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
+  const preview = page.getByRole('group', { name: 'Infinity 导入预览' })
+  await expect(preview.getByRole('note')).toContainText('分组：1')
+  await expect(preview.getByRole('note')).toContainText('链接：1')
+  await page.getByRole('button', { name: '添加到我的书签', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Infinity 备份已导入')
+  await expect.poll(async () => (await activeProfile(page)).bookmarks.groups.flatMap((group: any) => group.items).some((item: any) => item.name === 'Imported')).toBe(true)
+  await page.getByRole('button', { name: '撤销', exact: true }).click()
+  await expect.poll(async () => (await activeProfile(page)).bookmarks.groups.flatMap((group: any) => group.items).some((item: any) => item.name === 'Imported')).toBe(false)
+  expect(remoteImageRequests).toEqual([])
+})

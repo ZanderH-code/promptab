@@ -163,6 +163,31 @@ test('backup export can be imported back into web storage', async ({ page }) => 
   expect(restored).toEqual(parsed.profiles[0])
 })
 
+test('imports an Infinity backup in web storage and supports undo', async ({ page }) => {
+  await openApp(page)
+  await page.locator('.mnt-settings-entry').first().click()
+  await openTab(page, 'data')
+  const backup = {
+    version: 'v2',
+    data: { site: { sites: [[{ type: 'web', name: 'Imported', target: 'https://imported.example', bgType: 'image' }]] } },
+  }
+  await page.getByLabel('Choose Infinity backup', { exact: true }).setInputFiles({ name: 'backup.infinity', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
+  const preview = page.getByRole('group', { name: 'Infinity import preview' })
+  await expect(preview.getByRole('note')).toContainText('Groups: 1')
+  await expect(preview.getByRole('note')).toContainText('Links: 1')
+  await page.getByRole('button', { name: 'Add to my bookmarks', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Infinity backup imported')
+  const imported = async () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+    return profile.bookmarks.groups.flatMap((group: { items: { name: string }[] }) => group.items).some((item: { name: string }) => item.name === 'Imported')
+  })
+  await expect.poll(imported).toBe(true)
+  await page.locator('.undo-toast').getByRole('button', { name: /^(撤销|Undo)$/i }).click()
+  await expect.poll(imported).toBe(false)
+})
+
 test('service worker keeps the app shell available offline', async ({ page, context }) => {
   await openApp(page)
   await page.evaluate(() => navigator.serviceWorker.ready)
