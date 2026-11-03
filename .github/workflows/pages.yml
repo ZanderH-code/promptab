@@ -1,0 +1,62 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    permissions:
+      contents: read
+      pages: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:web
+      - name: Copy and verify published documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -a docs/. _site/
+
+          cmp docs/index.html _site/index.html
+          cmp docs/privacy/index.html _site/privacy/index.html
+          cmp docs/gallery/index.json _site/gallery/index.json
+          while IFS= read -r -d '' file; do cmp "$file" "_site/${file#docs/}"; done < <(find docs/gallery/packs -type f -print0)
+          while IFS= read -r -d '' file; do cmp "$file" "_site/${file#docs/}"; done < <(find docs/assets -type f -print0)
+      - name: Add web app under /app/
+        run: |
+          mkdir -p _site/app
+          cp -a dist-web/. _site/app/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

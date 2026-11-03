@@ -38,6 +38,12 @@ Promptab transforms natural-language prompts into custom themes, layouts, typogr
 
 Back up your setup via **Settings → Data → Export backup** and keep the file outside the browser before uninstalling. Import validates the backup before replacing your setup.
 
+## Use the web version
+
+Open the [Promptab web version](https://zanderh-code.github.io/promptab/app/) in a browser. On iPhone or iPad, open it in Safari, tap **Share**, then **Add to Home Screen**. On Android, open it in Chrome, tap the menu, then choose **Install app** or **Add to Home screen**.
+
+The web version stores its settings separately from the browser extension. To move a setup between them, export a backup in **Settings → Data**, then import that backup in the other version. Browser Sync and browser bookmark import require extension APIs and are unavailable in the web version. See the [privacy policy](https://zanderh-code.github.io/promptab/privacy/) for web-specific storage and network details.
+
 ## Try the Firefox build
 
 Build the Firefox version from the project directory:

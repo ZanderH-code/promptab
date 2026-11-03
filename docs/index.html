@@ -293,7 +293,10 @@
         Bring any AI assistant you already use—ChatGPT, Claude, Kimi, DeepSeek, or Gemini. No subscription, zero extra API fees, 100% local-first, with instant live preview and safe-mode rollback.
       </p>
       <div class="hero-actions">
-        <a href="https://github.com/ZanderH-code/promptab#install-in-edge" class="btn-primary" target="_blank" rel="noreferrer">
+        <a href="app/" class="btn-primary">
+          <span data-i18n="btn_web">Open web version</span>
+        </a>
+        <a href="https://github.com/ZanderH-code/promptab#install-in-edge" class="btn-secondary" target="_blank" rel="noreferrer">
           <span data-i18n="btn_install">🚀 Try Promptab (Developer Mode)</span>
         </a>
         <a href="https://github.com/ZanderH-code/promptab" class="btn-secondary" target="_blank" rel="noreferrer">
@@ -423,6 +426,27 @@
     </div>
   </section>
 
+  <!-- Web app installation -->
+  <section id="web-install">
+    <div class="container">
+      <div class="section-head">
+        <div class="section-eyebrow" data-i18n="sec_install_eyebrow">Use Promptab on mobile</div>
+        <h2 class="section-title" data-i18n="sec_install_title">Add the web version to your home screen</h2>
+        <p class="section-desc" data-i18n="sec_install_desc">Open the web version first, then use your browser's home-screen option.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-title" data-i18n="install_ios_title">iPhone and iPad</div>
+          <div class="feature-text" data-i18n="install_ios_desc">Open the web version in Safari, tap Share, then choose Add to Home Screen.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-title" data-i18n="install_android_title">Android</div>
+          <div class="feature-text" data-i18n="install_android_desc">Open the web version in Chrome, tap the menu, then choose Install app or Add to Home screen.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Footer -->
   <footer>
     <div class="container footer-inner">
@@ -441,6 +465,14 @@
     const translations = {
       en: {
         lang_btn: '中文',
+        btn_web: 'Open web version',
+        sec_install_eyebrow: 'Use Promptab on mobile',
+        sec_install_title: 'Add the web version to your home screen',
+        sec_install_desc: "Open the web version first, then use your browser's home-screen option.",
+        install_ios_title: 'iPhone and iPad',
+        install_ios_desc: 'Open the web version in Safari, tap Share, then choose Add to Home Screen.',
+        install_android_title: 'Android',
+        install_android_desc: 'Open the web version in Chrome, tap the menu, then choose Install app or Add to Home screen.',
         nav_showcase: 'Showcase',
         nav_workflow: 'AI Workflow',
         nav_features: 'Features',
@@ -493,6 +525,14 @@
       },
       zh: {
         lang_btn: 'English',
+        btn_web: '打开网页版',
+        sec_install_eyebrow: '在手机上使用 Promptab',
+        sec_install_title: '将网页版添加到主屏幕',
+        sec_install_desc: '先打开网页版，再使用浏览器的主屏幕添加选项。',
+        install_ios_title: 'iPhone 和 iPad',
+        install_ios_desc: '在 Safari 中打开网页版，点击“分享”，然后选择“添加到主屏幕”。',
+        install_android_title: 'Android',
+        install_android_desc: '在 Chrome 中打开网页版，点击菜单，然后选择“安装应用”或“添加到主屏幕”。',
         nav_showcase: '标志性布局',
         nav_workflow: 'AI 工作流',
         nav_features: '功能特色',
