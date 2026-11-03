@@ -233,24 +233,35 @@ async function checkWebByok(page: Page, provider: 'anthropic' | 'openai', key: s
   }
   const persisted = await page.evaluate(async () => {
     const local = JSON.stringify(localStorage)
-    if (!(await indexedDB.databases()).some(database => database.name === 'assets')) return { local, assets: '' }
-    const database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open('assets')
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-    const records = database.objectStoreNames.contains('assets')
-      ? await new Promise<unknown[]>((resolve, reject) => {
-        const request = database.transaction('assets', 'readonly').objectStore('assets').getAll()
+    const serialize = async (value: unknown): Promise<unknown> => {
+      if (value instanceof Blob) return await value.text()
+      if (Array.isArray(value)) return await Promise.all(value.map(serialize))
+      if (value && typeof value === 'object') return Object.fromEntries(await Promise.all(Object.entries(value).map(async ([key, item]) => [key, await serialize(item)])))
+      return value
+    }
+    const databases = await indexedDB.databases()
+    const contents: unknown[] = []
+    for (const { name } of databases) {
+      if (!name) continue
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open(name)
         request.onsuccess = () => resolve(request.result)
         request.onerror = () => reject(request.error)
       })
-      : []
-    database.close()
-    return { local, assets: JSON.stringify(records) }
+      for (const store of Array.from(database.objectStoreNames)) {
+        const records = await new Promise<unknown[]>((resolve, reject) => {
+          const request = database.transaction(store, 'readonly').objectStore(store).getAll()
+          request.onsuccess = () => resolve(request.result)
+          request.onerror = () => reject(request.error)
+        })
+        contents.push(await serialize(records))
+      }
+      database.close()
+    }
+    return { local, indexedDb: JSON.stringify(contents) }
   })
   expect(persisted.local).not.toContain(key)
-  expect(persisted.assets).not.toContain(key)
+  expect(persisted.indexedDb).not.toContain(key)
   await openTab(page, 'data')
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export backup', exact: true }).click()
