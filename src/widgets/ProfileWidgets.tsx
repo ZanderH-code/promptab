@@ -1,5 +1,5 @@
 import { Settings as SettingsIcon } from 'lucide-react'
-import { Suspense, lazy, useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import type { ProfileV2, Widget } from '../core/schema/profile'
 import type { Settings, Shortcut } from '../core/model'
 import type { MessageRef, Translate } from '../i18n'
@@ -48,7 +48,34 @@ function useNow(precision: 'second' | 'minute') {
 function ClockBlock({ widget, language, onContextMenu }: { widget: Extract<Widget, {type:'clock'}>; language: Settings['language']; onContextMenu: (event: ContextMenuEvent) => void }) {
   const p = widget.props
   const now = useNow(p.seconds ? 'second' : 'minute')
-  return <div className="intro" onContextMenu={onContextMenu}>{p.eyebrow === true && <div className="eyebrow"><span className="dot" /> {language === 'en' ? 'YOUR SPACE, YOUR PACE' : '你的空间，你的节奏'}</div>}<div className="clock mnt-clock">{formatClock(now, language, p)}</div></div>
+  const clock = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const container = clock.current
+    const text = container?.firstElementChild as HTMLElement | null
+    if (!container || !text) return
+    let disposed = false
+    const fit = () => {
+      if (disposed) return
+      text.style.fontSize = ''
+      const available = container.getBoundingClientRect().width
+      if (!available || text.getBoundingClientRect().width <= available) return
+      const original = parseFloat(getComputedStyle(container).fontSize)
+      let low = 0, high = original
+      for (let i = 0; i < 12; i++) {
+        const size = (low + high) / 2
+        text.style.fontSize = `${size}px`
+        if (text.getBoundingClientRect().width <= available) low = size
+        else high = size
+      }
+      text.style.fontSize = `${low}px`
+    }
+    const observer = new ResizeObserver(fit)
+    observer.observe(container)
+    void document.fonts.ready.then(fit)
+    fit()
+    return () => { disposed = true; observer.disconnect() }
+  })
+  return <div className="intro" onContextMenu={onContextMenu}>{p.eyebrow === true && <div className="eyebrow"><span className="dot" /> {language === 'en' ? 'YOUR SPACE, YOUR PACE' : '你的空间，你的节奏'}</div>}<div ref={clock} className="clock mnt-clock"><span style={{ whiteSpace: 'nowrap' }}>{formatClock(now, language, p)}</span></div></div>
 }
 
 function DateBlock({ widget, language }: { widget: Extract<Widget, {type:'date'}>; language: Settings['language'] }) {

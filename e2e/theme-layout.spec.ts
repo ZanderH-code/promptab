@@ -1,0 +1,78 @@
+import { test, expect, type Page } from '@playwright/test'
+import { readFileSync, readdirSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { openTab, seedExistingUser, templateBookmarks } from './helpers'
+
+const galleryRoot = resolve('docs/gallery')
+const gallery = JSON.parse(readFileSync(resolve(galleryRoot, 'index.json'), 'utf8')) as { packs: { id: string; file: string }[] }
+const presets = readdirSync(resolve('src/presets')).filter(file => file.endsWith('.json')).map(file =>
+  JSON.parse(readFileSync(resolve('src/presets', file), 'utf8')) as { id: string; name: { en: string } },
+)
+const viewports = [{ width: 1280, height: 800 }, { width: 1440, height: 900 }, { width: 1024, height: 768 }]
+
+async function checkLayout(page: Page) {
+  await page.evaluate(async () => { await document.fonts.ready; await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame) })
+  await expect(page.locator('.mnt-widget-frame').first()).toBeVisible()
+  const issues = await page.evaluate(() => {
+    const issues: string[] = []
+    const tolerance = 1
+    const areas = Array.from(document.querySelectorAll<HTMLElement>('.mnt-area'))
+    if (!areas.length) issues.push('No layout areas rendered')
+    for (const area of areas) {
+      const name = area.dataset.area
+      const bounds = area.getBoundingClientRect()
+      if (area.scrollWidth > area.clientWidth) {
+        issues.push(`area ${name} horizontal overflow: ${area.scrollWidth} vs ${area.clientWidth}`)
+      }
+      for (const widget of area.querySelectorAll<HTMLElement>('.mnt-widget-frame, .mnt-clock > span, .mnt-date, .search, .mnt-group-title')) {
+        const rect = widget.getBoundingClientRect()
+        const outsideVertical = !widget.matches('.mnt-clock > span') && (rect.top < bounds.top - tolerance || rect.bottom > bounds.bottom + tolerance)
+        if (rect.left < bounds.left - tolerance || rect.right > bounds.right + tolerance || outsideVertical) {
+          issues.push(`widget ${widget.dataset.widgetId} outside area ${name}: ${JSON.stringify({ left: rect.left - bounds.left, right: rect.right - bounds.right, top: rect.top - bounds.top, bottom: rect.bottom - bounds.bottom })}`)
+        }
+      }
+    }
+    return issues
+  })
+  expect.soft(issues, `layout at ${page.viewportSize()?.width}x${page.viewportSize()?.height}`).toEqual([])
+}
+
+test.beforeEach(async ({ page }) => {
+  await seedExistingUser(page, { language: 'en', shortcuts: templateBookmarks, iconSize: 64 })
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  await page.goto('/')
+  await expect(page.locator('.clock')).toBeVisible()
+})
+
+for (const item of gallery.packs) {
+  test(`gallery ${item.id} layout at desktop sizes`, async ({ page }) => {
+    await page.locator('.mnt-settings-entry').first().click()
+    await openTab(page, 'ai')
+    const pack = readFileSync(resolve(galleryRoot, item.file), 'utf8')
+    await page.getByRole('textbox', { name: "The AI's reply" }).fill(`\`\`\`json\n${pack}\n\`\`\``)
+    await page.getByRole('button', { name: 'Preview', exact: true }).click()
+    const banner = page.locator('.mnt-banner[data-kind="preview"]')
+    await expect(banner).toBeVisible()
+    await banner.getByRole('button', { name: 'Apply', exact: true }).click()
+    await page.getByRole('button', { name: 'Close settings' }).click()
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport)
+      await checkLayout(page)
+    }
+  })
+}
+
+for (const preset of presets) {
+  test(`preset ${preset.id} layout at desktop sizes`, async ({ page }) => {
+    await page.locator('.mnt-settings-entry').first().click()
+    await openTab(page, 'appearance')
+    const button = page.getByRole('button', { name: preset.name.en, exact: true })
+    await button.click()
+    await expect(button).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Close settings' }).click()
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport)
+      await checkLayout(page)
+    }
+  })
+}
