@@ -1,9 +1,9 @@
-import { parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from '../core/backup-v2'
+import { mergeBackupProfile, parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES, type BackupProfileSelection } from '../core/backup-v2'
 import { parseBackup } from '../core/backup'
 import { migrateV1 } from '../core/migrate/v1'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { SavedTheme } from '../core/themes/library'
-import { planImport, validateStored, type Committed, type ImportCollection, type ProfileCollection } from '../store/profile'
+import { planImport, validateStored, type Committed, type ImportCollection, type ProfileCollection, type ProfileStore } from '../store/profile'
 import type { HistoryOptions } from '../store/history'
 import type { createAssetLibrary } from './assets'
 import type { createProfileStorage } from './profiles'
@@ -118,6 +118,64 @@ export function createBackupV2Service(deps: {
       const result = await deps.profiles.write({ profiles, history: next.history }, expectedRevision)
       if (importedThemes && deps.themes) await deps.themes.write(importedThemes)
       return result
+    },
+
+    async importFullIntoStore(json: string, expectedRevision: number | null, store: { getState(): ProfileStore }) {
+      const state = store.getState()
+      if (state.revision !== expectedRevision) throw new Error('Profile revision conflict')
+      let collection: ImportCollection
+      let importedThemes: SavedTheme[] | undefined
+      if (backupFormat(json) === 1) {
+        const parsed = parseBackup(json)
+        const replacement = await migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
+        collection = v1Collection({ profiles: state.profiles, activeProfileId: state.activeProfileId, history: state.history, archived: state.archived }, replacement)
+      } else {
+        const backup = await parseBackupV2(json)
+        collection = backup
+        importedThemes = backup.themes
+        for (const asset of backup.assets) {
+          const reference = `mnt-asset:${asset.id}`
+          const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
+          if (await deps.assets.add(asset.blob, limit) !== reference) throw new Error('Asset ID mismatch')
+          const stored = await deps.assets.get(reference)
+          if (!stored) throw new Error(`Missing asset: ${asset.id}`)
+          const digest = await crypto.subtle.digest('SHA-256', await stored.arrayBuffer())
+          if (Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('') !== asset.id) throw new Error('Stored asset hash mismatch')
+        }
+      }
+      const library = importedThemes && deps.themes ? { ...deps.themes, incoming: importedThemes } : undefined
+      await store.getState().importBackupCollection(collection, library, expectedRevision)
+    },
+
+    /** Restore selected parts of the backup's active profile into the current active profile. */
+    async importPartial(json: string, expectedRevision: number | null, selection: BackupProfileSelection & { savedThemes: boolean }, store: { getState(): ProfileStore }) {
+      if (!Object.values(selection).some(Boolean)) throw new Error('Nothing selected')
+      const state = store.getState()
+      if (state.revision !== expectedRevision) throw new Error('Profile revision conflict')
+      const id = state.activeProfileId
+      let incoming: ProfileV2
+      let themes: SavedTheme[] | undefined
+      if (backupFormat(json) === 1) {
+        const parsed = parseBackup(json)
+        incoming = await migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
+        // Legacy backups do not contain a saved theme library.
+      } else {
+        const backup = await parseBackupV2(json)
+        incoming = backup.profiles.find(profile => profile.meta.id === backup.activeProfileId)!
+        themes = backup.themes
+        for (const asset of backup.assets) {
+          const reference = `mnt-asset:${asset.id}`
+          const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
+          if (await deps.assets.add(asset.blob, limit) !== reference) throw new Error('Asset ID mismatch')
+          const stored = await deps.assets.get(reference)
+          if (!stored) throw new Error(`Missing asset: ${asset.id}`)
+          const digest = await crypto.subtle.digest('SHA-256', await stored.arrayBuffer())
+          if (Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('') !== asset.id) throw new Error('Stored asset hash mismatch')
+        }
+      }
+      const profile = mergeBackupProfile(state.profiles[id], incoming, selection)
+      const library = selection.savedThemes && themes && deps.themes ? { ...deps.themes, incoming: themes } : undefined
+      await store.getState().importPartial(id, profile, library, expectedRevision)
     },
 
     /** Export committed profiles and their referenced assets, excluding history. */

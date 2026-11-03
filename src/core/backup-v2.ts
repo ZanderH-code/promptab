@@ -16,6 +16,19 @@ export type BackupV2Input = { activeProfileId: string; profiles: ProfileV2[]; as
 export type ParsedBackupV2 = BackupV2Input & { exportedAt: string; themes: SavedTheme[] }
 type EncodedAsset = { id: string; mime: string; base64: string }
 
+export type BackupProfileSelection = { bookmarks: boolean; appearance: boolean; layout: boolean; settings: boolean }
+
+/** Merge selected parts of a validated backup profile into the current profile. */
+export function mergeBackupProfile(current: ProfileV2, incoming: ProfileV2, selection: BackupProfileSelection): ProfileV2 {
+  return parseProfileV2({
+    ...structuredClone(current),
+    ...(selection.bookmarks ? { bookmarks: incoming.bookmarks } : {}),
+    ...(selection.appearance ? { theme: incoming.theme, background: incoming.background, custom: incoming.custom } : {}),
+    ...(selection.layout ? { layout: incoming.layout, widgets: incoming.widgets } : {}),
+    ...(selection.settings ? { prefs: incoming.prefs, search: incoming.search } : {}),
+  })
+}
+
 function record(value: unknown, keys: string[], optional: string[] = []): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid backup object')
   const result = value as Record<string, unknown>

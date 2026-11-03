@@ -1,5 +1,6 @@
 import { createStore } from 'zustand/vanilla'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
+import type { SavedTheme } from '../core/themes/library'
 import { createHistory, recordChange, restoreSnapshot, setSnapshotPin, type ChangeKind, type History, type HistoryOptions, type ProfileHistory } from './history'
 
 /** A profile removed by deletion or import; kept with its history until restored. */
@@ -23,7 +24,7 @@ export interface ProfileStore {
   preview: Transient
   initialize(): Promise<void>
   updateProfile(id: string, update: (profile: ProfileV2) => ProfileV2, kind?: ChangeKind): Promise<void>
-  undo(id: string): Promise<void>
+  undo(id: string, expectedRevision?: number | null): Promise<void>
   setDraft(id: string, profile: ProfileV2): void
   setPreview(id: string, profile: ProfileV2, label?: string): void
   setPreviewOriginal(showingOriginal: boolean): void
@@ -37,6 +38,8 @@ export interface ProfileStore {
   deleteProfile(id: string): Promise<void>
   resetProfile(id: string, profile: ProfileV2): Promise<void>
   importProfile(id: string, profile: ProfileV2): Promise<void>
+  importPartial(id: string, profile: ProfileV2, themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; incoming: SavedTheme[] }, expectedRevision?: number | null): Promise<void>
+  importBackupCollection(incoming: ImportCollection, themes: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; incoming: SavedTheme[] } | undefined, expectedRevision: number | null): Promise<void>
   /** Brings an archived profile and its history back; fails if the ID is live. The active profile is unchanged. */
   restoreArchivedProfile(id: string): Promise<void>
   /** Replaces the whole collection; omitted live profiles are archived, retained ones get a pre-import snapshot. */
@@ -129,7 +132,7 @@ export function createProfileStore(options: Options) {
   const initial = validateProfile(options.initialProfile)
   const historyOptions = { now: options.now ?? Date.now, createId: options.createId ?? (() => crypto.randomUUID()) }
   let queue: Promise<void> = Promise.resolve()
-  const undos = new Map<string, ProfileV2[]>()
+  const undos = new Map<string, { profile: ProfileV2; collection?: Committed; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; before: SavedTheme[]; after: SavedTheme[] } }[]>()
   return createStore<ProfileStore>((set, get) => {
     const enqueue = (task: () => Promise<void>) => {
       const result = queue.then(task)
@@ -141,10 +144,32 @@ export function createProfileStore(options: Options) {
       if (!Object.hasOwn(profiles, id)) throw new Error('Profile not found')
       return profiles[id]
     }
-    const transaction = (change: () => { next: Committed; after?: () => void }) => enqueue(async () => {
+    const transaction = (change: () => { next: Committed; after?: () => void; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; expected: SavedTheme[]; value: SavedTheme[] } } | Promise<{ next: Committed; after?: () => void; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; expected: SavedTheme[]; value: SavedTheme[] } }>) => enqueue(async () => {
       if (!get().initialized) throw new Error('Store not initialized')
-      const { next, after } = change()
-      const saved = await options.persistence.write(structuredClone({ profiles: persistable(next), history: next.history }), get().revision)
+      const { next, after, themes } = await change()
+      if (themes && JSON.stringify(await themes.read()) !== JSON.stringify(themes.expected)) throw new Error('Theme library changed')
+      let saved: { revision: number }
+      let profileWriteStarted = false
+      try {
+        if (themes) await themes.write(themes.value)
+        profileWriteStarted = true
+        saved = await options.persistence.write(structuredClone({ profiles: persistable(next), history: next.history }), get().revision)
+      } catch (error) {
+        if (themes) {
+          if (profileWriteStarted) {
+            let actualRevision: number | null
+            try { actualRevision = (await options.persistence.read())?.revision ?? null }
+            catch (readError) { throw new AggregateError([error, readError], 'Cannot determine whether profile save succeeded; theme rollback skipped') }
+            if (actualRevision !== get().revision) throw new AggregateError([error], 'Profile publication outcome is uncertain; theme rollback skipped')
+          }
+          try {
+            const actualThemes = await themes.read()
+            if (JSON.stringify(actualThemes) !== JSON.stringify(themes.value) && JSON.stringify(actualThemes) !== JSON.stringify(themes.expected)) throw new Error('Theme library changed during restore')
+            await themes.write(themes.expected)
+          } catch (rollback) { throw new AggregateError([error, rollback], 'Profile save and theme rollback failed') }
+        }
+        throw error
+      }
       if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision returned by persistence')
       set({ ...next, revision: saved.revision })
       after?.()
@@ -154,7 +179,7 @@ export function createProfileStore(options: Options) {
       const old = existing(id)
       const profile = advanceUpdatedAt(validateProfile(fn(structuredClone(old)), id), old, historyOptions.now())
       const next = { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, kind, historyOptions) }
-      return { next, after: () => { undos.set(id, [...(undos.get(id) ?? []), structuredClone(old)]) } }
+      return { next, after: () => { undos.set(id, [...(undos.get(id) ?? []), { profile: structuredClone(old) }]) } }
     })
     return {
       profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), archived: {}, revision: null, initialized: false, draft: null, preview: null,
@@ -167,12 +192,15 @@ export function createProfileStore(options: Options) {
         } else set({ initialized: true })
       }),
       updateProfile: update,
-      undo: id => transaction(() => {
+      undo: (id, expectedRevision) => transaction(() => {
+        if (expectedRevision !== undefined && get().revision !== expectedRevision) throw new Error('Profile revision conflict')
         const old = existing(id)
         const stack = undos.get(id)
         if (!stack?.length) throw new Error('Nothing to undo')
-        const profile = advanceUpdatedAt(structuredClone(stack[stack.length - 1]), old, historyOptions.now())
-        return { next: { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, 'restore', historyOptions) }, after: () => { stack.pop() } }
+        const entry = stack[stack.length - 1]
+        const profile = advanceUpdatedAt(structuredClone(entry.profile), old, historyOptions.now())
+        const themes = entry.themes && { ...entry.themes, expected: entry.themes.after, value: entry.themes.before }
+        return { next: entry.collection ? structuredClone(entry.collection) : { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, 'restore', historyOptions) }, themes, after: () => { stack.pop() } }
       }),
       setDraft: (id, value) => { existing(id); set({ draft: { profileId: id, profile: validateProfile(value, id) } }) },
       setPreview: (id, value, label) => { existing(id); set({ preview: { profileId: id, profile: validateProfile(value, id), ...(label ? { label } : {}) } }) },
@@ -182,7 +210,7 @@ export function createProfileStore(options: Options) {
         const old = existing(id)
         const restored = restoreSnapshot(get().history, old, snapshotId, historyOptions)
         const profile = advanceUpdatedAt(validateProfile(restored.profile, id), old, historyOptions.now())
-        return { next: { ...current(), history: restored.history, profiles: { ...get().profiles, [id]: profile } }, after: () => { undos.set(id, [...(undos.get(id) ?? []), structuredClone(old)]) } }
+        return { next: { ...current(), history: restored.history, profiles: { ...get().profiles, [id]: profile } }, after: () => { undos.set(id, [...(undos.get(id) ?? []), { profile: structuredClone(old) }]) } }
       }),
       pinSnapshot: (id, snapshotId, pinned) => transaction(() => { existing(id); return { next: { ...current(), history: setSnapshotPin(get().history, id, snapshotId, pinned) } } }),
       createProfile: value => transaction(() => {
@@ -207,6 +235,32 @@ export function createProfileStore(options: Options) {
       }),
       resetProfile: (id, profile) => update(id, () => profile, 'reset'),
       importProfile: (id, profile) => update(id, () => profile, 'import'),
+      importBackupCollection: (incoming, library, expectedRevision) => transaction(async () => {
+        if (get().revision !== expectedRevision) throw new Error('Profile revision conflict')
+        const before = structuredClone(current())
+        const next = planImport(before, incoming, historyOptions)
+        const previousThemes = library ? await library.read() : undefined
+        const themes = library && previousThemes ? { ...library, expected: previousThemes, value: library.incoming } : undefined
+        const undoThemes = library && previousThemes ? { read: library.read, write: library.write, before: structuredClone(previousThemes), after: structuredClone(library.incoming) } : undefined
+        return { next, themes, after: () => {
+          undos.clear()
+          undos.set(next.activeProfileId, [{ profile: structuredClone(next.profiles[next.activeProfileId]), collection: before, themes: undoThemes }])
+          set({ draft: null, preview: null })
+        } }
+      }),
+      importPartial: (id, value, library, expectedRevision) => transaction(async () => {
+        if (expectedRevision !== undefined && get().revision !== expectedRevision) throw new Error('Profile revision conflict')
+        const old = existing(id)
+        const profile = advanceUpdatedAt(validateProfile(value, id), old, historyOptions.now())
+        const before = library ? await library.read() : undefined
+        const themes = library && before ? { ...library, expected: before, value: library.incoming } : undefined
+        const undoThemes = library && before ? { read: library.read, write: library.write, before: structuredClone(before), after: structuredClone(library.incoming) } : undefined
+        return {
+          next: { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, 'import', historyOptions) },
+          themes,
+          after: () => { undos.set(id, [...(undos.get(id) ?? []), { profile: structuredClone(old), themes: undoThemes }]) },
+        }
+      }),
       restoreArchivedProfile: id => transaction(() => {
         const { archived, profiles, history } = get()
         if (!Object.hasOwn(archived, id)) throw new Error('Archived profile not found')
