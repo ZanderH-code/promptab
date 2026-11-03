@@ -34,6 +34,16 @@ test('web first screen has no chrome errors and stays under 500 KB', async ({ pa
   expect(total).toBeGreaterThan(0)
   expect(total).toBeLessThanOrEqual(500_000)
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', /manifest\.webmanifest/)
+  const csp = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')
+  expect(csp).toContain("font-src 'self' data: blob:")
+  expect(csp).toContain("img-src 'self' data: blob: https:")
+  expect(csp).toContain("media-src 'self' blob:")
+  expect(csp).not.toMatch(/connect-src[^;]*blob:/)
+  const policyBeforeBootstrap = await page.locator('meta[http-equiv="Content-Security-Policy"]').evaluate(policy => {
+    const bootstrap = document.querySelector('script[src$="theme-bootstrap.js"]')
+    return Boolean(bootstrap && (policy.compareDocumentPosition(bootstrap) & Node.DOCUMENT_POSITION_FOLLOWING))
+  })
+  expect(policyBeforeBootstrap).toBe(true)
 })
 
 test('settings, theme switching, and pasted AI preview work on the web', async ({ page }) => {

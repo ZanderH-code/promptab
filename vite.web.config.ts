@@ -46,7 +46,9 @@ export default defineConfig({
       transformIndexHtml: {
         order: 'pre',
         handler(html) {
-          return html.replace('</body>', '<script type="module" src="/src/pwa-register.ts"></script></body>')
+          return html
+            .replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; object-src \'none\'; font-src \'self\' data: blob:; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob: https:; connect-src \'self\' https://api.anthropic.com https://api.openai.com https://api.open-meteo.com https://geocoding-api.open-meteo.com https://zanderh-code.github.io; media-src \'self\' blob:"/>')
+            .replace('</body>', '<script type="module" src="/src/pwa-register.ts"></script></body>')
         },
       },
     },

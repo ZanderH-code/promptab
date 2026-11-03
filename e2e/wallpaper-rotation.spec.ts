@@ -17,12 +17,16 @@ async function imageFiles(page: Page) {
 async function currentImage(page: Page) {
   return page.locator('.wallpaper-image').evaluate(async element => {
     const url = getComputedStyle(element).backgroundImage.slice(5, -2)
-    const blob = await fetch(url).then(response => response.blob())
-    const bitmap = await createImageBitmap(blob)
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image()
+      image.onload = () => resolve(image)
+      image.onerror = () => reject(new Error('wallpaper image failed to load'))
+      image.src = url
+    })
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = 1
     const context = canvas.getContext('2d')!
-    context.drawImage(bitmap, 0, 0, 1, 1)
+    context.drawImage(image, 0, 0, 1, 1)
     return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3)
   })
 }
