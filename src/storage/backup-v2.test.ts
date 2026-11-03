@@ -42,6 +42,146 @@ async function setup() {
 }
 
 describe('backup storage service', () => {
+  it.each(['bookmarks', 'appearance', 'layout', 'settings'] as const)('restores and undoes only %s from the backup active profile', async part => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const incoming = structuredClone(original)
+    incoming.meta.id = 'active'
+    incoming.bookmarks.groups[0].name = 'Incoming bookmarks'
+    incoming.theme.mode = 'light'
+    incoming.layout.gap = 33
+    incoming.prefs.language = 'en'
+    const json = await serializeBackupV2({ activeProfileId: 'active', profiles: [original, incoming], assets: [{ id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }] })
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    await s.service.importPartial(json, 1, { bookmarks: false, appearance: false, layout: false, settings: false, savedThemes: false, [part]: true }, store)
+    const restored = store.getState().profiles.old
+    for (const [key, group] of Object.entries({ bookmarks: 'bookmarks', theme: 'appearance', background: 'appearance', custom: 'appearance', layout: 'layout', widgets: 'layout', prefs: 'settings', search: 'settings' }) as [keyof typeof original, string][]) {
+      expect(restored[key]).toEqual(group === part ? incoming[key] : original[key])
+    }
+    expect(store.getState().activeProfileId).toBe('old')
+    await store.getState().undo('old')
+    const { meta: _meta, ...undone } = store.getState().profiles.old
+    const { meta: _originalMeta, ...before } = original
+    expect(undone).toEqual(before)
+  })
+
+  it('restores and undoes the complete collection and saved themes together', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const incoming = structuredClone(original)
+    incoming.meta.id = 'new'
+    const theme: SavedTheme = { id: 'new-theme', name: 'New', savedAt: '2026-01-01T00:00:00Z', pack: exportThemePack(incoming) }
+    const json = await serializeBackupV2({ activeProfileId: 'new', profiles: [incoming], assets: [{ id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }], themes: [theme] })
+    let themes: SavedTheme[] = []
+    const library = { read: async () => structuredClone(themes), write: async (value: SavedTheme[]) => { themes = structuredClone(value) } }
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    const service = createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: library })
+    await service.importFullIntoStore(json, 1, store)
+    expect(store.getState().activeProfileId).toBe('new')
+    expect(store.getState().archived.old.profile).toEqual(original)
+    expect(themes).toHaveLength(1)
+    await store.getState().undo('new')
+    expect(store.getState().activeProfileId).toBe('old')
+    expect(store.getState().profiles.old).toEqual(original)
+    expect(store.getState().archived).toEqual({})
+    expect(themes).toEqual([])
+  })
+
+  it('restores and undoes only saved themes', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const theme: SavedTheme = { id: 'saved', name: 'Saved', savedAt: '2026-01-01T00:00:00Z', pack: exportThemePack(original) }
+    const json = await serializeBackupV2({ activeProfileId: 'old', profiles: [original], assets: [{ id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }], themes: [theme] })
+    let themes: SavedTheme[] = []
+    const library = { read: async () => structuredClone(themes), write: async (value: SavedTheme[]) => { themes = structuredClone(value) } }
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    await createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: library }).importPartial(json, 1, { bookmarks: false, appearance: false, layout: false, savedThemes: true, settings: false }, store)
+    expect(themes).toHaveLength(1)
+    expect(store.getState().profiles.old.bookmarks).toEqual(original.bookmarks)
+    await store.getState().undo('old')
+    expect(themes).toEqual([])
+    expect(store.getState().profiles.old.bookmarks).toEqual(original.bookmarks)
+  })
+
+  it('restores appearance without touching bookmarks and undoes saved themes with the profile', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const incoming = structuredClone(original)
+    incoming.theme.mode = 'light'
+    incoming.bookmarks.groups[0].name = 'Backup bookmarks'
+    const theme: SavedTheme = { id: 'new', name: 'New', savedAt: '2026-01-01T00:00:00Z', pack: exportThemePack(incoming) }
+    const json = await serializeBackupV2({ activeProfileId: 'old', profiles: [incoming], assets: [{ id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }], themes: [theme] })
+    let themes: SavedTheme[] = []
+    const library = { read: async () => structuredClone(themes), write: async (value: SavedTheme[]) => { themes = structuredClone(value) } }
+    const service = createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: library })
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    await service.importPartial(json, 1, { bookmarks: false, appearance: true, layout: false, savedThemes: true, settings: false }, store)
+    expect(store.getState().profiles.old.theme.mode).toBe('light')
+    expect(store.getState().profiles.old.bookmarks).toEqual(original.bookmarks)
+    expect(themes.map(t => t.id)).toEqual(['new'])
+    await store.getState().undo('old')
+    expect(store.getState().profiles.old.theme).toEqual(original.theme)
+    expect(themes).toEqual([])
+  })
+
+  it('rolls themes back if profile publication fails', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    let themes: SavedTheme[] = []
+    const theme: SavedTheme = { id: 'new', name: 'New', savedAt: '2026-01-01T00:00:00Z', pack: exportThemePack(original) }
+    const library = { read: async () => structuredClone(themes), write: async (value: SavedTheme[]) => { themes = structuredClone(value) } }
+    const json = await serializeBackupV2({ activeProfileId: 'old', profiles: [original], assets: [{ id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }], themes: [theme] })
+    const service = createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: library })
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    s.fail('generation:')
+    await expect(service.importPartial(json, 1, { bookmarks: false, appearance: true, layout: false, savedThemes: true, settings: false }, store)).rejects.toThrow('write failed')
+    expect(themes).toEqual([])
+    expect(await s.profiles.read()).toEqual(s.initial)
+  })
+
+  it('does not publish a profile when the theme write fails', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    const library = { read: async (): Promise<SavedTheme[]> => [], write: async () => { throw new Error('theme write failed') } }
+    const service = createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: library })
+    await expect(service.importPartial(s.json, 1, { bookmarks: false, appearance: true, layout: false, savedThemes: true, settings: false }, store)).rejects.toThrow()
+    expect(await s.profiles.read()).toEqual(s.initial)
+  })
+
+  it('refuses to undo over a later saved theme library change', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const theme: SavedTheme = { id: 'later', name: 'Later', savedAt: '2026-01-01T00:00:00Z', pack: exportThemePack(original) }
+    let themes: SavedTheme[] = [theme]
+    const library = { read: async () => structuredClone(themes), write: async (value: SavedTheme[]) => { themes = structuredClone(value) } }
+    const service = createBackupV2Service({ profiles: s.profiles, assets: s.assets, themes: library })
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    await service.importPartial(s.json, 1, { bookmarks: false, appearance: true, layout: false, savedThemes: true, settings: false }, store)
+    const revision = store.getState().revision
+    themes = [theme]
+    await expect(store.getState().undo('old')).rejects.toThrow('Theme library changed')
+    expect(themes).toEqual([theme])
+    expect(store.getState().revision).toBe(revision)
+  })
+
+  it('validates unselected backup contents before partial restore', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    const invalid = JSON.parse(s.json)
+    invalid.assets[0].base64 = '%%%%'
+    await expect(s.service.importPartial(JSON.stringify(invalid), 1, { bookmarks: false, appearance: true, layout: false, savedThemes: false, settings: false }, store)).rejects.toThrow()
+    expect(await s.profiles.read()).toEqual(s.initial)
+  })
   it('imports a verified backup and exports the published collection', async () => {
     const s = await setup()
     const saved = await s.service.importBackup(s.json, 1)

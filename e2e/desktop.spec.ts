@@ -162,6 +162,7 @@ test('imports a v1 backup when saved profiles cannot be loaded', async ({ page }
   page.once('dialog', dialog => dialog.accept())
   const reloaded = page.waitForEvent('load')
   await page.getByLabel('Import backup', { exact: true }).setInputFiles({ name: 'valid.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings: v1Settings('#aabbcc') })) })
+  await page.getByRole('button', { name: 'Restore', exact: true }).click()
   await reloaded
   await expect(page.locator('.clock')).toBeVisible()
   expect((await activeProfile(page)).theme.color.accent).toBe('#aabbcc')
@@ -179,6 +180,7 @@ test('imports a v2 backup when saved profiles cannot be loaded', async ({ page }
   page.once('dialog', dialog => dialog.accept())
   const reloaded = page.waitForEvent('load')
   await page.getByLabel('Import backup', { exact: true }).setInputFiles({ name: 'v2.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: '2026-10-31T10:24:00Z', activeProfileId: profile.meta.id, profiles: [profile], assets: [] })) })
+  await page.getByRole('button', { name: 'Restore', exact: true }).click()
   await reloaded
   await expect(page.locator('.clock')).toBeVisible()
   expect(await activeProfile(page)).toEqual(profile)
@@ -199,8 +201,50 @@ test('invalid and cancelled imports preserve the current setup', async ({ page }
     name: 'valid.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-10-31T10:24:00Z', settings: v1Settings('#abcdef') })),
   })
+  await page.getByRole('button', { name: '恢复', exact: true }).click()
   await expect(page.locator('section[aria-busy]').first()).toHaveAttribute('aria-busy', 'false')
   expect(await page.evaluate(key => localStorage.getItem(key), INDEX_KEY)).toBe(before)
+})
+
+test('full restore can be undone', async ({ page }) => {
+  await open(page)
+  const before = await activeProfile(page)
+  const incoming = structuredClone(before)
+  incoming.theme.color.accent = '#334455'
+  incoming.bookmarks.groups[0].name = 'Restored group'
+  await page.locator('.settings-button').click()
+  await openTab(page, 'data')
+  await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: '2026-10-31T10:24:00Z', activeProfileId: incoming.meta.id, profiles: [incoming], assets: [] })) })
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: '恢复', exact: true }).click()
+  await expect(page.getByText('备份已导入。')).toBeVisible()
+  expect((await activeProfile(page)).bookmarks.groups[0].name).toBe('Restored group')
+  await page.getByRole('button', { name: '撤销', exact: true }).click()
+  await expect.poll(async () => (await activeProfile(page)).bookmarks).toEqual(before.bookmarks)
+  expect((await activeProfile(page)).theme).toEqual(before.theme)
+})
+
+test('partial theme restore preserves bookmarks', async ({ page }) => {
+  await open(page)
+  const before = await activeProfile(page)
+  const incoming = structuredClone(before)
+  incoming.theme.color.accent = '#112233'
+  incoming.bookmarks.groups[0].name = 'Different group'
+  await page.locator('.settings-button').click()
+  await openTab(page, 'data')
+  await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: '2026-10-31T10:24:00Z', activeProfileId: incoming.meta.id, profiles: [incoming], assets: [] })) })
+  await expect(page.getByRole('checkbox')).toHaveCount(5)
+  for (const checkbox of await page.getByRole('checkbox').all()) await expect(checkbox).toBeChecked()
+  await page.getByLabel('书签', { exact: true }).uncheck()
+  await page.getByLabel('布局和组件', { exact: true }).uncheck()
+  await page.getByLabel('已保存的主题', { exact: true }).uncheck()
+  await page.getByLabel('设置', { exact: true }).uncheck()
+  await page.getByRole('button', { name: '恢复', exact: true }).click()
+  await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#112233')
+  expect((await activeProfile(page)).bookmarks).toEqual(before.bookmarks)
+  await page.getByRole('button', { name: '撤销', exact: true }).click()
+  await expect.poll(async () => (await activeProfile(page)).theme).toEqual(before.theme)
+  expect((await activeProfile(page)).bookmarks).toEqual(before.bookmarks)
 })
 
 test('language switching and portal selection follow the accent color', async ({ page }) => {

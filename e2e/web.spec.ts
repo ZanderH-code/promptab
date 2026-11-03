@@ -151,9 +151,9 @@ test('backup export can be imported back into web storage', async ({ page }) => 
   const parsed = JSON.parse(bytes.toString())
   expect(parsed.kind).toBe('mnt.backup')
   page.once('dialog', dialog => dialog.accept())
-  const reloaded = page.waitForEvent('load')
   await page.getByLabel(/Import backup|导入备份/).setInputFiles({ name: 'roundtrip.json', mimeType: 'application/json', buffer: bytes })
-  await reloaded
+  await page.getByRole('button', { name: /^(Restore|恢复)$/ }).click()
+  await expect(page.getByText(/^(Backup imported\.|备份已导入。)$/)).toBeVisible()
   await expect(page.locator('.clock')).toBeVisible()
   const restored = await page.evaluate(() => {
     const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)

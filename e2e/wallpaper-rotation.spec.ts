@@ -82,11 +82,10 @@ test('rotates local images on opening, hour and day and restores them from backu
   const backup = await readFile((await (await downloading).path())!)
   expect(JSON.parse(backup.toString()).assets.filter((item: { mime: string }) => item.mime === 'image/png')).toHaveLength(3)
   page.once('dialog', dialog => void dialog.accept())
-  const reloaded = page.waitForEvent('load')
   await page.getByLabel('Import backup', { exact: true }).setInputFiles({ name: 'backup.json', mimeType: 'application/json', buffer: backup })
-  await reloaded
+  await page.getByRole('button', { name: 'Restore', exact: true }).click()
+  await expect(page.getByText('Backup imported.')).toBeVisible()
   await waitImage(page)
-  await page.locator('.mnt-settings-entry').click()
   await openTab(page, 'background')
   await expect(page.getByRole('radio', { name: 'Every day' })).toBeChecked()
 })

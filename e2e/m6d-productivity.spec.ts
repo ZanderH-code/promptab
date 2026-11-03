@@ -59,8 +59,8 @@ test('productivity widgets add, update, persist, export, and undo locally', asyn
   const backup = JSON.parse(await fs.readFile(path!, 'utf8'))
   expect(backup.profiles[0].widgets).toEqual(expect.arrayContaining(profile.widgets.filter((widget: { type: string }) => ['todo', 'note', 'countdown'].includes(widget.type))))
   page.once('dialog', dialog => dialog.accept())
-  const reloaded = page.waitForEvent('load')
   await page.getByLabel('导入备份', { exact: true }).setInputFiles({ name: 'roundtrip.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(backup)) })
-  await reloaded
+  await page.getByRole('button', { name: '恢复', exact: true }).click()
+  await expect(page.getByText('备份已导入。')).toBeVisible()
   expect(await activeProfile(page)).toEqual(profile)
 })

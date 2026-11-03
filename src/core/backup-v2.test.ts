@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaults } from './model'
 import { migrateV1 } from './migrate/v1'
-import { parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_TOTAL_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from './backup-v2'
+import { mergeBackupProfile, parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_TOTAL_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from './backup-v2'
 
 const id = '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
 const profile = () => migrateV1(defaults, { id: () => 'main', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unexpected') } })
@@ -13,6 +13,25 @@ const fixture = async () => {
 }
 
 describe('v2 backups', () => {
+  it.each(['bookmarks', 'appearance', 'layout', 'settings'] as const)('restores only the selected %s profile fields', async part => {
+    const current = await profile()
+    const incoming = structuredClone(current)
+    incoming.bookmarks.groups[0].name = 'Incoming bookmarks'
+    incoming.theme.mode = 'light'
+    incoming.background.dim = 42
+    incoming.custom.css = 'body { color: red }'
+    incoming.layout.gap = 33
+    incoming.widgets[0].hidden = true
+    incoming.prefs.language = 'en'
+    incoming.search.engines[0].name = 'Incoming search'
+    const selection = { bookmarks: false, appearance: false, layout: false, settings: false, [part]: true }
+    const result = mergeBackupProfile(current, incoming, selection)
+    for (const [key, group] of Object.entries({ bookmarks: 'bookmarks', theme: 'appearance', background: 'appearance', custom: 'appearance', layout: 'layout', widgets: 'layout', prefs: 'settings', search: 'settings' }) as [keyof typeof current, string][]) {
+      expect(result[key]).toEqual(group === part ? incoming[key] : current[key])
+    }
+    expect(result.meta).toEqual(current.meta)
+  })
+
   it('round trips a bounded theme library as part of the backup', async () => {
     const input = await fixture()
     const theme = { id: 'theme-1', name: 'Warm Study', savedAt: '2026-01-01T00:00:00Z', pack: { kind: 'mnt.theme-pack', packVersion: 2, meta: { name: 'Warm Study' }, theme: { mode: 'dark', color: { bg: '#102932', surface: '#203942', text: '#eeeae5', accent: '#90d5cd' } } } }
