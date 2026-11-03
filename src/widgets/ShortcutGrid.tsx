@@ -26,7 +26,7 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   // Reserve the edit controls during the first download so resolving Suspense does not move tiles.
-  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns } as CSSProperties} aria-busy={editing || undefined}>
+  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined}>
     {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
     {editing && <div className="bookmark-edit-tools"><button type="button" disabled>{t('groups.add')}</button></div>}
     {visibleGroups.map(group => <div key={group.id} data-drop-group={group.id}>
@@ -35,7 +35,7 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
         <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>
         {editing && <div className="group-actions"><button type="button" aria-label={t('groups.rename')} disabled><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} disabled><X size={15} aria-hidden="true" /></button></div>}
       </div>}
-      {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns } as CSSProperties}>
+      {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
         {group.items.map(stored => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
           return <div className="shortcut-wrap" data-sortable-id={item.id} key={item.id}>
             {editing && <input type="checkbox" aria-label={t('groups.select', { name })} checked={false} disabled />}

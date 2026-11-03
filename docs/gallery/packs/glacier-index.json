@@ -121,7 +121,7 @@
       "order": 3,
       "props": {
         "style": "card",
-        "maxColumns": 3,
+        "maxColumns": 4,
         "showGroupTitles": true,
         "showAdd": true
       }

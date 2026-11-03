@@ -18,12 +18,28 @@ const templateShortcuts = [
   { id: 'calendar', name: 'Calendar', url: 'https://calendar.google.com', color: '#4285f4', icon: 'C', iconMode: 'brand', iconName: 'googlecalendar', brand: { slug: siGooglecalendar.slug, title: siGooglecalendar.title, path: siGooglecalendar.path, hex: siGooglecalendar.hex } },
 ]
 
-// Start preview server
-const preview = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', '4199', '--strictPort'], {
+// Start a fresh preview server and wait until it is ready.
+const previewPort = 4299
+const previewUrl = `http://127.0.0.1:${previewPort}/`
+const preview = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', String(previewPort), '--strictPort'], {
   cwd: root, stdio: 'ignore', shell: true,
 })
 
-await new Promise(r => setTimeout(r, 3500))
+let previewReady = false
+for (let attempt = 0; attempt < 60; attempt++) {
+  if (preview.exitCode !== null) throw new Error(`Preview server exited with code ${preview.exitCode}`)
+  try {
+    if ((await fetch(previewUrl)).ok) {
+      previewReady = true
+      break
+    }
+  } catch {}
+  await new Promise(r => setTimeout(r, 250))
+}
+if (!previewReady) {
+  preview.kill()
+  throw new Error(`Preview server did not become ready at ${previewUrl}`)
+}
 
 const browser = await chromium.launch()
 const themesToCapture = [
@@ -51,7 +67,7 @@ for (const item of themesToCapture) {
   }, templateShortcuts)
 
   const packData = galleryPack(item.pack)
-  await page.goto('http://127.0.0.1:4199/')
+  await page.goto(previewUrl)
   await page.locator('.clock').waitFor()
 
   // Apply theme pack via AI paste

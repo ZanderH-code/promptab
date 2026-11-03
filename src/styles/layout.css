@@ -55,7 +55,7 @@
   .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar button[aria-label*="设置"] { color: var(--mnt-accent); }
   .mnt-layout[data-layout-template="icon-split"] [data-area="divider"] { background: var(--mnt-accent); }
   .mnt-layout[data-layout-template="icon-split"] .clock { white-space: pre; }
-  .mnt-layout[data-layout-template="banner"] { width: 100vw; max-width: none; min-height: 100vh; padding: 0 0 var(--mnt-space-7); grid-template-columns: 1fr; grid-template-rows: minmax(120px, 22vh) 1fr; align-content: stretch; }
+  .mnt-layout[data-layout-template="banner"] { width: 100vw; max-width: none; min-height: 100vh; padding: 0 0 var(--mnt-space-7); grid-template-columns: 1fr; align-content: stretch; }
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] { width: 100%; align-self: stretch; display: flex; align-items: center; justify-content: flex-end; gap: clamp(12px, 2vw, 32px); }
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] .mnt-widget-frame { width: auto; flex: 0 1 auto; text-align: right; }
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="clock"] .intro { width: auto; display: flex; align-items: baseline; }
@@ -63,7 +63,7 @@
   .mnt-layout[data-layout-template="banner"] [data-area="banner"] [data-widget="date"] { font-size: clamp(20px, 1.8vw, 26px); }
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar button::before { content: none; }
   .mnt-layout[data-layout-template="banner"] .mnt-widget-toolbar { flex: 0 0 auto; justify-content: flex-end; }
-  .mnt-layout[data-layout-template="banner"] [data-area="websites"] { display: grid; }
+  .mnt-layout[data-layout-template="banner"] [data-area="websites"] { display: grid; width: min(var(--mnt-content-width), calc(100% - 2 * max(var(--mnt-layout-gap), 16px))); justify-self: center; }
   .mnt-layout[data-layout-template="dashboard"] { align-items: start; column-gap: max(var(--mnt-layout-gap), 16px); row-gap: max(var(--mnt-layout-gap), 24px); }
   .mnt-layout[data-layout-template="dashboard"] .mnt-area { align-self: start; }
   .mnt-layout[data-layout-template="dashboard"] [data-area="clock"] { text-align: center; }

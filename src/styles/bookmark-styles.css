@@ -9,7 +9,7 @@
   .mnt-bookmark-list .shortcut:hover, .mnt-bookmark-minimal .shortcut:hover { background: var(--mnt-surface-hover); }
   .mnt-bookmark-list .shortcut-icon { width: 40px; height: 40px; font-size: 18px; flex: none; }
   .mnt-bookmark-minimal .shortcut-icon { width: 28px; height: 28px; font-size: 15px; flex: none; background: transparent; }
-  .mnt-bookmark-card .grid { width: 100%; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+  .mnt-bookmark-card .grid { width: min(100%, var(--mnt-grid-max-width)); grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
   .mnt-bookmark-card .shortcut { min-height: 100px; padding: 16px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: var(--mnt-surface); }
   .mnt-bookmark-card .shortcut-icon { width: 44px; height: 44px; }
   .mnt-bookmark-icon-only .mnt-link-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

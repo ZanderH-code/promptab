@@ -49,6 +49,8 @@ for (const item of gallery.packs) {
     await page.locator('.mnt-settings-entry').first().click()
     await openTab(page, 'ai')
     const pack = readFileSync(resolve(galleryRoot, item.file), 'utf8')
+    const bookmarkLimits = Object.fromEntries((JSON.parse(pack) as { widgets: { id: string; type: string; props: { maxColumns?: number } }[] }).widgets
+      .filter(widget => widget.type === 'bookmarks').map(widget => [widget.id, widget.props.maxColumns ?? 6]))
     await page.getByRole('textbox', { name: "The AI's reply" }).fill(`\`\`\`json\n${pack}\n\`\`\``)
     await page.getByRole('button', { name: 'Preview', exact: true }).click()
     const banner = page.locator('.mnt-banner[data-kind="preview"]')
@@ -59,6 +61,25 @@ for (const item of gallery.packs) {
       await page.setViewportSize(viewport)
       await page.evaluate(() => window.scrollTo(0, 0))
       await checkLayout(page)
+      const edgeIssues = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('.mnt-layout .mnt-widget-frame')].flatMap(element => {
+        const rect = element.getBoundingClientRect()
+        return rect.left < 15.5 || rect.right > innerWidth - 15.5
+          ? [`${element.dataset.widget} is too close to the viewport edge: ${Math.round(rect.left)}..${Math.round(rect.right)}`] : []
+      }))
+      expect.soft(edgeIssues, `${item.id}: viewport margins at ${viewport.width}px`).toEqual([])
+      const columnIssues = await page.evaluate(limits => [...document.querySelectorAll<HTMLElement>('.mnt-widget[data-widget="bookmarks"]')].flatMap(widget => {
+        const limit = limits[widget.dataset.widgetId ?? '']
+        if (!limit) return [`missing column limit for ${widget.dataset.widgetId}`]
+        return [...widget.querySelectorAll<HTMLElement>('.grid')].flatMap(grid => {
+          const rows = new Map<number, number>()
+          for (const child of grid.querySelectorAll<HTMLElement>(':scope > .shortcut-wrap, :scope > .add-shortcut')) {
+            const top = Math.round(child.getBoundingClientRect().top)
+            rows.set(top, (rows.get(top) ?? 0) + 1)
+          }
+          return [...rows.values()].filter(count => count > limit).map(count => `${widget.dataset.widgetId}: ${count} columns exceeds ${limit}`)
+        })
+      }), bookmarkLimits)
+      expect.soft(columnIssues, `${item.id}: bookmark columns at ${viewport.width}px`).toEqual([])
       if (viewport.width === 1280) {
         const issues = await page.evaluate(() => {
           const elements = [...document.querySelectorAll<HTMLElement>('.mnt-layout .mnt-widget-frame')]
