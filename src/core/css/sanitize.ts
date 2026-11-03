@@ -1,8 +1,19 @@
 import { generate, parse, tokenTypes, tokenize, walk, type CssNode } from 'css-tree'
 
-/** Limits from PLAN §4.6. */
-export const MAX_CSS_BYTES = 64 * 1024
-export const MAX_CSS_RULES = 2000
+export const CSS_SANITIZER_POLICY = {
+  maxBytes: 64 * 1024,
+  maxRules: 2000,
+  allowedAtRules: ['media', 'supports', 'keyframes', '-webkit-keyframes', 'font-face', 'container', 'layer', 'property'],
+  forbiddenProperties: ['-moz-binding', 'behavior'],
+  forbiddenFunctions: ['expression', 'url'],
+  urlStringFunctions: ['image-set', '-webkit-image-set', 'image', 'src', 'cross-fade', '-webkit-cross-fade'],
+  assetUrlPattern: '^mnt-asset:[a-f0-9]{64}$',
+  allowedImageUrlPrefix: 'data:image/',
+  allowedFragmentPrefix: '#',
+} as const
+
+export const MAX_CSS_BYTES = CSS_SANITIZER_POLICY.maxBytes
+export const MAX_CSS_RULES = CSS_SANITIZER_POLICY.maxRules
 
 export type CssIssueCode =
   | 'syntax' | 'unbalanced' | 'too-large' | 'too-many-rules'
@@ -26,12 +37,13 @@ export type SanitizedCss = {
   assets: string[]
 }
 
-const ALLOWED_AT_RULES = new Set(['media', 'supports', 'keyframes', '-webkit-keyframes', 'font-face', 'container', 'layer', 'property'])
-const FORBIDDEN_PROPERTIES = new Set(['-moz-binding', 'behavior'])
+const ALLOWED_AT_RULES = new Set<string>(CSS_SANITIZER_POLICY.allowedAtRules)
+const FORBIDDEN_PROPERTIES = new Set<string>(CSS_SANITIZER_POLICY.forbiddenProperties)
 /** Functions whose bare string arguments are loaded as URLs. */
-const URL_STRING_FUNCTIONS = new Set(['image-set', '-webkit-image-set', 'image', 'src', 'cross-fade', '-webkit-cross-fade'])
-const ASSET_URL = /^mnt-asset:[a-f0-9]{64}$/
-const ASSET_GLOBAL = /mnt-asset:[a-f0-9]{64}/g
+const URL_STRING_FUNCTIONS = new Set<string>(CSS_SANITIZER_POLICY.urlStringFunctions)
+const FORBIDDEN_FUNCTIONS = new Set<string>(CSS_SANITIZER_POLICY.forbiddenFunctions)
+const ASSET_URL = new RegExp(CSS_SANITIZER_POLICY.assetUrlPattern)
+const ASSET_GLOBAL = new RegExp(CSS_SANITIZER_POLICY.assetUrlPattern.slice(1, -1), 'g')
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length
 
@@ -100,7 +112,7 @@ export function sanitizeCss(source: string): SanitizedCss {
 
   if (ast && !errors.length) {
     const checkUrl = (value: string, node: CssNode, inFontFace: boolean) => {
-      const allowedHere = inFontFace ? ASSET_URL.test(value) : ASSET_URL.test(value) || /^data:image\//i.test(value) || value.startsWith('#')
+      const allowedHere = inFontFace ? ASSET_URL.test(value) : ASSET_URL.test(value) || value.toLowerCase().startsWith(CSS_SANITIZER_POLICY.allowedImageUrlPrefix) || value.startsWith(CSS_SANITIZER_POLICY.allowedFragmentPrefix)
       if (!allowedHere) fail(inFontFace ? 'font-url' : 'url', node, value.length > 60 ? `${value.slice(0, 57)}...` : value)
       else if (ASSET_URL.test(value)) assets.add(value)
     }
@@ -126,7 +138,7 @@ export function sanitizeCss(source: string): SanitizedCss {
         case 'Function': {
           if (node.name.includes('\\')) { fail('escape', node, node.name); break }
           const name = node.name.toLowerCase()
-          if (name === 'expression' || name === 'url') fail('function', node, name)
+          if (FORBIDDEN_FUNCTIONS.has(name)) fail('function', node, name)
           else if (URL_STRING_FUNCTIONS.has(name)) {
             for (const child of node.children) if (child.type === 'String') checkUrl(child.value, child, inFontFace)
           }
