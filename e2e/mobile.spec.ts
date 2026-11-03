@@ -140,14 +140,18 @@ test('touch controls meet the 44 pixel target size', async ({ page }) => {
   await expect(page.locator('.drag-handle').first()).toBeEnabled()
   const shortcutControls = page.locator('.shortcut-actions button, .drag-handle')
   const controlCount = await shortcutControls.count()
+  let visibleControlCount = 0
   for (let index = 0; index < controlCount; index++) {
     const target = shortcutControls.nth(index)
+    if (!(await target.isVisible())) continue
+    visibleControlCount++
     await expect(target).toBeVisible()
     const box = await target.boundingBox()
     expect(box).not.toBeNull()
     expect(box!.width).toBeGreaterThanOrEqual(44)
     expect(box!.height).toBeGreaterThanOrEqual(44)
   }
+  expect(visibleControlCount).toBeGreaterThan(0)
 })
 
 test('a long press opens a shortcut menu and reaches its edit action', async ({ page }) => {

@@ -40,14 +40,20 @@ test('mouse drags a bookmark to another group', async ({ page }) => {
 
 test('keyboard reorders a bookmark within its group', async ({ page }) => {
   await setup(page)
+  await page.addStyleTag({ content: '[data-drop-group="a"] .grid { display: flex; flex-direction: column; align-items: center; }' })
   const source = page.locator('.shortcut-wrap').filter({ hasText: 'One' }).locator('.drag-handle')
-  await source.focus()
-  await page.keyboard.press('Space')
-  await page.keyboard.press('ArrowDown')
-  await page.keyboard.press('Enter')
   const firstGroup = page.locator('.bookmarks > div').filter({ hasText: 'First' })
-  await expect(firstGroup.locator('.shortcut').filter({ hasText: 'Two' }).first()).toBeVisible()
-  await expect(firstGroup.locator('.shortcut').filter({ hasText: 'One' }).first()).toBeVisible()
+  await expect(source).toBeEnabled()
+  await source.focus()
+  await expect(source).toBeFocused()
+  const announcement = page.locator('[id^="DndLiveRegion"]')
+  await page.keyboard.press('Space')
+  await expect(announcement).toContainText('Draggable item one was moved over droppable area one.')
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+  await page.keyboard.press('ArrowDown')
+  await expect(announcement).toContainText('Draggable item one was moved over droppable area two.')
+  await page.keyboard.press('Enter')
+  await expect.poll(() => firstGroup.locator('[data-sortable-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-sortable-id')))).toEqual(['two', 'one'])
 })
 
 test('keyboard moves a bookmark to another group and supports undo', async ({ page }) => {
