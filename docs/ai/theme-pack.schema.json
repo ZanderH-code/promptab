@@ -716,7 +716,7 @@
                     "type": "boolean"
                   },
                   "order": {
-                    "maxItems": 4,
+                    "maxItems": 5,
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -724,9 +724,21 @@
                         "weekday",
                         "day",
                         "month",
-                        "year"
+                        "year",
+                        "weekNumber"
                       ]
                     }
+                  },
+                  "weekNumber": {
+                    "type": "boolean"
+                  },
+                  "weekStart": {
+                    "type": "string",
+                    "enum": [
+                      "monday",
+                      "sunday",
+                      "saturday"
+                    ]
                   },
                   "separator": {
                     "type": "string",
@@ -935,6 +947,9 @@
                   "name": {
                     "type": "string",
                     "maxLength": 60
+                  },
+                  "transitional": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": {}
