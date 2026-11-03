@@ -14,6 +14,11 @@ export function greetingPeriod(hour: number): GreetingPeriod {
   return 'evening'
 }
 
+export function formatGreetingTransition(date: Date, language: 'en' | 'zh-CN'): string {
+  const period = greetingPeriod(date.getHours())
+  return translate(language, `greeting.transition.${period}`, { weekday: date.toLocaleDateString(language, { weekday: 'long' }) })
+}
+
 export function ordinalDay(day: number, language: string): string {
   if (language !== 'en') return String(day)
   const suffix = day % 100 >= 11 && day % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[day % 10] ?? 'th'
