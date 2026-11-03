@@ -114,6 +114,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
         try { store.getState().setPreview(active.meta.id, applyPack(active, result.pack, PACK_PARTS.filter(part => result.parts[part])), result.pack.meta?.name || t('ai.defaultName')) } catch { onError({ key: 'gallery.invalid' }) }
       }} /></Suspense>}
       <p className="sd-hint">{t('ai.intro')}</p>
+      <p className="sd-hint"><a href="https://zanderh-code.github.io/promptab/docs/" target="_blank" rel="noreferrer">{t('ai.docsReference')}</a></p>
 
       <section className="sd-ai-step" aria-labelledby="ai-step1">
         <h4 id="ai-step1">{t('ai.step1')}</h4>

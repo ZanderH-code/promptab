@@ -4,7 +4,7 @@
 
 # Promptab
 
-English | [简体中文](README.zh-CN.md) · [Official Website](https://zanderh-code.github.io/promptab/) · [Theme Gallery](https://zanderh-code.github.io/promptab/gallery/) · [Gallery JSON](https://zanderh-code.github.io/promptab/gallery/index.json) · [Privacy Policy](https://zanderh-code.github.io/promptab/privacy/)
+English | [简体中文](README.zh-CN.md) · [Official Website](https://zanderh-code.github.io/promptab/) · [Theme Gallery](https://zanderh-code.github.io/promptab/gallery/) · [Documentation](https://zanderh-code.github.io/promptab/docs/) · [Gallery JSON](https://zanderh-code.github.io/promptab/gallery/index.json) · [Privacy Policy](https://zanderh-code.github.io/promptab/privacy/)
 
 **Describe it. Paste it. Done.**
 

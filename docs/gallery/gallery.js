@@ -1,6 +1,6 @@
 const translations = {
-  en: { title: 'Find your next new tab', intro: 'Explore original themes, copy the prompt, or preview one in the web app.', search: 'Search themes', mode: 'Appearance', layout: 'Layout template', all: 'All', light: 'Light', dark: 'Dark', copy: 'Copy prompt', try: 'Try in web app', copied: 'Prompt copied', copyError: 'Could not copy the prompt', empty: 'No themes match your filters.', error: 'The gallery could not be loaded.' },
-  'zh-CN': { title: '找到你的下一款新标签页', intro: '浏览原创主题，复制提示词，或在网页版中预览。', search: '搜索主题', mode: '外观', layout: '布局模板', all: '全部', light: '浅色', dark: '深色', copy: '复制提示词', try: '在网页版试用', copied: '提示词已复制', copyError: '无法复制提示词', empty: '没有符合条件的主题。', error: '无法加载主题画廊。' },
+  en: { title: 'Find your next new tab', intro: 'Explore original themes, copy the prompt, or preview one in the web app.', search: 'Search themes', mode: 'Appearance', layout: 'Layout template', all: 'All', light: 'Light', dark: 'Dark', copy: 'Copy prompt', try: 'Try in web app', docs: 'Docs', copied: 'Prompt copied', copyError: 'Could not copy the prompt', empty: 'No themes match your filters.', error: 'The gallery could not be loaded.' },
+  'zh-CN': { title: '找到你的下一款新标签页', intro: '浏览原创主题，复制提示词，或在网页版中预览。', search: '搜索主题', mode: '外观', layout: '布局模板', all: '全部', light: '浅色', dark: '深色', copy: '复制提示词', try: '在网页版试用', docs: '文档', copied: '提示词已复制', copyError: '无法复制提示词', empty: '没有符合条件的主题。', error: '无法加载主题画廊。' },
 }
 const names = { stacked: ['Stacked', '上下排列'], split: ['Split', '左右分栏'], websites: ['Websites', '网址'], zen: ['Zen', '简洁'], dashboard: ['Dashboard', '仪表盘'], 'top-grid': ['Top grid', '顶部网格'], 'icon-split': ['Icon split', '图标分栏'], banner: ['Banner', '横幅'], custom: ['Custom', '自定义'] }
 const $ = id => document.getElementById(id)

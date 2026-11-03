@@ -28,6 +28,20 @@ createServer(async (request, response) => {
     response.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-store' }).end(worker + versionResponder)
     return
   }
+  if (updateFixture && pathname.startsWith('/promptab/docs/')) {
+    const docsRoot = resolve(fileURLToPath(new URL('../docs/docs', import.meta.url)))
+    const relative = decodeURIComponent(pathname.slice('/promptab/docs/'.length)).replaceAll('/', sep)
+    let docsFile = resolve(docsRoot, relative || 'index.html')
+    if (docsFile !== docsRoot && !docsFile.startsWith(`${docsRoot}${sep}`)) { response.writeHead(403).end(); return }
+    try {
+      if ((await stat(docsFile)).isDirectory()) docsFile = resolve(docsFile, 'index.html')
+      await stat(docsFile)
+    } catch { response.writeHead(404).end('Not found'); return }
+    response.writeHead(200, { 'content-type': types[extname(docsFile)] ?? 'application/octet-stream', 'cache-control': 'no-cache' })
+    if (request.method === 'HEAD') response.end()
+    else createReadStream(docsFile).pipe(response)
+    return
+  }
   if (updateFixture && pathname.startsWith('/promptab/gallery/')) {
     const galleryRoot = resolve(fileURLToPath(new URL('../docs/gallery', import.meta.url)))
     const relative = decodeURIComponent(pathname.slice('/promptab/gallery/'.length)).replaceAll('/', sep)
@@ -36,6 +50,20 @@ createServer(async (request, response) => {
     try { await stat(galleryFile) } catch { response.writeHead(404).end(); return }
     response.writeHead(200, { 'content-type': types[extname(galleryFile)] ?? 'application/octet-stream', 'cache-control': 'no-cache' })
     createReadStream(galleryFile).pipe(response)
+    return
+  }
+  if (updateFixture && pathname.startsWith('/promptab/') && !pathname.startsWith(prefix)) {
+    const siteRoot = resolve(fileURLToPath(new URL('../docs', import.meta.url)))
+    const relative = decodeURIComponent(pathname.slice('/promptab/'.length)).replaceAll('/', sep)
+    let siteFile = resolve(siteRoot, relative || 'index.html')
+    if (siteFile !== siteRoot && !siteFile.startsWith(`${siteRoot}${sep}`)) { response.writeHead(403).end(); return }
+    try {
+      if ((await stat(siteFile)).isDirectory()) siteFile = resolve(siteFile, 'index.html')
+      await stat(siteFile)
+    } catch { response.writeHead(404).end('Not found'); return }
+    response.writeHead(200, { 'content-type': types[extname(siteFile)] ?? 'application/octet-stream', 'cache-control': 'no-cache' })
+    if (request.method === 'HEAD') response.end()
+    else createReadStream(siteFile).pipe(response)
     return
   }
   if (pathname !== prefix.slice(0, -1) && !pathname.startsWith(prefix)) {
