@@ -26,7 +26,7 @@
   .mnt-layout[data-edit-mode] .mnt-area { outline: 1px dashed var(--mnt-border-strong); outline-offset: 8px; position: relative; }
   .mnt-layout[data-edit-mode] .mnt-area::before { content: attr(data-area); position: absolute; top: -22px; left: 0; color: var(--mnt-text-muted); font-size: 11px; }
   .shortcut-actions { position: absolute; top: 4px; right: 4px; z-index: 2; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mnt-surface); box-shadow: var(--mnt-elev-1); opacity: 0; }
-  .shortcut-wrap:hover .shortcut-actions, .shortcut-wrap:focus-within .shortcut-actions { opacity: 1; }
+  .shortcut-wrap:hover .shortcut-actions, .shortcut-wrap:focus-within .shortcut-actions, .mnt-layout[data-edit-mode] .shortcut-actions { opacity: 1; }
   [data-edit-mode] .shortcut-wrap { position: relative; }
   [data-edit-mode] .shortcut-actions button { width: 28px; height: 28px; border-radius: 50%; }
   .bookmark-edit-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }

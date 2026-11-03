@@ -181,10 +181,21 @@
 .sd-item section label { margin: 0; font-size: var(--mnt-text-md); }
 
 @media (max-width: 640px) {
-  .sd { width: 100%; }
+  .sd { inset: 0; width: 100%; height: 100vh; height: 100dvh; max-height: 100dvh; padding-bottom: env(safe-area-inset-bottom); border-radius: 0; }
   .sd-panel { padding-inline: var(--mnt-space-4); }
   .sd-head { padding-left: var(--mnt-space-4); }
   .sd-search { margin-inline: var(--mnt-space-4); }
+}
+
+@media (pointer: coarse) {
+  .sd-icon-button, .sd-head-actions > button { min-width: 44px; min-height: 44px; }
+  .sd-tabs button { min-width: 44px; min-height: 44px; }
+  .sd .sd-button, .sd .reset, .sd-segmented button, .sd-item section li button { min-height: 44px; }
+  .sd-item section select, .sd .sd-input, .sd .sd-hex, .sd .sd-number input { min-height: 44px; }
+  .sd input[type="color"] { width: 44px; height: 44px; }
+  .sd-gallery, .sd-presets { min-width: 0; }
+  .sd-ai, .sd-ai-step, .sd-item, .sd-css { min-width: 0; }
+  .sd .sd-code, .sd-codemirror { width: 100%; min-width: 0; max-width: 100%; }
 }
 
 /* AI workbench */

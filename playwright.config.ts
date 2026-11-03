@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
@@ -12,4 +12,16 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:4173', timezoneId: 'UTC', locale: 'en-US' },
   snapshotPathTemplate: '{testDir}/baselines/{arg}{ext}',
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.002, stylePath: './e2e/screenshot.css', animations: 'disabled', caret: 'hide' } },
+  projects: [
+    {
+      name: 'chromium',
+      testIgnore: '**/mobile.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'mobile-chromium',
+      testMatch: '**/mobile.spec.ts',
+      use: { ...devices['Pixel 7'], browserName: 'chromium' },
+    },
+  ],
 })

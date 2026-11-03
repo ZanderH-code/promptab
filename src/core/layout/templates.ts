@@ -6,13 +6,13 @@ export type LayoutTemplate = typeof LAYOUT_TEMPLATES[number]
 /** Templates use the legacy area IDs where possible so migrated profiles keep their established widgets. */
 export function templateGrid(template: LayoutTemplate): Pick<ProfileV2['layout'], 'areas' | 'columns' | 'rows' | 'breakpoints'> {
   switch (template) {
-    case 'stacked': return { areas: ['overview', 'bookmarks'], breakpoints: { narrow: { areas: ['overview', 'bookmarks'] } } }
-    case 'split': return { areas: ['bookmarks overview'], columns: ['minmax(0, 1fr)', 'minmax(280px, 0.7fr)'], breakpoints: { narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
-    case 'top-grid': return { areas: ['overview overview', 'bookmarks bookmarks'], columns: ['1fr', '1fr'], breakpoints: { narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
-    case 'websites': return { areas: ['bookmarks'], breakpoints: { narrow: { areas: ['bookmarks'] } } }
-    case 'zen': return { areas: ['overview'], breakpoints: { narrow: { areas: ['overview'] } } }
-    case 'dashboard': return { areas: ['clock clock clock', 'date search links', 'bookmarks bookmarks bookmarks'], columns: ['minmax(0, 1fr)', 'minmax(0, 1fr)', 'minmax(0, 1fr)'], rows: ['auto', 'auto', 'auto'], breakpoints: { narrow: { areas: ['clock', 'date', 'search', 'links', 'bookmarks'], columns: ['1fr'] } } }
-    case 'icon-split': return { areas: ['bookmarks divider overview'], columns: ['minmax(0, 1fr)', '1px', 'minmax(280px, 0.7fr)'], breakpoints: { narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
-    case 'banner': return { areas: ['.', 'banner', 'websites'], columns: ['1fr'], rows: ['22vh', 'auto', '1fr'], breakpoints: { narrow: { areas: ['banner', 'websites'], columns: ['1fr'], rows: ['auto', '1fr'] } } }
+    case 'stacked': return { areas: ['overview', 'bookmarks'], breakpoints: { medium: { areas: ['overview', 'bookmarks'], columns: ['1fr'] }, narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
+    case 'split': return { areas: ['bookmarks overview'], columns: ['minmax(0, 1fr)', 'minmax(280px, 0.7fr)'], breakpoints: { medium: { areas: ['overview', 'bookmarks'], columns: ['1fr'] }, narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
+    case 'top-grid': return { areas: ['overview overview', 'bookmarks bookmarks'], columns: ['1fr', '1fr'], breakpoints: { medium: { areas: ['overview', 'bookmarks'], columns: ['1fr'] }, narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
+    case 'websites': return { areas: ['bookmarks'], breakpoints: { medium: { areas: ['bookmarks'], columns: ['1fr'] }, narrow: { areas: ['bookmarks'], columns: ['1fr'] } } }
+    case 'zen': return { areas: ['overview'], breakpoints: { medium: { areas: ['overview'], columns: ['1fr'] }, narrow: { areas: ['overview'], columns: ['1fr'] } } }
+    case 'dashboard': return { areas: ['clock clock clock', 'date search links', 'bookmarks bookmarks bookmarks'], columns: ['minmax(0, 1fr)', 'minmax(0, 1fr)', 'minmax(0, 1fr)'], rows: ['auto', 'auto', 'auto'], breakpoints: { medium: { areas: ['clock', 'date', 'search', 'links', 'bookmarks'], columns: ['1fr'] }, narrow: { areas: ['clock', 'date', 'search', 'links', 'bookmarks'], columns: ['1fr'] } } }
+    case 'icon-split': return { areas: ['bookmarks divider overview'], columns: ['minmax(0, 1fr)', '1px', 'minmax(280px, 0.7fr)'], breakpoints: { medium: { areas: ['overview', 'bookmarks'], columns: ['1fr'] }, narrow: { areas: ['overview', 'bookmarks'], columns: ['1fr'] } } }
+    case 'banner': return { areas: ['.', 'banner', 'websites'], columns: ['1fr'], rows: ['22vh', 'auto', '1fr'], breakpoints: { medium: { areas: ['banner', 'websites'], columns: ['1fr'], rows: ['auto', '1fr'] }, narrow: { areas: ['banner', 'websites'], columns: ['1fr'], rows: ['auto', '1fr'] } } }
   }
 }

@@ -1,6 +1,6 @@
 import { ArrowRight, Pencil, Plus, X } from 'lucide-react'
 import { useRef, useState, type CSSProperties } from 'react'
-import { DndContext, KeyboardSensor, PointerSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
+import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Group, ShortcutGridProps } from './ShortcutGrid'
 import { SortableShortcut } from './SortableShortcut'
@@ -21,7 +21,11 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
   const [selected, setSelected] = useState<string[]>([])
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const [dialog, setDialog] = useState<{ kind: 'name'; id?: string; value: string } | { kind: 'delete-group'; id: string } | { kind: 'delete-selected' } | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
   const dragTarget = useRef<{ id: string; startX: number; startY: number; x: number; y: number } | null>(null)
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const update = (fn: (groups: Group[]) => Group[]) => onGroups(fn)

@@ -1,5 +1,5 @@
 import { Settings as SettingsIcon } from 'lucide-react'
-import { Suspense, lazy, useEffect, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react'
+import { Suspense, lazy, useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import type { ProfileV2, Widget } from '../core/schema/profile'
 import type { Settings, Shortcut } from '../core/model'
 import type { MessageRef, Translate } from '../i18n'
@@ -11,9 +11,10 @@ import { formatClock, formatDate, greetingPeriod } from '../core/layout/formats'
 import { Search } from './Search'
 import { ShortcutGrid } from './ShortcutGrid'
 import { ProductivityWidgetView } from './ProductivityWidgets'
+import type { ContextMenuEvent } from './ShortcutGridContent'
 const WeatherWidget = lazy(() => import('./WeatherWidget').then(module => ({ default: module.WeatherWidget })))
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: MouseEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: MouseEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' | 'weather' }>) => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: ContextMenuEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' | 'weather' }>) => void }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -44,7 +45,7 @@ function useNow(precision: 'second' | 'minute') {
   return now
 }
 
-function ClockBlock({ widget, language, onContextMenu }: { widget: Extract<Widget, {type:'clock'}>; language: Settings['language']; onContextMenu: (event: MouseEvent) => void }) {
+function ClockBlock({ widget, language, onContextMenu }: { widget: Extract<Widget, {type:'clock'}>; language: Settings['language']; onContextMenu: (event: ContextMenuEvent) => void }) {
   const p = widget.props
   const now = useNow(p.seconds ? 'second' : 'minute')
   return <div className="intro" onContextMenu={onContextMenu}>{p.eyebrow === true && <div className="eyebrow"><span className="dot" /> {language === 'en' ? 'YOUR SPACE, YOUR PACE' : '你的空间，你的节奏'}</div>}<div className="clock mnt-clock">{formatClock(now, language, p)}</div></div>

@@ -1,9 +1,9 @@
 import { ArrowRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
-import { lazy, Suspense, type CSSProperties, type MouseEvent } from 'react'
+import { lazy, Suspense, type CSSProperties } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
-import { ShortcutLink, OnboardingCard } from './ShortcutGridContent'
+import { ShortcutLink, OnboardingCard, type ContextMenuEvent } from './ShortcutGridContent'
 
 export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
@@ -11,7 +11,7 @@ export type ShortcutGridProps = {
   style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only'; source: string; showGroupTitles: boolean; maxColumns: number; showAdd: boolean; iconColor: 'per-site' | 'accent'
   onGroups: (update: (groups: Group[]) => Group[]) => void
   onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void
-  onContextMenu: (event: MouseEvent, shortcut: Shortcut) => void
+  onContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void
   onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void
 }
 const EditingShortcutGrid = lazy(() => import('./EditingShortcutGrid').then(module => ({ default: module.EditingShortcutGrid })))

@@ -1,5 +1,5 @@
 import { Check, Plus, Settings as SettingsIcon, X } from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
 import { defaults, type Settings, type Shortcut } from '../core/model'
@@ -7,6 +7,7 @@ import { finishShortcut } from '../core/shortcut'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
+import type { ContextMenuEvent } from '../widgets/ShortcutGridContent'
 import { extensionApi } from '../platform/extension'
 import { detectTemplate } from '../core/layout/profile'
 import { moveBookmarks } from '../widgets/bookmarkGroups'
@@ -136,7 +137,7 @@ export default function App() {
   const videoBackground = profile?.background.type === 'video' ? profile.background.video : undefined
   const t =(key: MessageKey, params?: MessageParams) => translate(s.language, key, params)
 
-  const openMenu = (event: MouseEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut } = {}) => {
+  const openMenu = (event: ContextMenuEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut } = {}) => {
     event.preventDefault()
     event.stopPropagation()
     const x = options.clamp ? Math.min(event.clientX, window.innerWidth - MENU_MARGIN) : event.clientX
@@ -277,13 +278,13 @@ export default function App() {
         onManageDone={() => { setEditMode(false); setManagingGroups(false) }}
         t={t}
         onError={setError}
-        onContextMenu={(event: MouseEvent) => openMenu(event, 'clock')}
+        onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
         onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } })))}
         onEdit={setEditing}
         onRemove={removeShortcut}
         onMove={openMoveDialog}
         onAdd={groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) }}
-        onBookmarkContextMenu={(event: MouseEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
+        onBookmarkContextMenu={(event: ContextMenuEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
         onOpenSettings={() => openSettings()}
         onEnterEditMode={() => setEditMode(true)}
         onWidgetChange={widget => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widget.id ? widget : item) })))}
