@@ -35,7 +35,10 @@ jobs:
 
           cmp docs/index.html _site/index.html
           cmp docs/privacy/index.html _site/privacy/index.html
+          node scripts/check-gallery-previews.mjs
+          cmp docs/gallery/index.html _site/gallery/index.html
           cmp docs/gallery/index.json _site/gallery/index.json
+          while IFS= read -r -d '' file; do cmp "$file" "_site/${file#docs/}"; done < <(find docs/gallery/previews -type f -print0)
           while IFS= read -r -d '' file; do cmp "$file" "_site/${file#docs/}"; done < <(find docs/gallery/packs -type f -print0)
           while IFS= read -r -d '' file; do cmp "$file" "_site/${file#docs/}"; done < <(find docs/assets -type f -print0)
       - name: Add web app under /app/
