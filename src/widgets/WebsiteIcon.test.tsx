@@ -5,9 +5,9 @@ import { WebsiteIcon } from './WebsiteIcon'
 const shortcut = { id: '1', name: 'Example', url: 'https://example.com', color: '#123456', icon: 'E', iconMode: 'text' as const }
 afterEach(cleanup)
 
-it('renders a selected Lucide icon instead of its stored identifier', () => {
+it('renders a selected Lucide icon instead of its stored identifier', async () => {
   const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'lucide', iconName: 'house' } as never} />)
-  expect(container.querySelector('svg.lucide-house')).toBeTruthy()
+  await waitFor(() => expect(container.querySelector('svg.lucide-house')).toBeTruthy())
   expect(screen.queryByText('lucide:house')).toBeNull()
 })
 
@@ -19,4 +19,11 @@ it('renders a saved brand path without loading the catalog', async () => {
 it('keeps plain text and emoji icons unchanged', () => {
   render(<WebsiteIcon shortcut={{ ...shortcut, icon: '🌻' }} />)
   expect(screen.getByText('🌻')).toBeTruthy()
+})
+
+it('reports automatic icons as loading while the first same-origin image is pending', async () => {
+  const statuses: string[] = []
+  const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'auto' }} onStatus={status => statuses.push(status)} />)
+  await waitFor(() => expect(statuses).toContain('loading'))
+  expect(container.querySelector('img')?.getAttribute('src')).toBe('https://example.com/favicon.ico')
 })

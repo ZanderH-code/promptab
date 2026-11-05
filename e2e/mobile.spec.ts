@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 import { openTab, seedExistingUser, templateBookmarks } from './helpers'
 import { seedBookmarkFolders } from './bookmark-folder-fixture'
 
@@ -259,4 +260,32 @@ test('narrow and tablet first-screen baselines', async ({ page }) => {
     await expectFirstScreenFits(page)
     await expect(page).toHaveScreenshot(`mobile-home-${viewport.width}x${viewport.height}.png`)
   }
+})
+
+test('favicon upgrades preserve a 360px phone tile size', async ({ page }) => {
+  const low = await readFile(new URL('../public/icons/icon16.png', import.meta.url))
+  const site = 'https://mobile-icons.example.test'
+  await page.route('**/*', async route => {
+    const url = new URL(route.request().url())
+    if (url.origin !== site) { await route.continue(); return }
+    const pathname = url.pathname
+    if (pathname === '/favicon.svg') {
+      await route.fulfill({ status: 200, contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128"><circle cx="64" cy="64" r="60" fill="#3a7"/></svg>' })
+    } else if (pathname === '/favicon.ico' || pathname === '/apple-touch-icon.png' || pathname === '/apple-touch-icon-precomposed.png' || pathname === '/favicon-32x32.png') {
+      await route.fulfill({ status: 200, contentType: 'image/png', body: low })
+    } else await route.fulfill({ status: 404, body: 'missing' })
+  })
+  await page.setViewportSize({ width: 360, height: 740 })
+  await seedExistingUser(page, { language: 'en', iconSize: 72, shortcuts: [{ id: 'phone-icon', name: 'Phone', url: site, color: '#345678', icon: 'P', iconMode: 'auto' }] })
+  await page.goto('/')
+  await expect(page.locator('.shortcut').first()).toBeVisible()
+  const tile = page.locator('.shortcut-icon').first()
+  const before = await tile.boundingBox()
+  await expect(tile.locator('img')).toHaveAttribute('src', `${site}/favicon.svg`)
+  const after = await tile.boundingBox()
+  expect(after).not.toBeNull()
+  expect(after!.width).toBe(before!.width)
+  expect(after!.height).toBe(before!.height)
+  expect(after!.x).toBeGreaterThanOrEqual(0)
+  expect(after!.x + after!.width).toBeLessThanOrEqual(360)
 })
