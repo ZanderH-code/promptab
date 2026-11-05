@@ -1,4 +1,4 @@
-import { useRef, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
@@ -6,14 +6,16 @@ import { WebsiteIcon } from './WebsiteIcon'
 
 export type ContextMenuEvent = Pick<MouseEvent, 'clientX' | 'clientY' | 'preventDefault' | 'stopPropagation'> & { focusTarget?: HTMLElement }
 
-export function GroupMenuTrigger({ group, ariaLabel, className, children, onGroupContextMenu }: {
+export function GroupMenuTrigger({ group, ariaLabel, className, children, onGroupContextMenu, allowButtonLongPress = false, suppressClickAfterLongPress = false, focusable = true }: {
   group: ProfileV2['bookmarks']['groups'][number]; ariaLabel: string; className: string; children: ReactNode
   onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void
+  allowButtonLongPress?: boolean; suppressClickAfterLongPress?: boolean; focusable?: boolean
 }) {
   const heading = useRef<HTMLDivElement>(null)
   const pressTimer = useRef<number | undefined>(undefined)
   const start = useRef<{ x: number; y: number } | undefined>(undefined)
   const longPressed = useRef(false)
+  useEffect(() => () => { if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current) }, [])
   const cancelLongPress = () => {
     if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current)
     pressTimer.current = undefined
@@ -26,11 +28,11 @@ export function GroupMenuTrigger({ group, ariaLabel, className, children, onGrou
       clientY: event.clientY,
       preventDefault: () => event.preventDefault(),
       stopPropagation: () => event.stopPropagation(),
-      focusTarget: heading.current ?? undefined,
+      focusTarget: (focusable ? heading.current : heading.current?.querySelector<HTMLElement>('button')) ?? undefined,
     }, group)
   }
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== 'touch' || event.button !== 0 || (event.target instanceof Element && event.target.closest('button'))) return
+    if (event.pointerType !== 'touch' || event.button !== 0 || (!allowButtonLongPress && event.target instanceof Element && event.target.closest('button'))) return
     cancelLongPress()
     longPressed.current = false
     start.current = { x: event.clientX, y: event.clientY }
@@ -47,11 +49,17 @@ export function GroupMenuTrigger({ group, ariaLabel, className, children, onGrou
     if (!((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu')) return
     event.preventDefault()
     event.stopPropagation()
-    const rect = event.currentTarget.getBoundingClientRect()
+    const target = !focusable && event.target instanceof HTMLElement ? event.target : event.currentTarget
+    const rect = target.getBoundingClientRect()
     openContextMenu({ clientX: rect.left, clientY: rect.bottom, preventDefault() {}, stopPropagation() {} })
   }
-  return <div ref={heading} className={className} tabIndex={0} aria-label={ariaLabel} aria-haspopup="menu" onContextMenu={event => openContextMenu(event)} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={cancelLongPress} onPointerCancel={cancelLongPress} onClick={event => {
-    if (!longPressed.current) return
+  return <div ref={heading} className={className} tabIndex={focusable ? 0 : undefined} aria-label={focusable ? ariaLabel : undefined} aria-haspopup={focusable ? 'menu' : undefined} onContextMenu={event => openContextMenu(event)} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={cancelLongPress} onPointerCancel={cancelLongPress} onClickCapture={event => {
+    if (!suppressClickAfterLongPress || !longPressed.current) return
+    event.preventDefault()
+    event.stopPropagation()
+    longPressed.current = false
+  }} onClick={event => {
+    if (suppressClickAfterLongPress || !longPressed.current) return
     event.preventDefault()
     event.stopPropagation()
     longPressed.current = false
@@ -74,10 +82,10 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
     cancelLongPress()
     longPressed.current = false
     start.current = { x: event.clientX, y: event.clientY }
-    const x = event.clientX, y = event.clientY
+    const x = event.clientX, y = event.clientY, focusTarget = event.currentTarget
     pressTimer.current = window.setTimeout(() => {
       longPressed.current = true
-      onContextMenu({ clientX: x, clientY: y, preventDefault() {}, stopPropagation() {} }, item)
+      onContextMenu({ clientX: x, clientY: y, focusTarget, preventDefault() {}, stopPropagation() {} }, item)
     }, 550)
   }
   const onPointerMove = (event: ReactPointerEvent<HTMLAnchorElement>) => {
@@ -93,14 +101,14 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
   const openContextMenu = (event: MouseEvent<HTMLAnchorElement>) => {
     cancelLongPress()
     longPressed.current = true
-    onContextMenu(event, item)
+    onContextMenu({ clientX: event.clientX, clientY: event.clientY, focusTarget: event.currentTarget, preventDefault: () => event.preventDefault(), stopPropagation: () => event.stopPropagation() }, item)
   }
   const onKeyDown = (event: React.KeyboardEvent<HTMLAnchorElement>) => {
     if (!((event.shiftKey && event.key === 'F10') || event.key === 'ContextMenu')) return
     event.preventDefault()
     event.stopPropagation()
     const rect = event.currentTarget.getBoundingClientRect()
-    onContextMenu({ clientX: rect.left, clientY: rect.bottom, preventDefault() {}, stopPropagation() {} }, item)
+    onContextMenu({ clientX: rect.left, clientY: rect.bottom, focusTarget: event.currentTarget, preventDefault() {}, stopPropagation() {} }, item)
   }
   return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} title={name} href={item.url} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={cancelLongPress} onPointerCancel={cancelLongPress} onClick={onClick}><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
 }

@@ -5,7 +5,7 @@ import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
 import { defaults, type Settings, type Shortcut } from '../core/model'
 import { finishShortcut } from '../core/shortcut'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
-import { ContextMenu, type ContextMenuItem } from '../ui/ContextMenu'
+import type { ContextMenuItem } from '../ui/ContextMenu'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
 import type { ContextMenuEvent } from '../widgets/ShortcutGridContent'
 import { extensionApi } from '../platform/extension'
@@ -17,7 +17,8 @@ import { useSettings } from './useSettings'
 import { useAssetFonts } from './useAssetFonts'
 import { useUserCss } from './useUserCss'
 import { useWallpaper } from './useWallpaper'
-import { KeyboardHelp } from './KeyboardHelp'
+const ContextMenu = lazy(() => import('../ui/ContextMenu').then(m => ({ default: m.ContextMenu })))
+const KeyboardHelp = lazy(() => import('./KeyboardHelp').then(m => ({ default: m.KeyboardHelp })))
 
 const SyncApp = lazy(() => import('./syncRuntime').then(m => ({ default: m.SyncApp })))
 const SettingsDrawer = lazy(() => import('../features/settings/SettingsDrawer').then(m => ({ default: m.SettingsDrawer })))
@@ -61,7 +62,7 @@ export default function App() {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
       const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
-      if (keyboardHelpOpen) return
+      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog')) return
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) {
         event.preventDefault()
         undo()
@@ -340,8 +341,10 @@ export default function App() {
         onWidgetChange={widget => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widget.id ? widget : item) })))}
       />}
 
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} returnFocus={menu.focusTarget} />}
-      {keyboardHelpOpen && <KeyboardHelp t={t} onClose={() => setKeyboardHelpOpen(false)} />}
+      <Suspense fallback={null}>
+        {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} returnFocus={menu.focusTarget} />}
+        {keyboardHelpOpen && <KeyboardHelp t={t} onClose={() => setKeyboardHelpOpen(false)} />}
+      </Suspense>
       {moving && profile && <div className="modal-backdrop" role="presentation">
         <form className="modal" role="dialog" aria-modal="true" aria-labelledby="move-bookmark-title" onSubmit={moveShortcut} onKeyDown={event => { if (event.key === 'Escape') setMoving(null) }}>
           <h2 id="move-bookmark-title">{t('shortcuts.moveDialog')}</h2>

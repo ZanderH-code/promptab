@@ -6,5 +6,6 @@
 @import "./styles/widgets.css";
 @import "./styles/layout.css";
 @import "./styles/bookmark-styles.css";
+@import "./styles/bookmark-folders.css";
 @import "./styles/theme.css";
 @import "./styles/backup.css";

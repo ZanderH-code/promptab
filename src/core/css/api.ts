@@ -10,6 +10,7 @@ export const CSS_API_CLASSES = [
   'mnt-clock', 'mnt-date',
   'mnt-search', 'mnt-search-input',
   'mnt-group', 'mnt-group-title', 'mnt-group-title-hidden', 'mnt-link', 'mnt-link-icon', 'mnt-link-name',
+  'mnt-folder', 'mnt-folder-preview', 'mnt-folder-name', 'mnt-folder-dialog', 'mnt-folder-backdrop',
 ] as const
 
 /** Attribute selectors, as written in CSS. `github.com` is an example value of `data-link-host`. */
@@ -18,7 +19,7 @@ export const CSS_API_ATTRIBUTES = [
   '[data-layout-template="stacked"]', '[data-layout-template="split"]', '[data-layout-template="top-grid"]', '[data-layout-template="websites"]', '[data-layout-template="zen"]', '[data-layout-template="dashboard"]', '[data-layout-template="icon-split"]', '[data-layout-template="banner"]',
   '[data-breakpoint="wide"]', '[data-breakpoint="medium"]', '[data-breakpoint="narrow"]', '[data-edit-mode]', '[data-widget-id="clock"]',
   '[data-widget="clock"]', '[data-widget="date"]', '[data-widget="search"]', '[data-widget="bookmarks"]', '[data-widget="greeting"]', '[data-widget="text"]', '[data-widget="spacer"]', '[data-widget="toolbar"]',
-  '[data-link-host="github.com"]', '[data-theme-mode="dark"]', '[data-theme-mode="light"]',
+  '[data-link-host="github.com"]', '[data-folder]', '[data-theme-mode="dark"]', '[data-theme-mode="light"]',
 ] as const
 
 /** Custom properties meant for reading in custom CSS (`var(--mnt-accent)`); colours are set through the theme, not here. */
