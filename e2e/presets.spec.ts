@@ -65,10 +65,14 @@ for (const language of ['zh-CN', 'en'] as const) {
     await search.fill('')
     const tab = page.getByRole('tab', { selected: true })
     await expect(tab).toHaveText('AI')
-    await expect.poll(async () => tab.evaluate(element => {
-      const parent = element.closest('[role=tablist]')!.getBoundingClientRect()
-      const selected = element.getBoundingClientRect()
-      return selected.left >= parent.left && selected.right <= parent.right
+    await expect.poll(() => tab.evaluate(element => {
+      const tablist = element.closest('[role=tablist]')!
+      const parent = tablist.getBoundingClientRect()
+      const tabs = Array.from(tablist.querySelectorAll<HTMLElement>('[role=tab]'))
+      return tabs.length === 10 && tabs.every(item => {
+        const bounds = item.getBoundingClientRect()
+        return bounds.width > 0 && bounds.height > 0 && bounds.left >= parent.left && bounds.right <= parent.right && bounds.top >= parent.top && bounds.bottom <= parent.bottom
+      })
     })).toBe(true)
   })
 }
