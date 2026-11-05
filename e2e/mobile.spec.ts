@@ -135,6 +135,16 @@ test('settings drawer fills the phone viewport and its close control stays reach
   await expect(page.getByRole('dialog', { name: 'Settings' })).toHaveCount(0)
 })
 
+test('AI settings tab is directly reachable with a touch tap', async ({ page }) => {
+  await launch(page)
+  await openSettings(page)
+  const aiTab = page.getByRole('tab', { name: 'AI', exact: true })
+  await expect(aiTab).toBeVisible()
+  await aiTab.tap()
+  await expect(aiTab).toHaveAttribute('aria-selected', 'true')
+  await expect(page.getByRole('button', { name: 'Copy prompt pack' })).toBeVisible()
+})
+
 test('touch controls meet the 44 pixel target size', async ({ page }) => {
   await launch(page)
   await page.setViewportSize({ width: 360, height: 740 })
