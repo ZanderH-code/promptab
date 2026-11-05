@@ -1,5 +1,26 @@
 import { test, expect, type Page } from '@playwright/test'
 import { openTab, seedExistingUser, templateBookmarks } from './helpers'
+import { seedBookmarkFolders } from './bookmark-folder-fixture'
+
+test('bookmark folders open on a phone and close without horizontal overflow', async ({ page }) => {
+  await seedBookmarkFolders(page)
+  const folder = page.getByRole('button', { name: 'Open folder Work Folder with 2 bookmarks' })
+  await folder.tap()
+  const dialog = page.getByRole('dialog', { name: 'Work Folder' })
+  await expect(dialog.getByRole('link', { name: 'Second Link' })).toBeVisible()
+  const rect = await dialog.boundingBox()
+  expect(rect).not.toBeNull()
+  expect(rect!.x).toBeGreaterThanOrEqual(0)
+  expect(rect!.x + rect!.width).toBeLessThanOrEqual(page.viewportSize()!.width)
+  await dialog.getByRole('button', { name: 'Close folder' }).tap()
+  await expect(dialog).toHaveCount(0)
+  const position = (await folder.boundingBox())!
+  await folder.dispatchEvent('pointerdown', { pointerType: 'touch', button: 0, clientX: position.x + 10, clientY: position.y + 10 })
+  await expect(page.getByRole('menuitem', { name: 'Open all' })).toBeVisible()
+  await folder.dispatchEvent('pointerup', { pointerType: 'touch', button: 0 })
+  await folder.dispatchEvent('click')
+  await expect(dialog).toHaveCount(0)
+})
 
 const viewports = [
   { width: 360, height: 740 },

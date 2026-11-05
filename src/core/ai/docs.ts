@@ -27,6 +27,11 @@ export const CLASS_NOTES: Record<(typeof CSS_API_CLASSES)[number], string> = {
   'mnt-link': 'One bookmark tile. Carries `data-link-host` with the site host.',
   'mnt-link-icon': 'The tile icon.',
   'mnt-link-name': 'The tile label.',
+  'mnt-folder': 'A bookmark folder entry in the shortcut grid.',
+  'mnt-folder-preview': 'The folder entry’s miniature bookmark icon preview.',
+  'mnt-folder-name': 'The folder entry’s name.',
+  'mnt-folder-dialog': 'The open folder dialog containing its bookmarks.',
+  'mnt-folder-backdrop': 'The full-viewport overlay behind an open folder dialog.',
 }
 
 export const ATTRIBUTE_NOTES: Record<(typeof CSS_API_ATTRIBUTES)[number], string> = {
@@ -61,6 +66,7 @@ export const ATTRIBUTE_NOTES: Record<(typeof CSS_API_ATTRIBUTES)[number], string
   '[data-widget="text"]': 'A text widget.',
   '[data-widget="spacer"]': 'A spacing widget.',
   '[data-link-host="github.com"]': 'A bookmark tile for one site; replace `github.com` with any host.',
+  '[data-folder]': 'A folder entry or dialog; its value is the bookmark group ID.',
   '[data-theme-mode="dark"]': 'The page while the dark palette is in use.',
   '[data-theme-mode="light"]': 'The page while the light palette is in use.',
 }

@@ -9,6 +9,7 @@ export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
   groups: Group[]; shortcuts: Shortcut[]; editing: boolean; onManageDone: () => void; t: Translate; language: 'en' | 'zh-CN'
   style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only'; source: string; showGroupTitles: boolean; maxColumns: number; showAdd: boolean; iconColor: 'per-site' | 'accent'; openInNewTab: boolean; liftOnHover: boolean
+  reduceMotion?: 'system' | 'on' | 'off'; reduceTransparency?: 'system' | 'on' | 'off'
   onGroups: (update: (groups: Group[]) => Group[]) => void
   onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void
   onContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void
@@ -16,26 +17,28 @@ export type ShortcutGridProps = {
   onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void
 }
 const EditingShortcutGrid = lazy(() => import('./EditingShortcutGrid').then(module => ({ default: module.EditingShortcutGrid })))
+const BookmarkFolder = lazy(() => import('./BookmarkFolder').then(module => ({ default: module.BookmarkFolder })))
 
 export function ShortcutGrid(props: ShortcutGridProps) {
   const display = <DisplayShortcutGrid {...props} />
   return props.editing ? <Suspense fallback={display}><EditingShortcutGrid {...props} /></Suspense> : display
 }
 
-function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: ShortcutGridProps) {
+function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system' }: ShortcutGridProps) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
+  const folderMode = !editing && source === 'all' && visibleGroups.length >= 2
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   // Reserve the edit controls during the first download so resolving Suspense does not move tiles.
   return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined}>
     {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
     {editing && <div className="bookmark-edit-tools"><button type="button" disabled>{t('groups.add')}</button></div>}
-    {visibleGroups.map(group => <div key={group.id} data-drop-group={group.id}>
+    {(folderMode ? visibleGroups.slice(0, 1) : visibleGroups).map(group => <div key={group.id} data-drop-group={group.id}>
       {(showGroupTitles || editing) && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
-        {editing || group.collapsed || groups.length > 1 ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => onGroups(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
+        {!folderMode && (editing || group.collapsed || groups.length > 1) ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => onGroups(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
         <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>        {editing && <div className="group-actions"><button type="button" aria-label={t('groups.rename')} disabled><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} disabled><X size={15} aria-hidden="true" /></button></div>}
       </GroupMenuTrigger>}
-      {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
+      {(folderMode || !group.collapsed) && <div className="grid" style={{ '--mnt-item-count': group.items.length + (folderMode ? visibleGroups.length - 1 : 0) + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
         {group.items.map(stored => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
           return <div className="shortcut-wrap" data-sortable-id={item.id} key={item.id}>
             {editing && <input type="checkbox" aria-label={t('groups.select', { name })} checked={false} disabled />}
@@ -44,6 +47,7 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
             {editing && <button className="drag-handle" disabled aria-label={t('shortcuts.drag')}><GripVertical size={20} strokeWidth={1.5} aria-hidden="true" /></button>}
           </div>
         })}
+        {folderMode && <Suspense fallback={null}>{visibleGroups.slice(1).map(folder => <BookmarkFolder key={folder.id} group={folder} name={groupName(folder)} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} t={t} onContextMenu={onGroupContextMenu} onShortcutContextMenu={onContextMenu} />)}</Suspense>}
         {(editing || (showAdd && group === visibleGroups[0])) && !(onboarding && group.items.length === 0) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
         {editing && group === visibleGroups[0] && <button className="edit-done" type="button" onClick={onManageDone}>{t('groups.done')}</button>}
       </div>}
