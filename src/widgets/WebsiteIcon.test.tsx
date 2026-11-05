@@ -25,5 +25,5 @@ it('reports automatic icons as loading while the first same-origin image is pend
   const statuses: string[] = []
   const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'auto' }} onStatus={status => statuses.push(status)} />)
   await waitFor(() => expect(statuses).toContain('loading'))
-  expect(container.querySelector('img')).toBeNull()
+  expect(container.querySelector('img')?.getAttribute('src')).toBe('https://example.com/favicon.ico')
 })

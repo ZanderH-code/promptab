@@ -1,7 +1,6 @@
-import { browserFaviconUrl, normalizeUrl } from './favicon'
+import { browserFaviconUrl, normalizeUrl, ICON_CACHE_KEY } from './favicon'
 import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
 
-export const ICON_CACHE_KEY = 'mnt.iconCache:v1'
 export const ICON_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
 export const ICON_NEGATIVE_TTL_MS = 6 * 60 * 60 * 1000
 export const ICON_CACHE_LIMIT = 256

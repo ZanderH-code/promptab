@@ -281,7 +281,6 @@ test('favicon upgrades preserve a 360px phone tile size', async ({ page }) => {
   await expect(page.locator('.shortcut').first()).toBeVisible()
   const tile = page.locator('.shortcut-icon').first()
   const before = await tile.boundingBox()
-  await tile.locator('span').dispatchEvent('touchstart')
   await expect(tile.locator('img')).toHaveAttribute('src', `${site}/favicon.svg`)
   const after = await tile.boundingBox()
   expect(after).not.toBeNull()

@@ -5,6 +5,7 @@
 - Branch: `feat/favicon-quality`
 - Matrix: 68 sites; display size 72px; DPR 1
 - The baseline results were recalculated from the saved candidate-level observations using the same hit and clarity rules as the branch report. The external network observations are time-sensitive.
+- The branch matrix was rerun after the first-paint changes. Neither run uses hover. This script probes candidate images directly and does not sample the icon actually displayed by the component; the numbers below must not be interpreted as UI verification.
 
 | Platform | Main hits | Branch hits | Change | Main clear | Branch clear | Change |
 |---|---:|---:|---:|---:|---:|---:|

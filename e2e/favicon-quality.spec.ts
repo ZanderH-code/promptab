@@ -41,13 +41,20 @@ test('automatically sourced icons progressively upgrade without changing profile
   await page.goto('/')
   await expect(page.locator('.shortcut').first()).toBeVisible()
   const before = await profileStorage(page)
-  await expect(page.locator('.shortcut-icon')).toContainText('A')
   const icon = page.locator('.shortcut-icon img')
-
-  await page.locator('.shortcut-icon').first().hover()
   await expect(icon).toBeVisible()
-  await expect.poll(() => icon.getAttribute('src')).toContain('apple-touch-icon')
+  await expect.poll(() => icon.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+  await icon.evaluate(element => {
+    const parent = element.parentElement!
+    ;(window as typeof window & { iconNode?: Element }).iconNode = element
+    ;(window as typeof window & { iconTransitions?: string[] }).iconTransitions = []
+    new MutationObserver(() => {
+      (window as typeof window & { iconTransitions: string[] }).iconTransitions.push(parent.textContent || '')
+    }).observe(parent, { childList: true, subtree: true, characterData: true, attributes: true })
+  })
   await expect(icon).toHaveAttribute('src', `${SITE}/favicon.svg`)
+  expect(await icon.evaluate(element => element === (window as typeof window & { iconNode: Element }).iconNode)).toBe(true)
+  expect(await page.evaluate(() => (window as typeof window & { iconTransitions: string[] }).iconTransitions)).not.toContain('A')
   await expect.poll(() => page.evaluate(() => localStorage.getItem('mnt.iconCache:v1'))).not.toBeNull()
   const cache = await page.evaluate(() => JSON.parse(localStorage.getItem('mnt.iconCache:v1')!))
   expect(cache.entries[SITE]).toMatchObject({ url: `${SITE}/favicon.svg`, width: 256, svg: true })
@@ -62,7 +69,6 @@ test('all failed candidates return to the shortcut text and store a negative cac
   await seedAutoShortcut(page, 'Fallback')
   await page.goto('/')
   await expect(page.locator('.shortcut').first()).toBeVisible()
-  await page.locator('.shortcut-icon').first().hover()
   await expect(page.locator('.shortcut-icon')).toContainText('F')
   await expect.poll(() => page.evaluate(() => localStorage.getItem('mnt.iconCache:v1'))).not.toBeNull()
   const cache = await page.evaluate(() => JSON.parse(localStorage.getItem('mnt.iconCache:v1')!))
