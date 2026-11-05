@@ -4,7 +4,7 @@
 
 # Promptab
 
-[English](README.md) | 简体中文 · [官方主页](https://zanderh-code.github.io/promptab/) · [主题画廊](https://zanderh-code.github.io/promptab/gallery/) · [使用文档](https://zanderh-code.github.io/promptab/docs/) · [画廊 JSON](https://zanderh-code.github.io/promptab/gallery/index.json) · [隐私政策](https://zanderh-code.github.io/promptab/privacy/)
+[English](README.md) | 简体中文 · [从 Microsoft Edge 加载项商店安装](https://microsoftedge.microsoft.com/addons/detail/promptab/dicpfpbpnjfmgkbangallmhjpdhacjmc) · [官方主页](https://zanderh-code.github.io/promptab/) · [主题画廊](https://zanderh-code.github.io/promptab/gallery/) · [使用文档](https://zanderh-code.github.io/promptab/docs/) · [画廊 JSON](https://zanderh-code.github.io/promptab/gallery/index.json) · [隐私政策](https://zanderh-code.github.io/promptab/privacy/)
 
 **想要什么样，就跟 AI 说什么样。**
 
@@ -56,10 +56,12 @@ npm run build:firefox
 
 ## 在 Edge 中安装
 
-安装 Node.js 22 和 npm，然后在项目目录运行：
+**推荐：**[从 Microsoft Edge 加载项商店安装 Promptab](https://microsoftedge.microsoft.com/addons/detail/promptab/dicpfpbpnjfmgkbangallmhjpdhacjmc)。
+
+开发时可从源码构建。安装 Node.js 22 和 npm，然后在项目目录运行：
 
 ```bash
-npm install
+npm ci
 npm run build
 ```
 
@@ -144,4 +146,4 @@ npm run test:e2e
 
 ## 许可证
 
-Minimal New Tab 使用 [MIT 许可证](LICENSE) 发布。第三方运行时依赖仍遵循各自许可证，详见[第三方声明](licenses/THIRD_PARTY_NOTICES.md)。
+Promptab 使用 [MIT 许可证](LICENSE) 发布。第三方运行时依赖仍遵循各自许可证，详见[第三方声明](licenses/THIRD_PARTY_NOTICES.md)。

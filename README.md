@@ -4,7 +4,7 @@
 
 # Promptab
 
-English | [简体中文](README.zh-CN.md) · [Official Website](https://zanderh-code.github.io/promptab/) · [Theme Gallery](https://zanderh-code.github.io/promptab/gallery/) · [Documentation](https://zanderh-code.github.io/promptab/docs/) · [Gallery JSON](https://zanderh-code.github.io/promptab/gallery/index.json) · [Privacy Policy](https://zanderh-code.github.io/promptab/privacy/)
+English | [简体中文](README.zh-CN.md) · [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/promptab/dicpfpbpnjfmgkbangallmhjpdhacjmc) · [Official Website](https://zanderh-code.github.io/promptab/) · [Theme Gallery](https://zanderh-code.github.io/promptab/gallery/) · [Documentation](https://zanderh-code.github.io/promptab/docs/) · [Gallery JSON](https://zanderh-code.github.io/promptab/gallery/index.json) · [Privacy Policy](https://zanderh-code.github.io/promptab/privacy/)
 
 **Describe it. Paste it. Done.**
 
@@ -56,10 +56,12 @@ Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on**, 
 
 ## Install in Edge
 
-Install Node.js 22 and npm, then run these commands in the project directory:
+**Recommended:** [Get Promptab from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/promptab/dicpfpbpnjfmgkbangallmhjpdhacjmc).
+
+For development, build from source with Node.js 22 and npm:
 
 ```bash
-npm install
+npm ci
 npm run build
 ```
 
@@ -144,4 +146,4 @@ Read the [privacy policy](https://zanderh-code.github.io/promptab/privacy/).
 
 ## License
 
-Minimal New Tab is released under the [MIT License](LICENSE). Third-party runtime dependencies retain their own licenses; see [third-party notices](licenses/THIRD_PARTY_NOTICES.md).
+Promptab is released under the [MIT License](LICENSE). Third-party runtime dependencies retain their own licenses; see [third-party notices](licenses/THIRD_PARTY_NOTICES.md).

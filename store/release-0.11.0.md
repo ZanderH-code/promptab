@@ -56,14 +56,13 @@ script-src 'self'; object-src 'none'; font-src 'self' data: blob:
 No Promptab account or API key is needed for core features. Install and open a new tab; test Settings, search presets, and the keyboard shortcuts dialog. Infinity backups can be imported locally from Settings. Browser bookmark access is requested only when choosing folders. Open-Meteo access is requested when using weather; Anthropic or OpenAI access is requested only when sending a direct AI request with your own key. Manual AI copy/paste needs no key. All executable code is packaged; remote theme packs are data and restricted CSS, not JavaScript. CSP: script-src 'self'; object-src 'none'; font-src 'self' data: blob:
 ```
 
-## 官网已上架文案草案（等待商店地址）
+## 官网商店链接与发布状态
 
-`docs/index.html` 和 `docs/docs/getting-started.html` 是手写源文件；`scripts/gen-public-docs.ts:131` 只生成 `theme-pack.html` 和 `css-api.html`，不会生成上述两页。当前保留官网原文，待取得真实商店地址后再修改、验证和提交，勿发布占位网址。
+商店页面：<https://microsoftedge.microsoft.com/addons/detail/promptab/dicpfpbpnjfmgkbangallmhjpdhacjmc>。该链接已加入官网首页、快速开始页面和中英文 README。官网首页商店按钮的可见文字由内部 `span[data-i18n]` 承载，语言切换只替换 span 内容，外层链接及 href 保持不变。
 
-- `docs/index.html:289`：将 `hero_pill` 的静态英文改为 `Available on Edge Add-ons · Open Source under MIT`；将此 `span` 放入指向实际商店地址的 `<a>` 中。链接包住 `data-i18n` 元素，以便语言切换时 `innerHTML` 更新文案而保留链接。
-- `docs/index.html:484`、`:546`：分别将 `hero_pill` 英文和中文翻译改为 `Available on Edge Add-ons · Open Source under MIT`、`已上架 Microsoft Edge 加载项商店 · 现已开源`。
-- `docs/docs/getting-started.html:8`、`:21`：分别把“审核中”句子替换为 `Promptab is available on the <a href="真实商店地址">Edge Add-ons store</a>.` 和 `Promptab 已上架 <a href="真实商店地址">Microsoft Edge 加载项商店</a>。`，保留现有开发者模式说明。
-- 填入并核实真实 HTTPS 商店地址后，执行 `npm run docs:check`，并运行 `npm run test:web` 检查官网与文档；在浏览器检查中英文切换、链接和展示，再提交官网文件。将来推送 `main` 后核对 Pages 部署及线上链接。
+**状态记录（2026-11-05）：**0.11.0 已通过 [publish-edge run 42059512752](https://github.com/ZanderH-code/promptab/actions/runs/42059512752) 提交微软认证；Package upload 和 Store submission 均为 `Succeeded`。截至记录时，公开商店页面仍显示 0.9.0；0.11.0 尚待微软认证，不能视为已上线。商店描述、截图、更新说明等 listing 字段仍须在 Partner Center 手动核对和更新；本地 ZIP 是审阅参照，workflow 会从所选 ref 在 CI 重新构建。
+
+`docs/index.html` 与 `docs/docs/getting-started.html` 是手写源文件。`scripts/gen-public-docs.ts:131` 只生成 `theme-pack.html` 和 `css-api.html`，不生成这两页。官网首页 hero pill 仅表示 Promptab 已在 Edge Add-ons 上架，不暗示公开版本已更新到 0.11.0。
 
 ## Listing、截图和隐私链接
 
