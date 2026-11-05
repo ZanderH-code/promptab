@@ -1,8 +1,8 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.10.0
+## Release status — 0.11.0
 
-M6–M21 are complete, including the 0.10.0 release refresh and package verification. Main commits:
+M6–M21 are complete, including the 0.11.0 release preparation. Main commits:
 
 - M6a–f BYOK, wallpaper and rotation, widgets, weather, and browser sync: `c2a7c5c`, `dac14aa`, `16b98b5`, `17c3836`, `ea2c9b0`
 - M6g startup performance: `9862f27`
@@ -20,7 +20,7 @@ M6–M21 are complete, including the 0.10.0 release refresh and package verifica
 - M18 export fidelity: `1fe9a69`
 - M19/M19b new-tab preferences, saved themes, accent on open, shortcuts, and group menu access: `cf01dc8`, `ce11152`
 - M20 week numbers, greeting line, and selective restore: `5be14f4`
-- M21 0.10.0 refresh, search presets, Infinity import, starter sites, and shortcut dialog: `1bdd6b3`, `92a6f76`, `ba04896`, `8b0c234`, `debbfc9`, `5bcb071`, `60fe360`, `07fedab`
+- M21 0.10.0 refresh, search presets, Infinity import, starter sites, and shortcut dialog: `1bdd6b3`, `f8efe79`, `c5bda25`, `24caebd`, `9227adf`, `4ddef33`, `7f310e9`, `28bc799`, `9daad48`, `f0f6b4a`
 
 Remaining: submit the store listings; perform manual checks in real Firefox; consider embedding wallpapers in theme packs after a format change; remote image wallpapers remain intentionally unsupported.
 
