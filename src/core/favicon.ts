@@ -6,16 +6,12 @@ export function normalizeUrl(input: string): string | null {
   try { const url = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`); return ['http:', 'https:'].includes(url.protocol) && url.hostname ? url.href : null } catch { return null }
 }
 export function faviconUrl(input: string): string | null { const url = normalizeUrl(input); return url ? `${new URL(url).origin}/favicon.ico` : null }
-export function browserFaviconUrl(input: string, api = extensionApi(), firefox = isFirefoxExtension()): string | null {
+export function browserFaviconUrl(input: string, api = extensionApi(), firefox = isFirefoxExtension(), size: 64 | 128 = 64): string | null {
   const url = normalizeUrl(input)
   // `/_favicon/` is Chromium-specific. Firefox goes directly to the site's favicon fallback.
   if (firefox || !url || !api?.runtime?.getURL) return null
   const icon = new URL(api.runtime.getURL('/_favicon/'))
   icon.searchParams.set('pageUrl', url)
-  icon.searchParams.set('size', '64')
+  icon.searchParams.set('size', String(size))
   return icon.href
-}
-
-export function faviconSources(input: string, api?: ExtensionApi, firefox?: boolean): string[] {
-  return [browserFaviconUrl(input, api, firefox), faviconUrl(input)].filter((source): source is string => !!source)
 }
