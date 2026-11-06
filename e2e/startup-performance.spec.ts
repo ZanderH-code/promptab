@@ -1,4 +1,4 @@
-import { test, expect, type Response } from '@playwright/test'
+import { test, expect, type Frame, type Response } from '@playwright/test'
 import { gzipSync } from 'node:zlib'
 import { seedExistingUser } from './helpers'
 
@@ -16,22 +16,37 @@ test('an existing profile loads at most 480 KB of JavaScript before interaction'
   })
   expect(profile.custom.css).toBe('')
   expect(profile.bookmarks.groups.some((group: { items: unknown[] }) => group.items.length > 0)).toBe(true)
+  // Wait for the idle-loaded chunk explicitly: networkidle can elapse before its 1.5s idle callback.
+  await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry =>
+    /faviconQuality-/i.test(entry.name) && entry.responseEnd > 0,
+  ))
+  await page.waitForLoadState('networkidle')
 
   const scripts: Promise<{ path: string; raw: number; gzip: number }>[] = []
+  let reloadNavigated = false
   const collect = (response: Response) => {
-    if (!new URL(response.url()).pathname.endsWith('.js')) return
+    if (!reloadNavigated || !new URL(response.url()).pathname.endsWith('.js')) return
     scripts.push(response.body().then(body => ({
       path: new URL(response.url()).pathname, raw: body.byteLength, gzip: gzipSync(body).byteLength,
     })))
   }
+  const onFrameNavigated = (frame: Frame) => {
+    if (frame === page.mainFrame()) reloadNavigated = true
+  }
+  page.on('framenavigated', onFrameNavigated)
   page.on('response', collect)
+  const faviconQualityResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname.toLowerCase().includes('/faviconquality-') && response.status() < 400,
+  )
   await page.reload()
+  await faviconQualityResponse
   await expect(page.locator('.shortcut').first()).toBeVisible()
   await expect(page.locator('.clock')).toBeVisible()
   await expect(page.locator('.drawer.sd')).toHaveCount(0)
   // Include late script requests after the app frame as well, so delaying an import cannot evade the budget.
   await page.waitForLoadState('networkidle')
   page.off('response', collect)
+  page.off('framenavigated', onFrameNavigated)
   const loaded = await Promise.all(scripts)
   const total = loaded.reduce((sum, script) => ({ raw: sum.raw + script.raw, gzip: sum.gzip + script.gzip }), { raw: 0, gzip: 0 })
   console.log(`existing-profile startup JavaScript: ${JSON.stringify({ scripts: loaded, total })} bytes`)
