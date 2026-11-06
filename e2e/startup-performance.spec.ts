@@ -16,6 +16,8 @@ test('an existing profile loads at most 480 KB of JavaScript before interaction'
   })
   expect(profile.custom.css).toBe('')
   expect(profile.bookmarks.groups.some((group: { items: unknown[] }) => group.items.length > 0)).toBe(true)
+  // Drain first-visit lazy requests before observing the measured reload; navigation must not abort a response body read.
+  await page.waitForLoadState('networkidle')
 
   const scripts: Promise<{ path: string; raw: number; gzip: number }>[] = []
   const collect = (response: Response) => {
@@ -25,7 +27,11 @@ test('an existing profile loads at most 480 KB of JavaScript before interaction'
     })))
   }
   page.on('response', collect)
+  const faviconQualityResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname.toLowerCase().includes('/faviconquality-') && response.status() < 400,
+  )
   await page.reload()
+  await faviconQualityResponse
   await expect(page.locator('.shortcut').first()).toBeVisible()
   await expect(page.locator('.clock')).toBeVisible()
   await expect(page.locator('.drawer.sd')).toHaveCount(0)
