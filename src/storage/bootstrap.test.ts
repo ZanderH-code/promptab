@@ -1,19 +1,11 @@
 // @vitest-environment node
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { bootstrap } from './bootstrap'
 import { createProfileStorage, type AsyncKeyValueBackend } from './profiles'
 import { createAssetLibrary, type AssetRecord, type AssetStore } from './assets'
 import { defaults } from '../core/model'
-import { STARTER_SITES } from '../core/starter-sites'
 import { createProfileStore } from '../store/profile'
 import type { RawSettings } from './settings'
-
-const migration = vi.hoisted(() => ({ forbid: false, imports: 0 }))
-vi.mock('../core/starter-migration', async importOriginal => {
-  migration.imports++
-  if (migration.forbid) throw new Error('starter migration should not be imported')
-  return importOriginal<typeof import('../core/starter-migration')>()
-})
 
 function setup(raw: RawSettings = { backend: 'local', value: JSON.stringify(defaults) }) {
   const data = new Map<string, string>()
@@ -117,38 +109,6 @@ describe('bootstrap', () => {
     await broken.profiles.write({ profiles: [{ schemaVersion: 3 }], history: { profiles: {} } }, null)
     await expect(bootstrap(broken.options)).rejects.toThrow()
     expect((await broken.profiles.read())?.revision).toBe(1)
-  })
-
-  it('does not load the migration module or write when starters are current', async () => {
-    const db = setup()
-    const first = await bootstrap(db.options)
-    expect(migration.imports).toBe(0)
-    migration.forbid = true
-    try {
-      expect(await bootstrap(db.options)).toEqual(first)
-    } finally {
-      migration.forbid = false
-    }
-  })
-
-  it('upgrades untouched legacy starter shortcuts in an existing profile exactly once', async () => {
-    const db = setup()
-    const first = await bootstrap(db.options)
-    const active = first.profiles.activeProfileId
-    const profile = structuredClone(first.profiles.profiles[active])
-    profile.bookmarks.groups[0].items = [
-      { ...STARTER_SITES[5], iconMode: 'text' },
-      { ...STARTER_SITES[7], iconMode: 'text', name: 'Work mail' },
-    ]
-    const written = await db.profiles.write({ profiles: { ...first.profiles, profiles: { ...first.profiles.profiles, [active]: profile } }, history: first.history }, first.revision)
-    const migrated = await bootstrap(db.options)
-    expect(migration.imports).toBe(1)
-    expect(migrated.revision).toBe(written.revision + 1)
-    expect(migrated.profiles.profiles[active].bookmarks.groups[0].items).toMatchObject([
-      { id: 'starter-amazon', iconMode: 'auto' },
-      { id: 'starter-outlook', iconMode: 'text', name: 'Work mail' },
-    ])
-    expect((await bootstrap(db.options)).revision).toBe(migrated.revision)
   })
 
   it('uses defaults for absent settings and preserves the absent marker', async () => {

@@ -6,7 +6,7 @@
 - Use bundled known official icon URLs for ChatGPT, v0, AI Studio, ai.google.dev, NotebookLM, DeepSeek, Grok, Outlook, Reddit, TradingView, CoinMarketCap, IBKR, and Wealthsimple.
 - Show bundled brand marks for Gemini, Instagram, YouTube, Dify, NotebookLM, v0, DeepSeek, and Google Maps when no good icon loads.
 - Keep Google Maps on www.google.com/maps from sharing the rest of Google's icon.
-- Retry old icon failures with cache version 2 and a one-hour failure cache. Untouched Amazon, ChatGPT, and Outlook starters now use automatic icons.
+- Retry old icon failures with cache version 2 and a one-hour failure cache.
 - No new permissions are requested.
 
 ## 更新内容 — 简体中文
@@ -15,7 +15,7 @@
 - 为 ChatGPT、v0、AI Studio、ai.google.dev、NotebookLM、DeepSeek、Grok、Outlook、Reddit、TradingView、CoinMarketCap、IBKR 和 Wealthsimple 内置已知的官方图标地址。
 - 在无法加载合适图标时，为 Gemini、Instagram、YouTube、Dify、NotebookLM、v0、DeepSeek 和 Google Maps 使用内置品牌标记。
 - www.google.com/maps 上的 Google Maps 不再与 Google 其他页面共用图标。
-- 图标缓存升级到 v2，旧的失败记录会重试，失败缓存为 1 小时。未修改的 Amazon、ChatGPT 和 Outlook 初始网站改用自动图标。
+- 图标缓存升级到 v2，旧的失败记录会重试，失败缓存为 1 小时。
 - 未新增任何权限。
 
 ## Notes for certification

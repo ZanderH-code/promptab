@@ -40,7 +40,5 @@ test('starter removal and Infinity add, undo and replace', async ({ page }) => {
   await expect.poll(() => names(page)).toEqual(['Imported'])
   await undo()
   await expect.poll(async () => (await names(page)).length).toBe(8)
-  // Amazon, ChatGPT and Outlook now use automatic icons, so their sites may be contacted for icons.
-  // The Infinity import itself must never call the Infinity service.
-  expect(remote.filter(url => /infinitynewtab\.com/i.test(url))).toEqual([])
+  expect(remote).toEqual([])
 })

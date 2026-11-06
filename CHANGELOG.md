@@ -16,7 +16,6 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 - Stop an upscaled browser favicon from outranking real high-resolution icons such as Reddit and YouTube.
 - Keep Google Maps on www.google.com/maps from sharing the rest of Google's icon.
 - Retry old icon failures with cache version 2 and a one-hour failure cache.
-- Use automatic icons for untouched Amazon, ChatGPT, and Outlook starter sites.
 
 ### Changed
 
