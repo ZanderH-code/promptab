@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanSiteTitle, domainSiteName, knownSiteName, suggestSiteName } from './siteName'
+import { cleanSiteTitle, domainSiteName, knownSiteName, suggestSiteName, tidyImportedTitle } from './siteName'
 
 describe('knownSiteName', () => {
   it('matches bundled hosts and www variants', () => {
@@ -55,6 +55,27 @@ describe('cleanSiteTitle', () => {
   it('prefers the domain segment when the title has no known name', () => {
     expect(cleanSiteTitle('Welcome | Example Docs', 'https://example.com/')).toBe('Example Docs')
     expect(cleanSiteTitle('Docs | Example', 'https://example.com/')).toBe('Example')
+  })
+})
+
+describe('tidyImportedTitle', () => {
+  it('keeps short user-chosen titles that carry no site or generic segment', () => {
+    expect(tidyImportedTitle('Rust - The Book', 'https://doc.rust-lang.org/book/')).toBe('Rust - The Book')
+    expect(tidyImportedTitle('Pull requests · rust-lang/rust', 'https://github.com/rust-lang/rust/pulls')).toBe('Pull requests · rust-lang/rust')
+    expect(tidyImportedTitle('Q3 plan: budget', 'https://example.com/plan')).toBe('Q3 plan: budget')
+  })
+
+  it('tidies titles that match the site, start with a generic segment, or are over-long', () => {
+    expect(tidyImportedTitle('Home | Interactive Brokers', 'https://www.interactivebrokers.com/')).toBe('Interactive Brokers')
+    expect(tidyImportedTitle('Gemini - chat to supercharge your ideas', 'https://gemini.google.com/')).toBe('Gemini')
+    expect(tidyImportedTitle('NotebookLM | Note Taking & Research Assistant Powered by AI', 'https://notebooklm.google.com/')).toBe('NotebookLM')
+    expect(tidyImportedTitle('Home | Foo', 'https://example.com/')).toBe('Foo')
+    expect(tidyImportedTitle("The fastest way to organize your team's work and projects - Acme", 'https://example.com/')).toBe('Acme')
+  })
+
+  it('shortens an over-long slogan that cannot be split into segments', () => {
+    const slogan = 'The all-in-one workspace for notes, tasks, wikis and databases'
+    expect(tidyImportedTitle(slogan, 'https://example.com/')).toBe('The all-in-one workspace for notes,…')
   })
 })
 

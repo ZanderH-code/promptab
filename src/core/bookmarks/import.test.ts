@@ -40,4 +40,14 @@ describe('browser bookmark import', () => {
     const result = importBookmarkFolders(titled, ['folder'])
     expect(result[0].items.map(item => item.name)).toEqual(['Interactive Brokers', 'Claude', 'Example', 'Short'])
   })
+
+  it('keeps short titled bookmarks verbatim', () => {
+    const titled: BookmarkNode[] = [{ id: 'root', title: '', children: [{ id: 'folder', title: 'Reading', children: [
+      { id: 'rust', title: 'Rust - The Book', url: 'https://doc.rust-lang.org/book/' },
+      { id: 'pulls', title: 'Pull requests · rust-lang/rust', url: 'https://github.com/rust-lang/rust/pulls' },
+      { id: 'plan', title: 'Q3 plan: budget', url: 'https://example.com/plan' },
+    ] }] }]
+    const result = importBookmarkFolders(titled, ['folder'])
+    expect(result[0].items.map(item => item.name)).toEqual(['Rust - The Book', 'Pull requests · rust-lang/rust', 'Q3 plan: budget'])
+  })
 })

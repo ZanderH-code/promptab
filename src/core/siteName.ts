@@ -59,6 +59,14 @@ function normalizeName(value: string) {
   return value.toLowerCase().replace(/\s+/g, '')
 }
 
+function titleParts(text: string) {
+  return text.split(TITLE_SEPARATORS).map(part => part.trim()).filter(Boolean)
+}
+
+function siteNameKeys(url: string) {
+  return [knownSiteName(url), domainSiteName(url)].filter((name): name is string => !!name).map(normalizeName)
+}
+
 /** Bundled display name for a known host, honouring an optional product path prefix. */
 export function knownSiteName(input: string): string | null {
   const url = parse(input)
@@ -86,9 +94,9 @@ export function domainSiteName(input: string): string {
 export function cleanSiteTitle(title: string, url = ''): string {
   const text = title.trim()
   if (!text) return ''
-  const parts = text.split(TITLE_SEPARATORS).map(part => part.trim()).filter(Boolean)
+  const parts = titleParts(text)
   if (parts.length < 2) return text
-  const names = [knownSiteName(url), domainSiteName(url)].filter((name): name is string => !!name).map(normalizeName)
+  const names = siteNameKeys(url)
   const preferred = parts.find(part => names.includes(normalizeName(part)))
   if (preferred) return preferred
   const meaningful = parts.filter(part => !GENERIC_TITLES.has(part.toLowerCase()))
@@ -96,6 +104,28 @@ export function cleanSiteTitle(title: string, url = ''): string {
   if (first && first.length <= 32) return first
   if (meaningful.length) return meaningful.reduce((shortest, part) => part.length < shortest.length ? part : shortest)
   return text
+}
+
+const MAX_TIDY_TITLE = 40
+
+function shortenTitle(value: string) {
+  if (value.length <= MAX_TIDY_TITLE) return value
+  const clipped = value.slice(0, MAX_TIDY_TITLE)
+  const boundary = clipped.lastIndexOf(' ')
+  return `${(boundary > 0 ? clipped.slice(0, boundary) : clipped).trimEnd()}…`
+}
+
+/**
+ * Tidies an imported bookmark title only when it clearly carries a site name, a generic segment,
+ * or is over-long. Short titles the user chose are kept verbatim.
+ */
+export function tidyImportedTitle(title: string, url = ''): string {
+  const raw = title.trim()
+  if (!raw) return ''
+  if (raw.length > MAX_TIDY_TITLE) return shortenTitle(cleanSiteTitle(raw, url))
+  const names = siteNameKeys(url)
+  const shouldTidy = titleParts(raw).some(part => GENERIC_TITLES.has(part.toLowerCase()) || names.includes(normalizeName(part)))
+  return shouldTidy ? cleanSiteTitle(raw, url) : raw
 }
 
 /** Known name first, then a cleaned page title, then the registrable domain. */
