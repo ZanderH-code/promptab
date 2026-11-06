@@ -4,6 +4,18 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.12.2]
+
+### Added
+
+- Fill a new shortcut's name automatically from a bundled site list or the domain, such as `claude.ai` → Claude, without overwriting a name you typed.
+- Tidy over-long or `Home | Site` titles when importing browser bookmarks while keeping short titles as-is.
+- Give Infinity items with empty or URL-like names a readable name.
+
+### Changed
+
+- No new permissions are requested and no new network requests are made.
+
 ## [0.12.1]
 
 ### Added
