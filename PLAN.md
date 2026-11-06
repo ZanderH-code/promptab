@@ -1,8 +1,11 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.11.0
+## Release status — 0.12.0
 
-M6–M21 are complete, including the 0.11.0 release preparation. Main commits:
+M6–M21 are complete. Release preparation for 0.12.0 includes the post-0.11.0 changes merged to main. Main commits:
+
+- 0.12.0 features: bookmark folder dialogs `1d54a24`, Settings tabs wrap and remain visible `3a86c10`, progressive website icon quality `2ee3c50`.
+- 0.11.0 release preparation: `6e6f7c3`.
 
 - M6a–f BYOK, wallpaper and rotation, widgets, weather, and browser sync: `c2a7c5c`, `dac14aa`, `16b98b5`, `17c3836`, `ea2c9b0`
 - M6g startup performance: `9862f27`

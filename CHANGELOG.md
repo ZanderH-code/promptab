@@ -4,6 +4,14 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.12.0]
+
+### Added
+
+- Open bookmark groups in accessible folder dialogs with keyboard navigation, focus restoration, and phone sized layouts.
+- Improve Settings tab visibility by wrapping tabs in narrow windows.
+- Load website icons progressively from browser-provided and same-origin sources, reject the default globe placeholder, upgrade to sharper icons, and cache results separately.
+
 ## [0.11.0]
 
 ### Added
