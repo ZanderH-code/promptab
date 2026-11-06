@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { cachedFaviconUrl, initialFaviconSources, normalizeUrl } from '../core/favicon'
+import { initialFaviconSources, normalizeUrl } from '../core/favicon'
+import type { KnownBrand } from '../core/knownBrands'
 import type { Shortcut } from '../core/model'
 import { extensionApi, isFirefoxExtension } from '../platform/extension'
 import { brandIconColor } from '../core/tokens/iconContrast'
 
 type Status = 'loading' | 'found' | 'missing'
 type IconShortcut = Omit<Shortcut, 'iconMode'> & { iconMode?: 'auto' | 'text' | 'brand' | 'lucide' | 'emoji'; iconName?: string; iconColorMode?: 'brand' | 'accent' | 'custom' }
-type AutoState = { origin: string; url: string | null; index: number; cache: boolean }
+type AutoState = { origin: string; url: string | null; index: number; cache: boolean; brand?: KnownBrand }
 type AutoWindow = Window & {
   requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
   cancelIdleCallback?: (handle: number) => void
@@ -30,7 +31,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   const imageLoaded = !!source && loadedSrc === source
   const autoFinished = !origin || (qualityOrigin === origin && qualityDone)
   const manualStatus: Status = source ? (imageLoaded ? 'found' : 'loading') : 'missing'
-  const status: Status = automatic ? (imageLoaded ? 'found' : autoFinished && !source ? 'missing' : 'loading') : manualStatus
+  const status: Status = automatic ? (imageLoaded || !!currentAutoState.brand ? 'found' : autoFinished && !source ? 'missing' : 'loading') : manualStatus
 
   useEffect(() => {
     setAttempt(0)
@@ -69,13 +70,14 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
       preload.src = url
     }
     const start = () => {
-      const cached = cachedFaviconUrl(shortcut.url)
-      if (cached) showWhenLoaded(cached)
       void import('../core/faviconQuality').then(({ loadBestFavicon }) => {
         if (cancelled) return
         const displaySize = Math.max(1, Math.round(imageRef.current?.getBoundingClientRect().width || 64))
         unsubscribe = loadBestFavicon(shortcut.url, displaySize, (candidate, complete) => {
-          if (candidate) {
+          if (candidate?.brand) {
+            candidateSequence++
+            setAutoState({ origin, url: null, index: -1, cache: false, brand: candidate.brand })
+          } else if (candidate) {
             showWhenLoaded(candidate.url)
           } else if (complete) {
             candidateSequence++
@@ -99,6 +101,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   const color = shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : shortcut.iconColorMode === 'brand' && shortcut.brand ? brandIconColor(shortcut.brand.hex, shortcut.color) : undefined
   const textFallback = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'
   if (automatic) {
+    if (currentAutoState.brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: brandIconColor(currentAutoState.brand.hex, shortcut.color) }} aria-hidden="true"><path d={currentAutoState.brand.path} /></svg>
     const visibleFallback = !source && autoFinished
     return <>{source && <img ref={imageRef} src={source} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" style={{ visibility: imageLoaded ? 'visible' : 'hidden' }} onLoad={() => setLoadedSrc(source)} onError={() => {
       setLoadedSrc('')

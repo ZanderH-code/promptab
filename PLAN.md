@@ -1,9 +1,10 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.12.0
+## Release status — 0.12.1
 
-M6–M21 are complete. Release preparation for 0.12.0 includes the post-0.11.0 changes merged to main. Main commits:
+M6–M21 are complete. Release preparation for 0.12.1 includes the accepted icon root-cause fix on top of 0.12.0. Main commits:
 
+- 0.12.1 features: website icon root causes `a21a003`; test reliability fixes `2e3bf7c`.
 - 0.12.0 features: bookmark folder dialogs `1d54a24`, Settings tabs wrap and remain visible `3a86c10`, progressive website icon quality `2ee3c50`.
 - 0.11.0 release preparation: `6e6f7c3`.
 

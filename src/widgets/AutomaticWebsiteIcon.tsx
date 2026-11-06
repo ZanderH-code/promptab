@@ -22,5 +22,5 @@ export function AutomaticWebsiteIcon({ shortcut, onStatus }: { shortcut: IconSho
   }, [shortcut.url])
   const status: Status = icon ? 'found' : done ? 'missing' : 'loading'
   useEffect(() => { onStatus?.(status) }, [status, onStatus])
-  return icon ? <img ref={imageRef} src={icon.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : <>{shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'}</>
+  return icon?.brand ? <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d={icon.brand.path} /></svg> : icon ? <img ref={imageRef} src={icon.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" /> : <>{shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'}</>
 }

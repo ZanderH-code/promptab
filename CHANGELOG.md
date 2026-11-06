@@ -4,6 +4,23 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.12.1]
+
+### Added
+
+- Use bundled known official icon URLs for ChatGPT, v0, AI Studio, ai.google.dev, NotebookLM, DeepSeek, Grok, Outlook, Reddit, TradingView, CoinMarketCap, IBKR, and Wealthsimple.
+- Show bundled brand marks for Gemini, Instagram, YouTube, Dify, NotebookLM, v0, DeepSeek, and Google Maps when no good icon loads.
+
+### Fixed
+
+- Stop an upscaled browser favicon from outranking real high-resolution icons such as Reddit and YouTube.
+- Keep Google Maps on www.google.com/maps from sharing the rest of Google's icon.
+- Retry old icon failures with cache version 2 and a one-hour failure cache.
+
+### Changed
+
+- No new permissions are requested.
+
 ## [0.12.0]
 
 ### Added
