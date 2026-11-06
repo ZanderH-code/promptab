@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { ProfileV2 } from '../schema/profile'
 import { SEARCH_ENGINES } from '../search/engines'
 import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
+import { suggestSiteName } from '../siteName'
 
 const infinitySchema = z.object({
   version: z.literal('v2'),
@@ -96,7 +97,9 @@ function makeLink(value: unknown, index: number, counts: Pick<InfinitySummary, '
   if (!url || counts.links >= MAX_LINKS) { counts.skipped++; return null }
   let host = ''
   try { host = new URL(url).hostname } catch { /* validated */ }
-  const name = cleanName(item.name, host || 'Website')
+  const rawName = cleanName(item.name, '')
+  const nameIsUrl = !rawName || rawName.toLowerCase() === host.toLowerCase() || /^https?:\/\//i.test(rawName)
+  const name = nameIsUrl ? suggestSiteName(url) || rawName || host || 'Website' : rawName
   const bgType = string(item.bgType)
   const iconText = cleanName(item.bgText, name.slice(0, 1)).slice(0, 8)
   const iconColor = bgType === 'color' ? color(item.bgColor) : undefined

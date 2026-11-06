@@ -68,6 +68,19 @@ describe('Infinity backup importer', () => {
     expect(JSON.stringify(result.profile)).not.toContain('infinitypro-img.infinitynewtab.com')
   })
 
+  it('derives names only for empty or URL-like Infinity names', async () => {
+    const input = JSON.parse(fixture)
+    input.data.site.sites[0].push(
+      { type: 'web', name: '', target: 'https://claude.ai', bgType: 'image' },
+      { type: 'web', name: 'https://github.com', target: 'https://github.com', bgType: 'image' },
+      { type: 'web', name: 'My GitHub', target: 'https://github.com', bgType: 'image' },
+    )
+    const result = parseInfinityBackup(JSON.stringify(input), await profile())
+    const items = result.profile.bookmarks.groups.flatMap(group => group.items)
+    expect(items.filter(item => item.url === 'https://github.com').map(item => item.name)).toEqual(['GitHub', 'My GitHub'])
+    expect(items.find(item => item.url === 'https://claude.ai')?.name).toBe('Claude')
+  })
+
   it('normalizes cn.bing.com and strips Infinity tracking parameters', async () => {
     const input = JSON.parse(fixture)
     input.data.searcher.searchEngine.current.types[0].url = 'https://cn.bing.com/search?q=&isource=x&iname=y&itype=z'

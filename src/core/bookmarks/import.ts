@@ -1,5 +1,6 @@
 import type { ProfileV2 } from '../schema/profile'
 import type { Shortcut } from '../model'
+import { domainSiteName, knownSiteName, tidyImportedTitle } from '../siteName'
 
 export type BookmarkNode = { id: string; title?: string; url?: string; children?: BookmarkNode[] }
 export type BookmarkFolder = { id: string; path: string; count: number }
@@ -41,8 +42,15 @@ export function importBookmarkFolders(tree: BookmarkNode[], selectedIds: string[
     if (!folder) return []
     const items = descendants(folder.node).filter(node => httpUrl(node.url) && !used.has(node.url!)).map(node => {
       used.add(node.url!)
-      const name = node.title?.trim() || new URL(node.url!).hostname
-      return { id: `bookmark-${crypto.randomUUID()}`, name, url: node.url!, color: '#90d5cd', icon: name.slice(0, 1).toUpperCase(), iconMode: 'auto' as const }
+      const url = node.url!
+      const rawTitle = node.title?.trim() ?? ''
+      const host = new URL(url).hostname
+      const bareHost = host.replace(/^www\./, '')
+      const titleIsHost = !rawTitle || rawTitle.toLowerCase() === host.toLowerCase() || rawTitle.toLowerCase() === bareHost.toLowerCase()
+      const name = titleIsHost
+        ? knownSiteName(url) || domainSiteName(url) || host
+        : tidyImportedTitle(rawTitle, url) || rawTitle || domainSiteName(url) || host
+      return { id: `bookmark-${crypto.randomUUID()}`, name, url, color: '#90d5cd', icon: name.slice(0, 1).toUpperCase(), iconMode: 'auto' as const }
     })
     return items.length ? [{ name: folder.path, items }] : []
   })

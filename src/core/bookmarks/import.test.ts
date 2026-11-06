@@ -29,4 +29,25 @@ describe('browser bookmark import', () => {
       { name: 'Bookmarks bar / Work', urls: ['https://docs.example.com', 'https://mail.example.com'] },
     ])
   })
+
+  it('names imports from the known table, cleaned titles and domain fallbacks', () => {
+    const titled: BookmarkNode[] = [{ id: 'root', title: '', children: [{ id: 'folder', title: 'Reading', children: [
+      { id: 'brokers', title: 'Home | Interactive Brokers', url: 'https://www.interactivebrokers.com/en/home.php' },
+      { id: 'claude', title: '', url: 'https://claude.ai' },
+      { id: 'host', title: 'docs.example.com', url: 'https://docs.example.com/guide' },
+      { id: 'long', title: 'A very long descriptive title that exceeds the limit - Short', url: 'https://example.org' },
+    ] }] }]
+    const result = importBookmarkFolders(titled, ['folder'])
+    expect(result[0].items.map(item => item.name)).toEqual(['Interactive Brokers', 'Claude', 'Example', 'Short'])
+  })
+
+  it('keeps short titled bookmarks verbatim', () => {
+    const titled: BookmarkNode[] = [{ id: 'root', title: '', children: [{ id: 'folder', title: 'Reading', children: [
+      { id: 'rust', title: 'Rust - The Book', url: 'https://doc.rust-lang.org/book/' },
+      { id: 'pulls', title: 'Pull requests · rust-lang/rust', url: 'https://github.com/rust-lang/rust/pulls' },
+      { id: 'plan', title: 'Q3 plan: budget', url: 'https://example.com/plan' },
+    ] }] }]
+    const result = importBookmarkFolders(titled, ['folder'])
+    expect(result[0].items.map(item => item.name)).toEqual(['Rust - The Book', 'Pull requests · rust-lang/rust', 'Q3 plan: budget'])
+  })
 })
