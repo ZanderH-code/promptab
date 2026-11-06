@@ -1,7 +1,7 @@
 import { RotateCcw } from 'lucide-react'
 import { lazy, Suspense } from 'react'
 import { ProfileSection } from '../ProfileSection'
-import { countUnchangedStarterSites, removeUnchangedStarterSites } from '../../../core/starter-sites'
+import { countUnchangedStarterSites, removeUnchangedStarterSites } from '../../../core/starter-migration'
 import type { Ctx, Item } from './shared'
 
 const BackupSection = lazy(() => import('../BackupSection').then(module => ({ default: module.BackupSection })))

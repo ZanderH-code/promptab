@@ -5,7 +5,7 @@ export function normalizeUrl(input: string): string | null {
   if (!text || /\s/.test(text) || (/^[a-z][a-z\d+.-]*:/i.test(text) && !/^https?:\/\//i.test(text) && !/^localhost:\d/i.test(text))) return null
   try { const url = new URL(/^https?:\/\//i.test(text) ? text : `https://${text}`); return ['http:', 'https:'].includes(url.protocol) && url.hostname ? url.href : null } catch { return null }
 }
-export const ICON_CACHE_KEY = 'mnt.iconCache:v1'
+export const ICON_CACHE_KEY = 'mnt.iconCache:v2'
 
 export function faviconUrl(input: string): string | null { const url = normalizeUrl(input); return url ? `${new URL(url).origin}/favicon.ico` : null }
 export function initialFaviconSources(input: string, api = extensionApi(), firefox = isFirefoxExtension()) {
@@ -13,17 +13,6 @@ export function initialFaviconSources(input: string, api = extensionApi(), firef
   if (!normalized) return []
   const internal = browserFaviconUrl(normalized, api, firefox, 64)
   return [...new Set([internal, faviconUrl(normalized)].filter((value): value is string => !!value))]
-}
-export function cachedFaviconUrl(input: string) {
-  const normalized = normalizeUrl(input)
-  if (!normalized || typeof localStorage === 'undefined') return null
-  try {
-    const cache = JSON.parse(localStorage.getItem(ICON_CACHE_KEY) || 'null')
-    const entry = cache?.version === 1 ? cache.entries?.[new URL(normalized).origin] : null
-    if (!entry?.url || entry.failed || entry.expiresAt <= Date.now()) return null
-    const url = new URL(entry.url)
-    return url.origin === new URL(normalized).origin ? url.href : null
-  } catch { return null }
 }
 export function browserFaviconUrl(input: string, api = extensionApi(), firefox = isFirefoxExtension(), size: 64 | 128 = 64): string | null {
   const url = normalizeUrl(input)

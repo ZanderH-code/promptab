@@ -24,6 +24,14 @@ export type BootstrapOptions = {
   now?: () => string
 }
 
+const LEGACY_STARTER_ID = /^starter-(amazon|chatgpt|outlook)$/
+
+/** Only profiles that still carry an old bundled icon shape need the migration module. */
+function needsStarterUpgrade(profile: ProfileV2) {
+  return profile.bookmarks.groups.some(group => group.items.some(item =>
+    LEGACY_STARTER_ID.test(item.id) && (item.iconMode === 'text' || item.iconMode === 'lucide')))
+}
+
 function validateSnapshot(snapshot: ProfileSnapshot): BootstrapSnapshot {
   if (!snapshot.profiles || typeof snapshot.profiles !== 'object' || Array.isArray(snapshot.profiles) || !snapshot.history || typeof snapshot.history !== 'object' || Array.isArray(snapshot.history)) throw new Error('Invalid profile data')
   const collection = snapshot.profiles as ProfileCollection
@@ -57,7 +65,24 @@ async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnap
   const backend = options.backend ?? (local ? createChromeStorageBackend(local) : createLocalStorageBackend(localStorage))
   const profiles = options.profiles ?? createProfileStorage(backend)
   const current = await profiles.read()
-  if (current) return validateSnapshot(current)
+  if (current) {
+    const collection = current.profiles as ProfileCollection
+    const active = collection.profiles[collection.activeProfileId]
+    // Most profiles keep starters, so only pay for the migration chunk when a legacy icon shape remains.
+    if (!needsStarterUpgrade(active)) return validateSnapshot(current)
+    const { upgradeStarterSites } = await import('../core/starter-migration')
+    const migrated = upgradeStarterSites(active)
+    if (migrated === active) return validateSnapshot(current)
+    try {
+      return validateSnapshot(await profiles.write({
+        profiles: { ...collection, profiles: { ...collection.profiles, [collection.activeProfileId]: migrated } },
+        history: current.history,
+      }, current.revision))
+    } catch (error) {
+      if (!(error instanceof Error) || !error.message.includes('revision conflict')) throw error
+      return validateSnapshot((await profiles.read()) ?? current)
+    }
+  }
 
   const raw = await (options.readRawSettings ?? readRawSettings)()
   // Store the envelope, including absence and the exact localStorage string.

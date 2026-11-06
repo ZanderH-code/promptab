@@ -1,20 +1,38 @@
 import { expect, it } from 'vitest'
 import { migrateV1 } from './migrate/v1'
 import { defaults } from './model'
-import { countUnchangedStarterSites, isUnchangedStarterSite, removeUnchangedStarterSites, STARTER_SITES } from './starter-sites'
+import { countUnchangedStarterSites, isUnchangedStarterSite, removeUnchangedStarterSites, upgradeStarterSites } from './starter-migration'
+import { STARTER_SITES } from './starter-sites'
 
-it('recognizes unchanged starters from the earlier bundled icon set', () => {
+it('recognizes unchanged starters from earlier bundled icon sets', () => {
   const amazon = { ...STARTER_SITES[5], iconMode: 'lucide' as const, iconName: 'shopping-bag' }
   const outlook = { ...STARTER_SITES[7], iconMode: 'lucide' as const, iconName: 'mail' }
+  const legacyAmazon = { ...STARTER_SITES[5], iconMode: 'text' as const }
   expect(isUnchangedStarterSite(amazon)).toBe(true)
   expect(isUnchangedStarterSite(outlook)).toBe(true)
+  expect(isUnchangedStarterSite(legacyAmazon)).toBe(true)
   expect(isUnchangedStarterSite({ ...amazon, name: 'My Amazon' })).toBe(false)
 })
 
-it('uses text fallbacks for Amazon and Outlook without external icons', () => {
-  expect(STARTER_SITES.filter(site => ['starter-amazon', 'starter-outlook'].includes(site.id))).toMatchObject([
-    { icon: 'A', iconMode: 'text' }, { icon: 'O', iconMode: 'text' },
+it('uses automatic lookup for Amazon, ChatGPT and Outlook', () => {
+  expect(STARTER_SITES.filter(site => ['starter-amazon', 'starter-chatgpt', 'starter-outlook'].includes(site.id))).toMatchObject([
+    { icon: 'A', iconMode: 'auto' }, { icon: '✦', iconMode: 'auto' }, { icon: 'O', iconMode: 'auto' },
   ])
+})
+
+it('upgrades only untouched starter shortcuts to the current shape', async () => {
+  const profile = await migrateV1({ ...defaults, shortcuts: [] }, { id: () => 'p', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unused') } })
+  const legacyAmazon = { ...STARTER_SITES[5], iconMode: 'text' as const }
+  const legacyChatgpt = { ...STARTER_SITES[6], iconMode: 'text' as const }
+  const editedOutlook = { ...STARTER_SITES[7], iconMode: 'text' as const, name: 'Work mail' }
+  const manual = { ...STARTER_SITES[4], iconMode: 'text' as const, name: 'Reddit reading' }
+  profile.bookmarks.groups[0].items = [legacyAmazon, legacyChatgpt, editedOutlook, manual]
+  const upgraded = upgradeStarterSites(profile)
+  expect(upgraded.bookmarks.groups[0].items).toMatchObject([
+    { id: 'starter-amazon', iconMode: 'auto' }, { id: 'starter-chatgpt', iconMode: 'auto' },
+    { id: 'starter-outlook', iconMode: 'text', name: 'Work mail' }, { id: 'starter-reddit', iconMode: 'text', name: 'Reddit reading' },
+  ])
+  expect(upgradeStarterSites(upgraded)).toBe(upgraded)
 })
 
 it('removes only unchanged starter shortcuts, even when moved to another group', async () => {
