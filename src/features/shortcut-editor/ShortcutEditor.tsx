@@ -19,6 +19,24 @@ const MAX_ICON_BYTES = 512 * 1024
 
 export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError }: Props) {
   const fileInput = useRef<HTMLInputElement>(null)
+  // A new shortcut starts as an empty name with the default draft URL; only that state (or a name the user clears) may auto-fill.
+  const autoName = useRef(shortcut.name.trim() === '' && shortcut.url === 'https://')
+  // Load the name table on demand so it stays out of the startup bundle.
+  const suggestName = useRef<((input: string) => string) | null>(null)
+  const latest = useRef(shortcut)
+  const lastUrl = useRef(shortcut.url)
+  latest.current = shortcut
+  useEffect(() => {
+    let active = true
+    void import('../../core/siteName').then(module => {
+      suggestName.current = module.suggestSiteName
+      if (!active || !autoName.current) return
+      const suggested = module.suggestSiteName(lastUrl.current)
+      if (!suggested) return
+      onChange({ ...latest.current, url: lastUrl.current, name: suggested })
+    }).catch(() => {})
+    return () => { active = false }
+  }, [onChange])
   const [localImage, setLocalImage] = useState(shortcut.image)
   const [status, setStatus] = useState<'loading' | 'found' | 'missing'>('missing')
   const [brands, setBrands] = useState<BrandIcon[]>([])
@@ -42,7 +60,14 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
   const automatic = { ...shortcut, image: undefined, iconMode: 'auto' as const }
   const textIcon = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || 'A'
 
+  function changeUrl(url: string) {
+    lastUrl.current = url
+    const name = autoName.current ? suggestName.current?.(url) ?? '' : ''
+    onChange(name ? { ...shortcut, url, name } : { ...shortcut, url })
+  }
+
   function changeName(name: string) {
+    autoName.current = name.trim() === ''
     const next = { ...shortcut, name }
     delete next.builtinName
     if (name !== shortcut.name) delete next.builtinGroup
@@ -93,7 +118,7 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
         <div className="editor-fields">
           <label className="stack">
             {t('editor.url')}
-            <input required value={shortcut.url} placeholder="https://example.com" onChange={event => onChange({ ...shortcut, url: event.target.value })} />
+            <input required value={shortcut.url} placeholder="https://example.com" onChange={event => changeUrl(event.target.value)} />
           </label>
           <label className="stack">
             {t('editor.name')}
