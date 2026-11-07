@@ -305,6 +305,58 @@ describe('synchronous cache and discovery', () => {
     expect(result.complete).toBe(true)
   })
 
+  it('keeps a stale success when revalidation finds nothing and backs off', async () => {
+    const now = Date.now()
+    const key = 'https://offline.example.test'
+    const url = `${key}/good.png`
+    seedV3({ [key]: { url, width: 128, height: 128, savedAt: now - 8 * DAY, expiresAt: now - DAY } })
+    stubImages(() => null)
+    const result = await discoverOnce(key)
+    expect(result.published[0]?.url).toBe(url)
+    expect(result.candidate?.url).toBe(url)
+    expect(result.complete).toBe(true)
+    let entry = readIconCache()[key]!
+    expect(entry).toMatchObject({ url, failures: 1 })
+    expect(entry.failed).toBeUndefined()
+    expect(entry.savedAt).toBe(now - 8 * DAY)
+    expect(entry.expiresAt - Date.now()).toBeGreaterThan(ICON_FAILURE_BACKOFF_MS[0] - 5_000)
+    expect(entry.expiresAt - Date.now()).toBeLessThanOrEqual(ICON_FAILURE_BACKOFF_MS[0])
+
+    seedV3({ [key]: { ...entry, expiresAt: now - 1 } })
+    const retried = await discoverOnce(key)
+    expect(retried.candidate?.url).toBe(url)
+    entry = readIconCache()[key]!
+    expect(entry).toMatchObject({ url, failures: 2 })
+    expect(entry.expiresAt - Date.now()).toBeGreaterThan(ICON_FAILURE_BACKOFF_MS[1] - 5_000)
+    expect(entry.expiresAt - Date.now()).toBeLessThanOrEqual(ICON_FAILURE_BACKOFF_MS[1])
+  })
+
+  it('resets failures when a stale success revalidates successfully', async () => {
+    const now = Date.now()
+    const key = 'https://recover.example.test'
+    seedV3({ [key]: { url: `${key}/old.png`, width: 128, height: 128, failures: 2, savedAt: now - 8 * DAY, expiresAt: now - DAY } })
+    stubImages(url => url.endsWith('/favicon.svg') ? 256 : null)
+    const result = await discoverOnce(key)
+    expect(result.candidate?.url).toBe(`${key}/favicon.svg`)
+    const entry = readIconCache()[key]!
+    expect(entry.failed).toBeUndefined()
+    expect(entry.failures).toBeUndefined()
+    expect(entry.url).toBe(`${key}/favicon.svg`)
+  })
+
+  it('drops a cached success when a forced rediscovery finds nothing', async () => {
+    const now = Date.now()
+    const key = 'https://gone.example.test'
+    seedV3({ [key]: { url: `${key}/gone.png`, width: 128, height: 128, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS } })
+    stubImages(() => null)
+    const result = await discoverOnce(key, true)
+    expect(result.candidate).toBeNull()
+    expect(result.complete).toBe(true)
+    const entry = readIconCache()[key]!
+    expect(entry).toMatchObject({ failed: true, failures: 1 })
+    expect(entry.url).toBeUndefined()
+  })
+
   it('drops successes older than 30 days instead of showing them', async () => {
     const now = Date.now()
     seedV3({ 'https://ancient.example.test': { url: 'https://ancient.example.test/old.png', width: 128, height: 128, savedAt: now - 31 * DAY, expiresAt: now - 24 * DAY } })
