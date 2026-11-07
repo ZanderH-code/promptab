@@ -1,10 +1,11 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.12.2
+## Release status — 0.12.3
 
-M6–M21 are complete. Release preparation for 0.12.2 includes accepted automatic site names for new shortcuts and imports on top of 0.12.1. Main commits:
+M6–M21 are complete. Release preparation for 0.12.3 includes the accepted persistent icon cache on top of 0.12.2, whose store submission failed, so 0.12.3 ships both. Main commits:
 
-- 0.12.2 features: automatic site names `f53a864`; short bookmark titles `16a5bb1`.
+- 0.12.3 features: persistent icon cache `7b8c849`.
+- 0.12.2 features: automatic site names `1c7a293`.
 - 0.12.1 features: website icon root causes `a21a003`; test reliability fixes `2e3bf7c`.
 - 0.12.0 features: bookmark folder dialogs `1d54a24`, Settings tabs wrap and remain visible `3a86c10`, progressive website icon quality `2ee3c50`.
 - 0.11.0 release preparation: `6e6f7c3`.

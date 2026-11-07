@@ -50,4 +50,4 @@ Compared with `0299fd4` (`public/manifest.json`), the only manifest change is `v
 4. Check the workflow logs and Partner Center submission status. Successful upload/submission is not the same as certification approval or store publication.
 5. After approval, verify the public listing, install/update from the store, and check the release version and permissions.
 
-**Status (2026-11-06): 已提交。** Edge publish run [42204364209](https://github.com/ZanderH-code/promptab/actions/runs/42204364209) completed with package upload **Succeeded** and store submission **Succeeded**. This is not certification approval or store publication; check Partner Center for the later certification result.
+**Status (2026-11-07): 已认证并在商店上线。** The store showed 0.12.1 on 2026-11-07. This supersedes the earlier upload and submission record above.

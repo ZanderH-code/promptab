@@ -46,4 +46,4 @@ Compared with `20185d8` (`public/manifest.json`), the only manifest change is `v
 4. Check the workflow logs and Partner Center submission status. Successful upload/submission is not the same as certification approval or store publication.
 5. After approval, verify the public listing, install/update from the store, and check the release version and permissions.
 
-**Status (2026-11-06): 待提交。** No upload, workflow run, or store submission has been started.
+**Status (2026-11-07): 未提交。** Edge publish run [42213656989](https://github.com/ZanderH-code/promptab/actions/runs/42213656989) uploaded the package, but the store submission failed with **InProgressSubmission** because 0.12.1 was still in review. This version was not published to the store and is superseded by 0.12.3, which includes its changes.

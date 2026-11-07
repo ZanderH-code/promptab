@@ -4,6 +4,21 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.12.3]
+
+### Fixed
+
+- Cache website icons for real: a second new tab paints cached icons, letters, or brand marks on the first frame and does not re-probe sites.
+- Keep cached icons visible while refreshing them after 7 days, and drop entries after 30 days.
+- Back off failed icon lookups for 1 hour, then 6 hours, then 24 hours.
+- Use Chromium's own favicon store again now that newer Chromium exposing `browser` is detected by its runtime URL instead of being mistaken for Firefox; this also stops Firefox-only permission fields from being sent on Chromium for weather and AI permission requests.
+
+### Changed
+
+- Move the icon cache to localStorage `mnt.iconCache:v3`, merge entries across tabs, and keep room for 1024 sites.
+- No new permissions are requested.
+- Include the 0.12.2 changes, which were not published to the store: automatic site names for new shortcuts, tidied bookmark import titles, and readable names for Infinity items.
+
 ## [0.12.2]
 
 ### Added
