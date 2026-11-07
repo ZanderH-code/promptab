@@ -230,7 +230,17 @@ async function discover(key: string, input: string, run: Run, force: boolean) {
       ? { brand: finalBest.brand, savedAt, expiresAt: savedAt + ICON_CACHE_TTL_MS }
       : { url: finalBest.url, width: finalBest.effectiveWidth, height: finalBest.naturalHeight, svg: finalBest.svg, known: finalBest.sourceType === 'known', savedAt, expiresAt: savedAt + ICON_CACHE_TTL_MS })
   } else {
-    const failures = (cached?.failed ? cached.failures ?? 1 : 0) + 1
+    const failures = (cached?.failures ?? 0) + 1
+    // A stale success that cannot revalidate keeps its icon and retries after the failure backoff.
+    // A forced run means the cached image itself failed, so that icon must not be kept.
+    const previous = !force && cached && !cached.failed && cached.savedAt + ICON_STALE_TTL_MS > savedAt ? cached : null
+    const kept = previous ? cachedCandidate(previous) : null
+    if (kept && previous) {
+      writeEntry(key, { ...previous, failures, expiresAt: savedAt + ICON_FAILURE_BACKOFF_MS[Math.min(failures - 1, 2)]! })
+      publish(run, kept, true)
+      activeRuns.delete(key)
+      return
+    }
     writeEntry(key, { failed: true, failures, savedAt, expiresAt: savedAt + ICON_FAILURE_BACKOFF_MS[Math.min(failures - 1, 2)]! })
   }
   publish(run, finalBest, true)
