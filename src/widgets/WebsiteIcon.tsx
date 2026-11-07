@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { initialFaviconSources, normalizeUrl } from '../core/favicon'
+import { cachedFavicon, initialFaviconSources, normalizeUrl } from '../core/favicon'
 import type { KnownBrand } from '../core/knownBrands'
 import type { Shortcut } from '../core/model'
-import { extensionApi, isFirefoxExtension } from '../platform/extension'
 import { brandIconColor } from '../core/tokens/iconContrast'
 
 type Status = 'loading' | 'found' | 'missing'
 type IconShortcut = Omit<Shortcut, 'iconMode'> & { iconMode?: 'auto' | 'text' | 'brand' | 'lucide' | 'emoji'; iconName?: string; iconColorMode?: 'brand' | 'accent' | 'custom' }
-type AutoState = { origin: string; url: string | null; index: number; cache: boolean; brand?: KnownBrand }
+type AutoState = { origin: string; url: string | null; cache: boolean; brand?: KnownBrand }
 type AutoWindow = Window & {
   requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
   cancelIdleCallback?: (handle: number) => void
@@ -16,6 +15,7 @@ type AutoWindow = Window & {
 
 export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; onStatus?: (status: Status) => void }) {
   const [attempt, setAttempt] = useState(0)
+  const [retry, setRetry] = useState(0)
   const [loadedSrc, setLoadedSrc] = useState('')
   const [autoState, setAutoState] = useState<AutoState | null>(null)
   const [qualityOrigin, setQualityOrigin] = useState('')
@@ -23,18 +23,22 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   const [GenericIcon, setGenericIcon] = useState<LucideIcon | null>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const automatic = !shortcut.image && (!shortcut.iconMode || shortcut.iconMode === 'auto')
-  const origin = normalizeUrl(shortcut.url) ? new URL(normalizeUrl(shortcut.url)!).origin : ''
-  const initialSources = automatic ? initialFaviconSources(shortcut.url, extensionApi(), isFirefoxExtension()) : []
-  const initialAutoState: AutoState = { origin, url: initialSources[0] ?? null, index: 0, cache: false }
+  const normalized = normalizeUrl(shortcut.url)
+  const origin = normalized ? new URL(normalized).origin : ''
+  const cached = automatic ? cachedFavicon(shortcut.url) : null
+  const initialSources = automatic ? initialFaviconSources(shortcut.url) : []
+  // The synchronous cache paints the first render: no favicon.ico attempt, no blank, no letter flash.
+  const initialAutoState: AutoState = { origin, url: cached ? cached.url ?? null : initialSources[0] ?? null, cache: !!cached, brand: cached?.brand }
   const currentAutoState = autoState?.origin === origin ? autoState : initialAutoState
   const source = shortcut.image ? (attempt === 0 ? shortcut.image : undefined) : automatic ? currentAutoState.url ?? undefined : undefined
   const imageLoaded = !!source && loadedSrc === source
-  const autoFinished = !origin || (qualityOrigin === origin && qualityDone)
+  const autoFinished = !origin || (qualityOrigin === origin && qualityDone) || (!!cached && !cached.url)
   const manualStatus: Status = source ? (imageLoaded ? 'found' : 'loading') : 'missing'
   const status: Status = automatic ? (imageLoaded || !!currentAutoState.brand ? 'found' : autoFinished && !source ? 'missing' : 'loading') : manualStatus
 
   useEffect(() => {
     setAttempt(0)
+    setRetry(0)
     setLoadedSrc('')
     setAutoState(null)
     setQualityOrigin('')
@@ -54,37 +58,23 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     if (!automatic || !origin) return
     let cancelled = false
     let unsubscribe: (() => void) | undefined
-    let candidateSequence = 0
     let idleHandle: number | undefined
     let timerHandle: number | undefined
-    const showWhenLoaded = (url: string) => {
-      const sequence = ++candidateSequence
-      const preload = new Image()
-      preload.decoding = 'async'
-      preload.referrerPolicy = 'no-referrer'
-      preload.onload = () => {
-        if (cancelled || sequence !== candidateSequence || preload.naturalWidth <= 1 || preload.naturalHeight <= 1) return
-        setAutoState({ origin, url, index: initialSources.indexOf(url), cache: false })
-        setLoadedSrc(url)
-      }
-      preload.src = url
-    }
     const start = () => {
       void import('../core/faviconQuality').then(({ loadBestFavicon }) => {
         if (cancelled) return
         const displaySize = Math.max(1, Math.round(imageRef.current?.getBoundingClientRect().width || 64))
         unsubscribe = loadBestFavicon(shortcut.url, displaySize, (candidate, complete) => {
           if (candidate?.brand) {
-            candidateSequence++
-            setAutoState({ origin, url: null, index: -1, cache: false, brand: candidate.brand })
+            setLoadedSrc('')
+            setAutoState({ origin, url: null, cache: false, brand: candidate.brand })
           } else if (candidate) {
-            showWhenLoaded(candidate.url)
+            setAutoState({ origin, url: candidate.url, cache: false })
           } else if (complete) {
-            candidateSequence++
-            setAutoState({ origin, url: null, index: initialSources.length, cache: false })
+            setAutoState({ origin, url: null, cache: false })
           }
           if (complete) { setQualityOrigin(origin); setQualityDone(true) }
-        })
+        }, retry > 0)
       })
     }
     const idleWindow = window as AutoWindow
@@ -96,7 +86,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
       if (timerHandle !== undefined) window.clearTimeout(timerHandle)
       unsubscribe?.()
     }
-  }, [automatic, origin, shortcut.url])
+  }, [automatic, origin, shortcut.url, retry])
 
   const color = shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : shortcut.iconColorMode === 'brand' && shortcut.brand ? brandIconColor(shortcut.brand.hex, shortcut.color) : undefined
   const textFallback = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'
@@ -105,9 +95,9 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     const visibleFallback = !source && autoFinished
     return <>{source && <img ref={imageRef} src={source} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" style={{ visibility: imageLoaded ? 'visible' : 'hidden' }} onLoad={() => setLoadedSrc(source)} onError={() => {
       setLoadedSrc('')
-      const nextIndex = currentAutoState.cache ? (currentAutoState.url === initialSources[0] ? 1 : 0) : currentAutoState.index < 0 ? 0 : currentAutoState.index + 1
-      const next = initialSources[nextIndex] ?? null
-      setAutoState({ origin, url: next, index: nextIndex, cache: false })
+      if (currentAutoState.cache) setRetry(value => value + 1)
+      const next = initialSources[initialSources.indexOf(currentAutoState.url ?? '') + 1] ?? null
+      setAutoState({ origin, url: next, cache: false })
     }} />}{visibleFallback ? <>{textFallback}</> : null}</>
   }
 

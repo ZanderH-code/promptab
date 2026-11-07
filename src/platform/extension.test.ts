@@ -13,13 +13,24 @@ describe('extension API selection', () => {
     Object.defineProperty(globalThis, 'browser', { configurable: true, value: browser })
     Object.defineProperty(globalThis, 'chrome', { configurable: true, value: { storage: { local: {} } } })
     expect(extensionApi()).toBe(browser)
-    expect(isFirefoxExtension()).toBe(true)
   })
 
   it('uses Chromium APIs when the browser namespace is absent', () => {
     const chrome = { storage: { local: {} } }
     Object.defineProperty(globalThis, 'chrome', { configurable: true, value: chrome })
     expect(extensionApi()).toBe(chrome)
+    expect(isFirefoxExtension()).toBe(false)
+  })
+
+  it('detects Firefox by the moz-extension runtime scheme', () => {
+    Object.defineProperty(globalThis, 'browser', { configurable: true, value: { runtime: { getURL: (path: string) => `moz-extension://id${path}` } } })
+    expect(isFirefoxExtension()).toBe(true)
+  })
+
+  it('treats a Chromium browser alias with a chrome-extension scheme as Chromium', () => {
+    const api = { runtime: { getURL: (path: string) => `chrome-extension://id${path}` } }
+    Object.defineProperty(globalThis, 'browser', { configurable: true, value: api })
+    Object.defineProperty(globalThis, 'chrome', { configurable: true, value: api })
     expect(isFirefoxExtension()).toBe(false)
   })
 
