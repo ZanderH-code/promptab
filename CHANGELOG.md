@@ -4,6 +4,19 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.12.4]
+
+### Fixed
+
+- Keep website icons visible on a new tab opened while another Promptab tab is open, or when two open at once. A cached icon that loaded before the component's mount reset was hidden forever, and 0.12.3's cached-is-final change made it permanent.
+- Fall back to the letter instead of a broken-image glyph when a custom icon image cannot be decoded.
+- Show the letter instead of a blank when a Lucide icon's name no longer exists.
+- Keep showing a cached icon when its 7-day refresh fails because the site or network is down, and retry after 1 hour, then 6 hours, then 24 hours, instead of turning into a letter.
+
+### Changed
+
+- No new permissions are requested.
+
 ## [0.12.3]
 
 ### Fixed
