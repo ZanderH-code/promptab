@@ -24,7 +24,7 @@ function memoryCache(): WeatherCache {
 describe('weather permissions', () => {
   it.each(['forecast', 'geocoding'] as const)('requests Firefox location consent with %s access in the user gesture', async service => {
     const request = vi.fn().mockResolvedValue(false)
-    vi.stubGlobal('browser', { runtime: { getURL: vi.fn() }, permissions: { request } })
+    vi.stubGlobal('browser', { runtime: { getURL: () => 'moz-extension://id/' }, permissions: { request } })
     const result = requestWeatherPermission(service)
     const origin = service === 'forecast' ? 'https://api.open-meteo.com/*' : 'https://geocoding-api.open-meteo.com/*'
     expect(request).toHaveBeenCalledWith({ origins: [origin], data_collection: ['locationInfo'] })

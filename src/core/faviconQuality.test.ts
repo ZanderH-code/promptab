@@ -1,19 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   ICON_CACHE_LIMIT,
   ICON_CACHE_TTL_MS,
+  ICON_FAILURE_BACKOFF_MS,
   ICON_NEGATIVE_TTL_MS,
+  __resetFaviconQualityForTests,
   chooseBestIcon,
-  faviconCacheKey,
   faviconCandidates,
   isCacheEntryFresh,
   isKnownHost,
   isUsableIcon,
+  loadBestFavicon,
   trimCacheEntries,
   type FaviconCandidate,
 } from './faviconQuality'
 import { estimateEffectiveWidth, isDefaultGlobeFingerprint, resolveIconResult, sources } from './faviconExtras'
-import { ICON_CACHE_KEY } from './favicon'
+import {
+  ICON_CACHE_KEY,
+  ICON_STALE_TTL_MS,
+  cachedFavicon,
+  faviconCacheKey,
+  readIconCache,
+} from './favicon'
 import { iconCacheKey, isAllowedIconUrl, knownIconFor } from './knownIcons'
 
 const MAPS_ICON = 'https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'
@@ -148,10 +156,12 @@ describe('favicon quality selection and cache rules', () => {
     expect(resolveIconResult(null, 'https://example.com')).toBeNull()
   })
 
-  it('uses seven-day positive and one-hour negative cache TTLs in the v2 cache', () => {
-    expect(ICON_CACHE_KEY).toBe('mnt.iconCache:v2')
+  it('uses a seven-day positive window, a 30-day stale window and failure backoff in the v3 cache', () => {
+    expect(ICON_CACHE_KEY).toBe('mnt.iconCache:v3')
     expect(ICON_CACHE_TTL_MS).toBe(7 * 24 * 60 * 60 * 1000)
+    expect(ICON_STALE_TTL_MS).toBe(30 * 24 * 60 * 60 * 1000)
     expect(ICON_NEGATIVE_TTL_MS).toBe(60 * 60 * 1000)
+    expect(ICON_FAILURE_BACKOFF_MS).toEqual([60 * 60 * 1000, 6 * 60 * 60 * 1000, 24 * 60 * 60 * 1000])
     const entry = { url: '/favicon.ico', savedAt: 1_000, expiresAt: 2_000 }
     expect(isCacheEntryFresh(entry, 1_999)).toBe(true)
     expect(isCacheEntryFresh(entry, 2_000)).toBe(false)
@@ -177,13 +187,221 @@ describe('favicon quality selection and cache rules', () => {
     expect(isAllowedIconUrl('https://example.com', 'https://evil.example/favicon.ico')).toBe(false)
   })
 
-  it('keeps only the newest cache entries within the configured capacity', () => {
+  it('keeps the most recently used cache entries within the configured capacity', () => {
     const entries = Object.fromEntries(Array.from({ length: ICON_CACHE_LIMIT + 20 }, (_, index) => [
-      `https://site-${index}.test`, { savedAt: index, expiresAt: 10_000 },
+      `https://site-${index}.test`, { savedAt: index, usedAt: index, expiresAt: 10_000 },
     ]))
     const trimmed = trimCacheEntries(entries)
     expect(Object.keys(trimmed)).toHaveLength(ICON_CACHE_LIMIT)
-    expect(trimmed['https://site-275.test']?.savedAt).toBe(275)
-    expect(trimmed['https://site-0.test']).toBeUndefined()
+    expect(trimmed['https://site-1043.test']?.savedAt).toBe(1043)
+    expect(trimmed['https://site-19.test']).toBeUndefined()
+  })
+
+  it('evicts by last use rather than save time', () => {
+    const entries = {
+      'https://old-but-used.test': { savedAt: 1, usedAt: 9_000, expiresAt: 10_000 },
+      'https://new-but-idle.test': { savedAt: 8_000, expiresAt: 10_000 },
+    }
+    expect(trimCacheEntries(entries, 1)['https://old-but-used.test']).toBeDefined()
+  })
+})
+
+describe('synchronous cache and discovery', () => {
+  const DAY = 24 * 60 * 60 * 1000
+
+  const seedV3 = (entries: Record<string, unknown>) => localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(entries))
+
+  function seedV2(entries: Record<string, unknown>) {
+    const store: Record<string, unknown> = { 'mnt.iconCache:v2': { version: 2, entries } }
+    const removed: string[] = []
+    Object.defineProperty(globalThis, 'chrome', {
+      configurable: true,
+      value: { runtime: { getURL: (path: string) => `chrome-extension://abc${path}` }, storage: { local: {
+        get: async (key: string) => ({ [key]: store[key] }),
+        set: async (items: Record<string, unknown>) => { Object.assign(store, items) },
+        remove: async (keys: string[]) => { removed.push(...keys); for (const key of keys) delete store[key] },
+      } } },
+    })
+    return { store, removed }
+  }
+
+  function stubImages(load: (url: string) => number | null) {
+    const requested: string[] = []
+    class FakeImage {
+      onload: (() => void) | null = null
+      onerror: (() => void) | null = null
+      naturalWidth = 0
+      naturalHeight = 0
+      decoding = ''
+      loading = ''
+      referrerPolicy = ''
+      removeAttribute() {}
+      set src(url: string) {
+        requested.push(url)
+        const width = load(url)
+        queueMicrotask(() => {
+          if (width) { this.naturalWidth = width; this.naturalHeight = width; this.onload?.() }
+          else this.onerror?.()
+        })
+      }
+    }
+    vi.stubGlobal('Image', FakeImage)
+    return requested
+  }
+
+  function discoverOnce(input: string, force = false) {
+    return new Promise<{ candidate: FaviconCandidate | null; complete: boolean; published: Array<FaviconCandidate | null> }>(resolve => {
+      const published: Array<FaviconCandidate | null> = []
+      let unsubscribe: (() => void) | undefined
+      unsubscribe = loadBestFavicon(input, 64, (candidate, complete) => {
+        published.push(candidate)
+        if (complete) { unsubscribe?.(); resolve({ candidate, complete, published }) }
+      }, force)
+    })
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    __resetFaviconQualityForTests()
+    delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome
+    delete (globalThis as typeof globalThis & { browser?: unknown }).browser
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    localStorage.clear()
+    __resetFaviconQualityForTests()
+    delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome
+    delete (globalThis as typeof globalThis & { browser?: unknown }).browser
+  })
+
+  it('publishes a fresh cached success as complete without loading any image', async () => {
+    const now = Date.now()
+    seedV3({ 'https://cached.example.test': { url: 'https://cached.example.test/icon.png', width: 128, height: 128, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS } })
+    const requested = stubImages(() => 128)
+    const result = await discoverOnce('https://cached.example.test/page')
+    expect(result.candidate?.url).toBe('https://cached.example.test/icon.png')
+    expect(result.complete).toBe(true)
+    expect(requested).toEqual([])
+    expect(readIconCache()['https://cached.example.test']?.usedAt).toBeGreaterThan(0)
+  })
+
+  it('rediscovers when the cached URL failed to load', async () => {
+    const now = Date.now()
+    seedV3({ 'https://broken.example.test': { url: 'https://broken.example.test/gone.png', width: 128, height: 128, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS } })
+    const requested = stubImages(url => url.endsWith('/favicon-32x32.png') ? 128 : null)
+    const result = await discoverOnce('https://broken.example.test', true)
+    expect(result.candidate?.url).toBe('https://broken.example.test/favicon-32x32.png')
+    expect(requested.length).toBeGreaterThan(0)
+    expect(readIconCache()['https://broken.example.test']?.url).toBe('https://broken.example.test/favicon-32x32.png')
+  })
+
+  it('publishes a stale success immediately, then revalidates it', async () => {
+    const now = Date.now()
+    seedV3({ 'https://stale.example.test': { url: 'https://stale.example.test/old.png', width: 128, height: 128, savedAt: now - 8 * DAY, expiresAt: now - DAY } })
+    stubImages(url => url.endsWith('/favicon.svg') ? 256 : null)
+    const result = await discoverOnce('https://stale.example.test')
+    expect(result.published[0]?.url).toBe('https://stale.example.test/old.png')
+    expect(result.candidate?.url).toBe('https://stale.example.test/favicon.svg')
+    expect(result.complete).toBe(true)
+  })
+
+  it('drops successes older than 30 days instead of showing them', async () => {
+    const now = Date.now()
+    seedV3({ 'https://ancient.example.test': { url: 'https://ancient.example.test/old.png', width: 128, height: 128, savedAt: now - 31 * DAY, expiresAt: now - 24 * DAY } })
+    expect(cachedFavicon('https://ancient.example.test')).toBeNull()
+    const requested = stubImages(url => url.endsWith('/favicon.ico') ? 32 : null)
+    const result = await discoverOnce('https://ancient.example.test')
+    expect(result.published[0]?.url).not.toBe('https://ancient.example.test/old.png')
+    expect(requested.length).toBeGreaterThan(0)
+    expect(readIconCache()['https://ancient.example.test']?.url).toBe('https://ancient.example.test/favicon.ico')
+  })
+
+  it('backs off consecutive failures at 1h, 6h and 24h, then resets after a success', async () => {
+    const now = Date.now()
+    stubImages(() => null)
+    await discoverOnce('https://fail.example.test')
+    let entry = readIconCache()['https://fail.example.test']!
+    expect(entry).toMatchObject({ failed: true, failures: 1 })
+    expect(entry.expiresAt - entry.savedAt).toBe(ICON_FAILURE_BACKOFF_MS[0])
+
+    seedV3({ 'https://fail.example.test': { ...entry, savedAt: now - 2 * 3600e3, expiresAt: now - 3600e3 } })
+    await discoverOnce('https://fail.example.test')
+    entry = readIconCache()['https://fail.example.test']!
+    expect(entry.failures).toBe(2)
+    expect(entry.expiresAt - entry.savedAt).toBe(ICON_FAILURE_BACKOFF_MS[1])
+
+    seedV3({ 'https://fail.example.test': { ...entry, failures: 9, savedAt: now - 2 * DAY, expiresAt: now - DAY } })
+    await discoverOnce('https://fail.example.test')
+    entry = readIconCache()['https://fail.example.test']!
+    expect(entry.failures).toBe(10)
+    expect(entry.expiresAt - entry.savedAt).toBe(ICON_FAILURE_BACKOFF_MS[2])
+
+    vi.unstubAllGlobals()
+    stubImages(url => url.endsWith('/favicon.ico') ? 32 : null)
+    seedV3({ 'https://fail.example.test': { ...entry, savedAt: now - 2 * DAY, expiresAt: now - DAY } })
+    await discoverOnce('https://fail.example.test')
+    entry = readIconCache()['https://fail.example.test']!
+    expect(entry.failed).toBeUndefined()
+    expect(entry.failures).toBeUndefined()
+    expect(entry.url).toBe('https://fail.example.test/favicon.ico')
+  })
+
+  it('migrates a v2 _favicon entry into v3 so it survives a reload', async () => {
+    const now = Date.now()
+    const icon = 'chrome-extension://abc/_favicon/?pageUrl=https%3A%2F%2Ffav.test%2F&size=128'
+    const { store, removed } = seedV2({ 'https://fav.test': { url: icon, width: 128, height: 128, known: false, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS } })
+    const requested = stubImages(() => 128)
+    const result = await discoverOnce('https://fav.test')
+    expect(result.candidate?.url).toBe(icon)
+    expect(requested).toEqual([])
+    expect(cachedFavicon('https://fav.test')?.url).toBe(icon)
+    expect(store['mnt.iconCache:v2']).toBeUndefined()
+    expect(removed).toContain('mnt.iconCache:v2')
+  })
+
+  it('migrates fresh v2 successes, failures and brands, dropping stale or foreign URLs', async () => {
+    const now = Date.now()
+    seedV2({
+      'https://same.test': { url: 'https://same.test/icon.png', width: 128, height: 128, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS },
+      'https://foreign.test': { url: 'https://evil.test/icon.png', width: 128, height: 128, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS },
+      'https://failed.test': { failed: true, savedAt: now, expiresAt: now + ICON_NEGATIVE_TTL_MS },
+      'https://brand.test': { brand: 'youtube', savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS },
+      'https://stale.test': { url: 'https://stale.test/icon.png', width: 128, height: 128, savedAt: now - 31 * DAY, expiresAt: now - 24 * DAY },
+    })
+    stubImages(() => null)
+    await discoverOnce('https://migrate.test')
+    const entries = readIconCache()
+    expect(entries['https://same.test']?.url).toBe('https://same.test/icon.png')
+    expect(entries['https://foreign.test']).toBeUndefined()
+    expect(entries['https://failed.test']).toMatchObject({ failed: true, failures: 1 })
+    expect(entries['https://brand.test']?.brand?.slug).toBe('youtube')
+    expect(entries['https://brand.test']?.brand?.path).toBeTruthy()
+    expect(entries['https://stale.test']).toBeUndefined()
+  })
+
+  it('merges entries written by another tab instead of overwriting them', async () => {
+    const now = Date.now()
+    seedV3({ 'https://tab-a.test': { url: 'https://tab-a.test/a.png', width: 64, height: 64, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS } })
+    readIconCache()
+    localStorage.setItem(ICON_CACHE_KEY, JSON.stringify({
+      'https://tab-a.test': { url: 'https://tab-a.test/a.png', width: 64, height: 64, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS },
+      'https://tab-b.test': { url: 'https://tab-b.test/b.png', width: 64, height: 64, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS },
+    }))
+    stubImages(url => url.endsWith('/favicon.ico') ? 32 : null)
+    await discoverOnce('https://tab-c.test')
+    const entries = readIconCache()
+    expect(entries['https://tab-a.test']).toBeDefined()
+    expect(entries['https://tab-b.test']).toBeDefined()
+    expect(entries['https://tab-c.test']?.url).toBe('https://tab-c.test/favicon.ico')
+  })
+
+  it('uses one key for sync reads and discovery writes across path variants', async () => {
+    const now = Date.now()
+    seedV3({ 'https://paths.test': { url: 'https://paths.test/icon.png', width: 64, height: 64, savedAt: now, expiresAt: now + ICON_CACHE_TTL_MS } })
+    expect(cachedFavicon('https://paths.test/a/b?q=1')?.url).toBe('https://paths.test/icon.png')
+    expect(faviconCacheKey('https://paths.test/a/b?q=1')).toBe('https://paths.test')
+    stubImages(() => 64)
+    await discoverOnce('https://paths.test/deep/path')
+    expect(readIconCache()['https://paths.test']?.url).toBe('https://paths.test/icon.png')
   })
 })

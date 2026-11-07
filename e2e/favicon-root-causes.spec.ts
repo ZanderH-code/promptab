@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { seedExistingUser } from './helpers'
 
-const cacheState = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('mnt.iconCache:v2') || 'null'))
+const cacheState = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('mnt.iconCache:v3') || 'null'))
 const profileStorage = (page: Page) => page.evaluate(() => JSON.stringify(Object.keys(localStorage).sort()
   .filter(key => key === 'settings' || key.startsWith('profiles:v2:'))
   .map(key => [key, localStorage.getItem(key)])))
@@ -18,7 +18,7 @@ async function seed(page: Page, shortcuts: Array<{ id: string; name: string; url
 }
 
 async function expectCache(page: Page) {
-  await expect.poll(async () => (await cacheState(page))?.version).toBe(2)
+  await expect.poll(async () => Object.keys((await cacheState(page)) ?? {}).length).toBeGreaterThan(0)
   return cacheState(page)
 }
 
@@ -36,7 +36,7 @@ test('chatgpt: fixed paths 404 and the bundled known icon wins', async ({ page }
   await expect(icon).toHaveAttribute('src', 'https://chatgpt.com/unauth-mweb/images/chatgpt-icon-512x512.png')
   await expect.poll(() => icon.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(128)
   const cache = await expectCache(page)
-  expect(cache.entries['https://chatgpt.com']).toMatchObject({ url: 'https://chatgpt.com/unauth-mweb/images/chatgpt-icon-512x512.png', width: 128 })
+  expect(cache['https://chatgpt.com']).toMatchObject({ url: 'https://chatgpt.com/unauth-mweb/images/chatgpt-icon-512x512.png', width: 128 })
 })
 
 test('v0: HTML answers for every fixed path fall through to the bundled SVG', async ({ page }) => {
@@ -60,7 +60,7 @@ test('gemini: every request fails, so the bundled brand mark replaces the letter
   await expect(page.locator('.shortcut-icon svg path')).toHaveCount(1)
   await expect(page.locator('.shortcut-icon')).toHaveText('')
   const cache = await expectCache(page)
-  expect(cache.entries['https://gemini.google.com']).toMatchObject({ brand: 'googlegemini' })
+  expect(cache['https://gemini.google.com']).toMatchObject({ brand: { slug: 'googlegemini' } })
 })
 
 test('instagram: a login page for every path falls back to the bundled brand mark', async ({ page }) => {
@@ -93,7 +93,7 @@ test('deepseek: the chat WAF page falls through to the known table or the bundle
   await expect(page.locator('.shortcut-icon svg path')).toHaveCount(1)
   await expect(page.locator('.shortcut-icon')).toHaveText('')
   const cache = await expectCache(page)
-  expect(cache.entries['https://chat.deepseek.com']).toMatchObject({ brand: 'deepseek' })
+  expect(cache['https://chat.deepseek.com']).toMatchObject({ brand: { slug: 'deepseek' } })
 })
 
 test('youtube: an upscaled browser bitmap loses to the bundled brand mark without flashing the letter', async ({ page }) => {
@@ -119,7 +119,7 @@ test('youtube: an upscaled browser bitmap loses to the bundled brand mark withou
   await expect(page.locator('.shortcut-icon')).toHaveText('')
   expect(await page.evaluate(() => (window as typeof window & { iconText: string[] }).iconText)).not.toContain('Y')
   const cache = await expectCache(page)
-  expect(cache.entries['https://www.youtube.com']).toMatchObject({ brand: 'youtube' })
+  expect(cache['https://www.youtube.com']).toMatchObject({ brand: { slug: 'youtube' } })
 })
 
 test('reddit: an upscaled browser bitmap loses to the real 128 px touch icon', async ({ page }) => {
@@ -160,7 +160,7 @@ test('google maps keeps its own cache entry and icon, separate from the rest of 
   await page.goto('/')
   await expect(page.locator('.shortcut-icon img').nth(0)).toHaveAttribute('src', /maps_2025_round_color_1x_web_512dp\.png$/)
   await expect(page.locator('.shortcut-icon img').nth(1)).toHaveAttribute('src', 'https://www.google.com/favicon-32x32.png')
-  await expect.poll(async () => Object.keys((await cacheState(page))?.entries ?? {})).toEqual(expect.arrayContaining(['https://www.google.com/maps', 'https://www.google.com']))
+  await expect.poll(async () => Object.keys((await cacheState(page)) ?? {})).toEqual(expect.arrayContaining(['https://www.google.com/maps', 'https://www.google.com']))
 })
 
 test('dify prefers its bundled brand mark over a sharp site icon', async ({ page }) => {
@@ -176,7 +176,7 @@ test('dify prefers its bundled brand mark over a sharp site icon', async ({ page
   await expect(page.locator('.shortcut-icon svg path')).toHaveCount(1)
   await expect(page.locator('.shortcut-icon')).toHaveText('')
   const cache = await expectCache(page)
-  expect(cache.entries['https://dify.ai']).toMatchObject({ brand: 'dify' })
+  expect(cache['https://dify.ai']).toMatchObject({ brand: { slug: 'dify' } })
 })
 
 test('an unknown site with failed candidates still falls back to its letter', async ({ page }) => {
@@ -185,8 +185,8 @@ test('an unknown site with failed candidates still falls back to its letter', as
   await page.goto('/')
   await expect(page.locator('.shortcut-icon')).toContainText('U')
   const cache = await expectCache(page)
-  expect(cache.entries['https://unknown-icon.example.test']).toMatchObject({ failed: true })
-  expect(cache.entries['https://unknown-icon.example.test'].expiresAt - cache.entries['https://unknown-icon.example.test'].savedAt).toBe(60 * 60 * 1000)
+  expect(cache['https://unknown-icon.example.test']).toMatchObject({ failed: true, failures: 1 })
+  expect(cache['https://unknown-icon.example.test'].expiresAt - cache['https://unknown-icon.example.test'].savedAt).toBe(60 * 60 * 1000)
 })
 
 test('a v1 failure in local storage is ignored so updated users retry at once', async ({ page }) => {
@@ -202,7 +202,7 @@ test('a v1 failure in local storage is ignored so updated users retry at once', 
   const icon = page.locator('.shortcut-icon img').first()
   await expect(icon).toHaveAttribute('src', 'https://retried.example.test/favicon-32x32.png')
   const cache = await expectCache(page)
-  expect(cache.entries['https://retried.example.test']).not.toMatchObject({ failed: true })
+  expect(cache['https://retried.example.test']).not.toMatchObject({ failed: true })
 })
 
 test('manual text and brand shortcuts on known sites never start discovery', async ({ page }) => {

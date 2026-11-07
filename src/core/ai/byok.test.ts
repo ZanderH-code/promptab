@@ -18,7 +18,7 @@ describe('BYOK requests', () => {
 
   it('requests Firefox data consent with the provider permission', async () => {
     const request = vi.fn().mockResolvedValue(false)
-    vi.stubGlobal('browser', { runtime: { getURL: vi.fn() }, permissions: { request } })
+    vi.stubGlobal('browser', { runtime: { getURL: () => 'moz-extension://id/' }, permissions: { request } })
     await expect(sendByok(input)).rejects.toThrow('permission')
     expect(request).toHaveBeenCalledWith({
       origins: ['https://api.openai.com/*'],

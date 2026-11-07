@@ -32,6 +32,7 @@ export function isExtensionEnvironment(): boolean {
   return typeof extensionApi()?.runtime?.getURL === 'function'
 }
 
+/** Chromium 156 also exposes `browser`, so the runtime URL scheme is the only reliable signal. */
 export function isFirefoxExtension(): boolean {
-  return typeof (globalThis as typeof globalThis & { browser?: ExtensionApi }).browser !== 'undefined'
+  try { return !!extensionApi()?.runtime?.getURL('/')?.startsWith('moz-extension:') } catch { return false }
 }
