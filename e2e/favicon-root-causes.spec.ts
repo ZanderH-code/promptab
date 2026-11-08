@@ -1,6 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { seedExistingUser } from './helpers'
+import { brandSlugFor, type BrandIndex } from '../src/core/brandDomains'
+
+/** The product's resolver, used to prove the fallback domain really has no bundled brand. */
+const brandIndex = JSON.parse(readFileSync(new URL('../dist/brand-index.json', import.meta.url), 'utf8')) as BrandIndex
 
 const cacheState = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('mnt.iconCache:v3') || 'null'))
 const profileStorage = (page: Page) => page.evaluate(() => JSON.stringify(Object.keys(localStorage).sort()
@@ -39,17 +44,29 @@ test('chatgpt: fixed paths 404 and the bundled known icon wins', async ({ page }
   expect(cache['https://chatgpt.com']).toMatchObject({ url: 'https://chatgpt.com/unauth-mweb/images/chatgpt-icon-512x512.png', width: 128 })
 })
 
-test('v0: HTML answers for every fixed path fall through to the bundled SVG', async ({ page }) => {
-  await page.route('https://v0.app/**', route => {
+test('v0: the bundled brand mark wins before any favicon path', async ({ page }) => {
+  await page.route('https://v0.app/**', route => route.fulfill({ status: 404, body: 'missing' }))
+  await seed(page, [{ id: 'v0', name: 'v0', url: 'https://v0.app' }])
+  await page.goto('/')
+  await expect(page.locator('.shortcut-icon svg path')).toHaveCount(1)
+  await expect(page.locator('.shortcut-icon')).toHaveText('')
+  const cache = await expectCache(page)
+  expect(cache['https://v0.app']).toMatchObject({ brand: { slug: 'v0' } })
+})
+
+test('a brandless site: HTML answers for fixed paths fall through to the site SVG', async ({ page }) => {
+  const url = 'https://no-brand.example.test'
+  expect(brandSlugFor(brandIndex, url)).toBeNull()
+  await page.route(`${url}/**`, route => {
     const path = new URL(route.request().url()).pathname
-    return path === '/assets/icon.svg'
+    return path === '/favicon.svg'
       ? route.fulfill({ status: 200, contentType: 'image/svg+xml', body: svg() })
       : route.fulfill({ status: 200, contentType: 'text/html', body: '<!doctype html><title>app</title>' })
   })
-  await seed(page, [{ id: 'v0', name: 'v0', url: 'https://v0.app' }])
+  await seed(page, [{ id: 'fallback', name: 'Fallback', url }])
   await page.goto('/')
   const icon = page.locator('.shortcut-icon img').first()
-  await expect(icon).toHaveAttribute('src', 'https://v0.app/assets/icon.svg')
+  await expect(icon).toHaveAttribute('src', `${url}/favicon.svg`)
   await expect.poll(() => icon.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
 })
 
@@ -100,7 +117,7 @@ test('youtube: an upscaled browser bitmap loses to the bundled brand mark withou
   const upscaled = await readFile(new URL('./fixtures/upscaled-32-to-128.png', import.meta.url))
   const globe = await iconBytes('icon16.png')
   await page.addInitScript(() => {
-    ;(window as typeof window & { chrome?: unknown }).chrome = { runtime: { getURL: (path: string) => `${location.origin}${path}` } }
+    ;(window as typeof window & { chrome?: unknown }).chrome = { runtime: { getURL: (path: string) => new URL(path, `${location.origin}/`).href } }
   })
   await page.route('**/*', route => {
     const url = new URL(route.request().url())
@@ -122,45 +139,43 @@ test('youtube: an upscaled browser bitmap loses to the bundled brand mark withou
   expect(cache['https://www.youtube.com']).toMatchObject({ brand: { slug: 'youtube' } })
 })
 
-test('reddit: an upscaled browser bitmap loses to the real 128 px touch icon', async ({ page }) => {
+test('an upscaled browser bitmap loses to the real 128 px touch icon', async ({ page }) => {
+  const url = 'https://touch-icon.example.test'
+  expect(brandSlugFor(brandIndex, url)).toBeNull()
   const upscaled = await readFile(new URL('./fixtures/upscaled-32-to-128.png', import.meta.url))
   const globe = await iconBytes('icon16.png')
   const big = await iconBytes('icon128.png')
   await page.addInitScript(() => {
-    ;(window as typeof window & { chrome?: unknown }).chrome = { runtime: { getURL: (path: string) => `${location.origin}${path}` } }
+    ;(window as typeof window & { chrome?: unknown }).chrome = { runtime: { getURL: (path: string) => new URL(path, `${location.origin}/`).href } }
   })
   await page.route('**/*', route => {
     const url = new URL(route.request().url())
     if (url.pathname !== '/_favicon/') return route.continue()
     return route.fulfill({ status: 200, contentType: 'image/png', body: url.searchParams.get('pageUrl')?.includes('promptab-') ? globe : upscaled })
   })
-  await page.route('https://www.reddit.com/**', route => route.fulfill({ status: 404, body: 'missing' }))
-  await page.route('https://www.reddit.com/apple-touch-icon-precomposed.png', route => route.fulfill({ status: 200, contentType: 'image/png', body: big }))
-  await seed(page, [{ id: 'reddit', name: 'Reddit', url: 'https://www.reddit.com' }])
+  await page.route(`${url}/**`, route => route.fulfill({ status: 404, body: 'missing' }))
+  await page.route(`${url}/apple-touch-icon-precomposed.png`, route => route.fulfill({ status: 200, contentType: 'image/png', body: big }))
+  await seed(page, [{ id: 'touch', name: 'Touch', url }])
   await page.goto('/')
   const icon = page.locator('.shortcut-icon img').first()
-  await expect(icon).toHaveAttribute('src', 'https://www.reddit.com/apple-touch-icon-precomposed.png')
+  await expect(icon).toHaveAttribute('src', `${url}/apple-touch-icon-precomposed.png`)
   await expect.poll(() => icon.evaluate(element => (element as HTMLImageElement).naturalWidth)).toBe(128)
 })
 
-test('google maps keeps its own cache entry and icon, separate from the rest of google.com', async ({ page }) => {
-  const big = await iconBytes('icon128.png')
-  const small = await iconBytes('icon16.png')
-  await page.route('https://www.gstatic.com/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: big }))
-  await page.route('https://www.google.com/**', route => {
-    const path = new URL(route.request().url()).pathname
-    return path === '/favicon-32x32.png'
-      ? route.fulfill({ status: 200, contentType: 'image/png', body: small })
-      : route.fulfill({ status: 404, body: 'missing' })
-  })
+test('google maps keeps its own cache entry and brand, separate from the rest of google.com', async ({ page }) => {
+  await page.route('https://www.google.com/**', route => route.fulfill({ status: 404, body: 'missing' }))
   await seed(page, [
     { id: 'maps', name: 'Google Maps', url: 'https://www.google.com/maps' },
     { id: 'search', name: 'Google Search', url: 'https://www.google.com/search?q=promptab' },
   ])
   await page.goto('/')
-  await expect(page.locator('.shortcut-icon img').nth(0)).toHaveAttribute('src', /maps_2025_round_color_1x_web_512dp\.png$/)
-  await expect(page.locator('.shortcut-icon img').nth(1)).toHaveAttribute('src', 'https://www.google.com/favicon-32x32.png')
-  await expect.poll(async () => Object.keys((await cacheState(page)) ?? {})).toEqual(expect.arrayContaining(['https://www.google.com/maps', 'https://www.google.com']))
+  const tiles = page.locator('.shortcut-icon')
+  await expect(tiles.nth(0).locator('svg path')).toHaveCount(1)
+  await expect(tiles.nth(1).locator('svg path')).toHaveCount(1)
+  const cache = await expectCache(page)
+  expect(cache['https://www.google.com/maps']).toMatchObject({ brand: { slug: 'googlemaps' } })
+  expect(cache['https://www.google.com']).toMatchObject({ brand: { slug: 'google' } })
+  expect(Object.keys(cache)).toEqual(expect.arrayContaining(['https://www.google.com/maps', 'https://www.google.com']))
 })
 
 test('dify prefers its bundled brand mark over a sharp site icon', async ({ page }) => {
