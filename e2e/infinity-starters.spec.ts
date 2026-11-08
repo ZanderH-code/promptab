@@ -13,8 +13,7 @@ async function names(page: Page): Promise<string[]> {
 test('starter removal and Infinity add, undo and replace', async ({ page }) => {
   const remote: string[] = []
   page.on('request', request => {
-    // Amazon, ChatGPT and Outlook are auto by design now; the bundled-brand starters must stay local.
-    if (/youtube\.com|mail\.google\.com|maps\.google\.com|wikipedia\.org|reddit\.com|infinitynewtab\.com/i.test(request.url())) remote.push(request.url())
+    if (/favicon|youtube\.com|mail\.google\.com|maps\.google\.com|wikipedia\.org|reddit\.com|amazon\.com|chatgpt\.com|outlook\.live\.com|infinitynewtab\.com/i.test(request.url())) remote.push(request.url())
   })
   await page.goto('./')
   await expect(page.locator('.shortcut')).toHaveCount(8)
