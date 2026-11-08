@@ -1,3 +1,4 @@
+import '../../i18n/ai'
 import type { Language, MessageKey, Translate } from '../../i18n'
 import { localizeIssue } from '../schema/issueMessages'
 import { cssIssueText } from '../css/messages'

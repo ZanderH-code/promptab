@@ -1,8 +1,7 @@
 import { browserFaviconUrl } from './favicon'
 import { extensionApi } from '../platform/extension'
-import { loadImage, type CandidateSource, type FaviconCandidate } from './faviconQuality'
+import { loadImage, type CandidateSource } from './faviconQuality'
 import { knownIconFor } from './knownIcons'
-import { knownBrand } from './knownBrands'
 
 /** Share of pixels that may differ from their block's first pixel before a block grid is considered real detail. */
 export const ICON_UPSCALE_TOLERANCE = 0.02
@@ -94,18 +93,3 @@ export async function inspect(image: HTMLImageElement) {
     effectiveWidth: estimateEffectiveWidth(pixels.pixels, image.naturalWidth, image.naturalHeight),
   }
 }
-
-function brandCandidate(slug: string): FaviconCandidate | null {
-  const brand = knownBrand(slug)
-  return brand ? { url: '', sourceType: 'known-brand', naturalWidth: 0, naturalHeight: 0, effectiveWidth: Number.POSITIVE_INFINITY, clarity: 'clear', svg: true, brand } : null
-}
-
-/** A missing, blurry or brand-preferred result becomes the bundled mark; everything else keeps the image. */
-export function resolveIconResult(best: FaviconCandidate | null, input: string, displaySize = 64, dpr = 1): FaviconCandidate | null {
-  const known = knownIconFor(input)
-  if (!known?.brand || best?.brand) return best
-  const sharp = !!best && (best.svg || best.effectiveWidth >= Math.ceil(displaySize * dpr))
-  return known.preferBrand || !sharp ? brandCandidate(known.brand) : best
-}
-
-export function brand(slug: string) { return brandCandidate(slug) }

@@ -1,3 +1,4 @@
+import '../../../i18n/ai'
 import { lazy, Suspense } from 'react'
 const AiWorkbench = lazy(() => import('../AiWorkbench').then(m => ({ default: m.AiWorkbench })))
 import type { Ctx, Item } from './shared'

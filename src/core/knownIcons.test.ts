@@ -1,7 +1,10 @@
+import * as simpleIcons from 'simple-icons'
 import { expect, it } from 'vitest'
 import { isKnownHost } from './faviconQuality'
 import { iconCacheKey, isAllowedIconUrl, KNOWN_ICONS, knownIconFor } from './knownIcons'
-import { knownBrand } from './knownBrands'
+import { buildBrandIndex } from '../../scripts/build-brand-index.mjs'
+import overrides from './brandDomains.json'
+import { brandSlugFor } from './brandDomains'
 
 const MAPS_ICON = 'https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'
 
@@ -36,9 +39,11 @@ it('loads the known table for every bundled host', () => {
   expect(KNOWN_ICONS.flatMap(entry => entry.hosts).filter(host => !isKnownHost(host))).toEqual([])
 })
 
-it('bundles brand marks and marks wordmark sites as brand-preferred', () => {
-  expect(knownBrand('youtube')).toMatchObject({ slug: 'youtube', hex: 'FF0000' })
-  expect(knownBrand('googlegemini')?.title).toBe('Google Gemini')
-  expect(knownBrand('missing')).toBeNull()
-  expect(knownIconFor('https://dify.ai/apps')).toMatchObject({ preferBrand: true, brand: 'dify' })
+it('leaves brand marks to the precomputed index', () => {
+  const index = buildBrandIndex(simpleIcons, overrides)
+  expect(brandSlugFor(index, 'https://www.youtube.com')).toBe('youtube')
+  expect(brandSlugFor(index, 'https://www.instagram.com')).toBe('instagram')
+  expect(brandSlugFor(index, 'https://dify.ai/apps')).toBe('dify')
+  // Every remaining entry exists for its icon URLs, not for a brand.
+  expect(KNOWN_ICONS.every(entry => entry.urls.length > 0)).toBe(true)
 })

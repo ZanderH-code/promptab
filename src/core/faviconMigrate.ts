@@ -1,5 +1,6 @@
 import { extensionApi } from '../platform/extension'
 import { ICON_CACHE_KEY, ICON_STALE_TTL_MS, readIconCache } from './favicon'
+import { loadBrand } from './brandShards'
 
 const V2_KEY = 'mnt.iconCache:v2'
 type V2Entry = {
@@ -34,14 +35,13 @@ export async function migrateV2() {
   if (source?.version !== 2 || !source.entries) return
   const now = Date.now()
   const entries = { ...readIconCache() }
-  let brands: typeof import('./knownBrands') | null = null
   for (const [key, value] of Object.entries(source.entries)) {
     if (entries[key] || !value || !/^https?:\/\//.test(key) || value.savedAt + ICON_STALE_TTL_MS <= now) continue
     if (value.failed) {
       if (value.expiresAt > now) entries[key] = { failed: true, failures: 1, savedAt: value.savedAt, expiresAt: value.expiresAt }
     } else if (value.brand) {
-      brands ??= await import('./knownBrands')
-      const brand = brands.knownBrand(value.brand)
+      // The stored slug is resolved through its shard; a failed fetch lets discovery retry.
+      const brand = await loadBrand(value.brand)
       if (brand) entries[key] = { brand, savedAt: value.savedAt, expiresAt: value.expiresAt }
     } else if (value.url && isCacheableUrl(key, value.url, value.known)) {
       entries[key] = { url: value.url, width: value.width, height: value.height, svg: value.svg, known: value.known, savedAt: value.savedAt, expiresAt: value.expiresAt }

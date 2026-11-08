@@ -1,3 +1,5 @@
+import { useMessagesVersion } from '../../i18n/useMessages'
+import '../../i18n/ai'
 import { useEffect, useState, type CSSProperties } from 'react'
 import { z } from 'zod'
 import { analyzeCandidate } from '../../core/ai/analyze'
@@ -80,6 +82,7 @@ export async function loadGalleryPreview(id: string, profile: ProfileV2, languag
 }
 
 export function Gallery({ ctx, profile, onSelect }: { ctx: Ctx; profile: ProfileV2; onSelect: (source: string, analysis: ReturnType<typeof analyzeCandidate>) => void }) {
+  useMessagesVersion()
   const [index, setIndex] = useState<GalleryIndex | null>(null)
   const [stale, setStale] = useState(false)
   const [loading, setLoading] = useState(true)

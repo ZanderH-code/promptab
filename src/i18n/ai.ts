@@ -1,4 +1,6 @@
-/** Messages for the AI workbench. Spread into the main dictionaries. */
+import { registerMessages } from './index'
+
+/** Messages for the AI workbench and gallery. Registered when their lazy chunks load. */
 const messages = {
   "settings.tab.ai": ['AI', 'AI'],
   "gallery.open": ['打开主题画廊', 'Open theme gallery'],
@@ -114,3 +116,9 @@ export const aiZh = Object.fromEntries(
 export const aiEn: Record<keyof typeof aiZh, string> = Object.fromEntries(
   Object.entries(messages).map(([key, [, en]]) => [key, en]),
 ) as Record<keyof typeof aiZh, string>
+
+export type AiMessageKey = keyof typeof aiZh
+
+// Module-level registration: every AI/gallery chunk imports this module before it renders.
+registerMessages('zh-CN', aiZh)
+registerMessages('en', aiEn)

@@ -3,6 +3,10 @@ import {
   type IconCacheEntry,
 } from './favicon'
 import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
+import { brandCandidate } from './brandIndex'
+
+/** Re-exported so a brand shortcut that only stores a slug can use the lazy chunk it already needs. */
+export { loadBrand } from './brandShards'
 
 export const ICON_CACHE_TTL_MS = 6048e5
 export const ICON_NEGATIVE_TTL_MS = 36e5
@@ -30,8 +34,6 @@ export type FaviconExtras = {
   sources(input: string): CandidateSource[]
   prepare(): Promise<void>
   inspect(image: HTMLImageElement): Promise<{ transparent: boolean; placeholder: boolean; effectiveWidth: number }>
-  resolveIconResult(best: FaviconCandidate | null, input: string, displaySize: number, dpr: number): FaviconCandidate | null
-  brand(slug: string): FaviconCandidate | null
 }
 type Listener = (candidate: FaviconCandidate | null, complete: boolean) => void
 type Run = { listeners: Map<Listener, number>; best: FaviconCandidate | null; complete: boolean }
@@ -39,7 +41,7 @@ type Run = { listeners: Map<Listener, number>; best: FaviconCandidate | null; co
 const activeRuns = new Map<string, Run>()
 const queue: Array<() => void> = []
 /** Any known suffix needs the known table; everything else does not. */
-const KNOWN_HOSTS = /(^|\.)(google\.(com|dev)|ai\.google|chatgpt\.com|v0\.(app|dev)|deepseek\.com|grok\.com|outlook\.(live|office)\.com|instagram\.com|youtube\.com|reddit\.com|tradingview\.com|coinmarketcap\.com|interactivebrokers\.com|wealthsimple\.com|dify\.ai)$/
+const KNOWN_HOSTS = /(^|\.)(google\.(com|dev)|ai\.google|chatgpt\.com|v0\.(app|dev)|deepseek\.com|grok\.com|outlook\.(live|office)\.com|reddit\.com|tradingview\.com|coinmarketcap\.com|interactivebrokers\.com|wealthsimple\.com)$/
 export function isKnownHost(hostname: string) { return KNOWN_HOSTS.test(hostname.toLowerCase()) }
 export function isUsableIcon(width: number, height: number, transparent = false, placeholder = false) { return width > 1 && height > 1 && !transparent && !placeholder }
 export function isCacheEntryFresh(entry: IconCacheEntry, now = Date.now()) { return entry.expiresAt > now }
@@ -198,6 +200,16 @@ async function discover(key: string, input: string, run: Run, force: boolean) {
       }
     }
   }
+  // A domain-matched brand wins over every favicon step. Fresh cache entries returned above, so
+  // the index chunk is requested only for a new, stale or forced icon, never for a cached grid.
+  const brand = await brandCandidate(input)
+  if (brand) {
+    const savedAt = Date.now()
+    writeEntry(key, { brand: brand.brand, savedAt, expiresAt: savedAt + ICON_CACHE_TTL_MS })
+    publish(run, brand, true)
+    activeRuns.delete(key)
+    return
+  }
   const sources = faviconCandidates(input)
   const extras = await loadExtras(input, sources.some(source => source.sourceType.startsWith('chrome-_favicon')))
   if (extras) {
@@ -221,9 +233,7 @@ async function discover(key: string, input: string, run: Run, force: boolean) {
     ? probe(source128).then(() => source64 ? probe(source64) : undefined)
     : source64 ? probe(source64) : Promise.resolve(undefined)
   await Promise.all([...others.map(probe), preferred])
-  const guide = best as FaviconCandidate | null
-  const displaySize = Math.max(64, ...run.listeners.values())
-  const finalBest = extras ? extras.resolveIconResult(guide, input, displaySize, window.devicePixelRatio || 1) : guide
+  const finalBest = best as FaviconCandidate | null
   const savedAt = Date.now()
   if (finalBest) {
     writeEntry(key, finalBest.brand
