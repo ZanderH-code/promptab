@@ -1,5 +1,5 @@
 import { ArrowRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
-import { lazy, Suspense, useState, type CSSProperties } from 'react'
+import { lazy, Suspense, useState, type CSSProperties, type SyntheticEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
@@ -23,15 +23,16 @@ let swapTimer: ReturnType<typeof setTimeout> | undefined
 
 export function ShortcutGrid(props: ShortcutGridProps) {
   const [dragReady, setDragReady] = useState(false)
-  const swap = () => { document.querySelector('.context-menu') || setDragReady(true) }
+  const swap = () => { document.querySelector('.context-menu, .mnt-folder-dialog') || setDragReady(true) }
   // Touch only preloads: remounting mid-gesture would drop the pressed tile and its long-press menu.
   // The swap waits until the gesture is over and the tap's click or menu has had its say.
-  // 0 preload, 1 pointer, 2 touch-start, 3 touch-end.
-  const beginDrag = (mode: 0 | 1 | 2 | 3) => {
-    if (mode % 2 === 0) return void import('./DisplayDragGrid')
+  // A new press cancels a pending swap, so it can never land inside the next long press.
+  // 0 preload, 1 pointer, 2 touch-start, 3 touch-end, 4 press.
+  const beginDrag = (mode: 0 | 1 | 2 | 3 | 4) => {
     if (mode === 1) return swap()
-    clearTimeout(swapTimer)
-    swapTimer = setTimeout(swap, 600)
+    if (mode !== 0) clearTimeout(swapTimer)
+    if (mode === 3) swapTimer = setTimeout(swap, 600)
+    else void import('./DisplayDragGrid')
   }
   const display = <DisplayShortcutGrid {...props} onDragIntent={props.editing || dragReady ? undefined : beginDrag} />
   return props.editing ? <Suspense fallback={display}><EditingShortcutGrid {...props} /></Suspense>
@@ -39,13 +40,20 @@ export function ShortcutGrid(props: ShortcutGridProps) {
     : display
 }
 
-function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', onDragIntent }: ShortcutGridProps & { onDragIntent?: (mode: 0 | 1 | 2 | 3) => void }) {
+function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', onDragIntent }: ShortcutGridProps & { onDragIntent?: (mode: 0 | 1 | 2 | 3 | 4) => void }) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const folderMode = !editing && source === 'all' && visibleGroups.length >= 2
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   // Reserve the edit controls during the first download so resolving Suspense does not move tiles.
-  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined} onPointerOver={onDragIntent ? event => { if (event.pointerType !== 'touch' && event.currentTarget.contains(event.target as Node)) onDragIntent(1) } : undefined} onTouchStart={onDragIntent ? event => { if (event.currentTarget.contains(event.target as Node)) onDragIntent(2) } : undefined} onTouchEnd={onDragIntent ? () => onDragIntent(3) : undefined} onTouchCancel={onDragIntent ? () => onDragIntent(3) : undefined} onFocus={onDragIntent ? () => onDragIntent(0) : undefined}>
+  // Portal events bubble through React but not the DOM, so only accept targets inside the grid.
+  // A pointerover whose previous target was removed is the dialog closing under the cursor, not a move.
+  const intent = (mode: 0 | 1 | 2 | 3 | 4) => onDragIntent && ((event: SyntheticEvent & { pointerType?: string; relatedTarget?: EventTarget | null }) => {
+    if (!event.currentTarget.contains(event.target as Node)) return
+    if (mode === 1 && (event.pointerType === 'touch' || (event.relatedTarget as Node | null)?.isConnected === false)) return
+    onDragIntent(mode)
+  })
+  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined} onPointerOver={intent(1)} onPointerDown={intent(4)} onTouchStart={intent(2)} onTouchEnd={intent(3)} onTouchCancel={intent(3)} onFocus={intent(0)}>
     {onboarding && <Suspense fallback={null}><OnboardingCard t={t} onAction={onOnboardingAction} /></Suspense>}
     {editing && <div className="bookmark-edit-tools"><button type="button" disabled>{t('groups.add')}</button></div>}
     {(folderMode ? visibleGroups.slice(0, 1) : visibleGroups).map(group => <div key={group.id} data-drop-group={group.id}>

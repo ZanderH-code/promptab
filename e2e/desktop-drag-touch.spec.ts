@@ -48,17 +48,29 @@ test('touch: hold and move reorders, hold opens the menu, swipe scrolls, tap nav
     // The menu cancels the drag it interrupted; let that settle before the next touch sequence.
     await expect(page.locator('[data-dragging]')).toHaveCount(0)
 
-    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
     const swipe = await center(tile(page, 'i4'))
     await touch('touchStart', [swipe])
     await touch('touchMove', [{ x: swipe.x, y: swipe.y - 80 }])
     await touch('touchMove', [{ x: swipe.x, y: swipe.y - 160 }])
     await touch('touchEnd', [])
-    // Raw CDP touch input needs a beat before the next page call, or the evaluation can stall.
-    await page.waitForTimeout(100)
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+    // A tap during the swipe's fling only stops it and Chrome emits no click; wait for it to settle.
+    await page.evaluate(() => new Promise<void>(resolve => {
+      let last = window.scrollY, still = 0
+      const tick = () => {
+        const y = window.scrollY
+        if (y === last) { if (++still > 2) return resolve() } else { last = y; still = 0 }
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    }))
+    // A swipe that outran the sensor stays a drag until release; it must not still be live at the tap.
+    await expect(page.locator('[data-dragging]')).toHaveCount(0)
 
-    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0)
     const tapped = await center(tile(page, 'i0'))
     await page.touchscreen.tap(tapped.x, tapped.y)
     await page.waitForURL('https://example.com/tap')

@@ -158,10 +158,16 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
   const suppressClickAfterDrag = () => {
     if (!movedRef.current) return
     movedRef.current = false
+    // Only the click left over from this drag may be swallowed; a fresh press starts clean.
     const block = (event: MouseEvent) => { event.preventDefault(); event.stopPropagation(); cleanup() }
     let timer = 0
-    const cleanup = () => { document.removeEventListener('click', block, true); window.clearTimeout(timer) }
+    const cleanup = () => {
+      document.removeEventListener('click', block, true)
+      document.removeEventListener('pointerdown', cleanup, true)
+      window.clearTimeout(timer)
+    }
     document.addEventListener('click', block, true)
+    document.addEventListener('pointerdown', cleanup, true)
     timer = window.setTimeout(cleanup, 400)
   }
   const focusAfterDrop = (selector: string) => {
