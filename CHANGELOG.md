@@ -4,6 +4,24 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.13.1]
+
+### Added
+
+- Show the bundled brand mark for any site in the Simple Icons catalogue: automatic icons match by domain, subdomain, and alias, covering 96 of 125 common sites in testing, up from 3.
+- Draw the mark for brand-mode shortcuts that store only a brand name.
+
+### Fixed
+
+- Keep the favicon, then the letter, for sites without a catalogue mark.
+- Leave manually chosen icons and their colours unchanged.
+
+### Changed
+
+- Load brand data on demand in small files, so brand marks add nothing to startup.
+- Load the AI workbench text with the AI workbench, making startup lighter (startup JavaScript 479,749 → about 471,000 bytes).
+- No new permissions are requested.
+
 ## [0.13.0]
 
 ### Added
