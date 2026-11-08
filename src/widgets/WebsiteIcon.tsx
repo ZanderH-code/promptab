@@ -76,7 +76,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   const color = shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : shortcut.iconColorMode === 'brand' && shortcut.brand ? brandIconColor(shortcut.brand.hex, shortcut.color) : undefined
   const textFallback = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'
   if (automatic) {
-    if (currentAutoState.brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: brandIconColor(currentAutoState.brand.hex, shortcut.color) }} aria-hidden="true"><path d={currentAutoState.brand.path} /></svg>
+    if (currentAutoState.brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : brandIconColor(currentAutoState.brand.hex, shortcut.color) }} aria-hidden="true"><path d={currentAutoState.brand.path} /></svg>
     const visibleFallback = !source && autoFinished
     return <>{source && <img ref={imageRef} src={source} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" style={{ visibility: imageLoaded ? 'visible' : 'hidden' }} onLoad={() => setLoadedSrc(source)} onError={() => {
       if (currentAutoState.cache) setRetryKey(cacheKey)

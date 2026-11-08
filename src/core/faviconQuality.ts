@@ -3,6 +3,7 @@ import {
   type IconCacheEntry,
 } from './favicon'
 import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
+import { brandCandidate } from './brandIndex'
 
 export const ICON_CACHE_TTL_MS = 6048e5
 export const ICON_NEGATIVE_TTL_MS = 36e5
@@ -197,6 +198,16 @@ async function discover(key: string, input: string, run: Run, force: boolean) {
         }
       }
     }
+  }
+  // A domain-matched brand wins over every favicon step. Fresh cache entries returned above, so
+  // the index chunk is requested only for a new, stale or forced icon, never for a cached grid.
+  const brand = await brandCandidate(input)
+  if (brand) {
+    const savedAt = Date.now()
+    writeEntry(key, { brand: brand.brand, savedAt, expiresAt: savedAt + ICON_CACHE_TTL_MS })
+    publish(run, brand, true)
+    activeRuns.delete(key)
+    return
   }
   const sources = faviconCandidates(input)
   const extras = await loadExtras(input, sources.some(source => source.sourceType.startsWith('chrome-_favicon')))

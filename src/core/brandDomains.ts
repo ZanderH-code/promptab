@@ -1,4 +1,4 @@
-import domainData from './brandDomains.json'
+import { suffixes } from './brandDomains.json'
 
 /** Static index emitted by `scripts/build-brand-index.mjs` and loaded on demand. */
 export type BrandIndex = {
@@ -17,7 +17,7 @@ const LABEL_EXCLUDED_DOMAINS = new Set([
 ])
 
 /** Small public-suffix list: no PSL dependency in the bundle. */
-export const MULTI_LABEL_SUFFIXES: readonly string[] = domainData.suffixes
+export const MULTI_LABEL_SUFFIXES: readonly string[] = suffixes
 
 export function registrableDomain(host: string): string {
   const clean = host.toLowerCase().replace(/\.$/, '')

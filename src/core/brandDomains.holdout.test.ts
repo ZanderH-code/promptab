@@ -6,7 +6,7 @@ import overrides from './brandDomains.json'
 import { brandSlugFor } from './brandDomains'
 
 // Hold-out list supplied with the B1b ticket: 70 sites outside `common-sites.ts`.
-const HOLDOUT: Array<[string, string]> = [
+const HOLDOUT: Array<[string, string | null]> = [
   ['https://store.steampowered.com', 'steam'],
   ['https://www.imdb.com', 'imdb'],
   ['https://www.booking.com', 'bookingdotcom'],
@@ -29,7 +29,8 @@ const HOLDOUT: Array<[string, string]> = [
   ['https://signal.org', 'signal'],
   ['https://line.me', 'line'],
   ['https://www.naver.com', 'naver'],
-  ['https://yandex.ru', 'yandexcloud'],
+  // Yandex has no simple-icons mark: it must keep its favicon.
+  ['https://yandex.ru', null],
   ['https://vk.com', 'vk'],
   ['https://www.alibaba.com', 'alibabadotcom'],
   ['https://www.aliyun.com', 'alibabacloud'],
@@ -84,16 +85,16 @@ const ACCEPTABLE: Record<string, string> = { 'https://proton.me': 'protonmail' }
 
 const index = buildBrandIndex(simpleIcons, overrides)
 const slugs = new Set(Object.values(simpleIcons).map(icon => icon?.slug).filter(Boolean))
-const inSimpleIcons = HOLDOUT.filter(([, expected]) => slugs.has(expected))
+const inSimpleIcons = HOLDOUT.filter(([, expected]) => !!expected && slugs.has(expected))
 
 describe('hold-out coverage', () => {
-  it('has 60 of the 70 sites in simple-icons', () => {
-    expect(inSimpleIcons).toHaveLength(60)
+  it('has 59 of the 70 sites expecting a simple-icons mark', () => {
+    expect(inSimpleIcons).toHaveLength(59)
   })
 
-  it('resolves at least 55 of the 60 correctly', () => {
+  it('resolves at least 58 of the 59 correctly', () => {
     const correct = inSimpleIcons.filter(([url, expected]) => brandSlugFor(index, url) === expected)
-    expect(correct.length).toBeGreaterThanOrEqual(55)
+    expect(correct.length).toBeGreaterThanOrEqual(58)
   })
 
   it('has no wrong matches apart from documented product/parent pairs', () => {
@@ -105,6 +106,10 @@ describe('hold-out coverage', () => {
 
   it('keeps the documented proton.me pair', () => {
     expect(brandSlugFor(index, 'https://proton.me')).toBe('protonmail')
+  })
+
+  it('leaves Yandex on its favicon', () => {
+    expect(brandSlugFor(index, 'https://yandex.ru')).toBeNull()
   })
 })
 
