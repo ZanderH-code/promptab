@@ -14,9 +14,38 @@ export type StoredItem = Record<string, unknown> & { id: string }
 export type StoredGroup = { id: string; name: string; collapsed: boolean; items: StoredItem[] }
 export type ExtensionSession = { context: BrowserContext; extensionId: string; page: Page; close(): Promise<void> }
 
-/** Chrome derives an unpacked extension id from the absolute path: sha256, 32 hex chars, 0-f mapped to a-p. */
-export function extensionIdFor(dist: string): string {
-  return createHash('sha256').update(dist).digest('hex').slice(0, 32).replace(/[0-9a-f]/g, char => 'abcdefghijklmnop'[parseInt(char, 16)])
+/**
+ * Chrome derives an unpacked extension id from the absolute path: sha256, 32 hex chars, 0-f mapped to a-p.
+ * On Windows the path is hashed as UTF-16LE, and Chrome upper-cases the drive letter.
+ */
+export function extensionIdFor(dist: string, platform: string = process.platform): string {
+  const normalized = platform === 'win32' && /^[a-z]:/.test(dist) ? dist[0].toUpperCase() + dist.slice(1) : dist
+  const bytes = Buffer.from(normalized, platform === 'win32' ? 'utf16le' : 'utf8')
+  return createHash('sha256').update(bytes).digest('hex').slice(0, 32).replace(/[0-9a-f]/g, char => 'abcdefghijklmnop'[parseInt(char, 16)])
+}
+
+/** Chrome gives no service worker for a page-only extension, so read the id from the extensions page. */
+async function discoverExtensionId(context: BrowserContext): Promise<string | undefined> {
+  const page = await context.newPage()
+  try {
+    await page.goto('chrome://extensions')
+    const fromApi = await page.evaluate(async () => {
+      const developer = (globalThis as { chrome?: { developerPrivate?: { getExtensionsInfo(callback: (info: Array<{ id: string; location: string }>) => void): void } } }).chrome?.developerPrivate
+      if (!developer?.getExtensionsInfo) return undefined
+      const info = await new Promise<Array<{ id: string; location: string }>>(resolve => developer.getExtensionsInfo(resolve))
+      return info.find(entry => entry.location === 'UNPACKED' || entry.location === '4')?.id
+    })
+    if (fromApi) return fromApi
+    return await page.evaluate(() => {
+      const manager = document.querySelector('extensions-manager')
+      const list = manager?.shadowRoot?.querySelector('extensions-item-list')
+      return list?.shadowRoot?.querySelector('extensions-item')?.id || undefined
+    })
+  } catch {
+    return undefined
+  } finally {
+    await page.close()
+  }
 }
 
 export function legacySettings(overrides: Record<string, unknown> = {}) {
@@ -48,16 +77,32 @@ export async function launchExtension(options: { viewport?: { width: number; hei
     args: [`--disable-extensions-except=${dist}`, `--load-extension=${dist}`],
   })
   const fromWorker = context.serviceWorkers().map(worker => worker.url().match(/^chrome-extension:\/\/([a-p]{32})\//)?.[1]).find(Boolean)
-  const extensionId = fromWorker ?? extensionIdFor(dist)
   const page = context.pages()[0] ?? await context.newPage()
-  try {
-    await page.goto(`chrome-extension://${extensionId}/manifest.json`)
+  const load = async (id: string) => {
+    await page.goto(`chrome-extension://${id}/manifest.json`)
     const usable = await page.evaluate(() => typeof chrome !== 'undefined' && !!chrome.storage?.local)
     if (!usable) throw new Error('chrome.storage is unavailable')
     await page.locator('body').waitFor({ state: 'attached' })
+  }
+  let extensionId = fromWorker ?? extensionIdFor(dist)
+  let firstError: unknown
+  try {
+    await load(extensionId)
   } catch (error) {
-    await context.close()
-    throw new Error(`The built extension could not be loaded from ${dist} (id ${extensionId}): ${error instanceof Error ? error.message : String(error)}`)
+    firstError = error
+    // Belt and braces: the hash can differ across platforms, so ask Chrome for the real id.
+    const discovered = await discoverExtensionId(context)
+    if (!discovered) {
+      await context.close()
+      throw new Error(`The built extension could not be loaded from ${dist} (id ${extensionId}): ${error instanceof Error ? error.message : String(error)}`)
+    }
+    extensionId = discovered
+    try {
+      await load(extensionId)
+    } catch {
+      await context.close()
+      throw new Error(`The built extension could not be loaded from ${dist} (id ${extensionId}): ${firstError instanceof Error ? firstError.message : String(firstError)}`)
+    }
   }
   return { context, extensionId, page, close: () => context.close() }
 }
