@@ -75,3 +75,26 @@ it('keeps the letter when the stored slug is unknown', async () => {
   expect(container.querySelector('svg')).toBeNull()
   expect(container.textContent).toBe('Y')
 })
+
+it('does not reuse a slug mark when the shortcut loses its slug', async () => {
+  mocked.loadBrand.mockResolvedValue(brand)
+  const view = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconName: 'youtube' } as never} />)
+  await waitFor(() => expect(view.container.querySelector('svg path')?.getAttribute('d')).toBe(brand.path))
+  view.rerender(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand' } as never} />)
+  expect(view.container.querySelector('svg')).toBeNull()
+  expect(view.container.textContent).toBe('Y')
+})
+
+it('never shows the previous slug while the next mark loads', async () => {
+  const nextBrand = { ...brand, slug: 'bilibili', path: 'M2 2h2v2H2z' }
+  mocked.loadBrand.mockResolvedValueOnce(brand)
+  const view = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconName: 'youtube' } as never} />)
+  await waitFor(() => expect(view.container.querySelector('svg path')?.getAttribute('d')).toBe(brand.path))
+  let release: (value: unknown) => void = () => {}
+  mocked.loadBrand.mockReturnValueOnce(new Promise(resolve => { release = resolve }))
+  view.rerender(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconName: 'bilibili' } as never} />)
+  expect(view.container.querySelector('svg')).toBeNull()
+  expect(view.container.textContent).toBe('Y')
+  release(nextBrand)
+  await waitFor(() => expect(view.container.querySelector('svg path')?.getAttribute('d')).toBe(nextBrand.path))
+})

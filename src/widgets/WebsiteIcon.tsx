@@ -24,7 +24,8 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   const automatic = !shortcut.image && (!shortcut.iconMode || shortcut.iconMode === 'auto')
   /** Brand mode may store only a slug; the mark is fetched and shown without being written back. */
   const manualBrand = shortcut.iconMode === 'brand' && !shortcut.brand ? shortcut.iconName : undefined
-  const cacheKey = automatic ? faviconCacheKey(shortcut.url) : null
+  // Manual brand state is tagged with its slug, so a later non-auto render never reuses another mark.
+  const cacheKey = automatic ? faviconCacheKey(shortcut.url) : manualBrand ? `brand:${manualBrand}` : null
   const cached = automatic ? cachedFavicon(shortcut.url) : null
   const initialSources = automatic ? initialFaviconSources(shortcut.url) : []
   // The synchronous cache paints the first render: no favicon.ico attempt, no blank, no letter flash.
@@ -53,7 +54,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
       let cancelled = false
       setAutoState(null)
       void import('../core/faviconQuality').then(({ loadBrand }) => loadBrand(manualBrand)).then(brand => {
-        if (!cancelled) setAutoState({ key: null, url: null, cache: false, brand })
+        if (!cancelled) setAutoState({ key: cacheKey, url: null, cache: false, brand })
       })
       return () => { cancelled = true }
     }
