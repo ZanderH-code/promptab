@@ -34,6 +34,8 @@ test('touch: hold and move reorders, hold opens the menu, swipe scrolls, tap nav
     await touch('touchStart', [from])
     await page.waitForTimeout(450)
     for (let step = 1; step <= 6; step++) await touch('touchMove', [{ x: from.x + (to.x - from.x) * step / 6, y: from.y + (to.y - from.y) * step / 6 }])
+    // Release only after the last move has reached dnd-kit; otherwise drag-end can see a stale `over`.
+    await page.waitForTimeout(50)
     await touch('touchEnd', [])
     await waitForOrders(page, [['i0', 'i2', 'i1', ...Array.from({ length: 37 }, (_, index) => `i${index + 3}`)]])
 
@@ -43,6 +45,8 @@ test('touch: hold and move reorders, hold opens the menu, swipe scrolls, tap nav
     await touch('touchEnd', [])
     await page.keyboard.press('Escape')
     await expect(page.getByRole('menu')).toHaveCount(0)
+    // The menu cancels the drag it interrupted; let that settle before the next touch sequence.
+    await expect(page.locator('[data-dragging]')).toHaveCount(0)
 
     await page.evaluate(() => window.scrollTo(0, 0))
     const swipe = await center(tile(page, 'i4'))
@@ -50,11 +54,13 @@ test('touch: hold and move reorders, hold opens the menu, swipe scrolls, tap nav
     await touch('touchMove', [{ x: swipe.x, y: swipe.y - 80 }])
     await touch('touchMove', [{ x: swipe.x, y: swipe.y - 160 }])
     await touch('touchEnd', [])
+    // Raw CDP touch input needs a beat before the next page call, or the evaluation can stall.
+    await page.waitForTimeout(100)
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
 
     await page.evaluate(() => window.scrollTo(0, 0))
-    await touch('touchStart', [await center(tile(page, 'i0'))])
-    await touch('touchEnd', [])
+    const tapped = await center(tile(page, 'i0'))
+    await page.touchscreen.tap(tapped.x, tapped.y)
     await page.waitForURL('https://example.com/tap')
   } finally { await session.close() }
 })
@@ -76,8 +82,32 @@ test('touch: hold and move reorders at 390px', async () => {
     for (let step = 1; step <= 6; step++) {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: Math.round(from.x + (to.x - from.x) * step / 6), y: Math.round(from.y + (to.y - from.y) * step / 6), id: 1 }] })
     }
+    // Release only after the last move has reached dnd-kit; otherwise drag-end can see a stale `over`.
+    await page.waitForTimeout(50)
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     await waitForOrders(page, [['c', 'a', 'b'], ['w1']])
     expectIntegrity(before, await readGroups(page))
+  } finally { await session.close() }
+})
+
+test('touch: the first touch opens the menu before the drag layer has loaded', async () => {
+  const session = await launchExtension({ hasTouch: true, viewport: { width: 900, height: 800 } })
+  try {
+    await setup(session, [{ id: 'desk', name: 'Desktop', items: ['a', 'b'].map(item) }])
+    const page = session.page
+    await expect(page.locator('.bookmarks[data-display-drag]')).toHaveCount(0)
+    const cdp = await session.context.newCDPSession(page)
+    const point = await center(tile(page, 'a'))
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: Math.round(point.x), y: Math.round(point.y), id: 1 }] })
+    await expect(page.getByRole('menu')).toBeVisible({ timeout: 3000 })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await expect(page.getByRole('menu')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    // The grid only swaps after a gesture, once the menu is gone; a tap on the title is inert.
+    const title = await center(page.locator('.shortcuts-heading'))
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: Math.round(title.x), y: Math.round(title.y), id: 1 }] })
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+    await expect(page.locator('.bookmarks[data-display-drag]')).toBeVisible()
   } finally { await session.close() }
 })
