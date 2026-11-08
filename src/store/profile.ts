@@ -1,6 +1,7 @@
 import { createStore } from 'zustand/vanilla'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
 import type { SavedTheme } from '../core/themes/library'
+import { MessageError } from '../i18n'
 import { createHistory, recordChange, restoreSnapshot, setSnapshotPin, type ChangeKind, type History, type HistoryOptions, type ProfileHistory } from './history'
 
 /** A profile removed by deletion or import; kept with its history until restored. */
@@ -23,7 +24,9 @@ export interface ProfileStore {
   draft: Transient
   preview: Transient
   initialize(): Promise<void>
-  updateProfile(id: string, update: (profile: ProfileV2) => ProfileV2, kind?: ChangeKind): Promise<void>
+  /** Re-reads persistence and adopts a newer revision published by another tab. */
+  refresh(): Promise<void>
+  updateProfile(id: string, update: (profile: ProfileV2) => ProfileV2, kind?: ChangeKind, retryOnConflict?: boolean): Promise<void>
   undo(id: string, expectedRevision?: number | null): Promise<void>
   setDraft(id: string, profile: ProfileV2): void
   setPreview(id: string, profile: ProfileV2, label?: string): void
@@ -46,7 +49,7 @@ export interface ProfileStore {
   importCollection(incoming: ImportCollection): Promise<void>
 }
 
-type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string }
+type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string; onExternalRefresh?: () => void }
 export type Committed = Pick<ProfileStore, 'profiles' | 'activeProfileId' | 'history' | 'archived'>
 
 function validateProfile(value: unknown, id?: string): ProfileV2 {
@@ -144,7 +147,19 @@ export function createProfileStore(options: Options) {
       if (!Object.hasOwn(profiles, id)) throw new Error('Profile not found')
       return profiles[id]
     }
-    const transaction = (change: () => { next: Committed; after?: () => void; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; expected: SavedTheme[]; value: SavedTheme[] } } | Promise<{ next: Committed; after?: () => void; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; expected: SavedTheme[]; value: SavedTheme[] } }>) => enqueue(async () => {
+    const adoptExternal = async () => {
+      if (!get().initialized) return
+      const saved = await options.persistence.read()
+      if (!saved || saved.revision === get().revision) return
+      if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision')
+      const committed = validateStored(saved.profiles, saved.history)
+      // An in-session undo would restore a whole stale profile and erase the other tab's change.
+      undos.clear()
+      set({ ...committed, revision: saved.revision, draft: null, preview: null })
+      options.onExternalRefresh?.()
+    }
+    const isRevisionConflict = (error: unknown) => error instanceof Error && error.message === 'Profile revision conflict'
+    const commit = async (change: () => { next: Committed; after?: () => void; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; expected: SavedTheme[]; value: SavedTheme[] } } | Promise<{ next: Committed; after?: () => void; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; expected: SavedTheme[]; value: SavedTheme[] } }>) => {
       if (!get().initialized) throw new Error('Store not initialized')
       const { next, after, themes } = await change()
       if (themes && JSON.stringify(await themes.read()) !== JSON.stringify(themes.expected)) throw new Error('Theme library changed')
@@ -173,14 +188,29 @@ export function createProfileStore(options: Options) {
       if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision returned by persistence')
       set({ ...next, revision: saved.revision })
       after?.()
+    }
+    // A functional update re-runs on the freshly read state; a write built from stale state must not.
+    const transaction = (change: Parameters<typeof commit>[0], retryOnConflict = false) => enqueue(async () => {
+      try { await commit(change) }
+      catch (error) {
+        if (!isRevisionConflict(error)) throw error
+        await adoptExternal()
+        if (!retryOnConflict) throw new MessageError('error.changedInAnotherTab')
+        try { await commit(change) }
+        catch (retryError) {
+          if (!isRevisionConflict(retryError)) throw retryError
+          await adoptExternal()
+          throw new MessageError('error.changedInAnotherTab')
+        }
+      }
     })
     const current = (): Committed => ({ profiles: get().profiles, activeProfileId: get().activeProfileId, history: get().history, archived: get().archived })
-    const update = (id: string, fn: (p: ProfileV2) => ProfileV2, kind: ChangeKind = 'edit') => transaction(() => {
+    const update = (id: string, fn: (p: ProfileV2) => ProfileV2, kind: ChangeKind = 'edit', retryOnConflict = false) => transaction(() => {
       const old = existing(id)
       const profile = advanceUpdatedAt(validateProfile(fn(structuredClone(old)), id), old, historyOptions.now())
       const next = { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, kind, historyOptions) }
       return { next, after: () => { undos.set(id, [...(undos.get(id) ?? []), { profile: structuredClone(old) }]) } }
-    })
+    }, retryOnConflict)
     return {
       profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), archived: {}, revision: null, initialized: false, draft: null, preview: null,
       initialize: () => enqueue(async () => {
@@ -191,6 +221,7 @@ export function createProfileStore(options: Options) {
           set({ ...validateStored(saved.profiles, saved.history), revision: saved.revision, initialized: true })
         } else set({ initialized: true })
       }),
+      refresh: () => enqueue(adoptExternal),
       updateProfile: update,
       undo: (id, expectedRevision) => transaction(() => {
         if (expectedRevision !== undefined && get().revision !== expectedRevision) throw new Error('Profile revision conflict')

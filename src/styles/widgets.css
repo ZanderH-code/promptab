@@ -1178,3 +1178,12 @@
 
 }
 
+
+@layer widgets {
+  .shortcut-wrap[data-dragging="true"] { position: relative; z-index: 2; }
+  .bookmarks[data-display-drag] .shortcut-wrap { cursor: grab; }
+  .bookmarks[data-display-drag] .shortcut-wrap[data-dragging="true"] { cursor: grabbing; }
+  /* The overlay follows the pointer once a drag has left the folder dialog. */
+  .mnt-drag-overlay { pointer-events: none; cursor: grabbing; opacity: 0.9; }
+  .mnt-drag-overlay a { pointer-events: none; }
+}

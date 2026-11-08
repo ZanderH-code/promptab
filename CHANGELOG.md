@@ -4,6 +4,24 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.13.0]
+
+### Added
+
+- Drag shortcuts on the home page without entering edit mode; a placeholder shows the drop position, neighbouring icons shift, and folder tiles highlight while dragged over.
+- Drag shortcuts into a folder tile, reorder them inside the folder dialog, and drag out of the dialog onto the desktop or into another folder.
+- Cancel a drag with Esc or by dropping on nothing; each completed drag is one undo step.
+- Drag with touch by holding, then moving.
+
+### Fixed
+
+- Pick up profile changes saved in another tab, so edits are no longer lost with a storage error in a tab that was already open.
+
+### Changed
+
+- Load the drag code only on interaction, so startup stays fast.
+- No new permissions are requested.
+
 ## [0.12.4]
 
 ### Fixed

@@ -24,7 +24,8 @@ export type GenerationCollection = {
   pruned: string[]
 }
 
-const INDEX = 'profiles:v2:index'
+export const PROFILE_INDEX_KEY = 'profiles:v2:index'
+const INDEX = PROFILE_INDEX_KEY
 const GENERATION = 'profiles:v2:generation:'
 const LOCK = 'profiles:v2:publication'
 const READ_ATTEMPTS = 5

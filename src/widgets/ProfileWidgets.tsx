@@ -10,9 +10,9 @@ import { gridStyle, areaStyle } from '../core/layout/styles'
 import { formatClock, formatDate, formatGreetingTransition, greetingPeriod } from '../core/layout/formats'
 import { Search } from './Search'
 import { ShortcutGrid } from './ShortcutGrid'
-import { ProductivityWidgetView } from './ProductivityWidgets'
 import type { ContextMenuEvent } from './ShortcutGridContent'
 const WeatherWidget = lazy(() => import('./WeatherWidget').then(module => ({ default: module.WeatherWidget })))
+const ProductivityWidgetView = lazy(() => import('./ProductivityWidgets').then(module => ({ default: module.ProductivityWidgetView })))
 
 type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: ContextMenuEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' | 'weather' }>) => void }
 
@@ -116,7 +116,7 @@ export function ProfileWidgets(props: Props) {
           }
           case 'text': return frame(<div>{widget.props.text}</div>)
           case 'spacer': return frame(<div aria-hidden="true" style={{ height: widget.props.height ?? 40 }} />)
-          case 'todo': case 'note': case 'countdown': return frame(<ProductivityWidgetView widget={widget} language={language} t={t} onChange={props.onWidgetChange} />)
+          case 'todo': case 'note': case 'countdown': return frame(<Suspense fallback={null}><ProductivityWidgetView widget={widget} language={language} t={t} onChange={props.onWidgetChange} /></Suspense>)
           case 'weather': return frame(<Suspense fallback={null}><WeatherWidget widget={widget} language={language} /></Suspense>)
           case 'toolbar': return frame(<div className="mnt-widget-toolbar" role="toolbar" aria-label={t('widgets.toolbar')}>
             {(widget.props.actions ?? ['add', 'edit', 'settings']).map(action => action === 'add'

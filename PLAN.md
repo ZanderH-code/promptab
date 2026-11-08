@@ -1,11 +1,11 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.12.4
+## Release status — 0.13.0
 
-M6–M21 are complete. Release preparation for 0.12.4 includes the accepted icon visibility fixes on top of 0.12.3, which is live in the store. Main commits:
+M6–M21 are complete. Desktop-style drag batch 1 is done in 0.13.0. Batch 2 (create a folder by dropping icons together, spring-loaded folders, folder tile order, context-menu equivalents) and batch 3 (multi-select, redo) are next; see `desktop-plan.md` for the full plan. Main commits:
 
-- 0.12.4 features: cached icon visibility and icon fallbacks `b7caae8`.
-- 0.12.3 features: persistent icon cache `7b8c849` (live in the store).
+- 0.13.0 features: display-mode drag `79f96fa`, folder dialog drag `03c64e8`, cross-tab profile refresh `dae1b91`, lazy drag startup `e4509de`.
+- 0.12.4 features: cached icon visibility and icon fallbacks `b7caae8` (live in the store).
 - 0.12.2 features: automatic site names `1c7a293`.
 - 0.12.1 features: website icon root causes `a21a003`; test reliability fixes `2e3bf7c`.
 - 0.12.0 features: bookmark folder dialogs `1d54a24`, Settings tabs wrap and remain visible `3a86c10`, progressive website icon quality `2ee3c50`.

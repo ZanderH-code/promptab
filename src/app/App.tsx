@@ -329,7 +329,7 @@ export default function App() {
         t={t}
         onError={setError}
         onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
-        onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } })))}
+        onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } }), undefined, true))}
         onGroupContextMenu={(event, group) => openMenu(event, 'group', { clamp: true, group })}
         onEdit={setEditing}
         onRemove={removeShortcut}

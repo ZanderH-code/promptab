@@ -73,3 +73,15 @@
     .mnt-folder-dialog-grid { gap: var(--mnt-space-3, 12px); padding: var(--mnt-space-4, 16px); grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--mnt-folder-icon-size, 80px) + 28px)), 1fr)); }
   }
 }
+
+@layer widgets {
+  .mnt-folder[data-drop-target="true"] {
+    outline: 2px solid var(--mnt-accent);
+    outline-offset: 2px;
+    transform: translateY(-2px) scale(1.04);
+  }
+  .bookmarks[data-reduce-motion="true"] .mnt-folder[data-drop-target="true"] { transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .mnt-folder[data-drop-target="true"] { transform: none; }
+  }
+}
