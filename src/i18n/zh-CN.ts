@@ -432,6 +432,7 @@ export const zhCN = {
 
   'error.loadSettings': '无法读取已保存的配置；原始数据已保留。',
   'error.saveSettings': '保存失败，请检查浏览器存储权限。',
+  'error.changedInAnotherTab': '此页面已在另一个标签页中更改。你刚才的更改未保存，请重试。',
   'error.readWallpaper': '无法读取壁纸。',
   'error.saveWallpaper': '壁纸保存失败',
   'error.removeWallpaper': '删除壁纸失败',

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createProfileStore } from './profile'
 import type { ProfileV2 } from '../core/schema/profile'
 
@@ -10,7 +10,7 @@ const profile = (id = 'a'): ProfileV2 => ({
   search: { engines: [{ id: 'g', name: 'Google', template: 'https://google.com/?q={query}' }], defaultEngineId: 'g' }, custom: { css: '', cssEnabled: false, variables: [], values: {} },
 })
 
-function setup() {
+function setup(options: { onExternalRefresh?: () => void } = {}) {
   let saved: any = null
   let fail = false
   let id = 0
@@ -19,13 +19,22 @@ function setup() {
     async read() { return structuredClone(saved) },
     async write(data: any, revision: number | null) {
       if (fail) throw new Error('save failed')
-      if ((saved?.revision ?? null) !== revision) throw new Error('conflict')
+      if ((saved?.revision ?? null) !== revision) throw new Error('Profile revision conflict')
       saved = structuredClone({ ...data, revision: (revision ?? 0) + 1 })
       writes.push(structuredClone(saved))
       return structuredClone(saved)
     },
   }
-  return { persistence, writes, fail: (value: boolean) => { fail = value }, store: createProfileStore({ persistence, initialProfile: profile(), now: () => 1000, createId: () => `id${++id}` }) }
+  // Simulates another tab committing a profile change without this store seeing it.
+  const external = (update: (value: ProfileV2) => ProfileV2) => {
+    const current = structuredClone(saved)
+    const activeProfileId = current?.profiles?.activeProfileId ?? 'a'
+    const profiles = current?.profiles?.profiles ?? { [activeProfileId]: profile() }
+    profiles[activeProfileId] = update(structuredClone(profiles[activeProfileId]))
+    saved = { revision: (current?.revision ?? 0) + 1, profiles: { activeProfileId, profiles }, history: current?.history ?? { profiles: {} } }
+    writes.push(structuredClone(saved))
+  }
+  return { persistence, writes, external, fail: (value: boolean) => { fail = value }, store: createProfileStore({ persistence, initialProfile: profile(), now: () => 1000, createId: () => `id${++id}`, onExternalRefresh: options.onExternalRefresh }) }
 }
 
 describe('profile store', () => {
@@ -74,6 +83,63 @@ describe('profile store', () => {
     fail(false)
     await store.getState().renameProfile('a', 'works')
     expect(store.getState().profiles.a.meta.name).toBe('works')
+  })
+
+  it('refresh is a no-op when the revision is unchanged', async () => {
+    const onExternalRefresh = vi.fn()
+    const { store } = setup({ onExternalRefresh })
+    await store.getState().initialize()
+    await store.getState().renameProfile('a', 'Alpha')
+    const state = store.getState()
+    await store.getState().refresh()
+    expect(store.getState()).toBe(state)
+    expect(onExternalRefresh).not.toHaveBeenCalled()
+  })
+
+  it('refresh adopts an externally changed revision and clears the undo stack', async () => {
+    const onExternalRefresh = vi.fn()
+    const { store, external } = setup({ onExternalRefresh })
+    await store.getState().initialize()
+    await store.getState().renameProfile('a', 'Alpha')
+    external(value => ({ ...value, meta: { ...value.meta, name: 'Other tab' } }))
+    await store.getState().refresh()
+    expect(store.getState().profiles.a.meta.name).toBe('Other tab')
+    expect(store.getState().revision).toBe(2)
+    expect(onExternalRefresh).toHaveBeenCalledTimes(1)
+    await expect(store.getState().undo('a')).rejects.toThrow('Nothing to undo')
+  })
+
+  it('retries a functional update once on a revision conflict', async () => {
+    const { store, external } = setup()
+    await store.getState().initialize()
+    await store.getState().updateProfile('a', p => ({ ...p, custom: { ...p.custom, css: 'one' } }))
+    external(value => ({ ...value, custom: { ...value.custom, css: 'other tab' } }))
+    let calls = 0
+    await store.getState().updateProfile('a', p => {
+      calls++
+      return { ...p, custom: { ...p.custom, css: `${p.custom.css} + local` } }
+    }, undefined, true)
+    expect(calls).toBe(2)
+    expect(store.getState().profiles.a.custom.css).toBe('other tab + local')
+    expect(store.getState().revision).toBe(3)
+    await store.getState().undo('a')
+    expect(store.getState().profiles.a.custom.css).toBe('other tab')
+  })
+
+  it('does not retry a write built from stale state and reports the conflict', async () => {
+    const { store, external } = setup()
+    await store.getState().initialize()
+    await store.getState().updateProfile('a', p => ({ ...p, custom: { ...p.custom, css: 'one' } }))
+    external(value => ({ ...value, custom: { ...value.custom, css: 'other tab' } }))
+    let calls = 0
+    const stale = structuredClone(store.getState().profiles.a)
+    await expect(store.getState().updateProfile('a', () => {
+      calls++
+      return { ...stale, custom: { ...stale.custom, css: 'stale local' } }
+    })).rejects.toMatchObject({ key: 'error.changedInAnotherTab' })
+    expect(calls).toBe(1)
+    expect(store.getState().profiles.a.custom.css).toBe('other tab')
+    expect(store.getState().revision).toBe(2)
   })
 
   it('serializes profile lifecycle and persists the active profile', async () => {

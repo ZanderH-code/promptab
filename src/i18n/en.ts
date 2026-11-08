@@ -433,6 +433,7 @@ export const en: Record<MessageKey, string> = {
 
   'error.loadSettings': 'Could not read saved settings; the original data was preserved.',
   'error.saveSettings': 'Could not save settings. Check browser storage permissions.',
+  'error.changedInAnotherTab': 'This page changed in another tab. Your last change was not saved — please try again.',
   'error.readWallpaper': 'Could not read wallpaper.',
   'error.saveWallpaper': 'Could not save wallpaper.',
   'error.removeWallpaper': 'Could not remove wallpaper.',

@@ -6,7 +6,7 @@ import type { ProfileV2 } from '../core/schema/profile'
 import { systemLanguage, toMessageRef, type MessageRef } from '../i18n'
 import { bootstrap } from '../storage/bootstrap'
 import { createAssetLibrary } from '../storage/assets'
-import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage } from '../storage/profiles'
+import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, PROFILE_INDEX_KEY } from '../storage/profiles'
 import { extensionApi } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
 import type { SavedTheme } from '../core/themes/library'
@@ -155,6 +155,7 @@ export function useSettings() {
   useEffect(() => {
     let alive = true
     let unsubscribe = () => {}
+    let removeExternal = () => {}
     const { backend, persistence } = createAppProfileStorage()
     // One session per page, never closed: it blocks asset collection in other tabs while this one holds live state.
     // It must be open before bootstrap so assets staged by migration are protected.
@@ -163,7 +164,7 @@ export function useSettings() {
       .catch(error => console.warn('Asset session unavailable', error))
       .then(() => bootstrap({ backend, profiles: persistence, assets, defaultSettings: __WEB_BUILD__ ? { ...defaults, language: 'en' } : defaults })).then(async snapshot => {
       const initial = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
-      const next = createProfileStore({ persistence, initialProfile: initial })
+      const next = createProfileStore({ persistence, initialProfile: initial, onExternalRefresh: () => setUndoNotice(false) })
       await next.getState().initialize()
       if (!alive) return
       const sync = () => {
@@ -172,8 +173,21 @@ export function useSettings() {
         setProfile(preview ?? state.profiles[state.activeProfileId])
       }
       unsubscribe = next.subscribe(sync); sync(); setStore(next)
+      const refresh = () => { void next.getState().refresh().catch(error => console.warn('Profile refresh failed', error)) }
+      const onStorage = (event: StorageEvent) => { if (event.key === PROFILE_INDEX_KEY) refresh() }
+      const onVisibility = () => { if (document.visibilityState === 'visible') refresh() }
+      const changed = (changes: Record<string, unknown>, area: string) => { if (area === 'local' && PROFILE_INDEX_KEY in changes) refresh() }
+      const onChanged = extensionApi()?.storage?.onChanged
+      window.addEventListener('storage', onStorage)
+      document.addEventListener('visibilitychange', onVisibility)
+      onChanged?.addListener(changed)
+      removeExternal = () => {
+        window.removeEventListener('storage', onStorage)
+        document.removeEventListener('visibilitychange', onVisibility)
+        onChanged?.removeListener(changed)
+      }
     }).catch(e => { if (alive) setError(toMessageRef(e, 'error.loadSettings')) })
-    return () => { alive = false; unsubscribe(); clearTimeout(timer.current) }
+    return () => { alive = false; unsubscribe(); removeExternal(); clearTimeout(timer.current) }
   }, [])
   const [scheme, setScheme] = useState(0)
   const followSystem = profile?.theme.mode === 'system'

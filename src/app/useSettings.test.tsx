@@ -5,7 +5,7 @@ import { migrateV1 } from '../core/migrate/v1'
 
 const mocks = vi.hoisted(() => ({ bootstrap: vi.fn(), read: vi.fn(), write: vi.fn() }))
 vi.mock('../storage/bootstrap', () => ({ bootstrap: mocks.bootstrap }))
-vi.mock('../storage/profiles', () => ({ createLocalStorageBackend: vi.fn(), createChromeStorageBackend: vi.fn(), createProfileStorage: () => ({ read: mocks.read, write: mocks.write }) }))
+vi.mock('../storage/profiles', () => ({ createLocalStorageBackend: vi.fn(), createChromeStorageBackend: vi.fn(), createProfileStorage: () => ({ read: mocks.read, write: mocks.write }), PROFILE_INDEX_KEY: 'profiles:v2:index' }))
 import { useSettings } from './useSettings'
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
