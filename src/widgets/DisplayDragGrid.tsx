@@ -46,7 +46,14 @@ const displayCollision: CollisionDetection = args => {
     return closestCenter({ ...args, droppableContainers: args.droppableContainers.filter(container => ids.has(String(container.id))) })
   }
   const folder = hits.find(hit => String(hit.id).startsWith('folder:'))
-  return folder ? [folder] : hits
+  if (folder) return [folder]
+  if (hits.length) return hits
+  // Inside the grid, sortable neighbours can shift away from the pointer, leaving a gap.
+  // Pick the nearest tile there, but keep drops on the empty page as cancellations.
+  const rect = typeof document === 'undefined' ? null : document.querySelector<HTMLElement>('.bookmarks .grid')?.getBoundingClientRect()
+  const point = args.pointerCoordinates
+  if (!rect || !point || point.x < rect.left || point.x > rect.right || point.y < rect.top || point.y > rect.bottom) return []
+  return closestCenter(args)
 }
 
 // Touch drags belong to TouchSensor; the pointer sensor must not also claim them.
