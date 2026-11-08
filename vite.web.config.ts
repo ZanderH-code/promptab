@@ -43,7 +43,7 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/promptab/app/index.html',
         globPatterns: ['**/*.{html,js,css,ico,png,svg,webmanifest,woff2,json}'],
-        globIgnores: ['manifest.json', 'brand-catalog.json'],
+        globIgnores: ['manifest.json', 'brand-catalog.json', 'brand-index.json', 'brands/**'],
         cleanupOutdatedCaches: true,
       },
     }),
