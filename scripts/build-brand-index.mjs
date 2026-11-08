@@ -5,7 +5,6 @@
 // `src/core/brandDomains.json` holds the curated exceptions.
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import * as icons from 'simple-icons'
 
 const root = resolve(import.meta.dirname, '..')
 
@@ -19,6 +18,9 @@ const DENIED_SUFFIXES = [
 ]
 
 const normalize = text => text.toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/** TLDs that are also common brand-name suffixes (mistral.ai, ele.me). Exact label matches only. */
+const LABEL_TLDS = ['ai', 'io', 'app', 'dev', 'co', 'me', 'so', 'tv', 'gg', 'xyz']
 
 function denied(host, deniedHosts, deniedSuffixes) {
   return deniedHosts.has(host) || deniedSuffixes.some(suffix => host === suffix || host.endsWith(`.${suffix}`))
@@ -76,6 +78,41 @@ export function buildBrandIndex(catalogue, overrides, options = {}) {
     if (chosen) hosts[host] = chosen
   }
 
+  // Label rules: the registrable label equals a slug or a normalised title. The lookup
+  // helper only applies these to the registrable domain itself, so user subdomains
+  // (alice.github.io, myblog.wordpress.com) never match.
+  const labelClaims = []
+  for (const icon of Object.values(catalogue)) {
+    if (!icon?.slug) continue
+    const slug = icon.slug
+    if (slug.length >= 2) labelClaims.push({ label: slug, slug, rank: 3 })
+    const titles = [icon.title, ...Object.values(icon.aliases?.loc ?? {}), ...(icon.aliases?.aka ?? [])]
+    for (const value of titles) {
+      const title = normalize(value ?? '')
+      if (title.length >= 3) labelClaims.push({ label: title, slug, rank: 2 })
+    }
+    for (const tld of LABEL_TLDS) {
+      if (slug.endsWith(tld) && slug.length - tld.length >= 3) labelClaims.push({ label: slug.slice(0, -tld.length), slug, rank: 1 })
+    }
+    if (slug.endsWith('dotcom') && slug.length > 9) labelClaims.push({ label: slug.slice(0, -'dotcom'.length), slug, rank: 1 })
+    if (slug.includes('dot')) {
+      const stripped = slug.replaceAll('dot', '')
+      if (stripped.length >= 3) labelClaims.push({ label: stripped, slug, rank: 1 })
+    }
+  }
+  const byLabel = new Map()
+  for (const claim of labelClaims) {
+    if (!byLabel.has(claim.label)) byLabel.set(claim.label, [])
+    byLabel.get(claim.label).push(claim)
+  }
+  const labels = {}
+  for (const [label, claims] of byLabel) {
+    const slugsForLabel = [...new Set(claims.map(claim => claim.slug))]
+    if (slugsForLabel.length === 1) { labels[label] = slugsForLabel[0]; continue }
+    const exact = [...new Set(claims.filter(claim => claim.rank === 3).map(claim => claim.slug))]
+    if (exact.length === 1) labels[label] = exact[0]
+  }
+
   const slugs = new Set(Object.values(catalogue).map(icon => icon?.slug).filter(Boolean))
   const merged = { ...hosts }
   for (const [host, slug] of Object.entries(overrides.hosts ?? {})) {
@@ -90,17 +127,23 @@ export function buildBrandIndex(catalogue, overrides, options = {}) {
 
   const sortedHosts = Object.fromEntries(Object.keys(merged).sort().map(host => [host, merged[host]]))
   const sortedPaths = Object.fromEntries(Object.keys(paths).sort().map(key => [key, paths[key]]))
-  return { version: 1, hosts: sortedHosts, paths: sortedPaths }
+  const sortedLabels = Object.fromEntries(Object.keys(labels).sort().map(label => [label, labels[label]]))
+  const ignore = [...new Set((overrides.ignore ?? []).map(host => host.toLowerCase()))].sort()
+  return { version: 1, hosts: sortedHosts, paths: sortedPaths, labels: sortedLabels, ignore }
 }
 
 export async function buildIndexFromInstalledIcons(overridesPath = resolve(root, 'src/core/brandDomains.json')) {
   const overrides = JSON.parse(await readFile(overridesPath, 'utf8'))
-  return buildBrandIndex(icons, overrides)
+  // The JSON data file carries `aliases`; the package's JavaScript exports do not.
+  const raw = JSON.parse(await readFile(resolve(root, 'node_modules/simple-icons/data/simple-icons.json'), 'utf8'))
+  const list = Array.isArray(raw) ? raw : raw.icons
+  const catalogue = Object.fromEntries(list.map(icon => [icon.slug, icon]))
+  return buildBrandIndex(catalogue, overrides)
 }
 
 export async function writeBrandIndex(outputDir = 'dist') {
   const index = await buildIndexFromInstalledIcons()
   const target = resolve(root, outputDir, 'brand-index.json')
   await writeFile(target, `${JSON.stringify(index)}\n`)
-  return { target, bytes: Buffer.byteLength(JSON.stringify(index)), hosts: Object.keys(index.hosts).length, paths: Object.keys(index.paths).length }
+  return { target, bytes: Buffer.byteLength(JSON.stringify(index)), hosts: Object.keys(index.hosts).length, paths: Object.keys(index.paths).length, labels: Object.keys(index.labels).length }
 }

@@ -1,8 +1,21 @@
 {
   "suffixes": [
-    "co.uk", "org.uk", "ac.uk", "com.cn", "net.cn", "org.cn",
-    "com.hk", "com.tw", "com.sg", "com.au", "net.au", "co.jp",
-    "co.kr", "co.in", "com.br", "com.mx"
+    "co.uk",
+    "org.uk",
+    "ac.uk",
+    "com.cn",
+    "net.cn",
+    "org.cn",
+    "com.hk",
+    "com.tw",
+    "com.sg",
+    "com.au",
+    "net.au",
+    "co.jp",
+    "co.kr",
+    "co.in",
+    "com.br",
+    "com.mx"
   ],
   "hosts": {
     "google.com": "google",
@@ -55,7 +68,13 @@
     "x.com": "x",
     "twitter.com": "x",
     "youtu.be": "youtube",
-    "b23.tv": "bilibili"
+    "b23.tv": "bilibili",
+    "yandex.ru": "yandexcloud",
+    "aliyun.com": "alibabacloud",
+    "12306.cn": "chinarailway",
+    "nytimes.com": "newyorktimes",
+    "rust-lang.org": "rust",
+    "typescriptlang.org": "typescript"
   },
   "paths": {
     "www.google.com/maps": "googlemaps",
@@ -64,5 +83,8 @@
     "apple.com/app-store": "appstore",
     "www.atlassian.com/software/jira": "jira",
     "atlassian.com/software/jira": "jira"
-  }
+  },
+  "ignore": [
+    "tongyi.aliyun.com"
+  ]
 }

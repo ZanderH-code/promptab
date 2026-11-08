@@ -43,6 +43,22 @@ describe('generic rules', () => {
     expect(generic.hosts['stackoverflow.com']).toBeUndefined()
   })
 
+  it('derives labels from slugs, titles and suffix patterns', () => {
+    // slug equals the label across TLDs
+    expect(generic.labels.react).toBe('react')
+    expect(generic.labels.supabase).toBe('supabase')
+    expect(generic.labels.leetcode).toBe('leetcode')
+    // label + TLD equals the slug
+    expect(generic.labels.mistral).toBe('mistralai')
+    // label + `dotcom` equals the slug
+    expect(generic.labels.alibaba).toBe('alibabadotcom')
+    // `dot` inside the slug
+    expect(generic.labels.nodejs).toBe('nodedotjs')
+    // normalised titles
+    expect(generic.labels.wordpress).toBe('wordpress')
+    expect(generic.labels.ollama).toBe('ollama')
+  })
+
   it('never emits a bare public suffix', () => {
     for (const suffix of overrides.suffixes) expect(generic.hosts[suffix]).toBeUndefined()
     expect(generic.hosts.com).toBeUndefined()
@@ -81,6 +97,16 @@ describe('false positives', () => {
   it('does not resolve GitHub Pages user sites', () => {
     expect(brandSlugFor(full, 'https://alice.github.io/project')).toBeNull()
     expect(brandSlugFor(full, 'https://alice.github.io')).toBeNull()
+  })
+
+  it('does not resolve user subdomains of shared hosts', () => {
+    expect(brandSlugFor(full, 'https://alice.github.io/project')).toBeNull()
+    expect(brandSlugFor(full, 'https://alice.wordpress.com')).toBeNull()
+  })
+
+  it('does not substring-match a slug', () => {
+    expect(generic.labels.slack).toBeUndefined()
+    expect(brandSlugFor(full, 'https://slack.com')).toBeNull()
   })
 
   it('does not resolve sites whose brand simple-icons does not ship', () => {
