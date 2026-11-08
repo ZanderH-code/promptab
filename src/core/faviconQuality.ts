@@ -5,6 +5,9 @@ import {
 import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
 import { brandCandidate } from './brandIndex'
 
+/** Re-exported so a brand shortcut that only stores a slug can use the lazy chunk it already needs. */
+export { loadBrand } from './brandShards'
+
 export const ICON_CACHE_TTL_MS = 6048e5
 export const ICON_NEGATIVE_TTL_MS = 36e5
 /** Consecutive-failure backoff: one hour, six hours, then a daily retry. */

@@ -8,7 +8,7 @@ declare const chrome: {
   storage: { local: { get(keys: null | string | string[]): Promise<Record<string, unknown>>; set(items: Record<string, unknown>): Promise<void> } }
 }
 
-export type SeedItem = { id: string; name: string; url?: string }
+export type SeedItem = { id: string; name: string; url?: string } & Record<string, unknown>
 export type SeedGroup = { id: string; name: string; items: SeedItem[] }
 export type StoredItem = Record<string, unknown> & { id: string }
 export type StoredGroup = { id: string; name: string; collapsed: boolean; items: StoredItem[] }
@@ -135,11 +135,10 @@ export async function seedGroups(page: Page, groups: SeedGroup[]) {
       collapsed: false,
       items: group.items.map(item => ({
         ...template,
-        id: item.id,
-        name: item.name,
-        url: item.url ?? `https://example.com/${item.id}`,
+        ...item,
         builtinName: undefined,
         builtinGroup: undefined,
+        url: item.url ?? `https://example.com/${item.id}`,
       })),
     }))
     await chrome.storage.local.set({ [key]: JSON.stringify(snapshot) })
