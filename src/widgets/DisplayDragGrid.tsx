@@ -1,6 +1,6 @@
 import { Plus } from 'lucide-react'
-import { Suspense, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { DndContext, PointerSensor, TouchSensor, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core'
+import { Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, closestCenter, pointerWithin, useDndMonitor, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS as DndCSS } from '@dnd-kit/utilities'
 import type { Shortcut } from '../core/model'
@@ -34,10 +34,24 @@ const strings: Record<'en' | 'zh-CN', Strings> = {
 }
 
 // Folder tiles win over links so a drop on a folder always means "move into it".
+// While a folder dialog is open only its own items are targets; anything else means "drag out".
+// Inside the dialog the nearest item wins, because sortable neighbours shift away from the pointer.
 const displayCollision: CollisionDetection = args => {
   const hits = pointerWithin(args)
+  const dialog = typeof document === 'undefined' ? null : document.querySelector<HTMLElement>('.mnt-folder-dialog')
+  if (dialog) {
+    const ids = new Set(Array.from(dialog.querySelectorAll<HTMLElement>('[data-sortable-id]')).map(node => node.dataset.sortableId))
+    const inside = hits.filter(hit => ids.has(String(hit.id)))
+    if (inside.length) return inside
+    return closestCenter({ ...args, droppableContainers: args.droppableContainers.filter(container => ids.has(String(container.id))) })
+  }
   const folder = hits.find(hit => String(hit.id).startsWith('folder:'))
   return folder ? [folder] : hits
+}
+
+// Touch drags belong to TouchSensor; the pointer sensor must not also claim them.
+const mouseOnly = (listeners: ReturnType<typeof useSortable>['listeners']) => (event: ReactPointerEvent) => {
+  if (event.pointerType !== 'touch') listeners?.onPointerDown?.(event)
 }
 
 function SortableTile({ id, moved, reduceMotion, children }: { id: string; moved: boolean; reduceMotion: boolean; children: ReactNode }) {
@@ -49,28 +63,73 @@ function SortableTile({ id, moved, reduceMotion, children }: { id: string; moved
     data-dragging={isDragging ? 'true' : undefined}
     style={{ transform: DndCSS.Transform.toString(transform), transition: isDragging || reduceMotion ? undefined : 'transform 180ms ease', opacity: isDragging && moved ? 0.45 : 1 }}
     {...listeners}
-    onPointerDown={event => { if (event.pointerType !== 'touch') listeners?.onPointerDown?.(event) }}
+    onPointerDown={mouseOnly(listeners)}
   >{children}</div>
 }
 
-function DroppableFolder({ folder, name, shortcuts, style, iconColor, openInNewTab, liftOnHover, reduceMotion, reduceTransparency, t, onContextMenu, onShortcutContextMenu }: {
+function SortableDialogItem({ id, moved, reduceMotion, children }: { id: string; moved: boolean; reduceMotion: boolean; children: ReactNode }) {
+  const { listeners, setNodeRef, transform, isDragging } = useSortable({ id })
+  return <div
+    ref={setNodeRef}
+    className="mnt-folder-dialog-item"
+    data-sortable-id={id}
+    data-dragging={isDragging ? 'true' : undefined}
+    style={{ transform: DndCSS.Transform.toString(transform), transition: isDragging || reduceMotion ? undefined : 'transform 180ms ease', opacity: isDragging && moved ? 0.45 : 1 }}
+    {...listeners}
+    onPointerDown={mouseOnly(listeners)}
+  >{children}</div>
+}
+
+function DialogItemList({ group, items, close, onOut, moved, reduceMotion, iconColor, openInNewTab, liftOnHover, t, onContextMenu }: {
+  group: Group; items: Shortcut[]; close: () => void; onOut: () => void; moved: boolean; reduceMotion: boolean
+  iconColor: Props['iconColor']; openInNewTab: boolean; liftOnHover: boolean; t: Translate; onContextMenu: Props['onContextMenu']
+}) {
+  const dragged = useRef(false), left = useRef(false)
+  useDndMonitor({
+    onDragStart: ({ active }) => { dragged.current = group.items.some(item => item.id === String(active.id)); left.current = false },
+    onDragMove: ({ active, delta, activatorEvent }) => {
+      if (!dragged.current || left.current || !group.items.some(item => item.id === String(active.id))) return
+      const start = activatorEvent as PointerEvent | TouchEvent | null
+      const point = start && 'touches' in start ? start.touches[0] : start as PointerEvent | null
+      if (!point) return
+      const rect = document.querySelector<HTMLElement>('.mnt-folder-dialog')?.getBoundingClientRect()
+      const x = point.clientX + delta.x, y = point.clientY + delta.y
+      if (!rect || (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) return
+      left.current = true
+      close()
+      onOut()
+    },
+  })
+  return <SortableContext items={items.map(item => item.id)} strategy={rectSortingStrategy}>
+    {items.map(item => <SortableDialogItem key={item.id} id={item.id} moved={moved} reduceMotion={reduceMotion}>
+      <ShortcutLink item={item} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onContextMenu} />
+    </SortableDialogItem>)}
+  </SortableContext>
+}
+
+function DroppableFolder({ folder, name, shortcuts, style, iconColor, openInNewTab, liftOnHover, reduceMotion, reduceTransparency, moved, t, onContextMenu, onShortcutContextMenu, onDragOut }: {
   folder: Group; name: string; shortcuts: Shortcut[]; style: Props['style']; iconColor: Props['iconColor']; openInNewTab: boolean; liftOnHover: boolean
-  reduceMotion: 'system' | 'on' | 'off'; reduceTransparency: 'system' | 'on' | 'off'; t: Translate
-  onContextMenu: Props['onGroupContextMenu']; onShortcutContextMenu: Props['onContextMenu']
+  reduceMotion: 'system' | 'on' | 'off'; reduceTransparency: 'system' | 'on' | 'off'; moved: boolean; t: Translate
+  onContextMenu: Props['onGroupContextMenu']; onShortcutContextMenu: Props['onContextMenu']; onDragOut: () => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `folder:${folder.id}`, data: { folderId: folder.id } })
-  return <BookmarkFolder group={folder} name={name} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} t={t} onContextMenu={onContextMenu} onShortcutContextMenu={onShortcutContextMenu} dropRef={setNodeRef} dropActive={isOver} />
+  const reducedMotion = reduceMotion === 'on' || (reduceMotion === 'system' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  return <BookmarkFolder group={folder} name={name} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} t={t} onContextMenu={onContextMenu} onShortcutContextMenu={onShortcutContextMenu} dropRef={setNodeRef} dropActive={isOver}
+    renderItems={(items, close) => <DialogItemList group={folder} items={items} close={close} onOut={onDragOut} moved={moved} reduceMotion={reducedMotion} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onShortcutContextMenu} />} />
 }
 
 export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system' }: Props) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const folderMode = source === 'all' && visibleGroups.length >= 2
   const renderedGroups = folderMode ? visibleGroups.slice(0, 1) : visibleGroups
+  const desktopId = renderedGroups[0]?.id
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   const reducedMotion = reduceMotion === 'on' || (reduceMotion === 'system' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
   const [moved, setMoved] = useState(false)
+  const [overlay, setOverlay] = useState(false)
   const movedRef = useRef(false)
+  const sourceRef = useRef<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -78,6 +137,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
   )
   const copy = strings[language]
   const nameOf = (id: string) => { for (const group of groups) { const item = group.items.find(candidate => candidate.id === id); if (item) return item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name } return id }
+  const activeItem = activeId ? names.get(activeId) ?? groups.flatMap(group => group.items).find(item => item.id === activeId) : undefined
   // A touch long-press opens the app menu at 550 ms, but dnd-kit's 350 ms delay already started a drag.
   // Cancel that drag so the menu's own clicks are not swallowed by the sensor's click guard.
   useEffect(() => {
@@ -106,18 +166,26 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     }
     window.setTimeout(tick, 0)
   }
+  const resetDrag = () => { setActiveId(null); setMoved(false); setOverlay(false); sourceRef.current = null }
   const dragEnd = ({ active, over }: DragEndEvent) => {
     const activeId = String(active.id)
-    setActiveId(null); setMoved(false)
-    suppressClickAfterDrag()
-    if (!over) return
-    const overId = String(over.id)
-    if (overId === activeId) return
     const sourceGroup = groups.find(group => group.items.some(item => item.id === activeId))
+    const fromFolder = sourceGroup && sourceGroup.id !== desktopId
+    resetDrag()
+    suppressClickAfterDrag()
+    if (!over) {
+      if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceGroup!.id)}"]`)
+      return
+    }
+    const overId = String(over.id)
+    if (overId === activeId) {
+      if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceGroup!.id)}"]`)
+      return
+    }
     if (!sourceGroup) return
     if (overId.startsWith('folder:')) {
       const folderId = overId.slice(7)
-      if (folderId === sourceGroup.id) return
+      if (folderId === sourceGroup.id) { focusAfterDrop(`[data-folder="${CSS.escape(folderId)}"]`); return }
       onGroups(current => moveBookmarks(current, [activeId], folderId))
       focusAfterDrop(`[data-folder="${CSS.escape(folderId)}"]`)
       return
@@ -139,9 +207,19 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
   return <DndContext
     sensors={sensors}
     collisionDetection={displayCollision}
-    onDragStart={({ active }) => { setActiveId(String(active.id)); movedRef.current = false; setMoved(false) }}
+    onDragStart={({ active }) => {
+      const id = String(active.id)
+      setActiveId(id); movedRef.current = false; setMoved(false); setOverlay(false)
+      sourceRef.current = groups.find(group => group.items.some(item => item.id === id))?.id ?? null
+    }}
     onDragMove={() => { if (!movedRef.current) { movedRef.current = true; setMoved(true) } }}
-    onDragCancel={() => { setActiveId(null); setMoved(false); suppressClickAfterDrag() }}
+    onDragCancel={() => {
+      const sourceId = sourceRef.current
+      const fromFolder = sourceId && sourceId !== desktopId
+      resetDrag()
+      suppressClickAfterDrag()
+      if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceId)}"]`)
+    }}
     onDragEnd={dragEnd}
     accessibility={{
       announcements: {
@@ -153,7 +231,8 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
             const group = groups.find(candidate => `folder:${candidate.id}` === overId)
             return group ? copy.overFolder(groupName(group)) : undefined
           }
-          const position = visibleGroups[0]?.items.findIndex(item => item.id === overId) ?? -1
+          const group = groups.find(candidate => candidate.items.some(item => item.id === overId))
+          const position = group?.items.findIndex(item => item.id === overId) ?? -1
           return position >= 0 ? copy.overPosition(position + 1) : copy.pickedUp(nameOf(String(active.id)))
         },
         onDragEnd: ({ active, over }) => over ? copy.dropped(nameOf(String(active.id))) : copy.cancelled,
@@ -176,12 +255,16 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
                 <ShortcutLink item={item} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onContextMenu} />
               </SortableTile>
             })}
-            {folderMode && <Suspense fallback={null}>{visibleGroups.slice(1).map(folder => <DroppableFolder key={folder.id} folder={folder} name={groupName(folder)} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} t={t} onContextMenu={onGroupContextMenu} onShortcutContextMenu={onContextMenu} />)}</Suspense>}
+            {folderMode && <Suspense fallback={null}>{visibleGroups.slice(1).map(folder => <DroppableFolder key={folder.id} folder={folder} name={groupName(folder)} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} moved={moved} t={t} onContextMenu={onGroupContextMenu} onShortcutContextMenu={onContextMenu} onDragOut={() => setOverlay(true)} />)}</Suspense>}
             {showAdd && group === visibleGroups[0] && !(onboarding && group.items.length === 0) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
           </div>}
         </div>)}
       </SortableContext>
       {!groups.length && !onboarding && showAdd && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
     </div>
+    {/* The source node is unmounted when a drag leaves the folder dialog, so there is nothing to animate to. */}
+    <DragOverlay dropAnimation={null}>
+      {overlay && activeItem ? <div className="shortcut-wrap mnt-drag-overlay"><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
+    </DragOverlay>
   </DndContext>
 }

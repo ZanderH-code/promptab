@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
@@ -26,9 +26,11 @@ type Props = {
   /** Supplied by the display drag layer so the tile can accept a dropped shortcut. */
   dropRef?: (node: HTMLElement | null) => void
   dropActive?: boolean
+  /** Supplied by the display drag layer to render sortable dialog items. */
+  renderItems?: (items: Shortcut[], close: () => void) => ReactNode
 }
 
-export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openInNewTab, liftOnHover, reduceMotion, reduceTransparency, t, onContextMenu, onShortcutContextMenu, dropRef, dropActive }: Props) {
+export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openInNewTab, liftOnHover, reduceMotion, reduceTransparency, t, onContextMenu, onShortcutContextMenu, dropRef, dropActive, renderItems }: Props) {
   const [open, setOpenState] = useState(() => openFolders.has(group.id))
   const setOpen = (value: boolean) => { if (value) openFolders.add(group.id); else openFolders.delete(group.id); setOpenState(value) }
   const titleId = useId()
@@ -140,7 +142,7 @@ export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openI
           <button ref={closeButton} type="button" className="mnt-folder-close" aria-label={t('groups.folderClose')} onClick={() => setOpen(false)}><X aria-hidden="true" /></button>
         </header>
         {items.length ? <div className="mnt-folder-dialog-grid" style={{ '--mnt-folder-icon-size': 'calc(var(--mnt-icon-size, 64px) * 1.25)' } as CSSProperties}>
-          {items.map(item => <div className="mnt-folder-dialog-item" key={item.id}><ShortcutLink item={item} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onShortcutContextMenu} /></div>)}
+          {renderItems ? renderItems(items, () => setOpen(false)) : items.map(item => <div className="mnt-folder-dialog-item" key={item.id}><ShortcutLink item={item} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onShortcutContextMenu} /></div>)}
         </div> : <div className="mnt-folder-empty"><p>{t('groups.folderEmpty')}</p><p>{t('groups.folderEmptyHint')}</p></div>}
       </section>
     </div>, portalRoot)
