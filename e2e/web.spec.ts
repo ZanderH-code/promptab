@@ -20,7 +20,7 @@ async function openApp(page: Page, settings: Record<string, unknown> = {}) {
 
 test('fresh web visitors see bundled starter sites and onboarding until dismissed', async ({ page }) => {
   const starterRequests: string[] = []
-  page.on('request', request => { if (/youtube\.com|mail\.google\.com|maps\.google\.com|wikipedia\.org|reddit\.com|amazon\.com|chatgpt\.com|outlook\.live\.com/i.test(request.url())) starterRequests.push(request.url()) })
+  page.on('request', request => { if (/youtube\.com|mail\.google\.com|maps\.google\.com|wikipedia\.org|reddit\.com/i.test(request.url())) starterRequests.push(request.url()) })
   await page.goto('./')
   await expect(page.locator('.clock')).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')

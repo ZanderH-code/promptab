@@ -11,10 +11,22 @@ it('recognizes unchanged starters from the earlier bundled icon set', () => {
   expect(isUnchangedStarterSite({ ...amazon, name: 'My Amazon' })).toBe(false)
 })
 
-it('uses text fallbacks for Amazon and Outlook without external icons', () => {
-  expect(STARTER_SITES.filter(site => ['starter-amazon', 'starter-outlook'].includes(site.id))).toMatchObject([
-    { icon: 'A', iconMode: 'text' }, { icon: 'O', iconMode: 'text' },
+it('lets new profiles auto-detect Amazon, ChatGPT and Outlook icons', () => {
+  expect(STARTER_SITES.filter(site => ['starter-amazon', 'starter-chatgpt', 'starter-outlook'].includes(site.id))).toMatchObject([
+    { icon: 'A', color: '#ff9900', iconMode: 'auto' },
+    { icon: '✦', color: '#10a37f', iconMode: 'auto' },
+    { icon: 'O', color: '#0078d4', iconMode: 'auto' },
   ])
+})
+
+it('still treats a stored copy of the earlier text-mode starters as unchanged', () => {
+  for (const id of ['starter-amazon', 'starter-chatgpt', 'starter-outlook']) {
+    const current = STARTER_SITES.find(site => site.id === id)!
+    expect(isUnchangedStarterSite(current)).toBe(true)
+    expect(isUnchangedStarterSite({ ...current, iconMode: 'text' })).toBe(true)
+    expect(isUnchangedStarterSite({ ...current, iconMode: 'text', name: 'Mine' })).toBe(false)
+    expect(isUnchangedStarterSite({ ...current, iconMode: 'auto', url: 'https://example.com' })).toBe(false)
+  }
 })
 
 it('removes only unchanged starter shortcuts, even when moved to another group', async () => {
