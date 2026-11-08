@@ -12,7 +12,8 @@ import { dirname, resolve } from 'node:path'
 import * as icons from 'simple-icons'
 import { launchExtension, openApp, seedGroups, seedSettings } from '../e2e/extension-fixture.ts'
 import { COMMON_SITES, siteId } from '../e2e/fixtures/common-sites.ts'
-import { KNOWN_BRANDS } from '../src/core/knownBrands.ts'
+import { readFileSync } from 'node:fs'
+import { brandSlugFor } from '../src/core/brandDomains.ts'
 import { knownIconFor } from '../src/core/knownIcons.ts'
 
 const args = new Map(process.argv.slice(2).map(arg => {
@@ -29,6 +30,8 @@ const GROUP_SIZE = 30
 // ---------------------------------------------------------------- offline data
 
 const catalogue = new Map(Object.values(icons).filter(icon => icon?.slug).map(icon => [icon.slug, icon]))
+/** The product's own resolver and data: what the tile will actually do, not an offline guess. */
+const brandIndex = JSON.parse(readFileSync(new URL('../dist/brand-index.json', import.meta.url), 'utf8'))
 
 /** Small public-suffix list: enough for the domains in the fixture, no PSL dependency. */
 const MULTI_SUFFIXES = ['co.uk', 'org.uk', 'ac.uk', 'com.cn', 'net.cn', 'org.cn', 'com.hk', 'com.tw', 'com.sg', 'com.au', 'net.au', 'co.jp', 'co.kr', 'co.in', 'com.br', 'com.mx']
@@ -84,10 +87,11 @@ function resolveSlug(site) {
 function offline(site) {
   const known = knownIconFor(site.url)
   const resolved = resolveSlug(site)
+  const indexSlug = brandSlugFor(brandIndex, site.url)
   return {
     inKnownTable: !!known,
-    knownSlug: known?.brand ?? null,
-    knownBrandBundled: !!known?.brand && !!KNOWN_BRANDS[known.brand],
+    indexSlug,
+    indexBrandBundled: !!indexSlug && catalogue.has(indexSlug),
     simpleIconsSlug: resolved.slug,
     slugMatch: resolved.match,
     missingInSimpleIcons: !resolved.slug,
