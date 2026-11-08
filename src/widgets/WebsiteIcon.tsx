@@ -50,13 +50,12 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     return () => { cancelled = true }
   }, [shortcut.iconMode, shortcut.iconName])
   useEffect(() => {
+    // The state is keyed by slug, so a late result can never paint another shortcut's mark.
     if (manualBrand) {
-      let cancelled = false
-      setAutoState(null)
       void import('../core/faviconQuality').then(({ loadBrand }) => loadBrand(manualBrand)).then(brand => {
-        if (!cancelled) setAutoState({ key: cacheKey, url: null, cache: false, brand })
+        setAutoState({ key: cacheKey, url: null, cache: false, brand })
       })
-      return () => { cancelled = true }
+      return
     }
     if (!automatic || !cacheKey) return
     let cancelled = false
@@ -84,13 +83,14 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     }
   }, [automatic, cacheKey, shortcut.url, retryKey, manualBrand])
 
-  // One colour rule for manual and automatic brand marks; accent and custom win over the brand hex.
-  const color = (hex?: string) => shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : hex ? brandIconColor(hex, shortcut.color) : undefined
+  // Automatic marks take the brand hex by default; a manual mark only when the user chose "brand",
+  // which keeps stored shortcuts rendering as they did before automatic brands existed.
+  const color = (hex?: string, auto?: boolean) => shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : hex && (auto || shortcut.iconColorMode === 'brand') ? brandIconColor(hex, shortcut.color) : undefined
   const letter = shortcut.name.trim().slice(0, 1).toUpperCase() || '•'
   const textFallback = shortcut.icon || letter
   if (automatic || (shortcut.iconMode === 'brand' && !source)) {
     const brand = (automatic ? undefined : shortcut.brand) ?? currentAutoState.brand
-    if (brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: color(brand.hex) }} aria-hidden="true"><path d={brand.path} /></svg>
+    if (brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: color(brand.hex, automatic) }} aria-hidden="true"><path d={brand.path} /></svg>
     if (!automatic) return letter
     const visibleFallback = !source && autoFinished
     return <>{source && <img ref={imageRef} src={source} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" style={{ visibility: imageLoaded ? 'visible' : 'hidden' }} onLoad={() => setLoadedSrc(source)} onError={() => {

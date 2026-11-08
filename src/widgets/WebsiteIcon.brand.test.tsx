@@ -50,10 +50,22 @@ it('respects accent and custom colour modes for an automatic brand', () => {
   expect((custom.container.querySelector('svg') as SVGElement).style.color).toBe('rgb(18, 52, 86)')
 })
 
-it('uses the same colour rule for a manually chosen brand', () => {
-  const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconColorMode: 'brand', brand } as never} />)
-  expect((container.querySelector('svg') as SVGElement).style.color).toBe(cssColor(brandIconColor(brand.hex, shortcut.color)))
+it('keeps currentColor for a manually chosen brand until the user picks a colour mode', () => {
+  const { container } = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', brand } as never} />)
+  expect((container.querySelector('svg') as SVGElement).style.color).toBe('')
   expect(mocked.loadBrand).not.toHaveBeenCalled()
+})
+
+it('applies each colour mode to a manually chosen brand', () => {
+  const read = (iconColorMode?: string) => {
+    const view = render(<WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconColorMode, brand } as never} />)
+    const color = (view.container.querySelector('svg') as SVGElement).style.color
+    view.unmount()
+    return color
+  }
+  expect(read('brand')).toBe(cssColor(brandIconColor(brand.hex, shortcut.color)))
+  expect(read('accent')).toBe('var(--mnt-accent)')
+  expect(read('custom')).toBe('rgb(18, 52, 86)')
 })
 
 it('loads a brand mark on demand when the shortcut stores only a slug', async () => {
@@ -63,7 +75,8 @@ it('loads a brand mark on demand when the shortcut stores only a slug', async ()
   expect(container.querySelector('svg')).toBeNull()
   await waitFor(() => expect(container.querySelector('svg path')?.getAttribute('d')).toBe(brand.path))
   expect(mocked.loadBrand).toHaveBeenCalledWith('youtube')
-  expect((container.querySelector('svg') as SVGElement).style.color).toBe(cssColor(brandIconColor(brand.hex, shortcut.color)))
+  // A slug-only mark follows the same stored colour rule as a stored brand object.
+  expect((container.querySelector('svg') as SVGElement).style.color).toBe('')
   // The resolved mark is display state only: the shortcut object is untouched.
   expect(manual.brand).toBeUndefined()
 })
