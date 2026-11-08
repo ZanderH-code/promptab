@@ -111,3 +111,22 @@ it('never shows the previous slug while the next mark loads', async () => {
   release(nextBrand)
   await waitFor(() => expect(view.container.querySelector('svg path')?.getAttribute('d')).toBe(nextBrand.path))
 })
+
+it('ignores a stale result when the slug flips back before it resolves', async () => {
+  const otherBrand = { ...brand, slug: 'bilibili', path: 'M2 2h2v2H2z' }
+  const pending = new Map<string, (value: unknown) => void>()
+  mocked.loadBrand.mockImplementation((slug: string) => slug === 'bilibili'
+    ? new Promise(resolve => { pending.set(slug, resolve) })
+    : Promise.resolve(brand))
+  const icon = (iconName: string) => <WebsiteIcon shortcut={{ ...shortcut, iconMode: 'brand', iconName } as never} />
+  const view = render(icon('youtube'))
+  const pathOf = () => view.container.querySelector('svg path')?.getAttribute('d')
+  await waitFor(() => expect(pathOf()).toBe(brand.path))
+  view.rerender(icon('bilibili'))
+  view.rerender(icon('youtube'))
+  await waitFor(() => expect(pathOf()).toBe(brand.path))
+  // B's shard arrives last; it must not replace A's mark with the letter.
+  pending.get('bilibili')!(otherBrand)
+  await new Promise(resolve => setTimeout(resolve, 0))
+  expect(pathOf()).toBe(brand.path)
+})

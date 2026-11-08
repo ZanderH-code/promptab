@@ -50,12 +50,13 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     return () => { cancelled = true }
   }, [shortcut.iconMode, shortcut.iconName])
   useEffect(() => {
-    // The state is keyed by slug, so a late result can never paint another shortcut's mark.
+    // Keyed by slug and cancelled on change: a slow result for an earlier slug can never win.
     if (manualBrand) {
+      let cancelled = false
       void import('../core/faviconQuality').then(({ loadBrand }) => loadBrand(manualBrand)).then(brand => {
-        setAutoState({ key: cacheKey, url: null, cache: false, brand })
+        if (!cancelled) setAutoState({ key: cacheKey, url: null, cache: false, brand })
       })
-      return
+      return () => { cancelled = true }
     }
     if (!automatic || !cacheKey) return
     let cancelled = false
