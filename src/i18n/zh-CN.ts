@@ -1,4 +1,4 @@
-import { aiZh } from './ai'
+import type { AiMessageKey } from './ai'
 import { styleZh } from './style'
 
 export const zhCN = {
@@ -455,7 +455,13 @@ export const zhCN = {
   'error.backupRollback': '导入失败，部分原有数据未能恢复。请保留备份文件并检查浏览器存储权限。',
   'error.export': '导出失败。',
   ...styleZh,
-  ...aiZh,
+  // The preview banner can render before the AI chunk registers the rest of `ai.*`.
+  'ai.previewing': '预览中：{name}',
+  'ai.previewHint': '还没有保存，应用后可以随时撤销。',
+  'ai.compareOriginal': '对比原始效果',
+  'ai.discard': '放弃',
+  'ai.apply': '应用',
 } as const
 
-export type MessageKey = keyof typeof zhCN
+export type BaseMessageKey = keyof typeof zhCN
+export type MessageKey = BaseMessageKey | AiMessageKey

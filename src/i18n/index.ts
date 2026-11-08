@@ -7,7 +7,25 @@ export type MessageParams = Record<string, string | number>
 export type MessageRef = { key: MessageKey; params?: MessageParams }
 export type Translate = (key: MessageKey, params?: MessageParams) => string
 
-const dictionaries: Record<Language, Record<MessageKey, string>> = { 'zh-CN': zhCN, en }
+const dictionaries: Record<Language, Record<string, string>> = { 'zh-CN': zhCN, en }
+/** Messages shipped in lazy chunks. Base dictionary entries always win. */
+const registered: Record<Language, Record<string, string>> = { 'zh-CN': {}, en: {} }
+let version = 0
+const listeners = new Set<() => void>()
+
+/** Adds or replaces messages from a lazy chunk and re-renders subscribers. */
+export function registerMessages(language: Language, messages: Record<string, string>) {
+  Object.assign(registered[language], messages)
+  version += 1
+  for (const listener of listeners) listener()
+}
+
+export function messagesVersion() { return version }
+
+export function subscribeMessages(listener: () => void) {
+  listeners.add(listener)
+  return () => { listeners.delete(listener) }
+}
 
 export function systemLanguage(languages: readonly string[]): Language {
   for (const language of languages) {
@@ -23,7 +41,7 @@ export function interpolate(template: string, params?: MessageParams) {
 }
 
 export function translate(language: Language, key: MessageKey, params?: MessageParams) {
-  return interpolate(dictionaries[language][key], params)
+  return interpolate(dictionaries[language][key] ?? registered[language][key], params)
 }
 
 /** An error that carries a message key instead of a sentence, so it can be shown in any language. */

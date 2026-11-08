@@ -1,8 +1,7 @@
-import type { MessageKey } from './zh-CN'
-import { aiEn } from './ai'
+import type { BaseMessageKey } from './zh-CN'
 import { styleEn } from './style'
 
-export const en: Record<MessageKey, string> = {
+export const en: Record<BaseMessageKey, string> = {
   'app.title': 'New Tab',
   'app.loading': 'Preparing your desktop…',
   'clock.eyebrow': 'YOUR SPACE, YOUR PACE',
@@ -456,5 +455,10 @@ export const en: Record<MessageKey, string> = {
   'error.backupRollback': 'Import failed and some previous data could not be restored. Keep your backup file and check browser storage permissions.',
   'error.export': 'Export failed.',
   ...styleEn,
-  ...aiEn,
+  // The preview banner can render before the AI chunk registers the rest of `ai.*`.
+  'ai.previewing': 'Previewing: {name}',
+  'ai.previewHint': 'Not saved yet; after applying you can undo at any time.',
+  'ai.compareOriginal': 'Compare original',
+  'ai.discard': 'Discard',
+  'ai.apply': 'Apply',
 }

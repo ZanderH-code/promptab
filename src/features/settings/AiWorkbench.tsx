@@ -1,3 +1,5 @@
+import { useMessagesVersion } from '../../i18n/useMessages'
+import '../../i18n/ai'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 const Gallery = lazy(() => import('./Gallery').then(m => ({ default: m.Gallery })))
 import { analyzeCandidate } from '../../core/ai/analyze'
@@ -51,6 +53,7 @@ function gallerySubmissionUrl(name: string) {
  * what is wrong and what is risky, and previews or applies only the parts the person keeps ticked.
  */
 export function AiWorkbench({ ctx }: { ctx: Ctx }) {
+  useMessagesVersion()
   const { t, store, onError } = ctx
   const [state, set] = useAiState()
   const [notice, setNotice] = useState<MessageKey | null>(null)
