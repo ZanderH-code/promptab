@@ -1,9 +1,10 @@
 import { ArrowRight, GripVertical, Pencil, Plus, X } from 'lucide-react'
-import { lazy, Suspense, type CSSProperties } from 'react'
+import { lazy, Suspense, useState, type CSSProperties } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
-import { GroupMenuTrigger, ShortcutLink, OnboardingCard, type ContextMenuEvent } from './ShortcutGridContent'
+import { GroupMenuTrigger, ShortcutLink, type ContextMenuEvent } from './ShortcutGridContent'
+import { BookmarkFolder, OnboardingCard } from './lazyWidgets'
 
 export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
@@ -17,21 +18,29 @@ export type ShortcutGridProps = {
   onboarding: boolean; onOnboardingAction: (action: 'add' | 'import' | 'theme' | 'ai') => void
 }
 const EditingShortcutGrid = lazy(() => import('./EditingShortcutGrid').then(module => ({ default: module.EditingShortcutGrid })))
-const BookmarkFolder = lazy(() => import('./BookmarkFolder').then(module => ({ default: module.BookmarkFolder })))
+const DisplayDragGrid = lazy(() => import('./DisplayDragGrid').then(module => ({ default: module.DisplayDragGrid })))
 
 export function ShortcutGrid(props: ShortcutGridProps) {
-  const display = <DisplayShortcutGrid {...props} />
-  return props.editing ? <Suspense fallback={display}><EditingShortcutGrid {...props} /></Suspense> : display
+  const [dragReady, setDragReady] = useState(false)
+  // Keyboard focus only preloads the chunk: swapping under focus would drop the focused tile.
+  const beginDrag = (activate: boolean) => {
+    if (!activate) { void import('./DisplayDragGrid'); return }
+    if (!dragReady) setDragReady(true)
+  }
+  const display = <DisplayShortcutGrid {...props} onDragIntent={props.editing || dragReady ? undefined : beginDrag} />
+  return props.editing ? <Suspense fallback={display}><EditingShortcutGrid {...props} /></Suspense>
+    : dragReady ? <Suspense fallback={display}><DisplayDragGrid {...props} /></Suspense>
+    : display
 }
 
-function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system' }: ShortcutGridProps) {
+function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', onDragIntent }: ShortcutGridProps & { onDragIntent?: (activate: boolean) => void }) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const folderMode = !editing && source === 'all' && visibleGroups.length >= 2
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   // Reserve the edit controls during the first download so resolving Suspense does not move tiles.
-  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined}>
-    {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
+  return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined} onPointerOver={onDragIntent ? event => { if (event.pointerType !== 'touch' && event.currentTarget.contains(event.target as Node)) onDragIntent(true) } : undefined} onTouchStart={onDragIntent ? event => { if (event.currentTarget.contains(event.target as Node)) onDragIntent(true) } : undefined} onFocus={onDragIntent ? () => onDragIntent(false) : undefined}>
+    {onboarding && <Suspense fallback={null}><OnboardingCard t={t} onAction={onOnboardingAction} /></Suspense>}
     {editing && <div className="bookmark-edit-tools"><button type="button" disabled>{t('groups.add')}</button></div>}
     {(folderMode ? visibleGroups.slice(0, 1) : visibleGroups).map(group => <div key={group.id} data-drop-group={group.id}>
       {(showGroupTitles || editing) && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>

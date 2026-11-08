@@ -1,11 +1,14 @@
 import { X } from 'lucide-react'
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
 import { GroupMenuTrigger, ShortcutLink, type ContextMenuEvent } from './ShortcutGridContent'
 import type { Group } from './ShortcutGrid'
 import { WebsiteIcon } from './WebsiteIcon'
+
+/** Keeps a folder dialog open when the grid remounts for the lazy drag layer. */
+const openFolders = new Set<string>()
 
 type Props = {
   group: Group
@@ -20,14 +23,19 @@ type Props = {
   t: Translate
   onContextMenu: (event: ContextMenuEvent, group: Group) => void
   onShortcutContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void
+  /** Supplied by the display drag layer so the tile can accept a dropped shortcut. */
+  dropRef?: (node: HTMLElement | null) => void
+  dropActive?: boolean
 }
 
-export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openInNewTab, liftOnHover, reduceMotion, reduceTransparency, t, onContextMenu, onShortcutContextMenu }: Props) {
-  const [open, setOpen] = useState(false)
+export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openInNewTab, liftOnHover, reduceMotion, reduceTransparency, t, onContextMenu, onShortcutContextMenu, dropRef, dropActive }: Props) {
+  const [open, setOpenState] = useState(() => openFolders.has(group.id))
+  const setOpen = (value: boolean) => { if (value) openFolders.add(group.id); else openFolders.delete(group.id); setOpenState(value) }
   const titleId = useId()
   const trigger = useRef<HTMLButtonElement>(null)
   const closeButton = useRef<HTMLButtonElement>(null)
   const dialog = useRef<HTMLElement>(null)
+  const setTrigger = useCallback((node: HTMLButtonElement | null) => { trigger.current = node; dropRef?.(node) }, [dropRef])
   const items = useMemo(() => {
     const latest = new Map(shortcuts.map(shortcut => [shortcut.id, shortcut]))
     return group.items.map(stored => latest.get(stored.id) ?? stored).map(item => item.builtinName === 'sample-website'
@@ -139,7 +147,7 @@ export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openI
 
   return <>
     <GroupMenuTrigger group={group} className="mnt-folder-menu-trigger" ariaLabel={t('groups.menuLabel', { name })} onGroupContextMenu={onContextMenu} focusable={false} allowButtonLongPress suppressClickAfterLongPress>
-      <button ref={trigger} type="button" className={`mnt-folder mnt-folder-style-${style}`} data-folder={group.id} aria-haspopup="dialog" aria-expanded={open} aria-label={t('groups.folderOpen', { name, count: items.length })} title={name} onClick={() => setOpen(true)}>
+      <button ref={setTrigger} type="button" className={`mnt-folder mnt-folder-style-${style}`} data-folder={group.id} data-drop-target={dropActive ? 'true' : undefined} aria-haspopup="dialog" aria-expanded={open} aria-label={t('groups.folderOpen', { name, count: items.length })} title={name} onClick={() => setOpen(true)}>
         <span className="mnt-folder-preview" aria-hidden="true">
           {items.slice(0, 4).map(item => <span className="mnt-folder-preview-item" key={item.id} style={{ '--tile': item.color } as CSSProperties}><WebsiteIcon shortcut={iconColor === 'accent' ? { ...item, iconColorMode: 'accent' } : item} /></span>)}
           {items.length === 0 && <span className="mnt-folder-preview-empty" />}

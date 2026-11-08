@@ -4,7 +4,8 @@ import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCorners, p
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Group, ShortcutGridProps } from './ShortcutGrid'
 import { SortableShortcut } from './SortableShortcut'
-import { GroupMenuTrigger, ShortcutLink, OnboardingCard } from './ShortcutGridContent'
+import { GroupMenuTrigger, ShortcutLink } from './ShortcutGridContent'
+import { OnboardingCard } from './OnboardingCard'
 import { moveBookmarks } from './bookmarkGroups'
 
 type Props = ShortcutGridProps
