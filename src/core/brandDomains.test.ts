@@ -1,23 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { brandSlugFor, hostChain, registrableDomain, type BrandIndex } from './brandDomains'
+import { brandSlugFor, type BrandIndex } from './brandDomains'
 
-const index = (hosts: Record<string, string>, paths?: Record<string, string>): BrandIndex => ({ version: 1, hosts, paths })
+const index = (hosts: Record<string, string>, paths?: Record<string, string>, extra: Partial<BrandIndex> = {}): BrandIndex => ({ version: 1, hosts, paths, ...extra })
 
-describe('registrableDomain', () => {
-  it('handles plain and multi-label suffixes', () => {
-    expect(registrableDomain('www.bilibili.com')).toBe('bilibili.com')
-    expect(registrableDomain('music.163.com')).toBe('163.com')
-    expect(registrableDomain('a.b.example.co.uk')).toBe('example.co.uk')
-    expect(registrableDomain('example.com.cn')).toBe('example.com.cn')
-    expect(registrableDomain('localhost')).toBe('localhost')
+describe('registrable domain handling', () => {
+  it('walks parents only down to the registrable domain', () => {
+    expect(brandSlugFor(index({ 'example.co.uk': 'example' }, undefined, { suffixes: ['co.uk'] }), 'https://a.b.example.co.uk/')).toBe('example')
+    expect(brandSlugFor(index({ 'example.com.cn': 'example' }, undefined, { suffixes: ['com.cn'] }), 'https://example.com.cn/')).toBe('example')
+    expect(brandSlugFor(index({ '163.com': 'netease' }), 'https://music.163.com/')).toBe('netease')
+    expect(brandSlugFor(index({ 'localhost': 'local' }), 'https://localhost:3000/')).toBe('local')
   })
-})
 
-describe('hostChain', () => {
-  it('walks parents and stops at the registrable domain', () => {
-    expect(hostChain('a.b.example.co.uk')).toEqual(['a.b.example.co.uk', 'b.example.co.uk', 'example.co.uk'])
-    expect(hostChain('mail.google.com')).toEqual(['mail.google.com', 'google.com'])
-    expect(hostChain('google.com')).toEqual(['google.com'])
+  it('never looks above the registrable domain', () => {
+    expect(brandSlugFor(index({ 'co.uk': 'wrong' }, undefined, { suffixes: ['co.uk'] }), 'https://a.b.example.co.uk/')).toBeNull()
   })
 })
 
@@ -31,7 +26,6 @@ describe('brandSlugFor', () => {
 
   it('does not walk past the registrable domain', () => {
     expect(brandSlugFor(index({ 'example.com': 'example' }), 'https://notexample.com/')).toBeNull()
-    expect(brandSlugFor(index({ 'co.uk': 'wrong' }), 'https://a.b.example.co.uk/')).toBeNull()
   })
 
   it('uses host+path rules before host rules', () => {

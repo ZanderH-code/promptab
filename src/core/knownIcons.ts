@@ -7,44 +7,34 @@ export type KnownIcon = {
   prefix?: string
   /** Stable official icon URLs. Cross-origin requests are allowed only for URLs listed here. */
   urls: string[]
-  /** Slug of a bundled brand mark; the mark itself lives in the lazy knownBrands module. */
-  brand?: string
-  /** Use the bundled brand mark even when a sharp site icon loads (for wordmark icons). */
-  preferBrand?: boolean
 }
 
 // Keep prefixed entries before other entries for the same host: the first match wins.
 export const KNOWN_ICONS: KnownIcon[] = [
   // Google Maps lives under www.google.com/maps; keep it separate from the rest of www.google.com.
-  { hosts: ['www.google.com'], urls: ['https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'], prefix: '/maps', brand: 'googlemaps' },
+  { hosts: ['www.google.com'], urls: ['https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'], prefix: '/maps' },
   // maps.google.com serves the same product at the root path.
-  { hosts: ['maps.google.com'], urls: ['https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'], brand: 'googlemaps' },
+  { hosts: ['maps.google.com'], urls: ['https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'] },
   // chatgpt.com moved its icons under /unauth-mweb/images; the five fixed root paths all return 404.
   { hosts: ['chatgpt.com', 'www.chatgpt.com'], urls: ['https://chatgpt.com/unauth-mweb/images/chatgpt-icon-512x512.png', 'https://chatgpt.com/unauth-mweb/images/favicon.svg'] },
   // v0 serves an SPA that answers 200 text/html for every fixed path.
-  { hosts: ['v0.app', 'www.v0.app', 'v0.dev', 'www.v0.dev'], urls: ['https://v0.app/assets/icon.svg', 'https://v0.app/chat-static/assets/icon-dark-512x512.png'], brand: 'v0' },
-  // Gemini only publishes a hashed gstatic URL, so it falls back to the bundled brand mark.
-  { hosts: ['gemini.google.com'], urls: [], brand: 'googlegemini' },
+  { hosts: ['v0.app', 'www.v0.app', 'v0.dev', 'www.v0.dev'], urls: ['https://v0.app/assets/icon.svg', 'https://v0.app/chat-static/assets/icon-dark-512x512.png'] },
   // AI Studio publishes a stable product logo on gstatic.
-  { hosts: ['aistudio.google.com'], urls: ['https://www.gstatic.com/images/branding/productlogos/ai_studio/v1/web-512dp/logo_ai_studio_color_1x_web_512dp.png'], brand: 'google' },
+  { hosts: ['aistudio.google.com'], urls: ['https://www.gstatic.com/images/branding/productlogos/ai_studio/v1/web-512dp/logo_ai_studio_color_1x_web_512dp.png'] },
   // Google AI for Developers publishes a PWA icon.
   { hosts: ['ai.google.dev'], urls: ['https://ai.google.dev/_pwa/googledevai/icons/icon-512x512.png'] },
   // The Google AI landing page uses the gradient Google G.
   { hosts: ['ai.google'], urls: ['https://www.gstatic.com/images/branding/googleg_gradient/svg/googleg_gradient_standard_48px.svg'] },
   // NotebookLM publishes a stable SVG through gstatic.
-  { hosts: ['notebooklm.google.com'], urls: ['https://www.gstatic.com/tailwind/_/static/branding/v6/light_mode/favicon/favicon.svg'], brand: 'notebooklm' },
+  { hosts: ['notebooklm.google.com'], urls: ['https://www.gstatic.com/tailwind/_/static/branding/v6/light_mode/favicon/favicon.svg'] },
   // DeepSeek answers every root path on chat with a WAF HTML page.
-  { hosts: ['chat.deepseek.com', 'www.deepseek.com', 'deepseek.com'], urls: ['https://www.deepseek.com/favicon.ico'], brand: 'deepseek' },
+  { hosts: ['chat.deepseek.com', 'www.deepseek.com', 'deepseek.com'], urls: ['https://www.deepseek.com/favicon.ico'] },
   // Grok publishes stable SVG and 512 px PNG icons at the site root.
   { hosts: ['grok.com', 'www.grok.com'], urls: ['https://grok.com/images/favicon.svg', 'https://grok.com/images/android-chrome-512x512.png'] },
   // Outlook redirects the fixed paths to a login page; Microsoft onecdn serves the touch icon.
   { hosts: ['outlook.live.com', 'outlook.office.com'], urls: ['https://res.public.onecdn.static.microsoft/assets/mail/pwa/v4/pngs/apple-touch-icon.png', 'https://outlook.live.com/mail/favicon.ico'] },
-  // Instagram only publishes hashed CDN URLs, so it falls back to the bundled brand mark.
-  { hosts: ['www.instagram.com', 'instagram.com'], urls: [], brand: 'instagram' },
-  // YouTube root favicon is 16 px and its high-resolution links are versioned.
-  { hosts: ['www.youtube.com', 'youtube.com', 'm.youtube.com'], urls: [], brand: 'youtube' },
   // Reddit serves a stable 128 px precomposed touch icon.
-  { hosts: ['www.reddit.com', 'reddit.com'], urls: ['https://www.reddit.com/apple-touch-icon-precomposed.png'], brand: 'reddit' },
+  { hosts: ['www.reddit.com', 'reddit.com'], urls: ['https://www.reddit.com/apple-touch-icon-precomposed.png'] },
   // TradingView publishes a 512 px app icon on its static host.
   { hosts: ['www.tradingview.com', 'tradingview.com'], urls: ['https://static.tradingview.com/static/images/favicon/android-chrome-512x512.png'] },
   // CoinMarketCap publishes a 512 px logo on its image host.
@@ -53,8 +43,6 @@ export const KNOWN_ICONS: KnownIcon[] = [
   { hosts: ['www.interactivebrokers.com', 'interactivebrokers.com'], urls: ['https://www.interactivebrokers.com/images/web/favicons/home-screen-icon-192x192.png'] },
   // Wealthsimple publishes a touch icon at the root.
   { hosts: ['www.wealthsimple.com', 'wealthsimple.com'], urls: ['https://www.wealthsimple.com/apple-icon.png'] },
-  // Dify is a wordmark; the bundled brand mark reads better than its favicon.
-  { hosts: ['dify.ai', 'www.dify.ai', 'cloud.dify.ai'], urls: [], brand: 'dify', preferBrand: true },
 ]
 
 function parsed(input: string) {

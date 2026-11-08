@@ -1,5 +1,8 @@
 import { extensionApi } from '../platform/extension'
-import type { KnownBrand } from './knownBrands'
+import type { Shortcut } from './model'
+
+/** A bundled brand mark, the same shape as a shortcut brand. */
+export type KnownBrand = NonNullable<Shortcut['brand']>
 
 /** Number of shards emitted by `scripts/build-brand-shards.mjs`. */
 export const BRAND_SHARD_COUNT = 128
@@ -20,17 +23,16 @@ export function brandShardPath(bucket: number): string {
 
 const shards = new Map<number, Promise<Record<string, KnownBrand>>>()
 
-function shardUrl(bucket: number): string {
-  const path = brandShardPath(bucket)
+export function brandAssetUrl(path: string): string {
   const api = extensionApi()
-  if (api?.runtime?.getURL) return api.runtime.getURL(path)
-  return new URL(path, document.baseURI).href
+  return api?.runtime?.getURL ? api.runtime.getURL(path) : new URL(path, document.baseURI).href
 }
+
+function shardUrl(bucket: number): string { return brandAssetUrl(brandShardPath(bucket)) }
 
 async function fetchShard(bucket: number): Promise<Record<string, KnownBrand>> {
   const response = await fetch(shardUrl(bucket))
-  if (!response.ok) throw new Error(`Brand shard ${bucket} failed with ${response.status}`)
-  return await response.json() as Record<string, KnownBrand>
+  return response.ok ? await response.json() as Record<string, KnownBrand> : {}
 }
 
 /**

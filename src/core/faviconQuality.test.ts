@@ -14,7 +14,8 @@ import {
   trimCacheEntries,
   type FaviconCandidate,
 } from './faviconQuality'
-import { estimateEffectiveWidth, isDefaultGlobeFingerprint, resolveIconResult, sources } from './faviconExtras'
+import { estimateEffectiveWidth, isDefaultGlobeFingerprint, sources } from './faviconExtras'
+import { brandShardForSlug, clearBrandShardCache } from './brandShards'
 import {
   ICON_CACHE_KEY,
   ICON_STALE_TTL_MS,
@@ -148,12 +149,10 @@ describe('favicon quality selection and cache rules', () => {
     expect(chooseBestIcon([real, chromeIcon(128)])?.url).toBe(real.url)
   })
 
-  it('falls back to a bundled brand mark for missing or blurry results and when preferred', () => {
-    expect(resolveIconResult(null, 'https://www.youtube.com')?.brand?.slug).toBe('youtube')
-    expect(resolveIconResult(chromeIcon(128, 32), 'https://www.youtube.com', 64)?.brand?.slug).toBe('youtube')
-    expect(resolveIconResult(icon('/sharp.png', 128), 'https://www.youtube.com', 64)?.url).toBe('/sharp.png')
-    expect(resolveIconResult(icon('/sharp.png', 128), 'https://dify.ai', 64)?.brand?.slug).toBe('dify')
-    expect(resolveIconResult(null, 'https://example.com')).toBeNull()
+  it('leaves brand marks to the index instead of the favicon pipeline', () => {
+    // Brand-only entries were removed with the bundled table; the index resolves these hosts.
+    expect(knownIconFor('https://www.youtube.com')).toBeNull()
+    expect(knownIconFor('https://dify.ai')).toBeNull()
   })
 
   it('uses a seven-day positive window, a 30-day stale window and failure backoff in the v3 cache', () => {
@@ -262,12 +261,14 @@ describe('synchronous cache and discovery', () => {
 
   beforeEach(() => {
     localStorage.clear()
+    clearBrandShardCache()
     __resetFaviconQualityForTests()
     delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome
     delete (globalThis as typeof globalThis & { browser?: unknown }).browser
   })
   afterEach(() => {
     vi.unstubAllGlobals()
+    clearBrandShardCache()
     localStorage.clear()
     __resetFaviconQualityForTests()
     delete (globalThis as typeof globalThis & { chrome?: unknown }).chrome
@@ -421,6 +422,12 @@ describe('synchronous cache and discovery', () => {
       'https://stale.test': { url: 'https://stale.test/icon.png', width: 128, height: 128, savedAt: now - 31 * DAY, expiresAt: now - 24 * DAY },
     })
     stubImages(() => null)
+    vi.stubGlobal('fetch', vi.fn(async (url: string | URL | Request) => {
+      const path = new URL(String(url)).pathname
+      return path.endsWith(`/${brandShardForSlug('youtube')}.json`)
+        ? new Response(JSON.stringify({ youtube: { slug: 'youtube', title: 'YouTube', hex: 'FF0000', path: 'M1 1' } }), { status: 200 })
+        : new Response('', { status: 404 })
+    }))
     await discoverOnce('https://migrate.test')
     const entries = readIconCache()
     expect(entries['https://same.test']?.url).toBe('https://same.test/icon.png')

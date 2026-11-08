@@ -17,6 +17,12 @@ const DENIED_SUFFIXES = [
   'wixsite.com', 'squarespace.com', 'readthedocs.io', 'gitbook.io',
 ]
 
+/** Shared-hosting domains where a registrable label is a user's name, not a brand. */
+const LABEL_EXCLUDED_DOMAINS = [
+  'github.io', 'gitlab.io', 'githubusercontent.com', 'netlify.app', 'vercel.app', 'pages.dev',
+  'web.app', 'firebaseapp.com', 'blogspot.com', 'wixsite.com', 'squarespace.com', 'readthedocs.io', 'gitbook.io',
+]
+
 const normalize = text => text.toLowerCase().replace(/[^a-z0-9]/g, '')
 
 /** TLDs that are also common brand-name suffixes (mistral.ai, ele.me). Exact label matches only. */
@@ -128,8 +134,9 @@ export function buildBrandIndex(catalogue, overrides, options = {}) {
   const sortedHosts = Object.fromEntries(Object.keys(merged).sort().map(host => [host, merged[host]]))
   const sortedPaths = Object.fromEntries(Object.keys(paths).sort().map(key => [key, paths[key]]))
   const sortedLabels = Object.fromEntries(Object.keys(labels).sort().map(label => [label, labels[label]]))
-  const ignore = [...new Set((overrides.ignore ?? []).map(host => host.toLowerCase()))].sort()
-  return { version: 1, hosts: sortedHosts, paths: sortedPaths, labels: sortedLabels, ignore }
+  // Shared hosts and the documented ignore list are precomputed so the runtime never carries them.
+  const ignore = [...new Set([...(overrides.ignore ?? []), ...LABEL_EXCLUDED_DOMAINS].map(host => host.toLowerCase()))].sort()
+  return { version: 1, hosts: sortedHosts, paths: sortedPaths, labels: sortedLabels, suffixes: suffixes.slice().sort(), ignore }
 }
 
 export async function buildIndexFromInstalledIcons(overridesPath = resolve(root, 'src/core/brandDomains.json')) {

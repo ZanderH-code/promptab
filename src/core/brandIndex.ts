@@ -1,23 +1,15 @@
 import type { FaviconCandidate } from './faviconQuality'
-import { extensionApi } from '../platform/extension'
 import { brandSlugFor, type BrandIndex } from './brandDomains'
-import { loadBrand } from './brandShards'
-import type { KnownBrand } from './knownBrands'
+import { brandAssetUrl, loadBrand, type KnownBrand } from './brandShards'
 
 /** Domain index emitted by `scripts/build-brand-index.mjs`; ~138 KB, so it stays out of the bundle. */
 const INDEX_PATH = 'brand-index.json'
 
 let index: Promise<BrandIndex | null> | null = null
 
-function assetUrl(path: string): string {
-  const api = extensionApi()
-  if (api?.runtime?.getURL) return api.runtime.getURL(path)
-  return new URL(path, document.baseURI).href
-}
-
 async function fetchIndex(): Promise<BrandIndex | null> {
   try {
-    const response = await fetch(assetUrl(INDEX_PATH))
+    const response = await fetch(brandAssetUrl(INDEX_PATH))
     if (!response.ok) return null
     return await response.json() as BrandIndex
   } catch { return null }
@@ -51,7 +43,7 @@ export async function brandForUrl(input: string): Promise<KnownBrand | null> {
 /** The candidate shape `faviconQuality.discover` publishes for a bundled mark. */
 export async function brandCandidate(input: string): Promise<FaviconCandidate | null> {
   const brand = await brandForUrl(input)
-  return brand ? { url: '', sourceType: 'brand', naturalWidth: 0, naturalHeight: 0, effectiveWidth: Number.POSITIVE_INFINITY, svg: true, brand } : null
+  return brand ? { url: '', sourceType: 'brand', naturalWidth: 0, naturalHeight: 0, effectiveWidth: Infinity, svg: true, brand } : null
 }
 
 /** Test helper: forget the cached index. */

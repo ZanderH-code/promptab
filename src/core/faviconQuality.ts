@@ -31,8 +31,6 @@ export type FaviconExtras = {
   sources(input: string): CandidateSource[]
   prepare(): Promise<void>
   inspect(image: HTMLImageElement): Promise<{ transparent: boolean; placeholder: boolean; effectiveWidth: number }>
-  resolveIconResult(best: FaviconCandidate | null, input: string, displaySize: number, dpr: number): FaviconCandidate | null
-  brand(slug: string): FaviconCandidate | null
 }
 type Listener = (candidate: FaviconCandidate | null, complete: boolean) => void
 type Run = { listeners: Map<Listener, number>; best: FaviconCandidate | null; complete: boolean }
@@ -40,7 +38,7 @@ type Run = { listeners: Map<Listener, number>; best: FaviconCandidate | null; co
 const activeRuns = new Map<string, Run>()
 const queue: Array<() => void> = []
 /** Any known suffix needs the known table; everything else does not. */
-const KNOWN_HOSTS = /(^|\.)(google\.(com|dev)|ai\.google|chatgpt\.com|v0\.(app|dev)|deepseek\.com|grok\.com|outlook\.(live|office)\.com|instagram\.com|youtube\.com|reddit\.com|tradingview\.com|coinmarketcap\.com|interactivebrokers\.com|wealthsimple\.com|dify\.ai)$/
+const KNOWN_HOSTS = /(^|\.)(google\.(com|dev)|ai\.google|chatgpt\.com|v0\.(app|dev)|deepseek\.com|grok\.com|outlook\.(live|office)\.com|reddit\.com|tradingview\.com|coinmarketcap\.com|interactivebrokers\.com|wealthsimple\.com)$/
 export function isKnownHost(hostname: string) { return KNOWN_HOSTS.test(hostname.toLowerCase()) }
 export function isUsableIcon(width: number, height: number, transparent = false, placeholder = false) { return width > 1 && height > 1 && !transparent && !placeholder }
 export function isCacheEntryFresh(entry: IconCacheEntry, now = Date.now()) { return entry.expiresAt > now }
@@ -232,9 +230,7 @@ async function discover(key: string, input: string, run: Run, force: boolean) {
     ? probe(source128).then(() => source64 ? probe(source64) : undefined)
     : source64 ? probe(source64) : Promise.resolve(undefined)
   await Promise.all([...others.map(probe), preferred])
-  const guide = best as FaviconCandidate | null
-  const displaySize = Math.max(64, ...run.listeners.values())
-  const finalBest = extras ? extras.resolveIconResult(guide, input, displaySize, window.devicePixelRatio || 1) : guide
+  const finalBest = best as FaviconCandidate | null
   const savedAt = Date.now()
   if (finalBest) {
     writeEntry(key, finalBest.brand

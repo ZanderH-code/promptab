@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cachedFavicon, faviconCacheKey, initialFaviconSources } from '../core/favicon'
-import type { KnownBrand } from '../core/knownBrands'
+import type { KnownBrand } from '../core/brandShards'
 import type { Shortcut } from '../core/model'
 import { brandIconColor } from '../core/tokens/iconContrast'
 
@@ -73,10 +73,11 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
     }
   }, [automatic, cacheKey, shortcut.url, retryKey])
 
-  const color = shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : shortcut.iconColorMode === 'brand' && shortcut.brand ? brandIconColor(shortcut.brand.hex, shortcut.color) : undefined
+  // One colour rule for manual and automatic brand marks; accent and custom win over the brand hex.
+  const color = (hex?: string) => shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : hex ? brandIconColor(hex, shortcut.color) : undefined
   const textFallback = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || '•'
   if (automatic) {
-    if (currentAutoState.brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : brandIconColor(currentAutoState.brand.hex, shortcut.color) }} aria-hidden="true"><path d={currentAutoState.brand.path} /></svg>
+    if (currentAutoState.brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: color(currentAutoState.brand.hex) }} aria-hidden="true"><path d={currentAutoState.brand.path} /></svg>
     const visibleFallback = !source && autoFinished
     return <>{source && <img ref={imageRef} src={source} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" style={{ visibility: imageLoaded ? 'visible' : 'hidden' }} onLoad={() => setLoadedSrc(source)} onError={() => {
       if (currentAutoState.cache) setRetryKey(cacheKey)
@@ -86,8 +87,8 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   }
 
   if (!source) {
-    if (shortcut.iconMode === 'brand') return shortcut.brand ? <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color }} aria-hidden="true"><path d={shortcut.brand.path} /></svg> : <>{shortcut.name.trim().slice(0, 1).toUpperCase() || '•'}</>
-    if (shortcut.iconMode === 'lucide') return GenericIcon === null ? <span aria-hidden="true" /> : GenericIcon ? <GenericIcon size={24} color={color} aria-hidden="true" /> : <>{textFallback}</>
+    if (shortcut.iconMode === 'brand') return shortcut.brand ? <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: color(shortcut.brand.hex) }} aria-hidden="true"><path d={shortcut.brand.path} /></svg> : <>{shortcut.name.trim().slice(0, 1).toUpperCase() || '•'}</>
+    if (shortcut.iconMode === 'lucide') return GenericIcon === null ? <span aria-hidden="true" /> : GenericIcon ? <GenericIcon size={24} color={color()} aria-hidden="true" /> : <>{textFallback}</>
     return <>{shortcut.iconMode === 'emoji' ? shortcut.iconName || shortcut.icon : textFallback}</>
   }
   return <img src={source} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onLoad={() => setLoadedSrc(source)} onError={() => setFailedImage(source)} />
