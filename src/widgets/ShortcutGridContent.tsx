@@ -72,19 +72,42 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
   item: Shortcut; iconColor: 'per-site' | 'accent'; openInNewTab: boolean; liftOnHover: boolean; t: Translate; onContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void
 }) {
   const pressTimer = useRef<number | undefined>(undefined)
+  const moveListener = useRef<((event: Event) => void) | undefined>(undefined)
   const longPressed = useRef(false)
+  const moved = useRef(false)
   const start = useRef<{ x: number; y: number } | undefined>(undefined)
   const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
   const icon = item.builtinIcon === 'sample-website' ? t('builtin.sampleWebsiteIcon') : item.icon
-  const cancelLongPress = () => { if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current); pressTimer.current = undefined }
+  // The link's own pointermove handler only sees the pointer while it is over the link. A touch
+  // drag leaves the tile almost immediately, so watch the whole window while a press is pending:
+  // a moving finger is a drag, and the long-press menu must not open on top of it.
+  const clearMoveListener = () => {
+    if (moveListener.current) {
+      window.removeEventListener('pointermove', moveListener.current, true)
+      window.removeEventListener('touchmove', moveListener.current, true)
+    }
+    moveListener.current = undefined
+  }
+  const cancelLongPress = () => { if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current); pressTimer.current = undefined; clearMoveListener() }
+  const endPress = () => { cancelLongPress(); moved.current = false }
+  useEffect(() => clearMoveListener, [])
   const onPointerDown = (event: ReactPointerEvent<HTMLAnchorElement>) => {
     if (event.pointerType !== 'touch' || event.button !== 0) return
     cancelLongPress()
     longPressed.current = false
+    moved.current = false
     start.current = { x: event.clientX, y: event.clientY }
     const x = event.clientX, y = event.clientY, focusTarget = event.currentTarget
+    const cancelOnMove = (move: Event) => {
+      const point = move instanceof TouchEvent ? move.touches[0] : move as PointerEvent
+      if (point && Math.hypot(point.clientX - x, point.clientY - y) > 10) { moved.current = true; cancelLongPress() }
+    }
+    moveListener.current = cancelOnMove
+    window.addEventListener('pointermove', cancelOnMove, true)
+    window.addEventListener('touchmove', cancelOnMove, true)
     pressTimer.current = window.setTimeout(() => {
       longPressed.current = true
+      clearMoveListener()
       onContextMenu({ clientX: x, clientY: y, focusTarget, preventDefault() {}, stopPropagation() {} }, item)
     }, 550)
   }
@@ -100,6 +123,9 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
   }
   const openContextMenu = (event: MouseEvent<HTMLAnchorElement>) => {
     cancelLongPress()
+    // Chrome also opens its own long-press menu on touch. Once the finger has moved it is a drag,
+    // not a long press, so drop that menu: it would otherwise cancel the drag mid-gesture.
+    if (moved.current) { event.preventDefault(); event.stopPropagation(); return }
     longPressed.current = true
     onContextMenu({ clientX: event.clientX, clientY: event.clientY, focusTarget: event.currentTarget, preventDefault: () => event.preventDefault(), stopPropagation: () => event.stopPropagation() }, item)
   }
@@ -110,5 +136,5 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
     const rect = event.currentTarget.getBoundingClientRect()
     onContextMenu({ clientX: rect.left, clientY: rect.bottom, focusTarget: event.currentTarget, preventDefault() {}, stopPropagation() {} }, item)
   }
-  return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} title={name} href={item.url} draggable={false} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={cancelLongPress} onPointerCancel={cancelLongPress} onClick={onClick}><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
+  return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} title={name} href={item.url} draggable={false} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPress} onPointerCancel={endPress} onClick={onClick}><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
 }

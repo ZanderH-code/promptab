@@ -4,7 +4,7 @@ import {
   seedGroups, seedSettings, tile, waitForOrders,
   type ExtensionSession, type SeedGroup,
 } from './extension-fixture'
-import { assertFollow, installFollowSampler, startFollow, stopFollow, waitForOver } from './drag-follow-fixture'
+import { assertFollow, installFollowSampler, startFollow, stopFollow, waitForDragStart, waitForOver } from './drag-follow-fixture'
 
 test.describe.configure({ timeout: 60_000 })
 
@@ -40,8 +40,9 @@ async function touchDragFollow(context: ExtensionSession['context'], page: Page,
   const point = (x: number, y: number) => [{ x: Math.round(x), y: Math.round(y), id: 1 }]
   await startFollow(page)
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from.x, from.y) })
-  await page.waitForTimeout(450)
-  await expect(page.locator('.mnt-drag-overlay')).toBeVisible({ timeout: 3000 })
+  // Move as soon as activation is proven; a held finger long enough (550 ms) opens the app menu,
+  // which cancels the drag.
+  await waitForDragStart(page)
   for (let step = 1; step <= steps; step += 1) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(from.x + (to.x - from.x) * step / steps, from.y + (to.y - from.y) * step / steps) })
     await page.waitForTimeout(16)

@@ -56,6 +56,14 @@ export const stopFollow = (page: Page): Promise<FollowFrame[]> => page.evaluate(
   (window as unknown as { __followStop: () => FollowFrame[] }).__followStop())
 
 /**
+ * Waits in-page for the drag overlay, i.e. for the touch sensor's 350 ms delay to activate. A
+ * locator visibility poll can resolve hundreds of milliseconds late under load, which lets Chrome's
+ * native long-press menu fire before the test's first move cancels it; an rAF poll resolves on the
+ * frame the overlay mounts.
+ */
+export const waitForDragStart = (page: Page) => page.waitForFunction(() => !!document.querySelector('.mnt-drag-overlay'), undefined, { polling: 'raf', timeout: 3000 })
+
+/**
  * Waits until dnd-kit has processed the last move with the intended item as `over`: the sortable
  * placeholder is displaced onto the target's layout slot. Touch release before this point can end
  * the drag with a stale `over` and silently lose the drop, so this is a real signal rather than a

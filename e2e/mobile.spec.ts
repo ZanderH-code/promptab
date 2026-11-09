@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { openTab, seedExistingUser, templateBookmarks } from './helpers'
 import { seedBookmarkFolders } from './bookmark-folder-fixture'
-import { assertFollow, installFollowSampler, startFollow, stopFollow, waitForOver } from './drag-follow-fixture'
+import { assertFollow, installFollowSampler, startFollow, stopFollow, waitForDragStart, waitForOver } from './drag-follow-fixture'
 
 test('bookmark folders open on a phone and close without horizontal overflow', async ({ page }) => {
   await seedBookmarkFolders(page)
@@ -48,8 +48,9 @@ test('touch: a held bookmark follows the finger and reorders', async ({ page }) 
   const point = (x: number, y: number) => [{ x: Math.round(x), y: Math.round(y), id: 1 }]
   await startFollow(page)
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from.x, from.y) })
-  await page.waitForTimeout(450)
-  await expect(page.locator('.mnt-drag-overlay')).toBeVisible({ timeout: 3000 })
+  // Move as soon as activation is proven; a held finger long enough (550 ms) opens the app menu,
+  // which cancels the drag.
+  await waitForDragStart(page)
   for (let step = 1; step <= 12; step += 1) {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(from.x + (to.x - from.x) * step / 12, from.y + (to.y - from.y) * step / 12) })
     await page.waitForTimeout(16)
