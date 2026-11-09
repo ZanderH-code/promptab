@@ -45,7 +45,7 @@ export function ByokPanel({ ctx, prompt, onReply }: { ctx: Ctx; prompt: string; 
   }
 
   return <section className="sd-ai-step" aria-labelledby="byok-title">
-    <h4 id="byok-title">{t('ai.byok.title')}</h4>
+    <h3 id="byok-title">{t('ai.byok.title')}</h3>
     <p className="sd-hint">{t('ai.byok.description')}</p>
     <p className="sd-hint">{t('ai.byok.domains')} <code>api.anthropic.com</code> / <code>api.openai.com</code></p>
     <p className="sd-hint">{t('ai.byok.data')}</p>

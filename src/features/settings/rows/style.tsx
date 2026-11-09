@@ -5,6 +5,6 @@ const CssEditor = lazy(() => import('../CssEditor').then(module => ({ default: m
 
 export function styleItems(ctx: Ctx): Item[] {
   return [
-    { id: 'css', keys: ['css.title', 'css.hint', 'css.enable', 'css.editor'], words: ['css', 'style'], node: <Suspense fallback={null}><CssEditor ctx={ctx} safeMode={ctx.safe} /></Suspense> },
+    { id: 'css', keys: ['css.title', 'css.hint', 'css.enable', 'css.editor'], words: ['css', 'style'], node: <Suspense fallback={null}><CssEditor key={ctx.profile.meta.id} ctx={ctx} safeMode={ctx.safe} /></Suspense> },
   ]
 }

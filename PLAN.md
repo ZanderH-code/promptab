@@ -1,8 +1,12 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.13.2
+## Release status — 0.14.0
 
-M6–M21 are complete. The drag-follow fix is done in 0.13.2. Next is the UI icon pack (Tabler), then desktop-style drag batch 2. Main commits:
+The settings UX overhaul (batch 1) is done in 0.14.0. Next is settings UX batch 2, then the UI icon pack (Tabler). Batch 1 commits on `feat/settings-ux`:
+
+- 0.14.0 settings UX batch 1: draft survives navigation `9da2ffe`, per-profile draft `704b6fd`, themed CSS editor `a01d2a3`, declared highlight tags `2254a31`, custom CSS status `1d873ab`, uploads only when applicable `ae34c0b`, area grid validation `9082455`, websites copy `9f1feb9`, Edit websites `57ffb0c`, search highlight `3ff8387`, grouped rail `5ce1da3`, readable placeholder `a8efc4a`, Peek `4c15625`.
+
+Main commits:
 
 - 0.13.2 features: overlay drag follow `936ddd3`, lift and placeholder `d96b9b3`, drop animation `f4750d0`, folder highlight `76b1bf3`, touch long-press fix `7348d59`.
 - 0.13.1 features: domain-to-brand index `44a15a5`, automatic brand resolution `be984ac`, on-demand brand shards `8b9a7b8`, brand-mode fixes `e941ae6`, lazy AI workbench text `9cf1aed` (live in the store).

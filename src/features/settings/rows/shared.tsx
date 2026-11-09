@@ -32,6 +32,8 @@ export type Ctx = {
   safe: boolean
   /** Commit the running AI preview to the active profile (with the usual undo snapshot). */
   onApplyPreview: () => void
+  /** Close the drawer and enter the desktop edit mode. */
+  onEnterEditMode?: () => void
   layoutDrafts?: Partial<Record<'base' | 'narrow', Partial<Record<'areas' | 'columns' | 'rows', string>>>>
   onLayoutDraftsChange?: (drafts: NonNullable<Ctx['layoutDrafts']>) => void
   onGridCommit?: (profile: ProfileV2) => void

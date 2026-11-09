@@ -22,45 +22,42 @@ async function openSettings(page: Page, language: 'zh-CN' | 'en') {
 }
 
 async function expectAllTabsFit(page: Page) {
-  const result = await page.locator('.sd-tabs').evaluate(list => {
-    const listBounds = list.getBoundingClientRect()
-    const drawerBounds = list.closest('.sd')!.getBoundingClientRect()
+  const result = await page.locator('.sd-rail').evaluate(list => {
     const tabs = [...list.querySelectorAll<HTMLElement>('[role="tab"]')]
-    const bounds = tabs.map(tab => {
-      const rect = tab.getBoundingClientRect()
-      const text = tab.querySelector('span')!
-      return {
-        x: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom,
-        width: rect.width, height: rect.height,
-        textFits: text.scrollWidth <= text.clientWidth + 1,
-      }
-    })
+    const bounds = list.getBoundingClientRect()
+    const horizontal = getComputedStyle(list).display === 'flex'
     return {
       count: tabs.length,
-      list: { left: listBounds.left, right: listBounds.right, top: listBounds.top, bottom: listBounds.bottom, width: list.clientWidth, scrollWidth: list.scrollWidth },
-      drawer: { left: drawerBounds.left, right: drawerBounds.right },
-      viewportWidth: window.innerWidth,
-      bounds,
+      horizontal,
+      rows: new Set(tabs.map(tab => Math.round(tab.getBoundingClientRect().top))).size,
+      clipped: list.scrollWidth > list.clientWidth + 1,
+      bounds: { left: bounds.left, right: bounds.right },
+      tabs: tabs.map(tab => {
+        const rect = tab.getBoundingClientRect()
+        const text = tab.querySelector('span')!
+        return {
+          x: rect.left, right: rect.right, width: rect.width, height: rect.height,
+          textFits: text.scrollWidth <= text.clientWidth + 1,
+        }
+      }),
     }
   })
 
   expect(result.count).toBe(10)
-  expect(result.list.scrollWidth).toBeLessThanOrEqual(result.list.width + 1)
-  for (const tab of result.bounds) {
+  for (const tab of result.tabs) {
     expect(tab.width).toBeGreaterThan(0)
     expect(tab.height).toBeGreaterThan(0)
-    expect(tab.x).toBeGreaterThanOrEqual(result.list.left - 1)
-    expect(tab.right).toBeLessThanOrEqual(result.list.right + 1)
-    expect(tab.top).toBeGreaterThanOrEqual(result.list.top - 1)
-    expect(tab.bottom).toBeLessThanOrEqual(result.list.bottom + 1)
-    expect(tab.x).toBeGreaterThanOrEqual(result.drawer.left - 1)
-    expect(tab.right).toBeLessThanOrEqual(Math.min(result.drawer.right, result.viewportWidth) + 1)
     expect(tab.textFits).toBe(true)
   }
-
-  const rows = [...new Set(result.bounds.map(tab => Math.round(tab.top)))]
-  expect(rows.length, `tab rows at ${result.list.width}px`).toBeLessThanOrEqual(3)
-  return { rows: rows.length, width: result.list.width }
+  if (result.horizontal) {
+    // Below 640px the rail scrolls sideways; every item stays on one row and the selected one is scrolled into view.
+    expect(result.rows).toBe(1)
+  } else {
+    // Desktop rail: every item sits inside the rail without horizontal clipping.
+    expect(result.clipped).toBe(false)
+    expect(result.tabs.every(tab => tab.x >= result.bounds.left - 1 && tab.right <= result.bounds.right + 1)).toBe(true)
+  }
+  return result
 }
 
 for (const language of ['zh-CN', 'en'] as const) {
@@ -70,7 +67,7 @@ for (const language of ['zh-CN', 'en'] as const) {
       await page.setViewportSize(viewport)
       await expectAllTabsFit(page)
 
-      const aiTab = page.getByRole('tab', { name: 'AI', exact: true })
+      const aiTab = page.getByRole('tab', { name: language === 'en' ? 'AI assistant' : 'AI 助手', exact: true })
       await aiTab.click()
       await expect(aiTab).toHaveAttribute('aria-selected', 'true')
       await expect(page.getByRole('tabpanel')).toBeVisible()
@@ -87,8 +84,9 @@ for (const language of ['zh-CN', 'en'] as const) {
 test('settings tab keyboard navigation and AI search are preserved', async ({ page }) => {
   await openSettings(page, 'en')
 
-  const appearance = page.getByRole('tab', { name: 'Appearance', exact: true })
+  const appearance = page.getByRole('tab', { name: 'Theme', exact: true })
   await appearance.focus()
+  // This viewport is 420 px wide, where the rail runs horizontally.
   await page.keyboard.press('ArrowRight')
   const background = page.getByRole('tab', { name: 'Background', exact: true })
   await expect(background).toBeFocused()

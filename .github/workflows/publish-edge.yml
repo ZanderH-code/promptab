@@ -42,4 +42,4 @@ jobs:
           EDGE_ADDONS_API_KEY: ${{ secrets.EDGE_ADDONS_API_KEY }}
           EDGE_ADDONS_PRODUCT_ID: ${{ inputs.product_id }}
           EDGE_ADDONS_PUBLISH_NOTES: ${{ inputs.publish_notes }}
-          EDGE_ADDONS_VERSION: 0.13.2
+          EDGE_ADDONS_VERSION: 0.14.0

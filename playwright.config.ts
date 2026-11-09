@@ -3,6 +3,8 @@ import { defineConfig, devices } from '@playwright/test'
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // A crashed Chromium process fails the whole worker; one retry runs in a fresh browser and recovers it.
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]] : 'list',
   webServer: {
     command: 'npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort',

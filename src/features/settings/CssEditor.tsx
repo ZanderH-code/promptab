@@ -6,22 +6,43 @@ import { sanitizeCss } from '../../core/css/sanitize'
 import { Toggle } from './controls'
 import type { Ctx } from './rows'
 
+/**
+ * Page-lifetime drafts of the stylesheet editor, keyed by profile id. The drawer unmounts a section
+ * when another one is shown, so the editor's own state would drop an unapplied edit on every tab
+ * switch or close; keeping the draft here preserves it until Apply, Revert, Clear or a page reload.
+ * Keying by profile keeps a draft typed in one profile out of every other one.
+ */
+const drafts = new Map<string, string>()
+
 /** Textarea editor for the user stylesheet: validates as you type and only applies CSS that passes the filter. */
 export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
   const { t, profile, change } = ctx
+  const profileId = profile.meta.id
   const stored = profile.custom.css
-  const [text, setText] = useState(stored)
+  const [text, setTextState] = useState(() => {
+    const draft = drafts.get(profileId)
+    return draft !== undefined && draft !== stored ? draft : stored
+  })
   const baseline = useRef(stored)
+  const setText = (value: string) => {
+    setTextState(value)
+    if (value === stored) drafts.delete(profileId)
+    else drafts.set(profileId, value)
+  }
   // Follow outside changes (rollback, restore, import) unless the person has unapplied edits.
   useEffect(() => {
-    if (text === baseline.current) setText(stored)
+    if (text === baseline.current) { setTextState(stored); drafts.delete(profileId) }
     baseline.current = stored
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stored])
+  }, [stored, profileId])
 
   const result = useMemo(() => sanitizeCss(text), [text])
   const dirty = text !== stored
-  const apply = () => change(p => ({ ...p, custom: { ...p.custom, css: result.css === '' ? '' : text, cssEnabled: text.trim() !== '' } }), 'theme')
+  const enabled = profile.custom.cssEnabled
+  const apply = () => {
+    drafts.delete(profileId)
+    change(p => ({ ...p, custom: { ...p.custom, css: result.css === '' ? '' : text, cssEnabled: text.trim() !== '' } }), 'theme')
+  }
 
   return (
     <div className="sd-css">
@@ -33,8 +54,8 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
       </Suspense>
       <div className="sd-css-status">
         <span className="sd-usage">{t('css.usage', { kb: (result.bytes / 1024).toFixed(1), rules: result.rules })}</span>
-        <span data-state={result.ok ? (dirty ? 'dirty' : 'ok') : 'error'}>
-          {result.ok ? t(dirty ? 'css.dirty' : 'css.applied') : t('css.errorCount', { count: result.errors.length })}
+        <span data-state={!enabled ? 'disabled' : result.ok ? (dirty ? 'dirty' : 'ok') : 'error'}>
+          {!enabled ? t('css.disabled') : result.ok ? t(dirty ? 'css.dirty' : 'css.applied') : t('css.errorCount', { count: result.errors.length })}
         </span>
       </div>
       {!result.ok && (

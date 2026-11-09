@@ -4,6 +4,30 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.14.0]
+
+### Added
+
+- Settings navigation is now a grouped vertical rail (Look, Layout, Content, Advanced, System) built on Radix Tabs (`@radix-ui/react-tabs`, MIT), loaded only with the lazy settings chunk.
+- Settings search highlights the matched text and explains results that match only a hidden keyword or the section name.
+- The Websites section has an “Edit websites” action that closes settings and enters desktop editing.
+- On screens 1024 px wide and up, the page behind settings stays at full brightness; the new Peek button slides the panel off-screen and leaves an edge handle to bring it back (click or Esc).
+
+### Fixed
+
+- Custom CSS drafts are kept when switching sections or closing and reopening settings, and each profile keeps its own draft; a page reload still clears them.
+- The Custom CSS editor follows light, dark, high-contrast and custom themes, including a readable placeholder and gutter.
+- The Custom CSS status says “Disabled” when custom CSS is switched off.
+- Image and video upload controls only appear for those background types.
+- The area grid rejects duplicate rows and removal of the shortcuts area, showing an inline message and keeping the text for correction.
+- Settings search results are no longer unexplained: rows that match through a keyword show which keyword matched.
+
+### Changed
+
+- Renamed the sections to Theme, Areas & grid, Websites, Custom CSS, AI assistant and Backup & import.
+- Corrected the Websites hint and the English website count (“1 website”, “2 websites”).
+- No new permissions are requested. `@radix-ui/react-tabs` is the only new runtime dependency and is imported only by the lazy settings drawer, so startup JavaScript stays within the 480 KB budget.
+
 ## [0.13.2]
 
 ### Fixed

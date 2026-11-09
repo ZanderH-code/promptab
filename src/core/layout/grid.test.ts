@@ -19,6 +19,19 @@ describe('layout grids', () => {
     expect(areaGridProblem(['a a', 'b b'])).toBeNull()
   })
 
+  it('rejects duplicated area names and missing required areas', () => {
+    // A repeated row is a duplicate entry rather than one taller area.
+    expect(areaGridProblem(['overview', 'overview'])).toContain('duplicate area "overview"')
+    expect(areaGridProblem(['overview'], { required: ['bookmarks'] })).toContain('missing area "bookmarks"')
+    expect(areaGridProblem(['overview', 'bookmarks'])).toBeNull()
+    expect(areaGridProblem(['overview', 'bookmarks'], { required: ['bookmarks'] })).toBeNull()
+    // Narrow overrides go through the same rules.
+    expect(areaGridProblem(['bookmarks', 'bookmarks'], { required: ['bookmarks'] })).toContain('duplicate area "bookmarks"')
+    expect(areaGridProblem(['overview'], { required: ['bookmarks'] })).toContain('missing area "bookmarks"')
+    // A name that deliberately spans rows is still one rectangle, as long as its rows differ.
+    expect(areaGridProblem(['overview overview links', 'search search links'])).toBeNull()
+  })
+
   it('uses narrow overrides, then medium, and base at wide widths', () => {
     const layout = { areas: ['base'], breakpoints: { medium: { areas: ['mid'] }, narrow: { areas: ['small'] } } } as any
     expect(resolveGrid(layout, 'narrow').areas).toEqual(['small'])

@@ -60,9 +60,9 @@ export async function seedExistingUser(page: Page, settings: Record<string, unkn
 
 /** Opens a settings tab by its accessible name (the drawer shows one tab at a time). */
 const TAB_LABELS = {
-  appearance: ['外观', 'Appearance'], background: ['背景', 'Background'], layout: ['布局', 'Layout'],
-  widgets: ['组件', 'Widgets'], shortcuts: ['快捷方式', 'Shortcuts'], search: ['搜索', 'Search'],
-  style: ['样式', 'Style'], ai: ['AI', 'AI'], data: ['数据', 'Data'], about: ['关于', 'About'],
+  appearance: ['主题', 'Theme'], background: ['背景', 'Background'], layout: ['区域与网格', 'Areas & grid'],
+  widgets: ['组件', 'Widgets'], shortcuts: ['网站', 'Websites'], search: ['搜索', 'Search'],
+  style: ['自定义 CSS', 'Custom CSS'], ai: ['AI 助手', 'AI assistant'], data: ['备份与导入', 'Backup & import'], about: ['关于', 'About'],
 } as const
 
 export async function openTab(page: Page, tab: keyof typeof TAB_LABELS) {

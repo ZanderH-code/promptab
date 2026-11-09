@@ -23,8 +23,8 @@ export function layoutItems(ctx: Ctx): Item[] {
     id, keys: [label, ...options.map(([, key]) => key)],
     node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
   })
-  const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string): Item => ({
-    id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}</Row>,
+  const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string, revert?: () => void): Item => ({
+    id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}{revert && <button type="button" className="sd-button" onClick={revert}>{t('settings.gridRevert')}</button>}</Row>,
   })
   const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard', 'icon-split': 'settings.layoutIconSplit', banner: 'settings.layoutBanner' }
   const baseGrid = profile.layout
@@ -34,6 +34,15 @@ export function layoutItems(ctx: Ctx): Item[] {
   const widgetLabel = (widget: ProfileV2['widgets'][number]) => widget.type === 'weather' ? weatherText(s.language, 'title') : ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar'), todo: t('widgets.todo'), note: t('widgets.note'), countdown: t('widgets.countdown') })[widget.type]
   type GridKey = 'areas' | 'columns' | 'rows'
   const parse = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean)
+  /** The area the shortcuts widget relies on: the grid editor refuses to remove it. */
+  const requiredAreas = (source: ProfileV2, narrowGrid: boolean) => areaNames((narrowGrid ? source.layout.breakpoints?.narrow : source.layout)?.areas ?? []).filter(name => name === 'bookmarks')
+  const areasProblem = (value: readonly string[], source: ProfileV2, narrowGrid: boolean) => areaGridProblem(value, { required: requiredAreas(source, narrowGrid) })
+  const gridProblemText = (problem: string | null | undefined): string | undefined => {
+    if (!problem) return undefined
+    const match = /^(duplicate|missing) area "(.*)"$/.exec(problem)
+    if (!match) return problem
+    return t(match[1] === 'duplicate' ? 'settings.gridDuplicate' : 'settings.gridMissing', { area: areaLabel(match[2]) })
+  }
   const candidateFor = (current: ProfileV2, key: GridKey, value: string, narrowGrid: boolean) => {
     const candidate = structuredClone(current)
     const target = narrowGrid ? candidate.layout.breakpoints?.narrow : candidate.layout
@@ -62,19 +71,25 @@ export function layoutItems(ctx: Ctx): Item[] {
     const gridKey = narrowGrid ? 'narrow' : 'base'
     ctx.onLayoutDraftsChange?.({ ...ctx.layoutDrafts, [gridKey]: { ...ctx.layoutDrafts?.[gridKey], [key]: value } })
     const draftArea = ctx.layoutDrafts?.[gridKey]?.areas
-    const result = candidateFor(profile, draftArea !== undefined ? 'areas' : key, draftArea ?? value, narrowGrid)
+    // Editing the areas always validates the text just typed; other fields fall back to an uncommitted areas draft.
+    const areaDraft = key === 'areas' ? value : draftArea
+    const result = candidateFor(profile, areaDraft !== undefined ? 'areas' : key, areaDraft ?? value, narrowGrid)
     if (result && key !== 'areas') {
       const target = narrowGrid ? result.candidate.layout.breakpoints?.narrow : result.candidate.layout
       if (target) target[key] = parse(value).length ? parse(value) : undefined
     }
-    if (!result || profileIssues(result.candidate, s.language).length) return
+    if (!result) return
+    const target = narrowGrid ? result.candidate.layout.breakpoints?.narrow : result.candidate.layout
+    if (!target || areasProblem(target.areas, profile, narrowGrid) || profileIssues(result.candidate, s.language).length) return
     change(current => {
-      const latest = candidateFor(current, draftArea !== undefined ? 'areas' : key, draftArea ?? value, narrowGrid)
+      const latest = candidateFor(current, areaDraft !== undefined ? 'areas' : key, areaDraft ?? value, narrowGrid)
       if (latest && key !== 'areas') {
-        const target = narrowGrid ? latest.candidate.layout.breakpoints?.narrow : latest.candidate.layout
-        if (target) target[key] = parse(value).length ? parse(value) : undefined
+        const latestTarget = narrowGrid ? latest.candidate.layout.breakpoints?.narrow : latest.candidate.layout
+        if (latestTarget) latestTarget[key] = parse(value).length ? parse(value) : undefined
       }
-      if (!latest || profileIssues(latest.candidate, s.language).length) return current
+      if (!latest) return current
+      const latestTarget = narrowGrid ? latest.candidate.layout.breakpoints?.narrow : latest.candidate.layout
+      if (!latestTarget || areasProblem(latestTarget.areas, current, narrowGrid) || profileIssues(latest.candidate, s.language).length) return current
       ctx.onGridCommit?.(latest.candidate)
       return touch(latest.candidate)
     })
@@ -90,10 +105,21 @@ export function layoutItems(ctx: Ctx): Item[] {
       if (ctx.layoutDrafts?.[prefix]?.[key] === undefined) return undefined
       const result = candidateFor(profile, key, field(key), narrowGrid)
       const path = `${narrowGrid ? 'layout.breakpoints.narrow' : 'layout'}.${key}`
-      return (key === 'areas' ? areaGridProblem(parse(field(key))) : null) ?? (result ? profileIssues(result.candidate, s.language).find(issue => issue.path === path || (issue.path.startsWith(`${path}.`) && /^\d+$/.test(issue.path.slice(path.length + 1))))?.expected : undefined)
+      const issue = (key === 'areas' ? areasProblem(parse(field(key)), profile, narrowGrid) : null) ?? (result ? profileIssues(result.candidate, s.language).find(issue => issue.path === path || (issue.path.startsWith(`${path}.`) && /^\d+$/.test(issue.path.slice(path.length + 1))))?.expected : undefined)
+      return gridProblemText(issue)
     }
+    const reverted = (key: GridKey) => {
+      const drafts = { ...ctx.layoutDrafts }
+      const next = { ...drafts[prefix] }
+      delete next[key]
+      if (Object.keys(next).length) drafts[prefix] = next
+      else delete drafts[prefix]
+      ctx.onLayoutDraftsChange?.(drafts)
+    }
+    const draftOf = (key: GridKey) => ctx.layoutDrafts?.[prefix]?.[key]
+    const committedText = (key: GridKey) => grid[key]?.join('\n') ?? ''
     return [
-      textField(`${prefix}-areas`, label, field('areas'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas')),
+      textField(`${prefix}-areas`, label, field('areas'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas'), draftOf('areas') !== undefined && draftOf('areas') !== committedText('areas') ? () => reverted('areas') : undefined),
       textField(`${prefix}-columns`, 'settings.layoutColumns', field('columns'), value => editGrid('columns', value, narrowGrid), fieldIssue('columns')),
       textField(`${prefix}-rows`, 'settings.layoutRows', field('rows'), value => editGrid('rows', value, narrowGrid), fieldIssue('rows')),
     ]

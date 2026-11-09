@@ -50,7 +50,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
     id, group: 'settings.imageGroup', keys: [label],
     node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} onChange={set} />,
   })
-  const disabledHint = !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
+  const uploadHint = !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
   const items: Item[] = [
     {
       id: 'bg-type', keys: ['settings.bgType', 'settings.bgTheme', 'settings.bgColor', 'settings.bgGradient', 'settings.bgAccent', 'settings.bgImage', 'settings.bgVideo', 'settings.wallpaperVideo'],
@@ -85,8 +85,9 @@ export function backgroundItems(ctx: Ctx): Item[] {
       ),
     })
   }
-  items.push(
-    {
+  // Uploads only make sense for the media types; the hint that explains the adjustments sits with them.
+  if (bg.type === 'image' || bg.type === 'video') {
+    items.push({
       id: 'wallpaper', keys: ['settings.wallpaper', 'settings.wallpaperUpload', 'settings.wallpaperRemove', 'settings.blur', 'settings.grayscale', 'settings.imageScale', 'settings.vignette', 'settings.focal'],
       node: (
         <div className="sd-upload">
@@ -94,10 +95,13 @@ export function backgroundItems(ctx: Ctx): Item[] {
           <input id="sd-wallpaper-file" type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => { ctx.onWallpaperFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
           <label className="sd-label" htmlFor="sd-wallpaper-video">{t('settings.wallpaperVideo')}</label>
           <input id="sd-wallpaper-video" type="file" accept="video/mp4,video/webm" onChange={event => { ctx.onWallpaperVideoFile(event.target.files?.[0]); event.target.value = '' }} />
+          {uploadHint}
           {(image || video || bg.rotation) && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
         </div>
       ),
-    },
+    })
+  }
+  items.push(
     { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
   )
   if (bg.type === 'image' && bg.rotation) items.push({
@@ -126,8 +130,6 @@ export function backgroundItems(ctx: Ctx): Item[] {
         ),
       },
     )
-  } else {
-    items.push({ id: 'image-hint', keys: ['settings.imageNone'], node: disabledHint })
   }
   if (video) {
     items.push(

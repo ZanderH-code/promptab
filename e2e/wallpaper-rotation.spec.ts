@@ -44,6 +44,7 @@ test('rotates local images on opening, hour and day and restores them from backu
   const files = await imageFiles(page)
   await page.locator('.mnt-settings-entry').click()
   await openTab(page, 'background')
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
   await page.getByLabel('Upload images (PNG, JPEG, WebP, up to 5 MB each)').setInputFiles(files)
   await expect(page.getByRole('radio', { name: 'Every new tab' })).toBeChecked()
   const first = await waitImage(page)

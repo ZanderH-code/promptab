@@ -1,6 +1,6 @@
 /** Messages for custom CSS, safe mode and fonts. Spread into the main dictionaries. */
 const messages = {
-  "settings.tab.style": ['样式', 'Style'],
+  "settings.tab.style": ['自定义 CSS', 'Custom CSS'],
   "safe.banner": ['安全模式：自定义样式已暂停', 'Safe mode: custom styles are paused'],
   "safe.hint": ['你的 CSS 仍然保存着，只是本次页面不加载。', 'Your CSS is still saved; it is just not loaded on this page.'],
   "safe.editCss": ['编辑 CSS', 'Edit CSS'],
@@ -20,6 +20,7 @@ const messages = {
   "css.valid": ['没有发现问题', 'No problems found'],
   "css.dirty": ['有未应用的修改', 'Unapplied changes'],
   "css.applied": ['已应用', 'Applied'],
+  "css.disabled": ['已禁用', 'Disabled'],
   "css.usage": ['{kb} / 64 KB · {rules} / 2000 条规则', '{kb} / 64 KB · {rules} / 2000 rules'],
   "css.errorCount": ['{count} 个问题，修正后才能应用', '{count} problems to fix before applying'],
   "css.at": ['第 {line} 行第 {column} 列', 'Line {line}, column {column}'],

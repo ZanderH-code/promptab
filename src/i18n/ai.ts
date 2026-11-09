@@ -2,7 +2,7 @@ import { registerMessages } from './index'
 
 /** Messages for the AI workbench and gallery. Registered when their lazy chunks load. */
 const messages = {
-  "settings.tab.ai": ['AI', 'AI'],
+  "settings.tab.ai": ['AI 助手', 'AI assistant'],
   "gallery.open": ['打开主题画廊', 'Open theme gallery'],
   "gallery.close": ['关闭主题画廊', 'Close theme gallery'],
   "gallery.loading": ['正在加载主题画廊…', 'Loading theme gallery…'],

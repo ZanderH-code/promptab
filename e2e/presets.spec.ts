@@ -42,6 +42,7 @@ for (const [id, name] of presets) {
     await expect(preset).toHaveAttribute('aria-pressed', 'true')
     if (id === 'glass') {
       await openTab(page, 'background')
+      await page.getByRole('radio', { name: '图片', exact: true }).click()
       await page.locator('input[type=file]').first().setInputFiles({ name: 'wallpaper.png', mimeType: 'image/png', buffer: await gradientWallpaper(page) })
       await expect(page.locator('.wallpaper-image')).toHaveCount(1)
     }
@@ -58,21 +59,21 @@ for (const language of ['zh-CN', 'en'] as const) {
       await openTab(page, 'about')
       await page.getByRole('combobox', { name: '语言', exact: true }).click()
       await page.getByRole('option', { name: 'English', exact: true }).click()
+      // openTab reads html[lang]; wait for the switch instead of racing it.
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     }
     await openTab(page, 'ai')
     const search = page.getByRole('searchbox', { name: language === 'en' ? 'Search settings' : '搜索设置' })
     await search.fill('color')
     await search.fill('')
     const tab = page.getByRole('tab', { selected: true })
-    await expect(tab).toHaveText('AI')
+    await expect(tab).toHaveText(language === 'en' ? 'AI assistant' : 'AI 助手')
     await expect.poll(() => tab.evaluate(element => {
       const tablist = element.closest('[role=tablist]')!
       const parent = tablist.getBoundingClientRect()
-      const tabs = Array.from(tablist.querySelectorAll<HTMLElement>('[role=tab]'))
-      return tabs.length === 10 && tabs.every(item => {
-        const bounds = item.getBoundingClientRect()
-        return bounds.width > 0 && bounds.height > 0 && bounds.left >= parent.left && bounds.right <= parent.right && bounds.top >= parent.top && bounds.bottom <= parent.bottom
-      })
+      const bounds = element.getBoundingClientRect()
+      return tablist.querySelectorAll('[role=tab]').length === 10 &&
+        bounds.width > 0 && bounds.height > 0 && bounds.left >= parent.left - 1 && bounds.right <= parent.right + 1
     })).toBe(true)
   })
 }
@@ -88,7 +89,7 @@ test('settings drawer fills a 400px viewport and supports keyboard navigation', 
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(400)
   expect(bounds!.width).toBeGreaterThanOrEqual(380)
 
-  const appearance = page.getByRole('tab', { name: '外观', exact: true })
+  const appearance = page.getByRole('tab', { name: '主题', exact: true })
   await appearance.focus()
   await page.keyboard.press('ArrowRight')
   await expect(page.getByRole('tab', { name: '背景', exact: true })).toBeFocused()
