@@ -50,12 +50,12 @@ async function openTabAndWait(page: Page, name: string) {
 }
 
 async function openStyle(page: Page) {
-  await openTabAndWait(page, 'Style')
+  await openTabAndWait(page, 'Custom CSS')
   await expect(page.locator('.cm-content')).toBeVisible()
 }
 
 async function switchProfile(page: Page, id: string) {
-  await openTabAndWait(page, 'Data')
+  await openTabAndWait(page, 'Backup & import')
   const select = page.getByLabel('Active profile')
   await select.selectOption(id)
   await expect(select).toHaveValue(id)

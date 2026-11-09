@@ -1,4 +1,5 @@
 import { Braces, Database, Sparkles, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
+import * as Tabs from '@radix-ui/react-tabs'
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import type { Settings } from '../../core/model'
@@ -7,7 +8,6 @@ import type { MessageKey, MessageRef, Translate } from '../../i18n'
 import type { ChangeKind } from '../../store/history'
 import type { ProfileStore } from '../../store/profile'
 import '../../styles/settings.css'
-import { rovingIndex } from './controls'
 import { SearchTermsContext } from './searchHighlight'
 import { TABS, itemsFor, type Ctx, type Item, type TabId } from './rows'
 import { RESETTABLE, defaultProfile, resetSection, type ResettableTab } from './sectionDefaults'
@@ -42,6 +42,13 @@ const TAB_LABELS: Record<TabId, MessageKey> = {
   appearance: 'settings.tab.appearance', background: 'settings.tab.background', layout: 'settings.tab.layout', widgets: 'settings.tab.widgets',
   shortcuts: 'settings.tab.shortcuts', search: 'settings.tab.search', style: 'settings.tab.style', ai: 'settings.tab.ai', data: 'settings.tab.data', about: 'settings.tab.about',
 }
+const RAIL_GROUPS: { label: MessageKey; tabs: TabId[] }[] = [
+  { label: 'settings.group.look', tabs: ['appearance', 'background'] },
+  { label: 'settings.group.layout', tabs: ['layout', 'widgets'] },
+  { label: 'settings.group.content', tabs: ['shortcuts', 'search'] },
+  { label: 'settings.group.advanced', tabs: ['style', 'ai'] },
+  { label: 'settings.group.system', tabs: ['data', 'about'] },
+]
 const LEGACY_ANCHORS: Record<string, TabId> = { 'wallpaper-settings': 'background', 'component-settings': 'widgets', 'search-settings': 'search', 'data-settings': 'data' }
 
 export function initialTab(section?: string): TabId {
@@ -76,7 +83,6 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     }
   }, [currentGrid])
   const drawer = useRef<HTMLElement>(null)
-  const tabRefs = useRef<Partial<Record<TabId, HTMLButtonElement | null>>>({})
   const search = useRef<HTMLInputElement>(null)
   const uid = useId()
   const searching = query.trim() !== ''
@@ -94,13 +100,23 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   // Focus moves into the drawer on open and returns to whatever opened it on close.
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    tabRefs.current[tab]?.focus()
+    drawer.current?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')?.focus()
     return () => { if (opener?.isConnected) opener.focus() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Follows the legacy anchors when the app asks an open drawer for another section.
   useEffect(() => { if (initialSection) setTab(initialTab(initialSection)) }, [initialSection])
+  // The rail unmounts while searching; when it comes back, the selected item may be off-screen in the
+  // horizontal mobile rail, so bring it into view again.
+  useEffect(() => {
+    if (searching) return
+    const rail = drawer.current?.querySelector<HTMLElement>('.sd-rail')
+    const active = rail?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+    if (!rail || !active || rail.scrollWidth <= rail.clientWidth) return
+    const left = active.getBoundingClientRect().left - rail.getBoundingClientRect().left + rail.scrollLeft
+    rail.scrollLeft = Math.max(0, left - 8)
+  }, [searching, tab])
 
   const ctx: Ctx = {
     t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
@@ -128,14 +144,6 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     : sections
   const count = results.reduce((total, section) => total + section.items.length, 0)
 
-  const onTabKeyDown = (event: KeyboardEvent, index: number) => {
-    const next = rovingIndex(event.key, index, TABS.length)
-    if (next === null || event.key === 'ArrowUp' || event.key === 'ArrowDown') return
-    event.preventDefault()
-    setTab(TABS[next])
-    tabRefs.current[TABS[next]]?.focus()
-  }
-
   // Only keys pressed inside the drawer are handled: a shortcut editor opened from the page, or a select popup, keeps its own keys.
   const onDrawerKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const root = drawer.current
@@ -153,7 +161,6 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
   }
 
-  const panelId = `${uid}-panel`
   const body = (id: TabId, items: Item[]) => {
     let group: MessageKey | undefined
     return items.map(item => {
@@ -183,38 +190,54 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
           <input ref={search} type="search" value={query} placeholder={t('settings.find')} aria-label={t('settings.find')} autoComplete="off" onChange={event => setQuery(event.target.value)} />
           {query && <button type="button" className="sd-icon-button" aria-label={t('settings.findClear')} onClick={() => { setQuery(''); search.current?.focus() }}><X size={14} strokeWidth={1.5} aria-hidden="true" /></button>}
         </div>
-        {!searching && (
-          <div className="sd-tabs" role="tablist" aria-label={t('settings.tabs')}>
-            {TABS.map((id, index) => {
-              const Icon = ICONS[id]
-              return (
-                <button
-                  key={id} id={`${uid}-tab-${id}`} type="button" role="tab" aria-selected={tab === id} aria-controls={panelId} tabIndex={tab === id ? 0 : -1}
-                  ref={node => { tabRefs.current[id] = node }} onClick={() => setTab(id)} onKeyDown={event => onTabKeyDown(event, index)}
-                ><Icon size={16} strokeWidth={1.5} aria-hidden="true" /><span>{t(TAB_LABELS[id])}</span></button>
-              )
-            })}
-          </div>
-        )}
-        <div className="sd-panel" id={panelId} role={searching ? 'region' : 'tabpanel'} aria-label={searching ? t('settings.findResults') : undefined} aria-labelledby={searching ? undefined : `${uid}-tab-${tab}`}>
-          <SearchTermsContext.Provider value={searching ? terms : []}>
-          {searching && <p className="sd-count" role="status">{count ? t('settings.findCount', { count }) : ''}</p>}
-          {searching && count === 0 && (
-            <div className="sd-empty">
-              <SearchX size={24} strokeWidth={1.5} aria-hidden="true" />
-              <p>{t('settings.findNone', { query: query.trim() })}</p>
-              <small>{t('settings.findNoneHint')}</small>
-              <button type="button" className="sd-button" onClick={() => { setQuery(''); search.current?.focus() }}>{t('settings.findClear')}</button>
-            </div>
+        <Tabs.Root value={tab} onValueChange={value => setTab(value as TabId)} orientation="vertical" className="sd-body">
+          {!searching && (
+            <Tabs.List className="sd-rail" aria-label={t('settings.tabs')}>
+              {RAIL_GROUPS.map(group => (
+                <div className="sd-rail-group" key={group.label}>
+                  <p className="sd-rail-title">{t(group.label)}</p>
+                  {group.tabs.map(id => {
+                    const Icon = ICONS[id]
+                    return (
+                      <Tabs.Trigger key={id} value={id} className="sd-rail-tab" onClick={() => setTab(id)}>
+                        <Icon size={16} strokeWidth={1.5} aria-hidden="true" /><span>{t(TAB_LABELS[id])}</span>
+                      </Tabs.Trigger>
+                    )
+                  })}
+                </div>
+              ))}
+            </Tabs.List>
           )}
-          {results.map(section => (
-            <section key={section.id} className="sd-section" aria-labelledby={searching ? `${uid}-h-${section.id}` : undefined}>
-              {searching && <h3 id={`${uid}-h-${section.id}`} className="sd-section-title">{t(TAB_LABELS[section.id])}</h3>}
-              {body(section.id, section.items)}
-            </section>
-          ))}
-          </SearchTermsContext.Provider>
-        </div>
+          {searching ? (
+            <div className="sd-panel" role="region" aria-label={t('settings.findResults')}>
+              <SearchTermsContext.Provider value={terms}>
+                {searching && <p className="sd-count" role="status">{count ? t('settings.findCount', { count }) : ''}</p>}
+                {searching && count === 0 && (
+                  <div className="sd-empty">
+                    <SearchX size={24} strokeWidth={1.5} aria-hidden="true" />
+                    <p>{t('settings.findNone', { query: query.trim() })}</p>
+                    <small>{t('settings.findNoneHint')}</small>
+                    <button type="button" className="sd-button" onClick={() => { setQuery(''); search.current?.focus() }}>{t('settings.findClear')}</button>
+                  </div>
+                )}
+                {results.map(section => (
+                  <section key={section.id} className="sd-section" aria-labelledby={`${uid}-h-${section.id}`}>
+                    <h3 id={`${uid}-h-${section.id}`} className="sd-section-title">{t(TAB_LABELS[section.id])}</h3>
+                    {body(section.id, section.items)}
+                  </section>
+                ))}
+              </SearchTermsContext.Provider>
+            </div>
+          ) : (
+            <Tabs.Content value={tab} className="sd-panel">
+              {results.map(section => (
+                <section key={section.id} className="sd-section">
+                  {body(section.id, section.items)}
+                </section>
+              ))}
+            </Tabs.Content>
+          )}
+        </Tabs.Root>
       </aside>
     </>
   )

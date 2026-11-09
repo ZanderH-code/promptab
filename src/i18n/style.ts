@@ -1,6 +1,6 @@
 /** Messages for custom CSS, safe mode and fonts. Spread into the main dictionaries. */
 const messages = {
-  "settings.tab.style": ['样式', 'Style'],
+  "settings.tab.style": ['自定义 CSS', 'Custom CSS'],
   "safe.banner": ['安全模式：自定义样式已暂停', 'Safe mode: custom styles are paused'],
   "safe.hint": ['你的 CSS 仍然保存着，只是本次页面不加载。', 'Your CSS is still saved; it is just not loaded on this page.'],
   "safe.editCss": ['编辑 CSS', 'Edit CSS'],

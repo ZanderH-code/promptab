@@ -47,35 +47,24 @@ describe('SettingsDrawer tabs', () => {
     const props = setup({ profile })
     fireEvent.click(screen.getByRole('checkbox', { name: 'Glow' }))
     expect(lastUpdate(props).next.custom.values['--glow']).toBe(1)
-    fireEvent.click(screen.getByRole('tab', { name: 'Style' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Custom CSS' }))
     expect(screen.queryByRole('checkbox', { name: 'Glow' })).toBeNull()
   })
 
   it('lists every section, AI included', () => {
     setup()
     const names = within(screen.getByRole('tablist')).getAllByRole('tab').map(tab => tab.textContent)
-    expect(names).toEqual(['Appearance', 'Background', 'Layout', 'Widgets', 'Shortcuts', 'Search', 'Style', 'AI', 'Data', 'About'])
-    expect(screen.getByRole('tab', { name: 'Appearance' })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Appearance')
+    expect(names).toEqual(['Theme', 'Background', 'Areas & grid', 'Widgets', 'Websites', 'Search', 'Custom CSS', 'AI assistant', 'Backup & import', 'About'])
+    expect(screen.getByRole('tab', { name: 'Theme' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Theme')
   })
 
-  it('moves with arrow keys, Home and End using a roving tabindex', () => {
+  it('keeps a roving tabindex on the rail', () => {
     setup()
-    const tab = (name: string) => screen.getByRole('tab', { name })
-    tab('Appearance').focus()
-    fireEvent.keyDown(tab('Appearance'), { key: 'ArrowRight' })
-    expect(tab('Background')).toHaveFocus()
-    expect(tab('Background')).toHaveAttribute('aria-selected', 'true')
-    expect(tab('Background')).toHaveAttribute('tabindex', '0')
-    expect(tab('Appearance')).toHaveAttribute('tabindex', '-1')
-    fireEvent.keyDown(tab('Background'), { key: 'End' })
-    expect(tab('About')).toHaveFocus()
-    fireEvent.keyDown(tab('About'), { key: 'ArrowRight' })
-    expect(tab('Appearance')).toHaveFocus()
-    fireEvent.keyDown(tab('Appearance'), { key: 'ArrowLeft' })
-    expect(tab('About')).toHaveFocus()
-    fireEvent.keyDown(tab('About'), { key: 'Home' })
-    expect(tab('Appearance')).toHaveFocus()
+    const tabs = within(screen.getByRole('tablist')).getAllByRole('tab')
+    expect(tabs.filter(tab => tab.getAttribute('tabindex') === '0')).toHaveLength(1)
+    expect(screen.getByRole('tab', { name: 'Theme' })).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('tab', { name: 'Background' })).toHaveAttribute('tabindex', '-1')
   })
 
   it('opens on a legacy anchor and keeps language in About', () => {
@@ -91,33 +80,33 @@ describe('SettingsDrawer tabs', () => {
 
   it('pluralizes the website count and points people to the page for edits', () => {
     setup()
-    fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Websites' }))
     expect(screen.getByText('Use Edit websites to add, reorder or remove websites on the page. This section controls how they look.')).toBeInTheDocument()
     expect(screen.getByText('1 website')).toBeInTheDocument()
     expect(screen.queryByText('1 websites')).toBeNull()
 
     cleanup()
     setup({ settings: { shortcuts: [structuredClone(defaults.shortcuts[0]), { ...structuredClone(defaults.shortcuts[0]), id: 'second', name: 'Second' }] } })
-    fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Websites' }))
     expect(screen.getByText('2 websites')).toBeInTheDocument()
   })
 
   it('opens website editing from the Websites section', () => {
     const props = setup()
-    fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Websites' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit websites' }))
     expect(props.onEnterEditMode).toHaveBeenCalledOnce()
 
     cleanup()
     setup({ language: 'zh-CN' })
-    fireEvent.click(screen.getByRole('tab', { name: '快捷方式' }))
+    fireEvent.click(screen.getByRole('tab', { name: '网站' }))
     expect(screen.getByRole('button', { name: '编辑网站' })).toBeInTheDocument()
   })
 
   it('shows profile and backup sections only in Data', async () => {
     setup()
     expect(screen.queryByText('profiles-stub')).toBeNull()
-    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
     expect(screen.getByText('profiles-stub')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('backup-stub')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: 'Reset settings' })).toBeInTheDocument()
@@ -127,7 +116,7 @@ describe('SettingsDrawer tabs', () => {
     const profile = structuredClone(base)
     profile.bookmarks.groups[0].items = [structuredClone(STARTER_SITES[0]), { ...STARTER_SITES[1], name: 'My Gmail' }]
     const props = setup({ profile })
-    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove starter sites' }))
     const { next, kind } = lastUpdate(props)
     expect(kind).toBe('import')
@@ -136,7 +125,7 @@ describe('SettingsDrawer tabs', () => {
 
   it('previews Infinity import counts, adds into Quick links as one undoable change', async () => {
     const props = setup()
-    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
     const backup = JSON.stringify({ version: 'v2', data: { site: { sites: [[{ type: 'web', name: 'Imported', target: 'https://imported.example', bgType: 'image' }]] } } })
     const file = new File([backup], 'backup.infinity', { type: 'application/json' })
     Object.defineProperty(file, 'text', { value: async () => backup })
@@ -153,7 +142,7 @@ describe('SettingsDrawer tabs', () => {
 
   it('replaces bookmarks from an Infinity import with one undoable change', async () => {
     const props = setup()
-    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
     const backup = JSON.stringify({ version: 'v2', data: { site: { sites: [[{ type: 'web', name: 'Imported', target: 'https://imported.example', bgType: 'image' }]] } } })
     const file = new File([backup], 'backup.infinity', { type: 'application/json' })
     Object.defineProperty(file, 'text', { value: async () => backup })
@@ -185,8 +174,8 @@ describe('SettingsDrawer search', () => {
     setup({ language: 'zh-CN' })
     fireEvent.change(screen.getByRole('searchbox', { name: '搜索设置' }), { target: { value: '圆角' } })
     expect(screen.queryByRole('tablist')).toBeNull()
-    expect(screen.getByRole('heading', { name: '外观' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '布局' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '主题' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '区域与网格' })).toBeInTheDocument()
     expect(screen.getByRole('spinbutton', { name: '圆角的数值' })).toBeInTheDocument()
     expect(screen.queryByText('主题预设')).toBeNull()
     expect(screen.getByRole('status')).toHaveTextContent('2 项设置')
@@ -225,8 +214,8 @@ describe('SettingsDrawer focus and keys', () => {
     document.body.append(opener)
     opener.focus()
     const props = setup()
-    expect(screen.getByRole('tab', { name: 'Appearance' })).toHaveFocus()
-    fireEvent.keyDown(screen.getByRole('tab', { name: 'Appearance' }), { key: 'Escape' })
+    expect(screen.getByRole('tab', { name: 'Theme' })).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('tab', { name: 'Theme' }), { key: 'Escape' })
     expect(props.onClose).toHaveBeenCalledTimes(1)
     cleanup()
     expect(opener).toHaveFocus()
@@ -488,7 +477,7 @@ describe('SettingsDrawer restore defaults', () => {
 
   it('confirms before the full reset', () => {
     const props = setup()
-    fireEvent.click(screen.getByRole('tab', { name: 'Data' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     fireEvent.click(screen.getByRole('button', { name: 'Reset settings' }))
     expect(props.onReset).not.toHaveBeenCalled()

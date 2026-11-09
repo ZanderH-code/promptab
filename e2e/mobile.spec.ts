@@ -180,7 +180,7 @@ test('settings drawer fills the phone viewport and its close control stays reach
 test('AI settings tab is directly reachable with a touch tap', async ({ page }) => {
   await launch(page)
   await openSettings(page)
-  const aiTab = page.getByRole('tab', { name: 'AI', exact: true })
+  const aiTab = page.getByRole('tab', { name: 'AI assistant', exact: true })
   await expect(aiTab).toBeVisible()
   await aiTab.tap()
   await expect(aiTab).toHaveAttribute('aria-selected', 'true')

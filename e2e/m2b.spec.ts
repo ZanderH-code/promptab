@@ -185,7 +185,7 @@ test('CSS cannot hide the settings entry even with !important, and stays applied
   const box = await settingsEntry(page).boundingBox()
   expect(box && box.width > 8 && box.height > 8 && box.x >= 0 && box.y >= 0).toBe(true)
   await settingsEntry(page).click()
-  await expect(page.getByRole('tab', { name: /^(外观|Appearance)$/ })).toBeVisible()
+  await expect(page.getByRole('tab', { name: /^(主题|Theme)$/ })).toBeVisible()
 })
 
 test('a stylesheet that paints over the settings entry is removed automatically', async ({ page }) => {

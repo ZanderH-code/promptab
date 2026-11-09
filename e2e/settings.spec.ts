@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 import { seedExistingUser } from './helpers'
 
 const MARKER = '.mnt-clock { color: rgb(1, 2, 3); }'
@@ -16,12 +17,12 @@ async function openDrawer(page: Page) {
 }
 
 async function openStyle(page: Page) {
-  await page.getByRole('tab', { name: 'Style', exact: true }).click()
+  await page.getByRole('tab', { name: 'Custom CSS', exact: true }).click()
   await expect(page.locator('.cm-content')).toBeVisible()
 }
 
 async function openLayout(page: Page) {
-  await page.getByRole('tab', { name: 'Layout', exact: true }).click()
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
   await expect(page.getByRole('textbox', { name: 'Area grid' })).toBeVisible()
 }
 
@@ -53,8 +54,8 @@ test('an unapplied custom CSS draft survives navigation', async ({ page }) => {
   await typeDraft(page, MARKER)
 
   // Another section unmounts and remounts the editor; the draft must come back with it.
-  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
-  await expect(page.getByRole('tab', { name: 'Style', exact: true })).toBeVisible()
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
+  await expect(page.getByRole('tab', { name: 'Custom CSS', exact: true })).toBeVisible()
   await openStyle(page)
   await expect(page.locator('.cm-content')).toContainText('rgb(1, 2, 3)')
 
@@ -148,13 +149,13 @@ test('the custom CSS editor follows the active theme', async ({ page }) => {
   await page.screenshot({ path: `${SHOTS}/style-dark.png` })
 
   // A light preset stores the light palette; the default profile has no separate light colours.
-  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
   await page.getByRole('button', { name: 'Paper', exact: true }).click()
   await openStyle(page)
   await expectEditorReadable(page)
   await page.screenshot({ path: `${SHOTS}/style-light.png` })
 
-  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
   await page.getByRole('button', { name: 'Contrast', exact: true }).click()
   await openStyle(page)
   await expectEditorReadable(page)
@@ -266,7 +267,7 @@ test('the websites section opens desktop editing', async ({ page }) => {
 
   await launch(page)
   await openDrawer(page)
-  await page.getByRole('tab', { name: 'Shortcuts', exact: true }).click()
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
 
   const edit = page.getByRole('button', { name: 'Edit websites', exact: true })
   await expect(edit).toBeVisible()
@@ -340,7 +341,7 @@ test('settings search highlights the matched text', async ({ page }) => {
 
   // The same marks stay readable on the light paper theme.
   await search.fill('')
-  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
   await page.getByRole('button', { name: 'Paper', exact: true }).click()
   await search.fill('blur')
   await expect(mark).toBeVisible()
@@ -358,6 +359,50 @@ test('settings search highlights the matched text', async ({ page }) => {
     const matches = await item.locator('.sd-matches').count()
     expect(marks + matches, await item.innerText()).toBeGreaterThan(0)
   }
+
+  expect(errors).toEqual([])
+})
+
+test('the settings rail groups sections and navigates with the keyboard', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+  const rail = page.getByRole('tablist', { name: 'Settings sections' })
+  const tabs = rail.getByRole('tab')
+  await expect(tabs).toHaveCount(10)
+  await expect(rail.locator('.sd-rail-title')).toHaveText(['Look', 'Layout', 'Content', 'Advanced', 'System'])
+  await expect(tabs).toHaveText(['Theme', 'Background', 'Areas & grid', 'Widgets', 'Websites', 'Search', 'Custom CSS', 'AI assistant', 'Backup & import', 'About'])
+
+  const box = await rail.boundingBox()
+  expect(box!.width).toBeGreaterThanOrEqual(180)
+  expect(box!.width).toBeLessThanOrEqual(200)
+  const fit = await rail.evaluate(element => ({ scrollHeight: element.scrollHeight, clientHeight: element.clientHeight }))
+  expect(fit.scrollHeight).toBeLessThanOrEqual(fit.clientHeight)
+
+  // One roving tab stop and a panel labelled by the active tab.
+  expect(await rail.locator('[role=tab][tabindex="0"]').count()).toBe(1)
+  expect(await page.getByRole('tabpanel').getAttribute('aria-labelledby')).toBe(await tabs.first().getAttribute('id'))
+
+  await tabs.first().focus()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('tab', { name: 'Background' })).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('Home')
+  await expect(page.getByRole('tab', { name: 'Theme' })).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('End')
+  await expect(page.getByRole('tab', { name: 'About' })).toHaveAttribute('aria-selected', 'true')
+  await page.keyboard.press('ArrowUp')
+  await expect(page.getByRole('tab', { name: 'Backup & import' })).toHaveAttribute('aria-selected', 'true')
+
+  // No new axe violations with the rail open, in dark and light themes.
+  const violations = async () => (await new AxeBuilder({ page }).include('.sd').analyze()).violations.filter(issue => issue.impact === 'serious' || issue.impact === 'critical')
+  expect(await violations()).toEqual([])
+  await page.getByRole('tab', { name: 'Theme' }).click()
+  await page.getByRole('button', { name: 'Paper' }).click()
+  expect(await violations()).toEqual([])
+  await page.screenshot({ path: `${SHOTS}/rail.png` })
 
   expect(errors).toEqual([])
 })
