@@ -14,6 +14,8 @@
 
 /* Peeking: the page is shown at full brightness on desktop, still behind a click-blocking scrim. */
 .sd-peeked { transform: translateX(calc(100% + 12px)); }
+/* The widgets layer disables the generic scrim; the settings scrim keeps the page click-blocked at every width. */
+.sd-scrim { pointer-events: auto; }
 .sd-peek-handle {
   position: fixed; z-index: calc(var(--mnt-z-drawer) + 1); top: var(--mnt-banner-h, 0px); right: 0; bottom: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
@@ -25,8 +27,7 @@
 .sd-peek-handle:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: -2px; color: var(--mnt-text); }
 
 @media (min-width: 1024px) {
-  /* The widgets layer disables the scrim's pointer events; the settings drawer needs them to keep the page click-blocked. */
-  .sd-scrim { background: transparent; pointer-events: auto; }
+  .sd-scrim { background: transparent; }
   .sd { transition: transform var(--mnt-dur-base) var(--mnt-ease); }
   @media (prefers-reduced-motion: reduce) { .sd { transition: none; } }
 }

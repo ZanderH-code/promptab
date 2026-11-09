@@ -222,7 +222,8 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
 
   return (
     <>
-      <div className="scrim sd-scrim" onClick={onClose} />
+      {/* Blocking only: the page stays visible but unreachable; Close and Esc dismiss the drawer. */}
+      <div className="scrim sd-scrim" />
       <aside ref={drawer} className={`drawer sd${peeked ? ' sd-peeked' : ''}`} role="dialog" aria-label={t('settings.button')} onKeyDown={onDrawerKeyDown}>
         <header className="sd-head">
           <div>

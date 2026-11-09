@@ -474,6 +474,11 @@ async function centreIsScrim(page: Page) {
   return await page.evaluate(() => document.elementFromPoint(200, 450)?.classList.contains('scrim') ?? false)
 }
 
+/** The topmost element in the strip left of the 640 px drawer at 800 px width. */
+async function leftIsScrim(page: Page) {
+  return await page.evaluate(() => document.elementFromPoint(80, 450)?.classList.contains('scrim') ?? false)
+}
+
 test('the page stays bright while editing and the panel can peek away', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
@@ -491,15 +496,16 @@ test('the page stays bright while editing and the panel can peek away', async ({
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).filter)).toBe('none')
   expect(await page.evaluate(() => getComputedStyle(document.body).filter)).toBe('none')
   await expect(page.locator('.scrim')).toHaveCount(1)
+  expect(await page.evaluate(() => document.querySelector('.sd')?.contains(document.activeElement))).toBe(true)
   const url = page.url()
   await page.mouse.click(200, 450)
   expect(page.url()).toBe(url)
+  // The scrim blocks the page but does not dismiss settings.
+  await expect(page.getByRole('dialog')).toBeVisible()
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
   await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
 
-  // Reopen, pick a section, and peek: the drawer leaves the viewport but the page stays blocked.
-  await openDrawer(page)
-  expect(await page.evaluate(() => document.querySelector('.sd')?.contains(document.activeElement))).toBe(true)
+  // Pick a section and peek: the drawer leaves the viewport but the page stays blocked.
   await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
   await page.screenshot({ path: `${SHOTS}/preview-full.png` })
   await page.getByRole('button', { name: 'Peek', exact: true }).click()
@@ -531,5 +537,50 @@ test('the page stays bright while editing and the panel can peek away', async ({
   expect(alpha).toBeGreaterThanOrEqual(.55)
   expect(alpha).toBeLessThanOrEqual(.65)
 
+  expect(errors).toEqual([])
+})
+
+test('the settings scrim blocks page clicks at every width', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 800, height: 900 })
+  await openDrawer(page)
+
+  // The drawer is 640 px wide; the strip left of it is the dimmed scrim.
+  const alpha = await scrimAlpha(page)
+  expect(alpha).toBeGreaterThanOrEqual(.55)
+  expect(alpha).toBeLessThanOrEqual(.65)
+  expect(await leftIsScrim(page)).toBe(true)
+
+  const url = page.url()
+  await page.mouse.click(80, 450)
+  expect(page.url()).toBe(url)
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await expect(page.locator('.edit-toolbar')).toHaveCount(0)
+  await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
+
+  // At 1400 px the scrim is transparent but still blocks, as before.
+  await page.setViewportSize({ width: 1400, height: 900 })
+  expect(await scrimAlpha(page)).toBe(0)
+  expect(await centreIsScrim(page)).toBe(true)
+  await page.mouse.click(200, 450)
+  await expect(page.getByRole('dialog')).toBeVisible()
+
+  // The generic widget scrim keeps passing clicks through; only the settings one blocks.
+  expect(await page.evaluate(() => {
+    const element = document.createElement('div')
+    element.className = 'scrim'
+    document.body.append(element)
+    const value = getComputedStyle(element).pointerEvents
+    element.remove()
+    return value
+  })).toBe('none')
+
+  const violations = (await new AxeBuilder({ page }).analyze()).violations.filter(issue => issue.impact === 'serious' || issue.impact === 'critical')
+  expect(violations).toEqual([])
   expect(errors).toEqual([])
 })
