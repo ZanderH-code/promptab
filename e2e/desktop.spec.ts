@@ -134,6 +134,7 @@ test('export backup and reset settings remove wallpaper and restore defaults', a
   await page.locator('.settings-button').click()
   await setAccent(page, '#e0b080')
   await openTab(page, 'background')
+  await page.getByRole('radio', { name: '图片', exact: true }).click()
   await page.locator('input[type=file]').first().setInputFiles({ name: 'wallpaper.png', mimeType: 'image/png', buffer: image })
   await expect(page.locator('.wallpaper-image')).toHaveCount(1)
   await page.getByRole('button', { name: '关闭设置' }).click()

@@ -42,6 +42,7 @@ for (const [id, name] of presets) {
     await expect(preset).toHaveAttribute('aria-pressed', 'true')
     if (id === 'glass') {
       await openTab(page, 'background')
+      await page.getByRole('radio', { name: '图片', exact: true }).click()
       await page.locator('input[type=file]').first().setInputFiles({ name: 'wallpaper.png', mimeType: 'image/png', buffer: await gradientWallpaper(page) })
       await expect(page.locator('.wallpaper-image')).toHaveCount(1)
     }
