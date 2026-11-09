@@ -1,12 +1,13 @@
 import type { MessageKey } from '../../../i18n'
 import { RangeField, Row, Toggle } from '../controls'
+import { Highlighted } from '../searchHighlight'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 export function shortcutsItems(ctx: Ctx): Item[] {
   const { t, s, profile, change } = ctx
   const styles = [['tile', 'settings.bookmarkTile'], ['list', 'settings.bookmarkList'], ['minimal', 'settings.bookmarkMinimal'], ['card', 'settings.bookmarkCard'], ['icon-only', 'settings.bookmarkIconOnly']] as const
   const items: Item[] = [
-    { id: 'shortcuts', keys: ['settings.shortcuts', 'settings.shortcutsHint'], node: <div className="sd-note"><p>{t('settings.shortcutsHint')}</p><p>{t(s.shortcuts.length === 1 ? 'settings.shortcutsCountOne' : 'settings.shortcutsCount', { count: s.shortcuts.length })}</p></div> },
+    { id: 'shortcuts', keys: ['settings.shortcuts', 'settings.shortcutsHint'], node: <div className="sd-note"><p><Highlighted text={t('settings.shortcutsHint')} /></p><p><Highlighted text={t(s.shortcuts.length === 1 ? 'settings.shortcutsCountOne' : 'settings.shortcutsCount', { count: s.shortcuts.length })} /></p></div> },
     { id: 'edit-websites', keys: ['settings.editWebsites'], node: <button type="button" className="sd-button sd-primary" onClick={() => ctx.onEnterEditMode?.()}>{t('settings.editWebsites')}</button> },
   ]
   for (const widget of profile.widgets) {

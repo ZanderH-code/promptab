@@ -297,6 +297,7 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.findCount': '{count} settings',
   'settings.findNone': 'No settings match “{query}”',
   'settings.findNoneHint': 'Try another word, or clear the search to browse by section.',
+  'settings.findMatches': 'matches: {terms}',
   'settings.valueOf': '{label} value',
   'settings.hexOf': '{label} hex value',
   'settings.themeSystem': 'Follow system',

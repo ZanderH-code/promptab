@@ -8,6 +8,7 @@ import type { ChangeKind } from '../../store/history'
 import type { ProfileStore } from '../../store/profile'
 import '../../styles/settings.css'
 import { rovingIndex } from './controls'
+import { SearchTermsContext } from './searchHighlight'
 import { TABS, itemsFor, type Ctx, type Item, type TabId } from './rows'
 import { RESETTABLE, defaultProfile, resetSection, type ResettableTab } from './sectionDefaults'
 
@@ -79,6 +80,16 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const search = useRef<HTMLInputElement>(null)
   const uid = useId()
   const searching = query.trim() !== ''
+  const terms = useMemo(() => query.toLocaleLowerCase().split(/\s+/).filter(Boolean), [query])
+  /** Why an item matched when no query term is in its visible labels: the hidden words or the section name. */
+  const matchReason = (item: Item, section: TabId) => {
+    const keyText = item.keys.map(key => t(key)).join(' ').toLocaleLowerCase()
+    if (terms.some(term => keyText.includes(term))) return []
+    const words = (item.words ?? []).filter(word => terms.some(term => word.toLocaleLowerCase().includes(term)))
+    if (words.length) return words
+    const sectionName = t(TAB_LABELS[section])
+    return terms.some(term => sectionName.toLocaleLowerCase().includes(term)) ? [sectionName] : []
+  }
 
   // Focus moves into the drawer on open and returns to whatever opened it on close.
   useEffect(() => {
@@ -149,7 +160,8 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
       const GroupHeading = searching ? 'h4' : 'h3'
       const heading = item.group && item.group !== group ? <GroupHeading className="sd-group">{t(item.group)}</GroupHeading> : null
       group = item.group
-      return <div className="sd-item" key={item.id}>{heading}{item.node}</div>
+      const reason = searching ? matchReason(item, id) : []
+      return <div className="sd-item" key={item.id}>{heading}{reason.length > 0 && <p className="sd-matches">{t('settings.findMatches', { terms: reason.join(', ') })}</p>}{item.node}</div>
     }).concat(!searching && (RESETTABLE as readonly string[]).includes(id)
       ? [<div className="sd-restore" key="restore"><button type="button" className="sd-button" onClick={() => void restore(id as ResettableTab)}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.restoreSection')}</button></div>]
       : [])
@@ -185,6 +197,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
           </div>
         )}
         <div className="sd-panel" id={panelId} role={searching ? 'region' : 'tabpanel'} aria-label={searching ? t('settings.findResults') : undefined} aria-labelledby={searching ? undefined : `${uid}-tab-${tab}`}>
+          <SearchTermsContext.Provider value={searching ? terms : []}>
           {searching && <p className="sd-count" role="status">{count ? t('settings.findCount', { count }) : ''}</p>}
           {searching && count === 0 && (
             <div className="sd-empty">
@@ -200,6 +213,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
               {body(section.id, section.items)}
             </section>
           ))}
+          </SearchTermsContext.Provider>
         </div>
       </aside>
     </>

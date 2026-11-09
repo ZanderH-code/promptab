@@ -297,6 +297,7 @@ export const zhCN = {
   'settings.findCount': '{count} 项设置',
   'settings.findNone': '没有与“{query}”匹配的设置',
   'settings.findNoneHint': '换个词试试，或清除搜索后按分区浏览。',
+  'settings.findMatches': '匹配：{terms}',
   'settings.valueOf': '{label}的数值',
   'settings.hexOf': '{label}的色值',
   'settings.themeSystem': '跟随系统',

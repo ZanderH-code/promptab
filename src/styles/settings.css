@@ -50,6 +50,8 @@
 .sd-hint { padding: var(--mnt-space-2) 0; }
 
 .sd-item { padding: var(--mnt-space-1) 0; }
+.sd-mark { padding: 0 2px; border-radius: 3px; color: var(--mnt-text); background: var(--mnt-accent-soft); }
+.sd-matches { margin: 0 0 var(--mnt-space-1); font-size: var(--mnt-text-xs); color: var(--mnt-text-muted); }
 .sd .sd-row { display: flex; align-items: center; justify-content: space-between; gap: var(--mnt-space-3); margin: 0; min-height: 36px; font-size: var(--mnt-text-md); }
 .sd .sd-row.sd-stack { flex-direction: column; align-items: stretch; gap: var(--mnt-space-2); padding: var(--mnt-space-1) 0; }
 .sd .sd-label { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: var(--mnt-text-md); }

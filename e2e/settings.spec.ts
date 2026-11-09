@@ -291,3 +291,73 @@ test('the websites section opens desktop editing', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+/** The mark's own colour and its translucent tint composited over the first opaque ancestor. */
+async function markColors(page: Page) {
+  return page.evaluate(() => {
+    const toRgb = (value: string) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 1
+      const context = canvas.getContext('2d')!
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data
+      return { r, g, b, a: a / 255 }
+    }
+    const mark = document.querySelector('.sd-mark')
+    if (!(mark instanceof HTMLElement)) throw new Error('missing mark')
+    const color = toRgb(getComputedStyle(mark).color)
+    const tint = toRgb(getComputedStyle(mark).backgroundColor)
+    let element = mark.parentElement
+    let surface = { r: 255, g: 255, b: 255 }
+    while (element) {
+      const background = toRgb(getComputedStyle(element).backgroundColor)
+      if (background.a === 1) { surface = background; break }
+      element = element.parentElement
+    }
+    return { color, background: { r: tint.r * tint.a + surface.r * (1 - tint.a), g: tint.g * tint.a + surface.g * (1 - tint.a), b: tint.b * tint.a + surface.b * (1 - tint.a) } }
+  })
+}
+
+test('settings search highlights the matched text', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+  const search = page.getByRole('searchbox', { name: 'Search settings' })
+
+  await search.fill('blur')
+  const mark = page.locator('.sd-mark').first()
+  await expect(mark).toBeVisible()
+  expect((await mark.textContent())?.toLowerCase()).toBe('blur')
+  // Built from a single text node, not from normalized HTML.
+  expect(await mark.evaluate(node => node.childNodes.length === 1 && node.firstChild?.nodeType === Node.TEXT_NODE)).toBe(true)
+
+  const dark = await markColors(page)
+  expect(ratio(dark.color, dark.background), 'dark mark contrast').toBeGreaterThanOrEqual(4.5)
+
+  // The same marks stay readable on the light paper theme.
+  await search.fill('')
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
+  await page.getByRole('button', { name: 'Paper', exact: true }).click()
+  await search.fill('blur')
+  await expect(mark).toBeVisible()
+  const light = await markColors(page)
+  expect(ratio(light.color, light.background), 'light mark contrast').toBeGreaterThanOrEqual(4.5)
+
+  // Every result explains itself: a mark in the visible label, or the hidden keyword that matched.
+  await search.fill('opacity')
+  const items = page.locator('.sd-item')
+  await expect(items.first()).toBeVisible()
+  for (let index = 0; index < await items.count(); index++) {
+    const item = items.nth(index)
+    if (!(await item.isVisible())) continue
+    const marks = await item.locator('.sd-mark').count()
+    const matches = await item.locator('.sd-matches').count()
+    expect(marks + matches, await item.innerText()).toBeGreaterThan(0)
+  }
+
+  expect(errors).toEqual([])
+})

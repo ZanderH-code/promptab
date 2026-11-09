@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import type { Translate } from '../../i18n'
+import { Highlighted } from './searchHighlight'
 
 const HEX = /^#[\da-f]{6}$/i
 
@@ -21,8 +22,8 @@ export function Row({ label, hint, children, htmlFor, stack = false }: { label: 
   return (
     <div className={'sd-row' + (stack ? ' sd-stack' : '')}>
       <div className="sd-label">
-        {htmlFor ? <label htmlFor={htmlFor}>{label}</label> : <span>{label}</span>}
-        {hint && <small>{hint}</small>}
+        {htmlFor ? <label htmlFor={htmlFor}><Highlighted text={label} /></label> : <span><Highlighted text={label} /></span>}
+        {hint && <small><Highlighted text={hint} /></small>}
       </div>
       <div className="sd-control">{children}</div>
     </div>
@@ -60,7 +61,7 @@ export function RangeField({ label, value, min, max, step = 1, unit = '', t, onC
   return (
     <div className="sd-row sd-range">
       <div className="sd-range-head">
-        <label className="sd-label" htmlFor={id}>{label}</label>
+        <label className="sd-label" htmlFor={id}><Highlighted text={label} /></label>
         <span className="sd-number">
           <input
             type="number" inputMode="decimal" min={min} max={max} step={step} value={text}
@@ -128,7 +129,7 @@ export function Segmented<T extends string>({ label, value, options, onChange, c
         <button
           key={option.value} type="button" role="radio" aria-checked={option.value === value} tabIndex={index === selected ? 0 : -1}
           ref={node => { refs.current[index] = node }} onClick={() => onChange(option.value)} onKeyDown={event => onKeyDown(event, index)}
-        >{option.label}</button>
+        ><Highlighted text={option.label} /></button>
       ))}
     </div>
   )
