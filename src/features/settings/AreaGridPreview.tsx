@@ -52,6 +52,7 @@ export function AreaGridPreview({ layout, label, t, onRename }: {
           ? <div key={area} className="sd-grid-block" data-area={area} style={{ gridArea: area }}>{label(area)}</div>
           : <button key={area} type="button" className="sd-grid-block" data-area={area} style={{ gridArea: area }} aria-pressed={selected === area} onClick={() => select(area)}>{label(area)}</button>)}
       </div>
+      <p className="sd-hint">{t('settings.gridPreviewHint')}</p>
       {selected !== null && (
         <form className="sd-grid-rename" onSubmit={event => { event.preventDefault(); submit() }}>
           <input

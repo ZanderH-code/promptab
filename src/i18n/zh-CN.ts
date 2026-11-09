@@ -310,6 +310,7 @@ export const zhCN = {
   'settings.desc.about': '版本、链接与许可。',
   'settings.gridPreview': '当前区域网格预览',
   'settings.gridPreviewName': '当前区域网格预览：{areas}',
+  'settings.gridPreviewHint': '点击自定义区域即可重命名。概览和快捷方式是内置区域。',
   'settings.renameArea': '重命名区域',
   'settings.renameAreaAction': '重命名',
   'settings.areaNameEmpty': '请输入区域名称。',

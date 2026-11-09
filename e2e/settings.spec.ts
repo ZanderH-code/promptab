@@ -797,3 +797,43 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
 
   expect(errors).toEqual([])
 })
+
+test('the preview explains which areas can be renamed', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  const figure = page.locator('.sd-grid-figure')
+  const hint = figure.locator('.sd-hint')
+  await expect(hint).toHaveText('Click a custom area to rename it. Overview and Shortcuts are built in.')
+  await expect(hint).toHaveClass(/\bsd-hint\b/)
+  // It follows the diagram, outside the group that carries the diagram's name.
+  expect(await figure.evaluate(element => {
+    const preview = element.querySelector('.sd-grid-preview')!
+    const note = element.querySelector('.sd-hint')!
+    return !preview.contains(note) && (preview.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+  })).toBe(true)
+  // Muted hint style, not a second section description.
+  const colors = await page.evaluate(() => ['.sd-hint', '.sd-section-desc'].map(selector => getComputedStyle(document.querySelector(selector)!).color))
+  expect(colors[0]).toBe(colors[1])
+  await expect(page.locator('.sd-section-desc')).not.toHaveText(/custom area to rename/)
+  await page.screenshot({ path: `${SHOTS}/layout-hint.png` })
+
+  // The hint is translated with the rest of the drawer.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await expect(page.locator('.sd-grid-figure .sd-hint')).toHaveText('点击自定义区域即可重命名。概览和快捷方式是内置区域。')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
