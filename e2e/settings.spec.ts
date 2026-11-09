@@ -134,6 +134,34 @@ async function expectEditorReadable(page: Page) {
   expect(ratio(colors.contentText, colors.editorBg), 'editor text contrast').toBeGreaterThanOrEqual(4.5)
 }
 
+/** The empty editor's placeholder colour and the surface it is painted on. */
+async function placeholderColors(page: Page) {
+  return await page.evaluate(() => {
+    const toRgb = (value: string) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 1
+      const context = canvas.getContext('2d')!
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data
+      return { r, g, b, a }
+    }
+    const placeholder = document.querySelector('.cm-placeholder')
+    const editor = document.querySelector('.cm-editor')
+    if (!placeholder || !editor) throw new Error('missing CSS editor placeholder')
+    return {
+      placeholder: toRgb(getComputedStyle(placeholder).color),
+      editorBg: toRgb(getComputedStyle(editor).backgroundColor),
+    }
+  })
+}
+
+async function expectPlaceholderReadable(page: Page) {
+  await expect(page.locator('.cm-placeholder')).toBeVisible()
+  const colors = await placeholderColors(page)
+  expect(ratio(colors.placeholder, colors.editorBg), 'placeholder contrast').toBeGreaterThanOrEqual(4.5)
+}
+
 test('the custom CSS editor follows the active theme', async ({ page }) => {
   const errors: string[] = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
@@ -160,6 +188,26 @@ test('the custom CSS editor follows the active theme', async ({ page }) => {
   await openStyle(page)
   await expectEditorReadable(page)
   await page.screenshot({ path: `${SHOTS}/style-contrast.png` })
+
+  expect(errors).toEqual([])
+})
+
+test('the empty custom CSS editor placeholder is readable in every theme', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+
+  // Dark is the seeded theme; the placeholder is the first thing shown in an empty editor.
+  await openStyle(page)
+  await expectPlaceholderReadable(page)
+
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
+  await page.getByRole('button', { name: 'Paper', exact: true }).click()
+  await openStyle(page)
+  await expectPlaceholderReadable(page)
 
   expect(errors).toEqual([])
 })

@@ -19,6 +19,8 @@ import { publicCssCompletion, sanitizerDiagnostics } from './cssEditorExtensions
 const editorTheme = EditorView.theme({
   '&': { height: '100%', color: 'var(--mnt-text)', backgroundColor: 'var(--mnt-surface)' },
   '.cm-content': { caretColor: 'var(--mnt-accent-text)' },
+  // CodeMirror's default #888 is 3.63:1 on the dark surface; the muted text token is contrast-checked.
+  '.cm-placeholder': { color: 'var(--mnt-text-muted)' },
   '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--mnt-accent-text)' },
   '.cm-selectionBackground, &.cm-focused .cm-selectionBackground, .cm-content ::selection': { backgroundColor: 'var(--mnt-accent-soft)' },
   '.cm-gutters': { backgroundColor: 'var(--mnt-surface)', color: 'var(--mnt-text-muted)', border: 'none', borderRight: '1px solid var(--mnt-border)' },
