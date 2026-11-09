@@ -129,7 +129,6 @@ test('4. drag onto a folder keeps following and shows the target highlight', asy
     const frames = await mouseDragFollow(page, await center(tile(page, 'a')), await center(folder), {
       midDrag: async () => {
         await expect(folder).toHaveAttribute('data-drop-target', 'true')
-        await page.screenshot({ path: '/tmp/magpie-claude-work-1001/drag-report/shots/follow-folder-highlight.png' })
       },
     })
     assertFollow(frames, 6)
