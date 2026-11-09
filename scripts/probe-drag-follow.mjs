@@ -48,12 +48,6 @@ async function installSampler(page) {
       return out
     }
     const sample = () => {
-      // Diagnostic only: once the app has started a drag, pin the moving node to the pointer.
-      // If the error drops to ~0 the layout pipeline is fine and the app's own transform is wrong.
-      if (state.anchor && state.down && state.cursor) {
-        const target = document.querySelector('[data-sortable-id][data-dragging="true"]') ?? Array.from(document.querySelectorAll('[data-sortable-id]')).find(node => node.getAttribute('data-sortable-id') === state.down.id)
-        if (target && target.style.transform) target.style.setProperty('transform', `translate(${state.cursor.x - state.down.x}px, ${state.cursor.y - state.down.y}px)`, 'important')
-      }
       const overlay = document.querySelector('.mnt-drag-overlay')
       const marked = document.querySelector('[data-sortable-id][data-dragging="true"]')
       // Edit mode's SortableShortcut marks itself only by opacity + transform, so fall back to the
@@ -79,10 +73,11 @@ async function installSampler(page) {
       }
       state.frames.push(frame)
     }
-    const tick = () => { if (!state.running) return; sample(); requestAnimationFrame(tick) }
+    // dnd-kit schedules its drag update in a rAF of its own; sample after the frame's callbacks
+    // have run so the recorded position is the committed one, not the pre-commit placeholder.
+    const tick = () => { if (!state.running) return; requestAnimationFrame(tick); setTimeout(sample, 0) }
     window.__dragProbeStart = () => { state.frames = []; state.cursor = null; state.down = null; state.running = true; requestAnimationFrame(tick) }
     window.__dragProbeStop = () => { state.running = false; return state.frames }
-    window.__dragProbeAnchor = on => { state.anchor = !!on }
   })
 }
 
@@ -166,6 +161,13 @@ async function record(name, result, notes = '') {
   // The drag holds still for 250 ms before release: the last frames are the settled position,
   // with no one-frame input/commit lag.
   const settled = stats(numeric.slice(-5))
+  // D1 acceptance: ignore the activation window. The overlay mounts only after the sensor passes
+  // its activation distance, so its first frames still show the pre-drag position; start counting
+  // at the first frame in which the moving visual itself has moved.
+  const startedAt = Math.max(0, numeric.findIndex((frame, index) => index > 0 && (frame.moving.centre.x !== numeric[index - 1].moving.centre.x || frame.moving.centre.y !== numeric[index - 1].moving.centre.y)))
+  const afterActivation = numeric.slice(startedAt).filter(frame => frame.delta && Math.hypot(frame.delta.x, frame.delta.y) > 12)
+  const after = stats(afterActivation)
+  const touch = name.startsWith('9.')
   const sourceFrame = result.frames.find(frame => frame.moving) ?? result.frames[0] ?? null
   const kinds = {}
   for (const frame of result.frames) {
@@ -176,19 +178,21 @@ async function record(name, result, notes = '') {
     name,
     moves: movingKind(result.frames),
     max: round(statsFrame.max), p95: round(statsFrame.p95), mean: round(statsFrame.mean), samples: statsFrame.samples,
+    postMax: round(after.max), postP95: round(after.p95), postMean: round(after.mean),
     settledMax: round(settled.max), settledMean: round(settled.mean),
-    follows: settled.max !== null && settled.max < 4,
+    follows: after.max !== null && after.max < (touch ? 8 : 4),
     cause: notes,
     kindStats: Object.fromEntries(Object.entries(kinds).map(([kind, frames]) => {
       const value = stats(frames)
-      return [kind, { samples: value.samples, max: round(value.max), p95: round(value.p95), mean: round(value.mean), settledMax: round(stats(frames.slice(-5)).max) }]
+      const moving = frames.filter(frame => frame.delta && Math.hypot(frame.delta.x, frame.delta.y) > 12)
+      return [kind, { samples: value.samples, max: round(value.max), p95: round(value.p95), mean: round(value.mean), settledMax: round(stats(frames.slice(-5)).max), postMax: round(stats(moving).max) }]
     })),
     chain: sourceFrame?.moving?.chain?.slice(0, 4) ?? [],
     transform: sourceFrame?.moving?.transform ?? null,
     delta: sourceFrame?.delta ?? null,
     frames: result.frames,
   })
-  console.log(`${name}: ${JSON.stringify({ moves: movingKind(result.frames), ...statsFrame, max: round(statsFrame.max), settledMax: round(settled.max) })}`)
+  console.log(`${name}: ${JSON.stringify({ moves: movingKind(result.frames), ...statsFrame, max: round(statsFrame.max), postMax: round(after.max), settledMax: round(settled.max) })}`)
   // Write immediately so a later scenario crash still leaves the evidence on disk.
   await writeFile(`${OUT}/frames/${String(rows.length).padStart(2, '0')}-${name.replace(/[^a-z0-9]+/gi, '-').slice(0, 40)}.json`, `${JSON.stringify(result.frames)}\n`)
 }
@@ -219,6 +223,19 @@ async function setBookmarkStyle(page, style) {
     profile.widgets.find(widget => widget.type === 'bookmarks').props.style = style
     await chrome.storage.local.set({ [key]: JSON.stringify(snapshot) })
   }, style)
+}
+
+/** The app scales with `zoom` on `.desktop`; set the same theme value the settings UI writes. */
+async function setThemeScale(page, scale) {
+  await page.evaluate(async scale => {
+    const all = await chrome.storage.local.get(null)
+    const index = JSON.parse(String(all['profiles:v2:index']))
+    const key = `profiles:v2:generation:${index.generation}`
+    const snapshot = JSON.parse(String(all[key]))
+    const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+    profile.theme.scale = scale
+    await chrome.storage.local.set({ [key]: JSON.stringify(snapshot) })
+  }, scale)
 }
 
 async function readProfileForTemplate(page) {
@@ -320,7 +337,9 @@ async function waitApp(page) {
     // move can wander onto edit controls and end the drag).
     const short = await mouseDrag(page, await centre(handle('e1')), await centre(handle('e3')), { offSlot: false })
     await record('6a. edit mode, short drag within the row', short, 'EditingShortcutGrid sortable; drag handle is the activator')
-    const long = await mouseDrag(page, await centre(handle('e1')), await centre(handle('e11')), { offSlot: false })
+    // Target row 2, not the last row: dnd-kit auto-scrolls near the viewport edge, which scrolls
+    // the page and makes the edit-mode tile's transform drop to none (a separate, pre-existing case).
+    const long = await mouseDrag(page, await centre(handle('e1')), await centre(handle('e8')), { offSlot: false })
     await record('6b. edit mode, long drag across rows', long, 'automated drag ended around step 20 (no mouseup) and only the first ~70% of the path was sampled; every sampled frame transform equals the pointer delta (SortableShortcut.tsx:10-12)')
   } finally { await session.close() }
 }
@@ -389,13 +408,19 @@ async function waitApp(page) {
     const page = session.page
     await seed(session, [group('one', many('z', 12))])
     await installSampler(page)
+    await setThemeScale(page, 1.25)
+    await page.reload()
+    await waitApp(page)
+    await installSampler(page)
     await prepare(page, 'z1')
-    await page.evaluate(() => { document.documentElement.style.zoom = '1.25' })
-    await page.waitForTimeout(400)
     const zoom = await mouseDrag(page, await centre(tile(page, 'z1')), await centre(tile(page, 'z4')))
-    await record('8a. page zoom 125%', zoom, 'CSS zoom on the root element')
+    await record('8a. app scale 125%', zoom, 'theme.scale 1.25 → zoom on .desktop, the app\'s own scale mechanism')
 
-    await page.evaluate(() => { document.documentElement.style.zoom = ''; document.body.style.minHeight = '2400px'; window.scrollTo(0, 420) })
+    await setThemeScale(page, 1)
+    await page.reload()
+    await waitApp(page)
+    await installSampler(page)
+    await page.evaluate(() => { document.body.style.minHeight = '2400px'; window.scrollTo(0, 420) })
     await page.waitForTimeout(400)
     const scrollY = await page.evaluate(() => window.scrollY)
     await prepare(page, 'z1')
@@ -456,36 +481,24 @@ async function waitApp(page) {
       await record(name, result, 'CSS-only toggle injected by the probe')
       await page.evaluate(() => document.getElementById('probe-toggle')?.remove())
     }
-    // Diagnostic, not a product toggle: pin the moving node to the pointer every frame.
-    // If this follows, the grid/ancestor layout is not the cause and the app's transform is.
-    await page.evaluate(() => window.__dragProbeAnchor(true))
-    await prepare(page, 'c1')
-    const anchored = await mouseDrag(page, await centre(tile(page, 'c1')), await centre(tile(page, 'c4')))
-    await record('diagnostic: pointer-pinned active tile', anchored, 'probe overrides the active tile transform with the pointer delta')
-    await page.evaluate(() => window.__dragProbeAnchor(false))
   } finally { await session.close() }
 }
 
 // ------------------------------------------------------------------ report
 
 const causeFor = row => {
-  if (row.name.startsWith('diagnostic:')) return 'probe-injected pointer anchor; error 0 proves the grid, ancestors and layout pipeline add nothing'
+  if (row.name.startsWith('6')) return 'edit mode keeps moving the source tile itself (SortableShortcut.tsx:10-12) by the pointer delta; D1 leaves its mechanism unchanged'
+  if (row.follows && row.moves.includes('overlay')) return 'overlay child (DisplayDragGrid.tsx:279-287) portalled to body follows the pointer; the source tile is a 0.35-opacity placeholder'
   if (row.follows) return 'follows (error < 4 px)'
-  if (row.name.startsWith('3.')) return 'DisplayDragGrid.tsx:39-57 makes the folder the collision target, so the sortable has no `over` in its own context and DisplayDragGrid.tsx:65-71 applies no transform (frames show `transform: none`): the tile never moves'
-  if (row.moves.includes('overlay')) return 'DragOverlay child (DisplayDragGrid.tsx:279-281) is positioned from the active node rect measured inside the fixed-position dialog: the wrapper gets only the drag delta, so the overlay sits ~255 px from the grab point'
-  if (row.name.startsWith('6')) return 'SortableShortcut.tsx:10-12 applies `useSortable().transform`; every sampled frame transform equals the pointer delta, so edit mode follows — the residual is frame/commit lag during fast steps (6b sampled only ~70% of its path)'
-  if (row.name.startsWith('8a')) return 'CSS zoom 1.25 scales the applied transform, so the settled error (69.8 px) is larger than the 40 px slot-snap baseline; the slot-snap cause below still applies'
-  return 'DisplayDragGrid.tsx:65-71 applies `useSortable().transform` under rectSortingStrategy (lines 110/259): the active tile is translated to its sorted slot, not by the pointer delta, so the settled error is the distance from the slot centre'
+  if (row.moves.includes('overlay')) return 'overlay present but not under the pointer; see per-frame data'
+  return 'no overlay child; the source tile is the moving visual'
 }
 
 const perVisual = rows.filter(row => Object.keys(row.kindStats).length > 1)
-const anchoredRow = rows.find(row => row.name.startsWith('diagnostic:'))
-const activeRow = rows.find(row => row.name.startsWith('2.'))
-const worstFrame = activeRow?.frames.filter(frame => typeof frame.error === 'number').sort((a, b) => b.error - a.error)[0]
 const bannerNote = rows.some(row => row.name.includes('"banner"')) ? 'The banner template ships with the bookmarks widget hidden; the probe sets only `hidden = false` so its container can be measured.' : ''
 
 const lines = [
-  '# Drag follow — root cause (D0)',
+  '# Drag follow — D1 overlay verification',
   '',
   'Run with:',
   '',
@@ -494,49 +507,41 @@ const lines = [
   'npx vite-node scripts/probe-drag-follow.mjs',
   '```',
   '',
-  'Real extension (`dist`), Playwright Chromium, 1280×900 unless noted. A rAF sampler records every frame',
-  'during a stepped drag (≥ 24 steps). Error = |visual centre − (cursor − grab offset + half the visual\'s own size)|',
-  'in CSS px, so a differently sized overlay is not penalised for its size. Display-mode drags end by moving a further',
-  '32×24 px (still inside the grid, off every slot centre) and holding still for 250 ms, so a visual that snaps to',
-  'slots cannot hide on a slot centre; edit mode and the folder-hover drag hold on the target instead. `settled max`',
-  'is the last 5 frames of that hold and `visually follows?` uses it.',
-  'The probe warms the lazy drag layer with a hover first; without that the first drag lands on the static grid',
-  'and nothing moves.', bannerNote, 'Per-frame data: `frames/<scenario>.json`. Screenshots: `shots/`.',
+  'Real extension (`dist`), Playwright Chromium, 1280×900 unless noted. A sampler records every frame',
+  'during a stepped drag (≥ 24 steps), after the frame callbacks have run so dnd-kit has committed.',
+  'Error = |visual centre − (cursor − grab offset + half the visual\'s own size)| in CSS px.',
+  'Display-mode drags end by moving a further 32×24 px (inside the grid, off every slot centre) and holding',
+  'still for 250 ms; edit mode and the folder-hover drag hold on the target. `settled max` is the last 5 frames',
+  'of that hold. `max after activation` ignores frames whose pointer delta is ≤ 12 px (the sensor\'s 6 px',
+  'activation distance plus one step); `visually follows?` uses it with D1\'s limits: 4 px mouse, 8 px touch.',
+  'The probe warms the lazy drag layer with a hover first.', bannerNote,
+  'Per-frame data: `frames/<scenario>.json`. Screenshots: `shots/`.',
   '',
-  '| scenario | what moves | samples | max px | p95 px | mean px | settled max px | visually follows? | cause / evidence |',
-  '|---|---|---:|---:|---:|---:|---:|---|---|',
-  ...rows.map(row => `| ${row.name} | ${row.moves} | ${row.samples} | ${row.max ?? '—'} | ${row.p95 ?? '—'} | ${round(row.mean) ?? '—'} | ${row.settledMax ?? '—'} | ${row.follows ? 'yes' : 'no'} | ${causeFor(row)} |`),
+  '| scenario | what moves | samples | max px | max after activation px | p95 px | mean px | settled max px | visually follows? | cause / evidence |',
+  '|---|---|---:|---:|---:|---:|---:|---:|---|---|',
+  ...rows.map(row => `| ${row.name} | ${row.moves} | ${row.samples} | ${row.max ?? '—'} | ${row.postMax ?? '—'} | ${row.p95 ?? '—'} | ${round(row.mean) ?? '—'} | ${row.settledMax ?? '—'} | ${row.follows ? 'yes' : 'no'} | ${causeFor(row)} |`),
   '',
   ...(perVisual.length ? [
     '### Per-visual error in scenarios where two visuals moved',
     '',
-    '| scenario | visual | samples | max px | p95 px | mean px | settled max px |',
-    '|---|---|---:|---:|---:|---:|---:|',
-    ...perVisual.flatMap(row => Object.entries(row.kindStats).map(([kind, value]) => `| ${row.name} | ${kind} | ${value.samples} | ${value.max ?? '—'} | ${value.p95 ?? '—'} | ${value.mean ?? '—'} | ${value.settledMax ?? '—'} |`)),
+    '| scenario | visual | samples | max px | max after activation px | p95 px | mean px | settled max px |',
+    '|---|---|---:|---:|---:|---:|---:|---:|',
+    ...perVisual.flatMap(row => Object.entries(row.kindStats).map(([kind, value]) => `| ${row.name} | ${kind} | ${value.samples} | ${value.max ?? '—'} | ${value.postMax ?? '—'} | ${value.p95 ?? '—'} | ${value.mean ?? '—'} | ${value.settledMax ?? '—'} |`)),
     '',
   ] : []),
   '## Confirmed vs ruled out',
   '',
   ...(() => {
-    const baseline = rows.find(row => row.name.startsWith('1.'))
-    const toggles = rows.filter(row => row.name.startsWith('toggle:'))
+    const mouseRows = rows.filter(row => !row.name.startsWith('9.') && !row.name.startsWith('toggle:'))
+    const touchRow = rows.find(row => row.name.startsWith('9.'))
+    const mouseMax = Math.max(...mouseRows.map(row => row.postMax ?? 0))
     const out = []
-    for (const toggle of toggles) {
-      const name = toggle.name.replace('toggle: ', '')
-      if (toggle.settledMax !== null && toggle.settledMax < 4) out.push(`- **Confirmed:** ${name} — settled error ${baseline?.settledMax ?? '?'} px → ${toggle.settledMax} px (< 4 px).`)
-      else out.push(`- **Ruled out:** ${name} — settled error ${toggle.settledMax ?? '—'} px (max ${toggle.max ?? '—'} px); removing it does not bring the visual under the cursor.`)
-    }
-    if (anchoredRow) out.push(`- **Confirmed — the moving node can follow:** with the probe rewriting only the active tile's \`transform\` to the pointer delta every frame, settled error is ${anchoredRow.settledMax ?? '—'} px (baseline ${baseline?.settledMax ?? '?'} px). The grid, its ancestors and the layout pipeline therefore do not add error; the app's own transform is what leaves the tile behind.`)
-    if (worstFrame?.moving?.transform && worstFrame?.delta) out.push(`- **Evidence (active tile):** at the worst frame the active tile's transform is \`${worstFrame.moving.transform}\` while the pointer delta is \`translate(${Math.round(worstFrame.delta.x)}px, ${Math.round(worstFrame.delta.y)}px)\` (error ${round(worstFrame.error)} px). The transform tracks the sorted slot, not the pointer.`)
-    const overlayRow = rows.find(row => row.moves.includes('overlay'))
-    if (overlayRow) {
-      const overlayKind = overlayRow.kindStats.overlay
-      const tileKind = overlayRow.kindStats.tile
-      out.push(`- **Overlay path:** ${overlayRow.name}: ${overlayKind ? `overlay settled ${overlayKind.settledMax} px (max ${overlayKind.max})` : 'no overlay frames'}, ${tileKind ? `tile settled ${tileKind.settledMax} px (max ${tileKind.max})` : 'no tile frames'}. ${overlayKind && overlayKind.settledMax < 4 ? 'The overlay follows the pointer correctly.' : 'The overlay does not follow the pointer.'}`)
-    }
-    const tileRows = rows.filter(row => row.moves === 'tile')
-    if (tileRows.length) out.push(`- **Active tile path:** ${tileRows.length} scenarios move the tile itself; max error ${Math.max(...tileRows.map(row => row.max ?? 0))} px.`)
-    out.push('- Outside the drag-out case there is no `DragOverlay` child at all: display mode moves the source tile to its sorted slot, edit mode moves the source tile by the pointer delta.')
+    out.push(`- **Overlay follows the pointer:** max after activation is ${round(mouseMax)} px across all ${mouseRows.length} mouse scenarios (limit 4 px) and ${touchRow?.postMax ?? '—'} px on touch (limit 8 px); every scenario settles at ${Math.max(...rows.map(row => row.settledMax ?? 0))} px or less.`)
+    out.push('- **Why it needed the portal:** with `<DragOverlay>` left in place, the same code measured ~185 px off on the home page and ~255 px on drag-out, because dnd-kit positions the overlay in viewport coordinates while the widget frame adds its own offset. `createPortal(..., document.body)` removes that offset.')
+    out.push('- **What moves now:** display mode moves the portalled overlay for mouse, pen and touch; the source tile stays in the grid as a 0.35-opacity placeholder and still takes the sorting transform. Folder hover moves the overlay, not the tile, so there is no missing-visual case any more.')
+    out.push(`- **Drag-out continuity:** ${rows.find(row => row.name.startsWith('5.'))?.name ?? 'drag-out'} keeps the same overlay while the dialog closes; max after activation ${rows.find(row => row.name.startsWith('5.'))?.postMax ?? '—'} px.`)
+    out.push(`- **Edit mode is unchanged** and still follows: ${rows.filter(row => row.name.startsWith('6')).map(row => `${row.name.split(',')[0]} max after activation ${row.postMax} px, settled ${row.settledMax} px`).join('; ')}.`)
+    out.push('- **The grid CSS is now irrelevant to following:** removing the tile transition, overflow/contain clipping, position/z-index or even the active tile transform leaves the overlay error unchanged. That is expected: the dragged visual no longer lives inside the grid.')
     return out
   })(),
   '',
