@@ -632,3 +632,83 @@ test('the section header stays in view with the reset action', async ({ page }) 
 
   expect(errors).toEqual([])
 })
+
+test('the layout diagram previews the committed area grid', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  const preview = page.locator('.sd-grid-preview')
+  const blocks = preview.locator('.sd-grid-block')
+  await expect(preview).toBeVisible()
+  await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
+  await expect(preview).toHaveAttribute('role', 'img')
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview')
+  // Read-only: nothing in the diagram is focusable or editable.
+  await expect(preview.locator('input, textarea, select, button, [contenteditable]')).toHaveCount(0)
+
+  const geometry = () => page.evaluate(() => {
+    const read = (rootSelector: string) => {
+      const root = document.querySelector<HTMLElement>(rootSelector)!
+      const box = root.getBoundingClientRect()
+      const left = box.left + root.clientLeft
+      const width = root.clientWidth
+      return {
+        areas: getComputedStyle(root).gridTemplateAreas,
+        blocks: Object.fromEntries([...root.querySelectorAll<HTMLElement>('[data-area]')].map(element => {
+          const rect = element.getBoundingClientRect()
+          return [element.dataset.area!, { left: (rect.left - left) / width, right: (rect.right - left) / width }]
+        })),
+      }
+    }
+    return { preview: read('.sd-grid-preview'), page: read('.mnt-layout') }
+  })
+
+  // Stacked: the diagram mirrors the page's rows.
+  await expect.poll(async () => (await geometry()).page.areas).toBe('"overview" "bookmarks"')
+  await expect.poll(async () => (await geometry()).preview.areas).toBe('"overview" "bookmarks"')
+  await page.screenshot({ path: `${SHOTS}/grid-preview.png` })
+
+  // Side by side: the page and the diagram keep the same column proportions.
+  await page.getByRole('combobox', { name: 'Layout', exact: true }).click()
+  await page.getByRole('option', { name: 'Side by side', exact: true }).click()
+  await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', 'split')
+  await expect.poll(async () => (await geometry()).page.areas).toBe('"bookmarks overview"')
+  await expect.poll(async () => (await geometry()).preview.areas).toBe('"bookmarks overview"')
+  await expect(blocks).toHaveText(['Shortcuts', 'Overview'])
+  const split = await geometry()
+  const previewWidth = await preview.evaluate(element => element.clientWidth)
+  for (const area of ['bookmarks', 'overview']) {
+    const previewBlock = split.preview.blocks[area]
+    const pageBlock = split.page.blocks[area]
+    expect(Math.abs(previewBlock.left - pageBlock.left) * previewWidth, `${area} left edge`).toBeLessThanOrEqual(2)
+    expect(Math.abs(previewBlock.right - pageBlock.right) * previewWidth, `${area} right edge`).toBeLessThanOrEqual(2)
+  }
+  // Side by side puts the shortcuts on the left and the overview on the right, on both.
+  const pageBoxes = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll<HTMLElement>('.mnt-layout .mnt-area[data-area]')].map(element => [element.dataset.area!, element.getBoundingClientRect().left])))
+  expect(pageBoxes.bookmarks).toBeLessThan(pageBoxes.overview)
+  expect(split.preview.blocks.bookmarks.left).toBeLessThan(split.preview.blocks.overview.left)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // An invalid draft leaves the diagram on the committed grid; a valid edit moves it.
+  const committed = await preview.evaluate(element => element.innerHTML)
+  const areas = page.getByRole('textbox', { name: 'Area grid' })
+  await areas.fill('bookmarks overview\nbookmarks overview')
+  await expect(page.getByRole('alert')).toBeVisible()
+  expect(await preview.evaluate(element => element.innerHTML)).toBe(committed)
+  expect((await geometry()).preview.areas).toBe('"bookmarks overview"')
+
+  await areas.fill('overview bookmarks')
+  await expect.poll(async () => (await geometry()).preview.areas).toBe('"overview bookmarks"')
+  await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
+
+  expect(errors).toEqual([])
+})

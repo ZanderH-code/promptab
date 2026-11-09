@@ -79,6 +79,17 @@
 .sd-section-head .sd-button { flex: none; }
 .sd-group { margin: var(--mnt-space-4) 0 0; font-size: var(--mnt-text-xs); font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--mnt-text-muted); }
 .sd-count { margin: var(--mnt-space-1) 0 0; }
+.sd-grid-figure { margin: 0 0 var(--mnt-space-2); }
+.sd-grid-preview {
+  display: grid; height: 170px;
+  border: 1px solid var(--mnt-border); border-radius: 10px; background: var(--mnt-surface-hover);
+}
+.sd-grid-block {
+  display: flex; align-items: center; justify-content: center; min-width: 0; overflow: hidden; padding: 4px;
+  border-radius: 6px; background: var(--mnt-accent-soft); color: var(--mnt-text); font-size: var(--mnt-text-xs);
+  text-align: center; overflow-wrap: anywhere;
+}
+.sd-grid-block[data-area="bookmarks"] { background: var(--mnt-surface-active); }
 .sd-hint { padding: var(--mnt-space-2) 0; }
 
 .sd-item { padding: var(--mnt-space-1) 0; }

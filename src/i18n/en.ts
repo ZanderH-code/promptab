@@ -308,6 +308,7 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.desc.ai': 'Build a prompt, import a reply and preview the theme.',
   'settings.desc.data': 'Profiles, backups and browser imports.',
   'settings.desc.about': 'Version, links and licence.',
+  'settings.gridPreview': 'Current area grid preview',
   'settings.find': 'Search settings',
   'settings.findClear': 'Clear search',
   'settings.findResults': 'Search results',

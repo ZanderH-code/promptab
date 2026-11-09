@@ -308,6 +308,7 @@ export const zhCN = {
   'settings.desc.ai': '生成提示包、导入回复并预览主题。',
   'settings.desc.data': '配置文件、备份与浏览器导入。',
   'settings.desc.about': '版本、链接与许可。',
+  'settings.gridPreview': '当前区域网格预览',
   'settings.find': '搜索设置',
   'settings.findClear': '清除搜索',
   'settings.findResults': '搜索结果',
