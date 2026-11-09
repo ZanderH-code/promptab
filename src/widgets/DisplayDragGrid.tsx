@@ -71,7 +71,7 @@ function SortableTile({ id, reduceMotion, children }: { id: string; reduceMotion
     className="shortcut-wrap"
     data-sortable-id={id}
     data-dragging={isDragging ? 'true' : undefined}
-    style={{ transform: DndCSS.Transform.toString(transform), transition: isDragging || reduceMotion ? undefined : 'transform 180ms ease', opacity: isDragging ? 0.35 : 1 }}
+    style={{ transform: DndCSS.Transform.toString(transform), transition: isDragging || reduceMotion ? undefined : 'transform 180ms ease' }}
     {...listeners}
     onPointerDown={mouseOnly(listeners)}
   >{children}</div>
@@ -84,7 +84,7 @@ function SortableDialogItem({ id, reduceMotion, children }: { id: string; reduce
     className="mnt-folder-dialog-item"
     data-sortable-id={id}
     data-dragging={isDragging ? 'true' : undefined}
-    style={{ transform: DndCSS.Transform.toString(transform), transition: isDragging || reduceMotion ? undefined : 'transform 180ms ease', opacity: isDragging ? 0.35 : 1 }}
+    style={{ transform: DndCSS.Transform.toString(transform), transition: isDragging || reduceMotion ? undefined : 'transform 180ms ease' }}
     {...listeners}
     onPointerDown={mouseOnly(listeners)}
   >{children}</div>
@@ -137,6 +137,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
   const reducedMotion = reduceMotion === 'on' || (reduceMotion === 'system' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
   const movedRef = useRef(false)
   const sourceRef = useRef<string | null>(null)
+  const grabRef = useRef<{ x: number; y: number } | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -179,7 +180,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     }
     window.setTimeout(tick, 0)
   }
-  const resetDrag = () => { setActiveId(null); sourceRef.current = null }
+  const resetDrag = () => { setActiveId(null); sourceRef.current = null; grabRef.current = null }
   const dragEnd = ({ active, over }: DragEndEvent) => {
     const activeId = String(active.id)
     const sourceGroup = groups.find(group => group.items.some(item => item.id === activeId))
@@ -220,10 +221,16 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
   return <DndContext
     sensors={sensors}
     collisionDetection={displayCollision}
-    onDragStart={({ active }) => {
+    onDragStart={({ active, activatorEvent }) => {
       const id = String(active.id)
       setActiveId(id); movedRef.current = false
       sourceRef.current = groups.find(group => group.items.some(item => item.id === id))?.id ?? null
+      // Scale the lift around the point the pointer grabbed, so the grabbed content stays put.
+      // dnd-kit places the overlay's layout box under the pointer minus this same offset.
+      const rect = document.querySelector<HTMLElement>(`[data-sortable-id="${CSS.escape(id)}"]`)?.getBoundingClientRect()
+      const event = activatorEvent as PointerEvent | TouchEvent | null
+      const point = event && 'clientX' in event ? event as PointerEvent : event && 'touches' in event ? event.touches[0] ?? event.changedTouches[0] : null
+      grabRef.current = rect && point ? { x: point.clientX - rect.left, y: point.clientY - rect.top } : null
     }}
     onDragMove={() => { movedRef.current = true }}
     onDragCancel={() => {
@@ -277,9 +284,10 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     </div>
     {/* The overlay is the dragged visual for the whole drag, mouse, pen and touch alike.
         dnd-kit positions it in viewport coordinates, so it must be portalled out of the widget
-        frame; otherwise the frame's own offset is added to every position. */}
+        frame; otherwise the frame's own offset is added to every position. The lift lives on the
+        inner element so the scale can never shift the position dnd-kit computes. */}
     {createPortal(<DragOverlay dropAnimation={null}>
-      {activeItem ? <div className="shortcut-wrap mnt-drag-overlay" aria-hidden="true"><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
+      {activeItem ? <div className="shortcut-wrap mnt-drag-overlay" aria-hidden="true" style={reducedMotion ? undefined : { transform: 'scale(1.06)', transformOrigin: grabRef.current ? `${grabRef.current.x}px ${grabRef.current.y}px` : 'center', boxShadow: 'var(--mnt-elev-2)' }}><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
     </DragOverlay>, document.body)}
   </DndContext>
 }

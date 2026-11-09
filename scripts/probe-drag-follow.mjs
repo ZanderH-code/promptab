@@ -48,18 +48,20 @@ async function installSampler(page) {
       return out
     }
     const sample = () => {
-      const overlay = document.querySelector('.mnt-drag-overlay')
+      // The overlay's inner element carries the lift scale. Measure the wrapper dnd-kit positions:
+      // same visible grab point, unscaled layout box, so the centre metric stays comparable with D1.
+      const overlayFrame = document.querySelector('.mnt-drag-overlay')?.parentElement ?? null
       const marked = document.querySelector('[data-sortable-id][data-dragging="true"]')
       // Edit mode's SortableShortcut marks itself only by opacity + transform, so fall back to the
       // tile captured at pointer-down that currently carries a transform.
-      const transformed = !overlay && !marked && state.down ? Array.from(document.querySelectorAll('[data-sortable-id]')).find(node => node.getAttribute('data-sortable-id') === state.down.id && getComputedStyle(node).transform !== 'none') : null
-      const moving = overlay ?? marked ?? transformed
+      const transformed = !overlayFrame && !marked && state.down ? Array.from(document.querySelectorAll('[data-sortable-id]')).find(node => node.getAttribute('data-sortable-id') === state.down.id && getComputedStyle(node).transform !== 'none') : null
+      const moving = overlayFrame ?? marked ?? transformed
       const frame = { t: performance.now(), cursor: state.cursor, down: state.down, delta: null, moving: null, error: null }
       if (state.cursor && state.down) frame.delta = { x: state.cursor.x - state.down.x, y: state.cursor.y - state.down.y }
       if (moving) {
         const rect = moving.getBoundingClientRect()
         const centre = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-        frame.moving = { kind: overlay ? 'overlay' : 'tile', id: moving.getAttribute('data-sortable-id'), centre, width: rect.width, height: rect.height, transform: getComputedStyle(moving).transform, chain: chain(moving) }
+        frame.moving = { kind: overlayFrame ? 'overlay' : 'tile', id: moving.getAttribute('data-sortable-id'), centre, width: rect.width, height: rect.height, transform: getComputedStyle(moving).transform, chain: chain(moving) }
         if (state.down && state.cursor) {
           // Preserve the grab point relative to the visual's own size, so a differently sized
           // overlay is not penalised for its size.
@@ -155,6 +157,7 @@ const movingKind = frames => {
 }
 
 const rows = []
+const lifts = []
 async function record(name, result, notes = '') {
   const statsFrame = stats(result.frames)
   const numeric = result.frames.filter(frame => typeof frame.error === 'number')
@@ -211,6 +214,19 @@ async function prepare(page, id) {
   await loadDragLayer(page, id)
   await page.waitForTimeout(120)
 }
+
+/** D2a: the lifted overlay's computed transform/shadow and the placeholder's themed edge. */
+const readLift = page => page.evaluate(() => {
+  const overlay = document.querySelector('.mnt-drag-overlay')
+  const tile = document.querySelector('[data-sortable-id][data-dragging="true"]')
+  const style = overlay ? getComputedStyle(overlay) : null
+  const edge = tile ? getComputedStyle(tile, '::after') : null
+  return {
+    transform: style?.transform ?? null,
+    boxShadow: style?.boxShadow ?? null,
+    placeholderBorder: edge && edge.borderTopStyle !== 'none' ? `${edge.borderTopStyle} ${edge.borderTopWidth} ${edge.borderTopColor}` : null,
+  }
+})
 
 /** Sets the bookmark widget style in the active profile through the extension's real storage. */
 async function setBookmarkStyle(page, style) {
@@ -451,8 +467,53 @@ async function waitApp(page) {
     await waitApp(page)
     await installSampler(page)
     await prepare(page, 'r1')
-    const reduced = await mouseDrag(page, await centre(tile(page, 'r1')), await centre(tile(page, 'r4')))
-    await record('10. reduced motion', reduced, 'prefers-reduced-motion: reduce')
+    let reducedLift = null
+    const reduced = await mouseDrag(page, await centre(tile(page, 'r1')), await centre(tile(page, 'r4')), {
+      midDrag: async () => { reducedLift = await readLift(page) },
+    })
+    lifts.push({ name: 'reduced motion', ...reducedLift })
+    await record('10. reduced motion', reduced, `prefers-reduced-motion: reduce; overlay ${reducedLift?.transform ?? 'none'}, shadow ${reducedLift?.boxShadow ?? 'none'}`)
+  } finally { await session.close() }
+}
+
+// D2a: the lift, its themed placeholder and mid-drag screenshots in light, dark and high contrast.
+{
+  const session = await launchExtension({ viewport: { width: 1280, height: 900 } })
+  try {
+    const page = session.page
+    await seed(session, [group('one', many('v', 8))])
+    const setTheme = async patch => {
+      await page.evaluate(async patch => {
+        const all = await chrome.storage.local.get(null)
+        const index = JSON.parse(String(all['profiles:v2:index']))
+        const key = `profiles:v2:generation:${index.generation}`
+        const snapshot = JSON.parse(String(all[key]))
+        const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+        profile.theme = { ...profile.theme, ...patch }
+        await chrome.storage.local.set({ [key]: JSON.stringify(snapshot) })
+      }, patch)
+      await page.reload()
+      await waitApp(page)
+      await installSampler(page)
+      await prepare(page, 'v1')
+    }
+    const runs = [
+      ['dark', { mode: 'dark' }, 'lift-dark-mid-drag.png'],
+      ['light', { mode: 'light', colorLight: { bg: '#eeeae4', surface: '#f8f7f3', text: '#302d29', accent: '#3a5a80' } }, 'lift-light-mid-drag.png'],
+      ['high contrast', { mode: 'dark', preset: 'contrast' }, 'lift-contrast-mid-drag.png'],
+    ]
+    for (const [name, patch, shot] of runs) {
+      await setTheme(patch)
+      let lift = null
+      const result = await mouseDrag(page, await centre(tile(page, 'v1')), await centre(tile(page, 'v4')), {
+        midDrag: async () => {
+          lift = await readLift(page)
+          await page.screenshot({ path: `${OUT}/shots/${shot}` })
+        },
+      })
+      lifts.push({ name, ...lift })
+      await record(`11. lift, ${name}`, result, `overlay ${lift?.transform ?? 'none'}, shadow ${lift?.boxShadow ?? 'none'}; placeholder ${lift?.placeholderBorder ?? '—'}; ${shot}`)
+    }
   } finally { await session.close() }
 }
 
@@ -488,7 +549,7 @@ async function waitApp(page) {
 
 const causeFor = row => {
   if (row.name.startsWith('6')) return 'edit mode keeps moving the source tile itself (SortableShortcut.tsx:10-12) by the pointer delta; D1 leaves its mechanism unchanged'
-  if (row.follows && row.moves.includes('overlay')) return 'overlay child (DisplayDragGrid.tsx:279-287) portalled to body follows the pointer; the source tile is a 0.35-opacity placeholder'
+  if (row.follows && row.moves.includes('overlay')) return 'overlay child (DisplayDragGrid.tsx) portalled to body follows the pointer; the source tile is a faded, dashed placeholder'
   if (row.follows) return 'follows (error < 4 px)'
   if (row.moves.includes('overlay')) return 'overlay present but not under the pointer; see per-frame data'
   return 'no overlay child; the source tile is the moving visual'
@@ -496,9 +557,16 @@ const causeFor = row => {
 
 const perVisual = rows.filter(row => Object.keys(row.kindStats).length > 1)
 const bannerNote = rows.some(row => row.name.includes('"banner"')) ? 'The banner template ships with the bookmarks widget hidden; the probe sets only `hidden = false` so its container can be measured.' : ''
+const litLifts = lifts.filter(lift => lift.name !== 'reduced motion')
+const reducedLift = lifts.find(lift => lift.name === 'reduced motion')
+const scaleOf = transform => {
+  if (!transform || transform === 'none') return 1
+  const values = transform.match(/^matrix\(([^)]+)\)$/)?.[1].split(',').map(Number)
+  return values ? values[0] : null
+}
 
 const lines = [
-  '# Drag follow — D1 overlay verification',
+  '# Drag follow — D2a lift and placeholder verification',
   '',
   'Run with:',
   '',
@@ -510,6 +578,8 @@ const lines = [
   'Real extension (`dist`), Playwright Chromium, 1280×900 unless noted. A sampler records every frame',
   'during a stepped drag (≥ 24 steps), after the frame callbacks have run so dnd-kit has committed.',
   'Error = |visual centre − (cursor − grab offset + half the visual\'s own size)| in CSS px.',
+  'The overlay\'s inner element carries the D2a lift, so the sampler measures the wrapper dnd-kit positions',
+  '(same visible grab point, unscaled layout box); this keeps the numbers comparable with D1.',
   'Display-mode drags end by moving a further 32×24 px (inside the grid, off every slot centre) and holding',
   'still for 250 ms; edit mode and the folder-hover drag hold on the target. `settled max` is the last 5 frames',
   'of that hold. `max after activation` ignores frames whose pointer delta is ≤ 12 px (the sensor\'s 6 px',
@@ -520,6 +590,12 @@ const lines = [
   '| scenario | what moves | samples | max px | max after activation px | p95 px | mean px | settled max px | visually follows? | cause / evidence |',
   '|---|---|---:|---:|---:|---:|---:|---:|---|---|',
   ...rows.map(row => `| ${row.name} | ${row.moves} | ${row.samples} | ${row.max ?? '—'} | ${row.postMax ?? '—'} | ${row.p95 ?? '—'} | ${round(row.mean) ?? '—'} | ${row.settledMax ?? '—'} | ${row.follows ? 'yes' : 'no'} | ${causeFor(row)} |`),
+  '',
+  '### D2a lift and placeholder',
+  '',
+  '| run | overlay transform | scale | shadow | placeholder edge | mid-drag screenshot |',
+  '|---|---|---:|---|---|---|',
+  ...lifts.map(lift => `| ${lift.name} | \`${lift.transform ?? 'none'}\` | ${scaleOf(lift.transform) ?? '—'} | ${lift.boxShadow && lift.boxShadow !== 'none' ? 'present' : 'none'} | ${lift.placeholderBorder ?? '—'} | ${lift.name === 'dark' ? '`lift-dark-mid-drag.png`' : lift.name === 'light' ? '`lift-light-mid-drag.png`' : lift.name === 'high contrast' ? '`lift-contrast-mid-drag.png`' : '—'} |`),
   '',
   ...(perVisual.length ? [
     '### Per-visual error in scenarios where two visuals moved',
@@ -538,7 +614,10 @@ const lines = [
     const out = []
     out.push(`- **Overlay follows the pointer:** max after activation is ${round(mouseMax)} px across all ${mouseRows.length} mouse scenarios (limit 4 px) and ${touchRow?.postMax ?? '—'} px on touch (limit 8 px); every scenario settles at ${Math.max(...rows.map(row => row.settledMax ?? 0))} px or less.`)
     out.push('- **Why it needed the portal:** with `<DragOverlay>` left in place, the same code measured ~185 px off on the home page and ~255 px on drag-out, because dnd-kit positions the overlay in viewport coordinates while the widget frame adds its own offset. `createPortal(..., document.body)` removes that offset.')
-    out.push('- **What moves now:** display mode moves the portalled overlay for mouse, pen and touch; the source tile stays in the grid as a 0.35-opacity placeholder and still takes the sorting transform. Folder hover moves the overlay, not the tile, so there is no missing-visual case any more.')
+    out.push('- **What moves now:** display mode moves the portalled overlay for mouse, pen and touch; the source tile stays in the grid as a faded placeholder with a dashed theme-token edge and still takes the sorting transform. Folder hover moves the overlay, not the tile, so there is no missing-visual case any more.')
+    out.push(`- **Lift:** the overlay's inner element reads ${litLifts.map(lift => `${scaleOf(lift.transform) ?? '—'} in ${lift.name}`).join(', ')} (target ≈ 1.06) with the \`--mnt-elev-2\` shadow present in ${litLifts.filter(lift => lift.boxShadow && lift.boxShadow !== 'none').length}/${litLifts.length} runs. The scale sits on the inner element with \`transform-origin\` at the grab point, so the wrapper dnd-kit positions is untouched and the grabbed content stays under the cursor.`)
+    out.push(`- **Reduced motion:** transform \`${reducedLift?.transform ?? 'none'}\`, shadow \`${reducedLift?.boxShadow ?? 'none'}\` — no scale and no shadow.`)
+    out.push(`- **Placeholder themes:** ${litLifts.map(lift => `${lift.name}: ${lift.placeholderBorder ?? '—'}`).join('; ')}. A dashed \`var(--mnt-text-muted)\` edge with \`var(--mnt-radius)\`; \`--mnt-text-muted\` is contrast-adjusted, so the edge strengthens under the high-contrast preset.`)
     out.push(`- **Drag-out continuity:** ${rows.find(row => row.name.startsWith('5.'))?.name ?? 'drag-out'} keeps the same overlay while the dialog closes; max after activation ${rows.find(row => row.name.startsWith('5.'))?.postMax ?? '—'} px.`)
     out.push(`- **Edit mode is unchanged** and still follows: ${rows.filter(row => row.name.startsWith('6')).map(row => `${row.name.split(',')[0]} max after activation ${row.postMax} px, settled ${row.settledMax} px`).join('; ')}.`)
     out.push('- **The grid CSS is now irrelevant to following:** removing the tile transition, overflow/contain clipping, position/z-index or even the active tile transform leaves the overlay error unchanged. That is expected: the dragged visual no longer lives inside the grid.')
