@@ -19,18 +19,36 @@ export function areaNames(areas: readonly string[]): string[] {
   return seen
 }
 
-/** `grid-template-areas` is dropped by the browser unless every row has the same width and each name is one rectangle. */
-export function areaGridProblem(areas: readonly string[]): string | null {
+export type AreaGridRules = {
+  /** Area names that must still appear in the grid, e.g. the area a required widget lives in. */
+  required?: readonly string[]
+}
+
+/**
+ * `grid-template-areas` is dropped by the browser unless every row has the same width and each name is
+ * one rectangle. A repeated row is a duplicate entry in the editor rather than a taller area, so it is
+ * rejected before it can be committed; a name that spans rows is still allowed, as long as the rows differ.
+ */
+export function areaGridProblem(areas: readonly string[], rules: AreaGridRules = {}): string | null {
   if (!areas.length) return 'at least one row'
   const rows = areas.map(cells)
   const width = rows[0].length
   if (rows.some(row => row.length !== width)) return 'rows with the same number of cells'
-  for (const name of areaNames(areas)) {
+  const names = areaNames(areas)
+  for (const name of names) {
     const positions = rows.flatMap((row, y) => row.flatMap((cell, x) => cell === name ? [[x, y]] : []))
     const xs = positions.map(([x]) => x), ys = positions.map(([, y]) => y)
     const box = (Math.max(...xs) - Math.min(...xs) + 1) * (Math.max(...ys) - Math.min(...ys) + 1)
     if (box !== positions.length) return `area "${name}" to be one rectangle`
   }
+  const seenRows = new Set<string>()
+  for (const row of rows) {
+    const signature = row.join(' ')
+    const name = row.find(cell => cell !== '.')
+    if (name && seenRows.has(signature)) return `duplicate area "${name}"`
+    seenRows.add(signature)
+  }
+  for (const name of rules.required ?? []) if (!names.includes(name)) return `missing area "${name}"`
   return null
 }
 

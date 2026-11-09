@@ -20,6 +20,20 @@ async function openStyle(page: Page) {
   await expect(page.locator('.cm-content')).toBeVisible()
 }
 
+async function openLayout(page: Page) {
+  await page.getByRole('tab', { name: 'Layout', exact: true }).click()
+  await expect(page.getByRole('textbox', { name: 'Area grid' })).toBeVisible()
+}
+
+/** The committed base areas, read from the v2 snapshot the page persists after every change. */
+async function storedAreas(page: Page) {
+  return await page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.areas as string[]
+  })
+}
+
 /** Types into the CSS editor at the end of the current document. */
 async function typeDraft(page: Page, text: string) {
   await page.locator('.cm-content').click()
@@ -202,6 +216,45 @@ test('wallpaper uploads are offered only for image and video backgrounds', async
   // The hint stays with the pickers it explains.
   await group.getByRole('radio', { name: 'Image', exact: true }).click()
   await expect(hint).toBeVisible()
+
+  expect(errors).toEqual([])
+})
+
+test('the area grid rejects duplicate entries and removal of the shortcuts area', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+  await openLayout(page)
+
+  const area = page.getByRole('textbox', { name: 'Area grid' })
+  const alert = page.getByRole('alert')
+  expect(await storedAreas(page)).toEqual(['overview', 'bookmarks'])
+
+  // Repeating a name on a second row is a duplicate entry, not a taller area: the text stays, nothing commits.
+  await area.fill('overview\noverview')
+  await expect(alert).toContainText('used in more than one row')
+  await expect(area).toHaveValue('overview\noverview')
+  expect(await storedAreas(page)).toEqual(['overview', 'bookmarks'])
+
+  // Removing the area the shortcuts widget lives in is refused as well.
+  await area.fill('overview')
+  await expect(alert).toContainText('is required')
+  await expect(area).toHaveValue('overview')
+  expect(await storedAreas(page)).toEqual(['overview', 'bookmarks'])
+
+  // Revert restores the last committed grid.
+  await page.getByRole('button', { name: 'Revert', exact: true }).click()
+  await expect(area).toHaveValue('overview\nbookmarks')
+  await expect(alert).toHaveCount(0)
+
+  // Correcting the draft clears the alert and commits the new grid.
+  await area.fill('bookmarks\noverview')
+  await expect(alert).toHaveCount(0)
+  await expect.poll(() => storedAreas(page)).toEqual(['bookmarks', 'overview'])
+  await expect(area).toHaveValue('bookmarks\noverview')
 
   expect(errors).toEqual([])
 })
