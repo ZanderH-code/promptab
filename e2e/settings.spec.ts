@@ -163,6 +163,7 @@ async function expectPlaceholderReadable(page: Page) {
 }
 
 test('the custom CSS editor follows the active theme', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(String(error)))
@@ -412,6 +413,7 @@ test('settings search highlights the matched text', async ({ page }) => {
 })
 
 test('the settings rail groups sections and navigates with the keyboard', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(String(error)))
@@ -473,6 +475,7 @@ async function centreIsScrim(page: Page) {
 }
 
 test('the page stays bright while editing and the panel can peek away', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(String(error)))
