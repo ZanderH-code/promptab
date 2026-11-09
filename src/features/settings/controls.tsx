@@ -38,10 +38,10 @@ export function Toggle({ label, checked, onChange, disabled = false }: { label: 
 const fill = (value: number, min: number, max: number) => ({ '--fill': `${((value - min) / (max - min)) * 100}%` }) as CSSProperties
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
-type RangeProps = { label: string; value: number; min: number; max: number; step?: number; unit?: string; t: Translate; onChange: (value: number) => void }
+type RangeProps = { label: string; value: number; min: number; max: number; step?: number; unit?: string; t: Translate; hint?: string; onChange: (value: number) => void }
 
 /** Slider paired with a numeric field; typing a value commits on Enter or blur and is clamped to the range. */
-export function RangeField({ label, value, min, max, step = 1, unit = '', t, onChange }: RangeProps) {
+export function RangeField({ label, value, min, max, step = 1, unit = '', t, hint, onChange }: RangeProps) {
   const id = useId()
   const [local, setLocal] = useState(value)
   const [text, setText] = useState(String(value))
@@ -75,6 +75,7 @@ export function RangeField({ label, value, min, max, step = 1, unit = '', t, onC
           />
           {unit && <span aria-hidden="true">{unit}</span>}
         </span>
+        {hint && <small className="sd-range-hint"><Highlighted text={hint} /></small>}
       </div>
       <input
         id={id} className="sd-slider" type="range" min={min} max={max} step={step} value={local} style={fill(local, min, max)}

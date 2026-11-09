@@ -56,11 +56,11 @@ export function backgroundItems(ctx: Ctx): Item[] {
     const y = Math.round(Math.min(100, Math.max(0, (event.clientY - rect.top) / rect.height * 100)))
     setExact(x, y)
   }
-  const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string } = {}): Item => ({
+  const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string; hint?: MessageKey } = {}): Item => ({
     id, group: 'settings.imageGroup', keys: [label],
-    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} onChange={set} />,
+    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} hint={extra.hint ? t(extra.hint) : undefined} onChange={set} />,
   })
-  const uploadHint = !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
+  const uploadHint = bg.type === 'image' && !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
   const items: Item[] = [
     {
       id: 'bg-type', keys: ['settings.bgType', 'settings.bgTheme', 'settings.bgColor', 'settings.bgGradient', 'settings.bgAccent', 'settings.bgImage', 'settings.bgVideo', 'settings.wallpaperVideo'],
@@ -109,15 +109,15 @@ export function backgroundItems(ctx: Ctx): Item[] {
       node: (
         <div className="sd-upload">
           <FilePicker t={t} label={t('settings.wallpaperUpload')} accept="image/png,image/jpeg,image/webp" multiple onFiles={ctx.onWallpaperFiles} />
-          <FilePicker t={t} label={t('settings.wallpaperVideo')} accept="video/mp4,video/webm" onFiles={files => ctx.onWallpaperVideoFile(files[0])} />
           {uploadHint}
+          <FilePicker t={t} label={t('settings.wallpaperVideo')} accept="video/mp4,video/webm" onFiles={files => ctx.onWallpaperVideoFile(files[0])} />
           {(image || video || bg.rotation) && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
         </div>
       ),
     })
   }
   items.push(
-    { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
+    { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} hint={t('settings.hint.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
   )
   if (bg.type === 'image' && bg.rotation) items.push({
     id: 'wallpaper-rotation', keys: ['settings.wallpaperRotation', 'settings.rotationOpen', 'settings.rotationHour', 'settings.rotationDay'],
@@ -128,9 +128,9 @@ export function backgroundItems(ctx: Ctx): Item[] {
   if (image) {
     items.push(
       imageRange('blur', 'settings.blur', image.blur, RANGES.blur, blur => setImage({ blur }), { unit: 'px' }),
-      imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%' }),
-      imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×' }),
-      imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%' }),
+      imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }),
+      imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×', hint: 'settings.hint.imageScale' }),
+      imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%', hint: 'settings.hint.vignette' }),
       {
         id: 'focal', group: 'settings.imageGroup', keys: ['settings.focal', 'settings.focalX', 'settings.focalY', ...NAMED_POSITIONS.map(([, key]) => key)],
         node: (
@@ -159,7 +159,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
   if (video) {
     items.push(
       imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }),
-      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%' }),
+      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }),
     )
   }
   return items

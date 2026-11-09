@@ -1165,3 +1165,63 @@ test('the wallpaper pickers are styled, labelled controls', async ({ page }) => 
 
   expect(errors).toEqual([])
 })
+
+test('background and layout controls explain their effect', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+
+  // The image hint is part of the upload block, directly after the image picker.
+  const imageHint = page.getByText('Upload an image to adjust blur, grayscale, zoom and focal point.')
+  await expect(imageHint).toBeVisible()
+  expect(await imageHint.evaluate(element => element.parentElement?.classList.contains('sd-upload'))).toBe(true)
+  expect(await imageHint.evaluate(element => element.previousElementSibling?.classList.contains('sd-file'))).toBe(true)
+  await page.getByRole('radio', { name: 'Video', exact: true }).click()
+  await expect(imageHint).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await expect(imageHint).toHaveCount(0)
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+
+  const hint = async (name: string) => {
+    const row = page.locator('.sd-row').filter({ has: page.getByText(name, { exact: true }) }).first()
+    const small = row.locator('.sd-range-hint')
+    await expect(small, `${name} hint`).toHaveCount(1)
+    const text = (await small.innerText()).trim()
+    expect(text, `${name} hint is not empty`).not.toBe('')
+    expect(text, `${name} hint is not the label`).not.toBe(name)
+    return text
+  }
+  const overflow = async () => page.locator('.sd-panel').evaluate(element => element.scrollWidth <= element.clientWidth)
+
+  for (const label of ['Overlay opacity', 'Vignette', 'Grayscale', 'Image zoom']) await hint(label)
+  expect(await overflow(), 'background panel').toBe(true)
+
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  for (const label of ['Area opacity', 'Area blur', 'Area padding', 'Top accent divider', 'Right accent divider', 'Bottom accent divider', 'Left accent divider', 'Max columns']) await hint(label)
+  expect(await overflow(), 'layout panel at 1400').toBe(true)
+  await page.setViewportSize({ width: 420, height: 800 })
+  expect(await overflow(), 'layout panel at 420').toBe(true)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  expect(await overflow(), 'background panel at 420').toBe(true)
+  await page.setViewportSize({ width: 1400, height: 900 })
+
+  // The same hints in zh-CN.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '背景', exact: true }).click()
+  for (const label of ['遮罩浓度', '晕影', '灰度', '图片缩放']) await hint(label)
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  for (const label of ['区域透明度', '区域模糊', '区域内边距', '上边强调线', '右边强调线', '下边强调线', '左边强调线', '每行最多列数']) await hint(label)
+  expect(await overflow(), 'zh layout panel').toBe(true)
+
+  expect(errors).toEqual([])
+})
