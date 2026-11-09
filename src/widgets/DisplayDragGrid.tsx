@@ -15,6 +15,7 @@ import { BookmarkFolder } from './lazyWidgets'
 
 type Props = ShortcutGridProps
 type Strings = { pickedUp: (name: string) => string; overPosition: (position: number) => string; overFolder: (name: string) => string; dropped: (name: string) => string; cancelled: string; instructions: string }
+const LIFT = 1.06 // keep in step with the overlay's inline lift; the drop ghost scales it back out
 const strings: Record<'en' | 'zh-CN', Strings> = {
   en: {
     pickedUp: name => `Picked up ${name}.`,
@@ -180,7 +181,56 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     }
     window.setTimeout(tick, 0)
   }
-  const resetDrag = () => { setActiveId(null); sourceRef.current = null; grabRef.current = null }
+  // The grab offset outlives the drag: the drop ghost needs the same origin the lift used.
+  const resetDrag = () => { setActiveId(null); sourceRef.current = null }
+  // The drop animation is a clone of the overlay: dnd-kit's own dropAnimation measures the active
+  // node before the move commits, so it would aim at the old slot. The clone starts where the
+  // overlay was and lands on the rect the DOM reports after the move; no target rect means no animation.
+  const animateDrop = (kind: 'slot' | 'folder', id: string, afterMove = false) => {
+    const overlay = document.querySelector<HTMLElement>('.mnt-drag-overlay')
+    const wrapper = overlay?.parentElement
+    if (!overlay || !wrapper || reducedMotion) return
+    const from = wrapper.getBoundingClientRect()
+    const origin = grabRef.current ?? { x: from.width / 2, y: from.height / 2 }
+    const selector = `[data-${kind === 'folder' ? 'folder' : 'sortable-id'}="${CSS.escape(id)}"]`
+    const first = document.querySelector<HTMLElement>(selector), parent = first?.parentElement ?? null
+    const index = first && parent ? Array.from(parent.children).indexOf(first) : -1
+    const target = () => {
+      const el = document.querySelector<HTMLElement>(selector)
+      // A move commits a frame or two after dragEnd; until the item changes DOM position the tile is
+      // still at the source slot. Read it with the transition off so a mid-flight transform cannot skew it.
+      if (!el || (afterMove && el.parentElement === parent && Array.from(parent?.children ?? []).indexOf(el) === index)) return null
+      const transition = el.style.transition
+      el.style.transition = 'none'
+      const box = el.getBoundingClientRect()
+      el.style.transition = transition
+      return box
+    }
+    const host = Object.assign(document.createElement('div'), { className: 'mnt-drag-ghost' })
+    host.style.cssText = `position:fixed;left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px;transform-origin:${origin.x}px ${origin.y}px;z-index:2147483000;pointer-events:none;opacity:.9`
+    const clone = overlay.cloneNode(true) as HTMLElement
+    clone.classList.remove('mnt-drag-overlay'); host.append(clone); document.body.append(host)
+    void host.getBoundingClientRect() // commit the start style before the transition is set
+    let frame = 0, tries = 0
+    const timer = window.setTimeout(() => { cancelAnimationFrame(frame); host.remove() }, 600)
+    const done = () => { cancelAnimationFrame(frame); host.remove() }
+    const step = () => {
+      const to = target()
+      if (!to) { if (++tries < 30) { frame = requestAnimationFrame(step); return } window.clearTimeout(timer); done(); return }
+      // The clone still carries the 1.06 lift, so shrink by the same factor to land at the slot.
+      const scaleX = to.width / (from.width * LIFT), scaleY = to.height / (from.height * LIFT)
+      // Scaling happens about the grab point, so translate that point to the target (folder centre).
+      const dx = kind === 'folder' ? to.left + to.width / 2 - (from.left + origin.x) : to.left - from.left - origin.x * (1 - LIFT * scaleX)
+      const dy = kind === 'folder' ? to.top + to.height / 2 - (from.top + origin.y) : to.top - from.top - origin.y * (1 - LIFT * scaleY)
+      host.style.transition = 'transform 200ms ease-out, opacity 200ms ease-out'
+      host.style.transform = `translate(${dx}px, ${dy}px) scale(${kind === 'folder' ? 0.2 : scaleX}, ${kind === 'folder' ? 0.2 : scaleY})`
+      if (kind === 'folder') host.style.opacity = '0'
+      host.addEventListener('transitionend', event => {
+        if (event.target === host && event.propertyName === 'transform') { window.clearTimeout(timer); done() }
+      })
+    }
+    frame = requestAnimationFrame(step)
+  }
   const dragEnd = ({ active, over }: DragEndEvent) => {
     const activeId = String(active.id)
     const sourceGroup = groups.find(group => group.items.some(item => item.id === activeId))
@@ -188,19 +238,22 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     resetDrag()
     suppressClickAfterDrag()
     if (!over) {
+      animateDrop('slot', activeId)
       if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceGroup!.id)}"]`)
       return
     }
     const overId = String(over.id)
     if (overId === activeId) {
+      animateDrop('slot', activeId)
       if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceGroup!.id)}"]`)
       return
     }
     if (!sourceGroup) return
     if (overId.startsWith('folder:')) {
       const folderId = overId.slice(7)
-      if (folderId === sourceGroup.id) { focusAfterDrop(`[data-folder="${CSS.escape(folderId)}"]`); return }
+      if (folderId === sourceGroup.id) { animateDrop('slot', activeId); focusAfterDrop(`[data-folder="${CSS.escape(folderId)}"]`); return }
       onGroups(current => moveBookmarks(current, [activeId], folderId))
+      animateDrop('folder', folderId)
       focusAfterDrop(`[data-folder="${CSS.escape(folderId)}"]`)
       return
     }
@@ -208,14 +261,16 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     if (!targetGroup) return
     if (targetGroup.id !== sourceGroup.id) {
       onGroups(current => moveBookmarks(current, [activeId], targetGroup.id, overId))
+      animateDrop('slot', activeId, true)
       focusAfterDrop(`[data-sortable-id="${CSS.escape(activeId)}"] a`)
       return
     }
     const ids = targetGroup.items.map(item => item.id)
     const from = ids.indexOf(activeId), to = ids.indexOf(overId)
-    if (from < 0 || to < 0 || from === to) return
+    if (from < 0 || to < 0 || from === to) { animateDrop('slot', activeId); return }
     const before = from < to ? ids[to + 1] : ids[to]
     onGroups(current => moveBookmarks(current, [activeId], targetGroup.id, before))
+    animateDrop('slot', activeId, true)
     focusAfterDrop(`[data-sortable-id="${CSS.escape(activeId)}"] a`)
   }
   return <DndContext
@@ -236,6 +291,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     onDragCancel={() => {
       const sourceId = sourceRef.current
       const fromFolder = sourceId && sourceId !== desktopId
+      if (activeItem) animateDrop('slot', activeItem.id)
       resetDrag()
       suppressClickAfterDrag()
       if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceId)}"]`)
@@ -287,7 +343,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
         frame; otherwise the frame's own offset is added to every position. The lift lives on the
         inner element so the scale can never shift the position dnd-kit computes. */}
     {createPortal(<DragOverlay dropAnimation={null}>
-      {activeItem ? <div className="shortcut-wrap mnt-drag-overlay" aria-hidden="true" style={reducedMotion ? undefined : { transform: 'scale(1.06)', transformOrigin: grabRef.current ? `${grabRef.current.x}px ${grabRef.current.y}px` : 'center', boxShadow: 'var(--mnt-elev-2)' }}><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
+      {activeItem ? <div className="shortcut-wrap mnt-drag-overlay" aria-hidden="true" data-lifted={reducedMotion ? undefined : 'true'} style={reducedMotion ? undefined : { transform: `scale(${LIFT})`, transformOrigin: grabRef.current ? `${grabRef.current.x}px ${grabRef.current.y}px` : 'center' }}><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
     </DragOverlay>, document.body)}
   </DndContext>
 }

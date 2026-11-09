@@ -96,7 +96,7 @@ async function centre(locator) {
   throw new Error('no bounding box')
 }
 
-async function mouseDrag(page, from, to, { steps = 26, hold = 250, midDrag, offSlot = true } = {}) {
+async function mouseDrag(page, from, to, { steps = 26, hold = 250, midDrag, offSlot = true, measureDrop = false } = {}) {
   await start(page)
   await page.mouse.move(from.x, from.y)
   await page.mouse.down()
@@ -115,9 +115,39 @@ async function mouseDrag(page, from, to, { steps = 26, hold = 250, midDrag, offS
   // Stop before release: the drop animation would otherwise count as dragged-visual error.
   const frames = await stop(page)
   if (offset.x || offset.y) await page.mouse.move(to.x, to.y)
+  // D2b: watch the drop ghost from the release. The transitionend capture listener sees the clone
+  // before the component removes it, so the end rect is the animation's actual final visual.
+  if (measureDrop) await page.evaluate(() => {
+    window.__dropResult = new Promise(resolve => {
+      const began = performance.now()
+      const rectOf = el => {
+        const box = el?.getBoundingClientRect()
+        return box ? { left: box.left, top: box.top, width: box.width, height: box.height } : null
+      }
+      const slotOf = () => {
+        const id = window.__dragProbe?.down?.id
+        return id ? document.querySelector(`[data-sortable-id="${CSS.escape(id)}"]`) : null
+      }
+      document.addEventListener('transitionend', event => {
+        const target = event.target
+        if (!(target instanceof Element) || !target.classList.contains('mnt-drag-ghost') || event.propertyName !== 'transform') return
+        // The host is animated; the clone inside it still carries the 1.06 lift, so its rect is
+        // the visible end position.
+        resolve({ duration: Math.round(event.elapsedTime * 1000), ghost: rectOf(target.firstElementChild ?? target), slot: rectOf(slotOf()) })
+      }, true)
+      // No ghost at all (reduced motion, or no target rect): give the drop its run, then say so.
+      const tick = () => {
+        if (performance.now() - began > 2000) { resolve({ duration: null, ghost: null, slot: null }); return }
+        if (document.querySelector('.mnt-drag-ghost') || performance.now() - began < 750) { requestAnimationFrame(tick); return }
+        resolve({ duration: null, ghost: null, slot: null })
+      }
+      requestAnimationFrame(tick)
+    })
+  })
   await page.mouse.up()
-  await page.waitForTimeout(160)
-  return { frames, shot }
+  const drop = measureDrop ? await page.evaluate(() => window.__dropResult) : null
+  await page.waitForTimeout(300)
+  return { frames, shot, drop }
 }
 
 async function touchDrag(context, page, from, to, { steps = 24, hold = 450 } = {}) {
@@ -215,15 +245,17 @@ async function prepare(page, id) {
   await page.waitForTimeout(120)
 }
 
-/** D2a: the lifted overlay's computed transform/shadow and the placeholder's themed edge. */
+/** D2a: the lifted overlay's computed transform and the icon-shaped shadow; the placeholder edge. */
 const readLift = page => page.evaluate(() => {
   const overlay = document.querySelector('.mnt-drag-overlay')
   const tile = document.querySelector('[data-sortable-id][data-dragging="true"]')
   const style = overlay ? getComputedStyle(overlay) : null
+  const icon = overlay?.querySelector('.shortcut-icon')
   const edge = tile ? getComputedStyle(tile, '::after') : null
   return {
     transform: style?.transform ?? null,
-    boxShadow: style?.boxShadow ?? null,
+    boxShadow: icon ? getComputedStyle(icon).boxShadow : null,
+    shadowOn: icon ? icon.className : null,
     placeholderBorder: edge && edge.borderTopStyle !== 'none' ? `${edge.borderTopStyle} ${edge.borderTopWidth} ${edge.borderTopColor}` : null,
   }
 })
@@ -469,10 +501,11 @@ async function waitApp(page) {
     await prepare(page, 'r1')
     let reducedLift = null
     const reduced = await mouseDrag(page, await centre(tile(page, 'r1')), await centre(tile(page, 'r4')), {
+      measureDrop: true,
       midDrag: async () => { reducedLift = await readLift(page) },
     })
-    lifts.push({ name: 'reduced motion', ...reducedLift })
-    await record('10. reduced motion', reduced, `prefers-reduced-motion: reduce; overlay ${reducedLift?.transform ?? 'none'}, shadow ${reducedLift?.boxShadow ?? 'none'}`)
+    lifts.push({ name: 'reduced motion', ...reducedLift, drop: reduced.drop })
+    await record('10. reduced motion', reduced, `prefers-reduced-motion: reduce; overlay ${reducedLift?.transform ?? 'none'}, shadow ${reducedLift?.boxShadow ?? 'none'}; drop ${reduced.drop?.duration ?? 'none'}`)
   } finally { await session.close() }
 }
 
@@ -506,13 +539,14 @@ async function waitApp(page) {
       await setTheme(patch)
       let lift = null
       const result = await mouseDrag(page, await centre(tile(page, 'v1')), await centre(tile(page, 'v4')), {
+        measureDrop: true,
         midDrag: async () => {
           lift = await readLift(page)
           await page.screenshot({ path: `${OUT}/shots/${shot}` })
         },
       })
-      lifts.push({ name, ...lift })
-      await record(`11. lift, ${name}`, result, `overlay ${lift?.transform ?? 'none'}, shadow ${lift?.boxShadow ?? 'none'}; placeholder ${lift?.placeholderBorder ?? '—'}; ${shot}`)
+      lifts.push({ name, ...lift, drop: result.drop })
+      await record(`11. lift and drop, ${name}`, result, `overlay ${lift?.transform ?? 'none'}, icon shadow ${lift?.boxShadow ?? 'none'}; placeholder ${lift?.placeholderBorder ?? '—'}; drop ${result.drop?.duration ?? 'none'} ms; ${shot}`)
     }
   } finally { await session.close() }
 }
@@ -564,9 +598,18 @@ const scaleOf = transform => {
   const values = transform.match(/^matrix\(([^)]+)\)$/)?.[1].split(',').map(Number)
   return values ? values[0] : null
 }
+// The ghost's final visual rect must be the final slot's rect: position and size both.
+const dropDelta = lift => {
+  const { ghost, slot } = lift.drop ?? {}
+  if (!ghost || !slot) return null
+  return round(Math.max(...['left', 'top', 'width', 'height'].map(key => Math.abs(ghost[key] - slot[key]))))
+}
+const dropOk = lift => lift.name === 'reduced motion'
+  ? !lift.drop?.duration && dropDelta(lift) === null
+  : lift.drop?.duration >= 150 && lift.drop?.duration <= 250 && (dropDelta(lift) ?? Infinity) <= 4
 
 const lines = [
-  '# Drag follow — D2a lift and placeholder verification',
+  '# Drag follow — D2b lift, placeholder and drop verification',
   '',
   'Run with:',
   '',
@@ -580,10 +623,14 @@ const lines = [
   'Error = |visual centre − (cursor − grab offset + half the visual\'s own size)| in CSS px.',
   'The overlay\'s inner element carries the D2a lift, so the sampler measures the wrapper dnd-kit positions',
   '(same visible grab point, unscaled layout box); this keeps the numbers comparable with D1.',
+  'The lift\'s shadow sits on the `.shortcut-icon` tile, so it follows the icon shape instead of painting a',
+  'rectangular slab behind the icon and the label.',
   'Display-mode drags end by moving a further 32×24 px (inside the grid, off every slot centre) and holding',
   'still for 250 ms; edit mode and the folder-hover drag hold on the target. `settled max` is the last 5 frames',
   'of that hold. `max after activation` ignores frames whose pointer delta is ≤ 12 px (the sensor\'s 6 px',
   'activation distance plus one step); `visually follows?` uses it with D1\'s limits: 4 px mouse, 8 px touch.',
+  '`drop ms` is the ghost\'s own `transitionend.elapsedTime`; `end ↔ slot` is the largest difference between',
+  'the clone\'s final visual rect and the dropped item\'s slot rect. Reduced motion runs no ghost (—).',
   'The probe warms the lazy drag layer with a hover first.', bannerNote,
   'Per-frame data: `frames/<scenario>.json`. Screenshots: `shots/`.',
   '',
@@ -591,11 +638,11 @@ const lines = [
   '|---|---|---:|---:|---:|---:|---:|---:|---|---|',
   ...rows.map(row => `| ${row.name} | ${row.moves} | ${row.samples} | ${row.max ?? '—'} | ${row.postMax ?? '—'} | ${row.p95 ?? '—'} | ${round(row.mean) ?? '—'} | ${row.settledMax ?? '—'} | ${row.follows ? 'yes' : 'no'} | ${causeFor(row)} |`),
   '',
-  '### D2a lift and placeholder',
+  '### D2b lift, placeholder and drop animation',
   '',
-  '| run | overlay transform | scale | shadow | placeholder edge | mid-drag screenshot |',
-  '|---|---|---:|---|---|---|',
-  ...lifts.map(lift => `| ${lift.name} | \`${lift.transform ?? 'none'}\` | ${scaleOf(lift.transform) ?? '—'} | ${lift.boxShadow && lift.boxShadow !== 'none' ? 'present' : 'none'} | ${lift.placeholderBorder ?? '—'} | ${lift.name === 'dark' ? '`lift-dark-mid-drag.png`' : lift.name === 'light' ? '`lift-light-mid-drag.png`' : lift.name === 'high contrast' ? '`lift-contrast-mid-drag.png`' : '—'} |`),
+  '| run | overlay transform | scale | icon shadow | placeholder edge | drop ms | end ↔ slot px | within 150–250 ms and 4 px? | mid-drag screenshot |',
+  '|---|---|---:|---|---|---:|---:|---|---|',
+  ...lifts.map(lift => `| ${lift.name} | \`${lift.transform ?? 'none'}\` | ${scaleOf(lift.transform) ?? '—'} | ${lift.boxShadow && lift.boxShadow !== 'none' ? 'present' : 'none'} | ${lift.placeholderBorder ?? '—'} | ${lift.drop?.duration ?? '—'} | ${dropDelta(lift) ?? '—'} | ${dropOk(lift) ? (lift.name === 'reduced motion' ? 'n/a (none)' : 'yes') : 'no'} | ${lift.name === 'dark' ? '`lift-dark-mid-drag.png`' : lift.name === 'light' ? '`lift-light-mid-drag.png`' : lift.name === 'high contrast' ? '`lift-contrast-mid-drag.png`' : '—'} |`),
   '',
   ...(perVisual.length ? [
     '### Per-visual error in scenarios where two visuals moved',
@@ -615,8 +662,10 @@ const lines = [
     out.push(`- **Overlay follows the pointer:** max after activation is ${round(mouseMax)} px across all ${mouseRows.length} mouse scenarios (limit 4 px) and ${touchRow?.postMax ?? '—'} px on touch (limit 8 px); every scenario settles at ${Math.max(...rows.map(row => row.settledMax ?? 0))} px or less.`)
     out.push('- **Why it needed the portal:** with `<DragOverlay>` left in place, the same code measured ~185 px off on the home page and ~255 px on drag-out, because dnd-kit positions the overlay in viewport coordinates while the widget frame adds its own offset. `createPortal(..., document.body)` removes that offset.')
     out.push('- **What moves now:** display mode moves the portalled overlay for mouse, pen and touch; the source tile stays in the grid as a faded placeholder with a dashed theme-token edge and still takes the sorting transform. Folder hover moves the overlay, not the tile, so there is no missing-visual case any more.')
-    out.push(`- **Lift:** the overlay's inner element reads ${litLifts.map(lift => `${scaleOf(lift.transform) ?? '—'} in ${lift.name}`).join(', ')} (target ≈ 1.06) with the \`--mnt-elev-2\` shadow present in ${litLifts.filter(lift => lift.boxShadow && lift.boxShadow !== 'none').length}/${litLifts.length} runs. The scale sits on the inner element with \`transform-origin\` at the grab point, so the wrapper dnd-kit positions is untouched and the grabbed content stays under the cursor.`)
-    out.push(`- **Reduced motion:** transform \`${reducedLift?.transform ?? 'none'}\`, shadow \`${reducedLift?.boxShadow ?? 'none'}\` — no scale and no shadow.`)
+    out.push(`- **Lift:** the overlay's inner element reads ${litLifts.map(lift => `${scaleOf(lift.transform) ?? '—'} in ${lift.name}`).join(', ')} (target ≈ 1.06) with the \`--mnt-elev-2\` shadow on the icon tile in ${litLifts.filter(lift => lift.boxShadow && lift.boxShadow !== 'none').length}/${litLifts.length} runs. The scale sits on the inner element with \`transform-origin\` at the grab point, so the wrapper dnd-kit positions is untouched and the grabbed content stays under the cursor. The shadow moved from the overlay box to \`.shortcut-icon\` (which carries the style's radius), so no rectangular slab shows behind the round icon or the label.`)
+    out.push(`- **Reduced motion:** transform \`${reducedLift?.transform ?? 'none'}\`, icon shadow \`${reducedLift?.boxShadow ?? 'none'}\`, drop ${reducedLift?.drop?.duration ?? '—'} ms — no scale, no shadow and no ghost.`)
+    out.push('- **Why a ghost rather than dnd-kit\'s `dropAnimation`:** dnd-kit measures the active node as the drop fires, before `moveBookmarks` re-renders, so its animation would aim at the old slot, and it skips when the source node unmounted (drag-out). The clone starts at the overlay\'s last rect and reads the final slot from the DOM after the commit; `DragOverlay` keeps `dropAnimation={null}` so only one animation runs. No target rect (source unmounted, no folder tile) means the clone retries briefly and removes itself, never flying to (0, 0).')
+    out.push(`- **Drop animation:** ${litLifts.map(lift => `${lift.name} ${lift.drop?.duration ?? '—'} ms, end within ${dropDelta(lift) ?? '—'} px of the slot`).join('; ')} (target 150–250 ms, 4 px; 200 ms ease-out). Cancel and no-op drops return to the source slot; a folder drop shrinks and fades into the folder tile.`)
     out.push(`- **Placeholder themes:** ${litLifts.map(lift => `${lift.name}: ${lift.placeholderBorder ?? '—'}`).join('; ')}. A dashed \`var(--mnt-text-muted)\` edge with \`var(--mnt-radius)\`; \`--mnt-text-muted\` is contrast-adjusted, so the edge strengthens under the high-contrast preset.`)
     out.push(`- **Drag-out continuity:** ${rows.find(row => row.name.startsWith('5.'))?.name ?? 'drag-out'} keeps the same overlay while the dialog closes; max after activation ${rows.find(row => row.name.startsWith('5.'))?.postMax ?? '—'} px.`)
     out.push(`- **Edit mode is unchanged** and still follows: ${rows.filter(row => row.name.startsWith('6')).map(row => `${row.name.split(',')[0]} max after activation ${row.postMax} px, settled ${row.settledMax} px`).join('; ')}.`)

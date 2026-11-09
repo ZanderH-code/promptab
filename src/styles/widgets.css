@@ -1194,4 +1194,8 @@
   /* The overlay follows the pointer once a drag has left the folder dialog. */
   .mnt-drag-overlay { pointer-events: none; cursor: grabbing; opacity: 0.9; }
   .mnt-drag-overlay a { pointer-events: none; }
+  /* The lift shadow belongs to the icon tile, which carries the style's radius: a shadow on the
+     overlay box painted a square slab behind the round icon and the label. */
+  .mnt-drag-overlay[data-lifted] .shortcut-icon, .mnt-drag-ghost .shortcut-icon { box-shadow: var(--mnt-elev-2); }
+  .mnt-drag-ghost { pointer-events: none; }
 }
