@@ -278,8 +278,8 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-advanced summary:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
 .sd-advanced[open] summary { color: var(--mnt-text); }
 .sd-focal-preview { position: relative; width: 100%; height: 150px; border: 1px solid var(--mnt-text-muted); border-radius: 8px; background-size: cover; background-repeat: no-repeat; cursor: crosshair; touch-action: none; overflow: hidden; }
-.sd-focal-crosshair { position: absolute; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px rgb(0 0 0 / 55%); transform: translate(-50%, -50%); pointer-events: none; }
-.sd-focal-crosshair::before, .sd-focal-crosshair::after { content: ''; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 55%); }
+.sd-focal-crosshair { position: absolute; width: 20px; height: 20px; border: 2px solid var(--mnt-white); border-radius: 50%; box-shadow: 0 0 0 1px color-mix(in oklch, var(--mnt-black) 55%, transparent); transform: translate(-50%, -50%); pointer-events: none; }
+.sd-focal-crosshair::before, .sd-focal-crosshair::after { content: ''; position: absolute; background: var(--mnt-white); box-shadow: 0 0 0 1px color-mix(in oklch, var(--mnt-black) 55%, transparent); }
 .sd-focal-crosshair::before { left: 50%; top: -8px; bottom: -8px; width: 1px; }
 .sd-focal-crosshair::after { top: 50%; left: -8px; right: -8px; height: 1px; }
 .sd-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mnt-space-2); padding: var(--mnt-space-2); border: 1px dashed var(--mnt-text-muted); border-radius: 8px; }

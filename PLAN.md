@@ -1,12 +1,14 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.14.0
+## Release status — 0.15.0
 
-The settings UX overhaul (batch 1) is done in 0.14.0. Next is settings UX batch 2, then the UI icon pack (Tabler). Batch 1 commits on `feat/settings-ux`:
+The settings UX overhaul (batch 2) is done in 0.15.0. Next is settings UX batch 3, then the UI icon pack (Tabler). Batch 2 commits on `feat/settings-ux-2`:
 
-- 0.14.0 settings UX batch 1: draft survives navigation `9da2ffe`, per-profile draft `704b6fd`, themed CSS editor `a01d2a3`, declared highlight tags `2254a31`, custom CSS status `1d873ab`, uploads only when applicable `ae34c0b`, area grid validation `9082455`, websites copy `9f1feb9`, Edit websites `57ffb0c`, search highlight `3ff8387`, grouped rail `5ce1da3`, readable placeholder `a8efc4a`, Peek `4c15625`.
+- 0.15.0 settings UX batch 2: scrim blocks clicks `abb117b`, scrim dismisses `ca52439`, sticky section header `6da68a7`, grid preview `1fec394`, grid preview accessible name `2861aaa`, rename from preview `4acbaf6`, rename hint `65936dc`, advanced DSL `86a122e`, search opens advanced `2e68df1`, gradient preview `755c55e`, focal preview `c56c12d`, styled upload picker `7d38fa9`, control hints `40447a2`, hint descriptions `ee00e4a`.
 
 Main commits:
+
+- 0.14.0 settings UX batch 1: draft survives navigation `9da2ffe`, per-profile draft `704b6fd`, themed CSS editor `a01d2a3`, declared highlight tags `2254a31`, custom CSS status `1d873ab`, uploads only when applicable `ae34c0b`, area grid validation `9082455`, websites copy `9f1feb9`, Edit websites `57ffb0c`, search highlight `3ff8387`, grouped rail `5ce1da3`, readable placeholder `a8efc4a`, Peek `4c15625`.
 
 - 0.13.2 features: overlay drag follow `936ddd3`, lift and placeholder `d96b9b3`, drop animation `f4750d0`, folder highlight `76b1bf3`, touch long-press fix `7348d59`.
 - 0.13.1 features: domain-to-brand index `44a15a5`, automatic brand resolution `be984ac`, on-demand brand shards `8b9a7b8`, brand-mode fixes `e941ae6`, lazy AI workbench text `9cf1aed` (live in the store).
