@@ -31,7 +31,7 @@ function setup(options: { profile?: ProfileV2; settings?: Partial<Settings>; lan
     store: createStore<ProfileStore>(() => ({}) as ProfileStore),
     settings: { ...defaults, language, theme: options.themeMode ?? 'dark', ...options.settings },
     profile, t, initialSection: options.initialSection,
-    onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperFiles: vi.fn(), onWallpaperVideoFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(),
+    onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperFiles: vi.fn(), onWallpaperVideoFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(), onEnterEditMode: vi.fn(),
   }
   const view = render(<><button>opener</button><SettingsDrawer {...props} /></>)
   return { ...props, rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>) }
@@ -92,7 +92,7 @@ describe('SettingsDrawer tabs', () => {
   it('pluralizes the website count and points people to the page for edits', () => {
     setup()
     fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
-    expect(screen.getByText('Add, reorder or remove websites on the page. This section controls how they look.')).toBeInTheDocument()
+    expect(screen.getByText('Use Edit websites to add, reorder or remove websites on the page. This section controls how they look.')).toBeInTheDocument()
     expect(screen.getByText('1 website')).toBeInTheDocument()
     expect(screen.queryByText('1 websites')).toBeNull()
 
@@ -100,6 +100,18 @@ describe('SettingsDrawer tabs', () => {
     setup({ settings: { shortcuts: [structuredClone(defaults.shortcuts[0]), { ...structuredClone(defaults.shortcuts[0]), id: 'second', name: 'Second' }] } })
     fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
     expect(screen.getByText('2 websites')).toBeInTheDocument()
+  })
+
+  it('opens website editing from the Websites section', () => {
+    const props = setup()
+    fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit websites' }))
+    expect(props.onEnterEditMode).toHaveBeenCalledOnce()
+
+    cleanup()
+    setup({ language: 'zh-CN' })
+    fireEvent.click(screen.getByRole('tab', { name: '快捷方式' }))
+    expect(screen.getByRole('button', { name: '编辑网站' })).toBeInTheDocument()
   })
 
   it('shows profile and backup sections only in Data', async () => {

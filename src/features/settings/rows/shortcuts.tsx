@@ -5,7 +5,10 @@ import { Select, touch, type Ctx, type Item } from './shared'
 export function shortcutsItems(ctx: Ctx): Item[] {
   const { t, s, profile, change } = ctx
   const styles = [['tile', 'settings.bookmarkTile'], ['list', 'settings.bookmarkList'], ['minimal', 'settings.bookmarkMinimal'], ['card', 'settings.bookmarkCard'], ['icon-only', 'settings.bookmarkIconOnly']] as const
-  const items: Item[] = [{ id: 'shortcuts', keys: ['settings.shortcuts', 'settings.shortcutsHint'], node: <div className="sd-note"><p>{t('settings.shortcutsHint')}</p><p>{t(s.shortcuts.length === 1 ? 'settings.shortcutsCountOne' : 'settings.shortcutsCount', { count: s.shortcuts.length })}</p></div> }]
+  const items: Item[] = [
+    { id: 'shortcuts', keys: ['settings.shortcuts', 'settings.shortcutsHint'], node: <div className="sd-note"><p>{t('settings.shortcutsHint')}</p><p>{t(s.shortcuts.length === 1 ? 'settings.shortcutsCountOne' : 'settings.shortcutsCount', { count: s.shortcuts.length })}</p></div> },
+    { id: 'edit-websites', keys: ['settings.editWebsites'], node: <button type="button" className="sd-button sd-primary" onClick={() => ctx.onEnterEditMode?.()}>{t('settings.editWebsites')}</button> },
+  ]
   for (const widget of profile.widgets) {
     if (widget.type !== 'bookmarks') continue
     const patch = (updates: Record<string, unknown>) => change(current => touch({ ...current, widgets: current.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } } : item) as typeof current.widgets }))

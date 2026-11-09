@@ -258,3 +258,36 @@ test('the area grid rejects duplicate entries and removal of the shortcuts area'
 
   expect(errors).toEqual([])
 })
+
+test('the websites section opens desktop editing', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Shortcuts', exact: true }).click()
+
+  const edit = page.getByRole('button', { name: 'Edit websites', exact: true })
+  await expect(edit).toBeVisible()
+  await expect(edit).toHaveClass(/sd-primary/)
+  await edit.click()
+
+  // The drawer closes and the desktop enters the existing edit mode.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.locator('.edit-toolbar')).toBeVisible()
+  await expect(page.locator('.mnt-layout')).toHaveAttribute('data-edit-mode', '')
+
+  // Focus lands on a visible control in the page rather than on the body.
+  const focus = await page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null
+    return { tag: active?.tagName ?? '', visible: !!active && active.getClientRects().length > 0, inPage: !!active?.closest('main') }
+  })
+  expect(focus).toEqual({ tag: 'BUTTON', visible: true, inPage: true })
+
+  // Leaving edit mode works as it does everywhere else today.
+  await page.getByRole('navigation', { name: 'Desktop editing tools' }).getByRole('button', { name: 'Done', exact: true }).click()
+  await expect(page.locator('.edit-toolbar')).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
