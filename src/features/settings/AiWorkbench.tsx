@@ -154,7 +154,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
       <p className="sd-hint"><a href="https://zanderh-code.github.io/promptab/docs/" target="_blank" rel="noreferrer">{t('ai.docsReference')}</a></p>
 
       <section className="sd-ai-step" aria-labelledby="ai-step1">
-        <h4 id="ai-step1">{t('ai.step1')}</h4>
+        <h3 id="ai-step1">{t('ai.step1')}</h3>
         <label className="sd-label" htmlFor="ai-request">{t('ai.request')}</label>
         <textarea id="ai-request" className="sd-code sd-ai-request" rows={3} value={state.request} placeholder={t('ai.requestPlaceholder')} onChange={event => set({ request: event.target.value })} />
         <Toggle label={t('ai.includeCurrent')} checked={state.includeCurrent} onChange={value => set({ includeCurrent: value })} />
@@ -167,7 +167,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
       <ByokPanel ctx={ctx} prompt={buildPromptPack({ language: ctx.s.language, request: state.request, current: null })} onReply={reply => edit({ reply, pick: 0 })} />
 
       <section className="sd-ai-step" aria-labelledby="ai-step2">
-        <h4 id="ai-step2">{t('ai.step2')}</h4>
+        <h3 id="ai-step2">{t('ai.step2')}</h3>
         <textarea
           className="sd-code" data-user-content aria-label={t('ai.reply')} value={state.reply} rows={10} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off"
           placeholder={t('ai.replyPlaceholder')} onChange={event => edit({ reply: event.target.value, pick: 0 })}
@@ -209,7 +209,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
       </div>}
       {state.reply.trim() !== '' && (
         <section className="sd-ai-step" aria-labelledby="ai-step3">
-          <h4 id="ai-step3">{t('ai.step3')}</h4>
+          <h3 id="ai-step3">{t('ai.step3')}</h3>
           {!analysis && <p className="sd-ai-problem" role="alert">{t('ai.nothingFound')}</p>}
           {analysis && (
             <>
