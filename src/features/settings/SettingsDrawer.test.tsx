@@ -89,6 +89,19 @@ describe('SettingsDrawer tabs', () => {
     expect(screen.getByRole('combobox', { name: 'Language' })).toBeInTheDocument()
   })
 
+  it('pluralizes the website count and points people to the page for edits', () => {
+    setup()
+    fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
+    expect(screen.getByText('Add, reorder or remove websites on the page. This section controls how they look.')).toBeInTheDocument()
+    expect(screen.getByText('1 website')).toBeInTheDocument()
+    expect(screen.queryByText('1 websites')).toBeNull()
+
+    cleanup()
+    setup({ settings: { shortcuts: [structuredClone(defaults.shortcuts[0]), { ...structuredClone(defaults.shortcuts[0]), id: 'second', name: 'Second' }] } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Shortcuts' }))
+    expect(screen.getByText('2 websites')).toBeInTheDocument()
+  })
+
   it('shows profile and backup sections only in Data', async () => {
     setup()
     expect(screen.queryByText('profiles-stub')).toBeNull()
