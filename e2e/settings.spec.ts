@@ -1021,3 +1021,77 @@ test('the gradient editor previews the rendered background', async ({ page }) =>
 
   expect(errors).toEqual([])
 })
+
+test('the focal point preview shares the stored position', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+
+  const preview = page.locator('.sd-focal-preview')
+  await expect(preview).toBeVisible()
+  // Pointer-only: keyboard users keep the sliders, with nothing new in the tab order.
+  await expect(preview).not.toHaveAttribute('tabindex')
+  await expect(preview).not.toHaveAttribute('role')
+
+  const stored = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].background.image?.position ?? null
+  })
+  const parsed = async () => {
+    const value = String(await stored())
+    const match = /^(\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%$/.exec(value)
+    return match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 50, y: 50 }
+  }
+  const centre = () => page.evaluate(() => {
+    const box = document.querySelector('.sd-focal-preview')!.getBoundingClientRect()
+    const cross = document.querySelector('.sd-focal-crosshair')!.getBoundingClientRect()
+    return { x: (cross.left + cross.width / 2 - box.left) / box.width * 100, y: (cross.top + cross.height / 2 - box.top) / box.height * 100 }
+  })
+
+  expect(await parsed()).toEqual({ x: 50, y: 50 })
+  const initial = await centre()
+  expect(Math.abs(initial.x - 50)).toBeLessThanOrEqual(2)
+  expect(Math.abs(initial.y - 50)).toBeLessThanOrEqual(2)
+
+  // Clicking at 25 % / 75 % writes the same value the sliders and named buttons write.
+  await preview.scrollIntoViewIfNeeded()
+  const box = (await preview.boundingBox())!
+  await page.mouse.click(box.x + box.width * .25, box.y + box.height * .75)
+  await expect.poll(parsed).toEqual({ x: 25, y: 75 })
+  const clicked = await centre()
+  expect(Math.abs(clicked.x - 25)).toBeLessThanOrEqual(2)
+  expect(Math.abs(clicked.y - 75)).toBeLessThanOrEqual(2)
+  await expect(page.getByRole('radiogroup', { name: 'Focal point' }).getByRole('radio', { checked: true })).toHaveCount(0)
+  await page.screenshot({ path: `${SHOTS}/focal.png` })
+
+  // Dragging keeps the same source of truth.
+  await page.mouse.move(box.x + box.width * .6, box.y + box.height * .4)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * .8, box.y + box.height * .2, { steps: 4 })
+  await page.mouse.up()
+  await expect.poll(async () => {
+    const value = await parsed()
+    return Math.abs(value.x - 80) <= 2 && Math.abs(value.y - 20) <= 2
+  }).toBe(true)
+
+  // Keyboard navigation stays on the existing controls; the preview never enters the tab order.
+  await page.getByRole('slider', { name: 'Horizontal position' }).focus()
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => document.activeElement?.classList.contains('sd-focal-preview'))).toBe(false)
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('slider', { name: 'Vertical position' })).toBeFocused()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})

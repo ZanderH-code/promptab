@@ -1,4 +1,5 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { RANGES } from '../../../core/schema/defaults'
 import type { ProfileV2 } from '../../../core/schema/profile'
 import type { MessageKey } from '../../../i18n'
@@ -47,6 +48,13 @@ export function backgroundItems(ctx: Ctx): Item[] {
   const setStops = (next: string[]) => setBackground(b => ({ ...b, gradient: { angle: b.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE, stops: next } }))
   const position = parsePosition(image?.position ?? 'center')
   const setExact = (x: number, y: number) => setImage({ position: `${x}% ${y}%` })
+  /** Pointer moves on the preview write the same exact position the sliders write. */
+  const moveFocal = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = Math.round(Math.min(100, Math.max(0, (event.clientX - rect.left) / rect.width * 100)))
+    const y = Math.round(Math.min(100, Math.max(0, (event.clientY - rect.top) / rect.height * 100)))
+    setExact(x, y)
+  }
   const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string } = {}): Item => ({
     id, group: 'settings.imageGroup', keys: [label],
     node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} onChange={set} />,
@@ -128,6 +136,16 @@ export function backgroundItems(ctx: Ctx): Item[] {
         id: 'focal', group: 'settings.imageGroup', keys: ['settings.focal', 'settings.focalX', 'settings.focalY', ...NAMED_POSITIONS.map(([, key]) => key)],
         node: (
           <div className="sd-focal">
+            {ctx.wallpaperUrl && (
+              <div
+                className="sd-focal-preview" aria-hidden="true"
+                style={{ backgroundImage: `url("${ctx.wallpaperUrl}")`, backgroundPosition: `${position.x}% ${position.y}%` }}
+                onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); moveFocal(event) }}
+                onPointerMove={event => { if (event.buttons === 1) moveFocal(event) }}
+              >
+                <span className="sd-focal-crosshair" style={{ left: `${position.x}%`, top: `${position.y}%` }} />
+              </div>
+            )}
             <Row label={t('settings.focal')} stack>
               <Segmented label={t('settings.focal')} columns={3} value={position.named ?? ''} onChange={value => setImage({ position: value })}
                 options={NAMED_POSITIONS.map(([value, key]) => ({ value, label: t(key) }))} />

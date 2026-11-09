@@ -19,6 +19,8 @@ export type Ctx = {
   s: Settings
   /** Settings search is active: matched controls inside collapsed disclosures are shown. */
   searching?: boolean
+  /** Object URL of the current wallpaper, when one is loaded. */
+  wallpaperUrl?: string
   profile: ProfileV2
   mode: ThemeMode
   store: StoreApi<ProfileStore>

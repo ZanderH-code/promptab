@@ -374,6 +374,7 @@ export default function App() {
           onWallpaperRemove={wallpaper.remove}
           onReset={reset}
           onError={setError}
+          wallpaperUrl={wallpaper.url}
         />
       )}
       {editing && <ShortcutEditor key={editing.id} shortcut={editing} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
