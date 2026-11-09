@@ -113,15 +113,19 @@ test('drawer and dialog surfaces follow background in both themes', async ({ pag
   await page.setViewportSize({ width: 1440, height: 900 })
   await open(page)
   await page.locator('.settings-button').click()
-  for (const theme of ['深色', '浅色']) {
+  for (const [index, theme] of ['深色', '浅色'].entries()) {
+    // Closing the drawer after the first theme also closes it before the page control below.
+    if (index > 0) await page.locator('.settings-button').click()
     await openTab(page, 'appearance')
-  await page.getByRole('combobox', { name: '主题', exact: true }).click()
+    await page.getByRole('combobox', { name: '主题', exact: true }).click()
     await page.getByRole('option', { name: theme, exact: true }).click()
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme === '浅色' ? 'light' : 'dark')
     await expect(page.locator('.drawer')).toBeVisible()
     const surface = await page.locator('.drawer').evaluate(el => getComputedStyle(el).backgroundColor)
     expect(surface).toMatch(/rgb|oklch|color\(/)
-    await page.locator('.add-shortcut').click({ force: true })
+    await page.getByRole('button', { name: '关闭设置' }).click()
+    await expect(page.locator('.drawer')).toHaveCount(0)
+    await page.locator('.add-shortcut').click()
     await expect(page.locator('.modal')).toBeVisible()
     const dialogSurface = await page.locator('.modal').evaluate(el => getComputedStyle(el).backgroundColor)
     expect(dialogSurface).toMatch(/rgb|oklch|color\(/)
