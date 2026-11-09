@@ -282,3 +282,7 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-focal-crosshair::before, .sd-focal-crosshair::after { content: ''; position: absolute; background: #fff; box-shadow: 0 0 0 1px rgb(0 0 0 / 55%); }
 .sd-focal-crosshair::before { left: 50%; top: -8px; bottom: -8px; width: 1px; }
 .sd-focal-crosshair::after { top: 50%; left: -8px; right: -8px; height: 1px; }
+.sd-file { display: flex; flex-wrap: wrap; align-items: center; gap: var(--mnt-space-2); padding: var(--mnt-space-2); border: 1px dashed var(--mnt-text-muted); border-radius: 8px; }
+.sd-file[data-dragover] { border-color: var(--mnt-accent); background: var(--mnt-accent-soft); }
+.sd-file-button { max-width: 100%; text-align: left; white-space: normal; }
+.sd-file-name { color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); overflow-wrap: anywhere; }

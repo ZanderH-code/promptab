@@ -180,6 +180,7 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.wallpaper': 'Wallpaper',
   'settings.wallpaperUpload': 'Upload images (PNG, JPEG, WebP, up to 5 MB each)',
   'settings.wallpaperVideo': 'Upload a video (MP4 or WebM, up to 30 MB)',
+  'settings.noFile': 'No file chosen',
   'settings.wallpaperRotation': 'Change wallpaper',
   'settings.rotationOpen': 'Every new tab',
   'settings.rotationHour': 'Every hour',

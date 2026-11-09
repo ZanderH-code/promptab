@@ -4,6 +4,7 @@ import { RANGES } from '../../../core/schema/defaults'
 import type { ProfileV2 } from '../../../core/schema/profile'
 import type { MessageKey } from '../../../i18n'
 import { ColorField, RangeField, Row, Segmented } from '../controls'
+import { FilePicker } from '../FilePicker'
 import { colorsFor } from '../themeApi'
 import { touch, type Ctx, type Item } from './shared'
 
@@ -107,10 +108,8 @@ export function backgroundItems(ctx: Ctx): Item[] {
       id: 'wallpaper', keys: ['settings.wallpaper', 'settings.wallpaperUpload', 'settings.wallpaperRemove', 'settings.blur', 'settings.grayscale', 'settings.imageScale', 'settings.vignette', 'settings.focal'],
       node: (
         <div className="sd-upload">
-          <label className="sd-label" htmlFor="sd-wallpaper-file">{t('settings.wallpaperUpload')}</label>
-          <input id="sd-wallpaper-file" type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => { ctx.onWallpaperFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
-          <label className="sd-label" htmlFor="sd-wallpaper-video">{t('settings.wallpaperVideo')}</label>
-          <input id="sd-wallpaper-video" type="file" accept="video/mp4,video/webm" onChange={event => { ctx.onWallpaperVideoFile(event.target.files?.[0]); event.target.value = '' }} />
+          <FilePicker t={t} label={t('settings.wallpaperUpload')} accept="image/png,image/jpeg,image/webp" multiple onFiles={ctx.onWallpaperFiles} />
+          <FilePicker t={t} label={t('settings.wallpaperVideo')} accept="video/mp4,video/webm" onFiles={files => ctx.onWallpaperVideoFile(files[0])} />
           {uploadHint}
           {(image || video || bg.rotation) && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
         </div>

@@ -1095,3 +1095,73 @@ test('the focal point preview shares the stored position', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+const DROP_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+test('the wallpaper pickers are styled, labelled controls', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+
+  const zones = page.locator('.sd-file')
+  await expect(zones).toHaveCount(2)
+  // The visible control is a localized button; the native input is clipped and out of the tab order.
+  await expect(page.getByRole('button', { name: 'Upload images (PNG, JPEG, WebP, up to 5 MB each)', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)', exact: true })).toBeVisible()
+  const inputs = page.locator('.sd-file input[type=file]')
+  await expect(inputs).toHaveCount(2)
+  for (const input of await inputs.all()) {
+    await expect(input).toHaveClass(/visually-hidden/)
+    await expect(input).toHaveCSS('clip-path', 'inset(50%)')
+    await expect(input).toHaveAttribute('tabindex', '-1')
+  }
+  await expect(page.getByText('No file chosen', { exact: true })).toHaveCount(2)
+  await page.screenshot({ path: `${SHOTS}/upload.png` })
+
+  // Picking a file still runs the wallpaper flow and shows the chosen name.
+  await inputs.first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await expect(zones.first().locator('.sd-file-name')).toHaveText('upscaled-32-to-128.png')
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+
+  // Dropping a file adds the drag-over state, clears it, and uploads the dropped file.
+  await page.evaluate(data => {
+    const bytes = Uint8Array.from(atob(data), character => character.charCodeAt(0))
+    const transfer = new DataTransfer()
+    transfer.items.add(new File([bytes], 'drop.png', { type: 'image/png' }))
+    ;(window as Window & { __transfer?: DataTransfer }).__transfer = transfer
+    document.querySelector('.sd-file')!.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer }))
+  }, DROP_PNG)
+  await expect(zones.first()).toHaveAttribute('data-dragover', 'true')
+  await page.evaluate(() => {
+    const transfer = (window as Window & { __transfer?: DataTransfer }).__transfer
+    document.querySelector('.sd-file')!.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }))
+  })
+  await expect(zones.first()).not.toHaveAttribute('data-dragover')
+  await expect(zones.first().locator('.sd-file-name')).toHaveText('drop.png')
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+
+  let scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // The same control in zh-CN.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '背景', exact: true }).click()
+  await expect(page.getByRole('button', { name: '上传本地图片（PNG、JPEG、WebP，每张最大 5 MB）', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '上传本地视频（MP4 或 WebM，最大 30 MB）', exact: true })).toBeVisible()
+  await expect(page.getByText('未选择文件', { exact: true })).toHaveCount(2)
+  await page.screenshot({ path: `${SHOTS}/upload-zh.png` })
+
+  scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})

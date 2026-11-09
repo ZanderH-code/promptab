@@ -180,6 +180,7 @@ export const zhCN = {
   'settings.wallpaper': '壁纸',
   'settings.wallpaperUpload': '上传本地图片（PNG、JPEG、WebP，每张最大 5 MB）',
   'settings.wallpaperVideo': '上传本地视频（MP4 或 WebM，最大 30 MB）',
+  'settings.noFile': '未选择文件',
   'settings.wallpaperRotation': '切换壁纸',
   'settings.rotationOpen': '每次打开新标签页',
   'settings.rotationHour': '每小时',

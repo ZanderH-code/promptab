@@ -334,9 +334,10 @@ describe('SettingsDrawer background', () => {
     expect(lastUpdate(props).next.background.rotation?.interval).toBe('hour')
     fireEvent.click(screen.getByRole('radio', { name: 'Video' }))
     expect(lastUpdate(props).next.background.type).toBe('video')
-    const images = screen.getByLabelText('Upload images (PNG, JPEG, WebP, up to 5 MB each)') as HTMLInputElement
+    const images = screen.getByRole('button', { name: 'Upload images (PNG, JPEG, WebP, up to 5 MB each)' }).closest('.sd-file')!.querySelector('input[type=file]') as HTMLInputElement
     expect(images.multiple).toBe(true)
-    expect((screen.getByLabelText('Upload a video (MP4 or WebM, up to 30 MB)') as HTMLInputElement).accept).toBe('video/mp4,video/webm')
+    const video = screen.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)' }).closest('.sd-file')!.querySelector('input[type=file]') as HTMLInputElement
+    expect(video.accept).toBe('video/mp4,video/webm')
   })
 
   it('edits gradient stops between two and three', () => {
