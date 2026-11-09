@@ -21,8 +21,10 @@ async function openStyle(page: Page) {
   await expect(page.locator('.cm-content')).toBeVisible()
 }
 
-async function openLayout(page: Page) {
+async function openLayout(page: Page, advanced = true) {
   await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  if (!advanced) return
+  await page.locator('.sd-advanced summary').click()
   await expect(page.getByRole('textbox', { name: 'Area grid' })).toBeVisible()
 }
 
@@ -474,6 +476,11 @@ async function centreIsScrim(page: Page) {
   return await page.evaluate(() => document.elementFromPoint(200, 450)?.classList.contains('scrim') ?? false)
 }
 
+/** The topmost element in the strip left of the 640 px drawer at 800 px width. */
+async function leftIsScrim(page: Page) {
+  return await page.evaluate(() => document.elementFromPoint(80, 450)?.classList.contains('scrim') ?? false)
+}
+
 test('the page stays bright while editing and the panel can peek away', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
@@ -494,6 +501,8 @@ test('the page stays bright while editing and the panel can peek away', async ({
   const url = page.url()
   await page.mouse.click(200, 450)
   expect(page.url()).toBe(url)
+  // The scrim absorbs the click, then dismisses settings.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
   await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
 
@@ -530,6 +539,758 @@ test('the page stays bright while editing and the panel can peek away', async ({
   const alpha = await scrimAlpha(page)
   expect(alpha).toBeGreaterThanOrEqual(.55)
   expect(alpha).toBeLessThanOrEqual(.65)
+
+  expect(errors).toEqual([])
+})
+
+test('the settings scrim blocks page clicks at every width', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 800, height: 900 })
+  await openDrawer(page)
+  const violations = async () => (await new AxeBuilder({ page }).analyze()).violations.filter(issue => issue.impact === 'serious' || issue.impact === 'critical')
+  expect(await violations()).toEqual([])
+
+  // The drawer is 640 px wide; the strip left of it is the dimmed scrim.
+  const shortcuts = await page.locator('.shortcut').count()
+  const pages = page.context().pages().length
+  const url = page.url()
+  const alpha = await scrimAlpha(page)
+  expect(alpha).toBeGreaterThanOrEqual(.55)
+  expect(alpha).toBeLessThanOrEqual(.65)
+  expect(await leftIsScrim(page)).toBe(true)
+
+  await page.mouse.click(80, 450)
+  expect(page.url()).toBe(url)
+  expect(await page.locator('.shortcut').count()).toBe(shortcuts)
+  expect(page.context().pages().length).toBe(pages)
+  await expect(page.locator('.edit-toolbar')).toHaveCount(0)
+  await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
+  // The click is absorbed by the scrim, then dismisses settings.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  // At 1400 px the scrim is transparent but still blocks and dismisses.
+  await openDrawer(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  expect(await scrimAlpha(page)).toBe(0)
+  expect(await centreIsScrim(page)).toBe(true)
+  await page.mouse.click(200, 450)
+  expect(page.url()).toBe(url)
+  expect(await page.locator('.shortcut').count()).toBe(shortcuts)
+  expect(page.context().pages().length).toBe(pages)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  // The generic widget scrim keeps passing clicks through; only the settings one blocks.
+  expect(await page.evaluate(() => {
+    const element = document.createElement('div')
+    element.className = 'scrim'
+    document.body.append(element)
+    const value = getComputedStyle(element).pointerEvents
+    element.remove()
+    return value
+  })).toBe('none')
+
+  expect(errors).toEqual([])
+})
+
+test('the section header stays in view with the reset action', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  const panel = page.getByRole('tabpanel')
+  const header = page.locator('.sd-section-head')
+  await expect(header).toBeVisible()
+  await expect(header.getByRole('heading', { name: 'Areas & grid', exact: true })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeVisible()
+  // Only the header owns the reset; the old panel footer is gone.
+  await expect(page.getByRole('button', { name: 'Restore section defaults', exact: true })).toHaveCount(1)
+  await expect(page.locator('.sd-restore')).toHaveCount(0)
+  await page.screenshot({ path: `${SHOTS}/header-top.png` })
+
+  const panelBox = (await panel.boundingBox())!
+  const before = (await header.boundingBox())!
+  await panel.evaluate(element => { element.scrollTop = 600 })
+  await expect.poll(() => panel.evaluate(element => element.scrollTop)).toBe(600)
+
+  const after = (await header.boundingBox())!
+  // Sticky: the header stays at the panel's top edge (the 8 px content padding included) while scrolling.
+  expect(after.y).toBeGreaterThanOrEqual(panelBox.y)
+  expect(after.y).toBeLessThanOrEqual(panelBox.y + 10)
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1)
+  await expect(header.getByRole('heading', { name: 'Areas & grid', exact: true })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeInViewport()
+  await page.screenshot({ path: `${SHOTS}/header-scrolled.png` })
+
+  expect(errors).toEqual([])
+})
+
+test('the layout diagram previews the committed area grid', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  const preview = page.locator('.sd-grid-preview')
+  const blocks = preview.locator('.sd-grid-block')
+  await expect(preview).toBeVisible()
+  await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
+  await expect(preview).toHaveAttribute('role', 'group')
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Overview, Shortcuts')
+  // Read-only: nothing in the diagram is focusable or editable.
+  await expect(preview.locator('input, textarea, select, button, [contenteditable]')).toHaveCount(0)
+
+  const geometry = () => page.evaluate(() => {
+    const read = (rootSelector: string) => {
+      const root = document.querySelector<HTMLElement>(rootSelector)!
+      const box = root.getBoundingClientRect()
+      const left = box.left + root.clientLeft
+      const width = root.clientWidth
+      return {
+        areas: getComputedStyle(root).gridTemplateAreas,
+        blocks: Object.fromEntries([...root.querySelectorAll<HTMLElement>('[data-area]')].map(element => {
+          const rect = element.getBoundingClientRect()
+          return [element.dataset.area!, { left: (rect.left - left) / width, right: (rect.right - left) / width }]
+        })),
+      }
+    }
+    return { preview: read('.sd-grid-preview'), page: read('.mnt-layout') }
+  })
+
+  // Stacked: the diagram mirrors the page's rows.
+  await expect.poll(async () => (await geometry()).page.areas).toBe('"overview" "bookmarks"')
+  await expect.poll(async () => (await geometry()).preview.areas).toBe('"overview" "bookmarks"')
+  await page.screenshot({ path: `${SHOTS}/grid-preview.png` })
+
+  // Side by side: the page and the diagram keep the same column proportions.
+  await page.getByRole('combobox', { name: 'Layout', exact: true }).click()
+  await page.getByRole('option', { name: 'Side by side', exact: true }).click()
+  await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', 'split')
+  await expect.poll(async () => (await geometry()).page.areas).toBe('"bookmarks overview"')
+  await expect.poll(async () => (await geometry()).preview.areas).toBe('"bookmarks overview"')
+  await expect(blocks).toHaveText(['Shortcuts', 'Overview'])
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Shortcuts, Overview')
+  const split = await geometry()
+  const previewWidth = await preview.evaluate(element => element.clientWidth)
+  for (const area of ['bookmarks', 'overview']) {
+    const previewBlock = split.preview.blocks[area]
+    const pageBlock = split.page.blocks[area]
+    expect(Math.abs(previewBlock.left - pageBlock.left) * previewWidth, `${area} left edge`).toBeLessThanOrEqual(2)
+    expect(Math.abs(previewBlock.right - pageBlock.right) * previewWidth, `${area} right edge`).toBeLessThanOrEqual(2)
+  }
+  // Side by side puts the shortcuts on the left and the overview on the right, on both.
+  const pageBoxes = await page.evaluate(() => Object.fromEntries([...document.querySelectorAll<HTMLElement>('.mnt-layout .mnt-area[data-area]')].map(element => [element.dataset.area!, element.getBoundingClientRect().left])))
+  expect(pageBoxes.bookmarks).toBeLessThan(pageBoxes.overview)
+  expect(split.preview.blocks.bookmarks.left).toBeLessThan(split.preview.blocks.overview.left)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // An invalid draft leaves the diagram on the committed grid; a valid edit moves it.
+  const committed = await preview.evaluate(element => element.innerHTML)
+  const areas = page.getByRole('textbox', { name: 'Area grid' })
+  await areas.fill('bookmarks overview\nbookmarks overview')
+  await expect(page.getByRole('alert')).toBeVisible()
+  expect(await preview.evaluate(element => element.innerHTML)).toBe(committed)
+  expect((await geometry()).preview.areas).toBe('"bookmarks overview"')
+
+  await areas.fill('overview bookmarks')
+  await expect.poll(async () => (await geometry()).preview.areas).toBe('"overview bookmarks"')
+  await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
+
+  expect(errors).toEqual([])
+})
+
+test('the grid preview names its areas in the current locale', async ({ page }) => {
+  await seedExistingUser(page, { language: 'zh-CN' })
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await page.goto('/')
+  await expect(page.locator('.mnt-layout')).toBeVisible()
+  await page.locator('.mnt-settings-entry').first().click()
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  const preview = page.locator('.sd-grid-preview')
+  await expect(preview).toBeVisible()
+  await expect(preview.locator('.sd-grid-block')).toHaveText(['概览', '快捷方式'])
+  await expect(preview).toHaveAttribute('aria-label', '当前区域网格预览：概览、快捷方式')
+})
+
+test('a custom area can be renamed from the layout diagram', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  // Two custom areas: the preview names them and only they are renameable.
+  const areas = page.getByRole('textbox', { name: 'Area grid' })
+  await areas.fill('overview bookmarks\ntop side')
+  const preview = page.locator('.sd-grid-preview')
+  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Shortcuts', 'top', 'side'])
+  await expect(preview.locator('button.sd-grid-block')).toHaveCount(2)
+  await expect(preview.locator('button[data-area="overview"], button[data-area="bookmarks"]')).toHaveCount(0)
+
+  // The narrow grid must know the area too: widgets may only live in areas every grid has.
+  const narrowAreas = page.getByRole('textbox', { name: 'Narrow layout' })
+  await narrowAreas.fill('overview\nbookmarks\nside')
+  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Shortcuts', 'top', 'side'])
+
+  // Put a widget in the area, so the rename has to carry it across.
+  const clockItem = page.locator('.sd-note').filter({ hasText: 'Show clock' })
+  await clockItem.getByRole('combobox', { name: 'Widget area' }).click()
+  await page.getByRole('option', { name: 'side', exact: true }).click()
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+
+  await preview.locator('[data-area="side"]').click()
+  const field = page.getByRole('textbox', { name: 'Rename area' })
+  await expect(field).toBeVisible()
+  await expect(field).toHaveValue('side')
+  await field.fill('aside')
+  await field.press('Enter')
+  await expect(field).toHaveCount(0)
+
+  // Grid text, preview, widget area and the rendered page all follow the rename.
+  await expect(areas).toHaveValue('overview bookmarks\ntop aside')
+  await expect(narrowAreas).toHaveValue('overview\nbookmarks\naside')
+  await expect(preview.locator('[data-area="side"]')).toHaveCount(0)
+  await expect(preview.locator('[data-area="aside"]')).toHaveText('aside')
+  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('aside')
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="aside"] .clock')).toBeVisible()
+  await expect(page.locator('.mnt-layout')).toHaveAttribute('style', /aside/)
+
+  // The whole rename is one undo step.
+  await page.keyboard.press('Control+z')
+  await expect(preview.locator('[data-area="aside"]')).toHaveCount(0)
+  await expect(preview.locator('[data-area="side"]')).toHaveText('side')
+  await expect(areas).toHaveValue('overview bookmarks\ntop side')
+  await expect(narrowAreas).toHaveValue('overview\nbookmarks\nside')
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('side')
+
+  // A duplicate name shows the alert and commits nothing.
+  await preview.locator('[data-area="side"]').click()
+  await field.fill('top')
+  await field.press('Enter')
+  await expect(page.getByRole('alert')).toContainText('“top”')
+  await expect(preview.locator('[data-area="side"]')).toHaveText('side')
+  await expect(areas).toHaveValue('overview bookmarks\ntop side')
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('the preview explains which areas can be renamed', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  const figure = page.locator('.sd-grid-figure')
+  const hint = figure.locator('.sd-hint')
+  await expect(hint).toHaveText('Click a custom area to rename it. Overview and Shortcuts are built in.')
+  await expect(hint).toHaveClass(/\bsd-hint\b/)
+  // It follows the diagram, outside the group that carries the diagram's name.
+  expect(await figure.evaluate(element => {
+    const preview = element.querySelector('.sd-grid-preview')!
+    const note = element.querySelector('.sd-hint')!
+    return !preview.contains(note) && (preview.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+  })).toBe(true)
+  // Muted hint style, not a second section description.
+  const colors = await page.evaluate(() => ['.sd-hint', '.sd-section-desc'].map(selector => getComputedStyle(document.querySelector(selector)!).color))
+  expect(colors[0]).toBe(colors[1])
+  await expect(page.locator('.sd-section-desc')).not.toHaveText(/custom area to rename/)
+  await page.screenshot({ path: `${SHOTS}/layout-hint.png` })
+
+  // The hint is translated with the rest of the drawer.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await expect(page.locator('.sd-grid-figure .sd-hint')).toHaveText('点击自定义区域即可重命名。概览和快捷方式是内置区域。')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('the raw layout DSL sits behind an advanced disclosure', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page, false)
+
+  const advanced = page.locator('.sd-advanced')
+  const summary = advanced.locator('summary')
+  await expect(summary).toHaveText('Advanced')
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+  await expect(page.locator('.sd-panel textarea:visible')).toHaveCount(0)
+  await expect(page.locator('.sd-grid-preview')).toBeVisible()
+  // The visual path — template, preview, hint — plus the Advanced entry fit above the fold.
+  const summaryBox = (await summary.boundingBox())!
+  expect(summaryBox.y + summaryBox.height).toBeLessThanOrEqual(900)
+  await page.screenshot({ path: `${SHOTS}/layout-collapsed.png` })
+
+  await summary.click()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(true)
+  const fields = advanced.locator('textarea')
+  await expect(fields).toHaveCount(6)
+  await expect(page.locator('.sd-panel textarea:visible')).toHaveCount(6)
+  expect(await fields.evaluateAll(elements => elements.map(element => (element as HTMLTextAreaElement).placeholder))).toEqual([
+    'overview bookmarks\ntop side', '1fr 240px minmax(0, 1fr)', 'auto 1fr',
+    'overview bookmarks\ntop side', '1fr 240px minmax(0, 1fr)', 'auto 1fr',
+  ])
+  await page.screenshot({ path: `${SHOTS}/layout-expanded.png` })
+
+  // A custom area gives the preview a rename control; it precedes Advanced in the tab order.
+  await fields.nth(0).fill('overview bookmarks\nside side')
+  await summary.click()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+  await page.getByRole('combobox', { name: 'Layout', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.sd-grid-preview button[data-area="side"]')).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(summary).toBeFocused()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('search opens the advanced layout fields it matches', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page, false)
+
+  const advanced = page.locator('.sd-advanced')
+  const summary = advanced.locator('summary')
+  await expect(summary).toHaveText('Advanced')
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+
+  const search = page.getByRole('searchbox', { name: 'Search settings' })
+  await search.fill('Column sizes')
+  // The matched field is reachable while the query is alive.
+  await expect(summary).toBeVisible()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(true)
+  const columns = page.getByRole('textbox', { name: 'Column sizes' }).first()
+  await expect(columns).toBeVisible()
+  // Editing still commits as it does outside search.
+  await columns.fill('1fr')
+  await expect.poll(async () => await page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.columns ?? null
+  })).toEqual(['1fr'])
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // Clearing the query returns the disclosure to its normal collapsed state.
+  await search.fill('')
+  await expect(summary).toBeVisible()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+  await expect(page.locator('.sd-panel textarea:visible')).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
+
+test('the gradient editor previews the rendered background', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Gradient', exact: true }).click()
+
+  const strip = page.locator('.sd-gradient-preview')
+  await expect(strip).toBeVisible()
+  const box = (await strip.boundingBox())!
+  expect(box.width).toBeGreaterThan(400)
+  expect(box.height).toBeGreaterThanOrEqual(72)
+  await expect(strip).toHaveAttribute('data-angle', '135')
+  await expect(page.locator('.sd-gradient-angle')).toHaveText('135°')
+  await expect(page.locator('.sd-gradient-stop')).toHaveCount(2)
+  await expect(page.locator('.sd-gradient-stop[data-position="0"], .sd-gradient-stop[data-position="100"]')).toHaveCount(2)
+
+  // The strip and the page's background layer render the same gradient, not a placeholder bar.
+  const backgrounds = () => page.evaluate(() => ({
+    strip: getComputedStyle(document.querySelector('.sd-gradient-preview')!).backgroundImage,
+    page: getComputedStyle(document.querySelector('.app')!).backgroundImage,
+  }))
+  await expect.poll(async () => { const value = await backgrounds(); return value.strip === value.page && value.strip !== 'none' }).toBe(true)
+  const corners = async () => {
+    const rect = (await strip.boundingBox())!
+    return {
+      topLeft: await page.screenshot({ clip: { x: rect.x + 4, y: rect.y + 4, width: 1, height: 1 } }),
+      bottomRight: await page.screenshot({ clip: { x: rect.x + rect.width - 5, y: rect.y + rect.height - 5, width: 1, height: 1 } }),
+    }
+  }
+  await page.screenshot({ path: `${SHOTS}/gradient-135.png` })
+  const before = await corners()
+  expect(before.topLeft.equals(before.bottomRight)).toBe(false)
+
+  await page.getByRole('spinbutton', { name: 'Angle value' }).fill('45')
+  await page.getByRole('spinbutton', { name: 'Angle value' }).press('Enter')
+  await expect(strip).toHaveAttribute('data-angle', '45')
+  await expect(page.locator('.sd-gradient-angle')).toHaveText('45°')
+  await expect.poll(async () => { const value = await backgrounds(); return value.strip === value.page }).toBe(true)
+  const after = await corners()
+  // Rotating from 135° to 45° swaps the colour at each corner.
+  expect(after.topLeft.equals(before.topLeft)).toBe(false)
+  expect(after.bottomRight.equals(before.bottomRight)).toBe(false)
+  await page.screenshot({ path: `${SHOTS}/gradient-45.png` })
+
+  // The border separates the strip from the panel in both modes.
+  const contrast = () => page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const context = canvas.getContext('2d')!
+    const rgb = (value: string) => {
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(channel => {
+        const s = channel / 255
+        return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4
+      })
+    }
+    const luminance = (channels: number[]) => .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
+    const strip = document.querySelector('.sd-gradient-preview')!
+    const drawer = document.querySelector('.drawer.sd')!
+    const a = luminance(rgb(getComputedStyle(strip).borderTopColor))
+    const b = luminance(rgb(getComputedStyle(drawer).backgroundColor))
+    return (Math.max(a, b) + .05) / (Math.min(a, b) + .05)
+  })
+  expect(await contrast()).toBeGreaterThanOrEqual(3)
+
+  // Light mode never renders the gradient, so the strip says so instead of pretending.
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Theme', exact: true }).click()
+  await page.getByRole('option', { name: 'Light', exact: true }).click()
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await expect(page.locator('.sd-gradient')).toContainText('Gradients are only shown in dark mode.')
+  const modes = await backgrounds()
+  expect(modes.strip).not.toBe('none')
+  expect(modes.page).toBe('none')
+  expect(await contrast()).toBeGreaterThanOrEqual(3)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('the focal point preview shares the stored position', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+
+  const preview = page.locator('.sd-focal-preview')
+  await expect(preview).toBeVisible()
+  // Pointer-only: keyboard users keep the sliders, with nothing new in the tab order.
+  await expect(preview).not.toHaveAttribute('tabindex')
+  await expect(preview).not.toHaveAttribute('role')
+
+  const stored = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].background.image?.position ?? null
+  })
+  const parsed = async () => {
+    const value = String(await stored())
+    const match = /^(\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%$/.exec(value)
+    return match ? { x: Number(match[1]), y: Number(match[2]) } : { x: 50, y: 50 }
+  }
+  const centre = () => page.evaluate(() => {
+    const box = document.querySelector('.sd-focal-preview')!.getBoundingClientRect()
+    const cross = document.querySelector('.sd-focal-crosshair')!.getBoundingClientRect()
+    return { x: (cross.left + cross.width / 2 - box.left) / box.width * 100, y: (cross.top + cross.height / 2 - box.top) / box.height * 100 }
+  })
+
+  expect(await parsed()).toEqual({ x: 50, y: 50 })
+  const initial = await centre()
+  expect(Math.abs(initial.x - 50)).toBeLessThanOrEqual(2)
+  expect(Math.abs(initial.y - 50)).toBeLessThanOrEqual(2)
+
+  // Clicking at 25 % / 75 % writes the same value the sliders and named buttons write.
+  await preview.scrollIntoViewIfNeeded()
+  const box = (await preview.boundingBox())!
+  await page.mouse.click(box.x + box.width * .25, box.y + box.height * .75)
+  await expect.poll(parsed).toEqual({ x: 25, y: 75 })
+  const clicked = await centre()
+  expect(Math.abs(clicked.x - 25)).toBeLessThanOrEqual(2)
+  expect(Math.abs(clicked.y - 75)).toBeLessThanOrEqual(2)
+  await expect(page.getByRole('radiogroup', { name: 'Focal point' }).getByRole('radio', { checked: true })).toHaveCount(0)
+  await page.screenshot({ path: `${SHOTS}/focal.png` })
+
+  // Dragging keeps the same source of truth.
+  await page.mouse.move(box.x + box.width * .6, box.y + box.height * .4)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width * .8, box.y + box.height * .2, { steps: 4 })
+  await page.mouse.up()
+  await expect.poll(async () => {
+    const value = await parsed()
+    return Math.abs(value.x - 80) <= 2 && Math.abs(value.y - 20) <= 2
+  }).toBe(true)
+
+  // Keyboard navigation stays on the existing controls; the preview never enters the tab order.
+  await page.getByRole('slider', { name: 'Horizontal position' }).focus()
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => document.activeElement?.classList.contains('sd-focal-preview'))).toBe(false)
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('slider', { name: 'Vertical position' })).toBeFocused()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+const DROP_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+
+test('the wallpaper pickers are styled, labelled controls', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+
+  const zones = page.locator('.sd-file')
+  await expect(zones).toHaveCount(2)
+  // The visible control is a localized button; the native input is clipped and out of the tab order.
+  await expect(page.getByRole('button', { name: 'Upload images (PNG, JPEG, WebP, up to 5 MB each)', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)', exact: true })).toBeVisible()
+  const inputs = page.locator('.sd-file input[type=file]')
+  await expect(inputs).toHaveCount(2)
+  for (const input of await inputs.all()) {
+    await expect(input).toHaveClass(/visually-hidden/)
+    await expect(input).toHaveCSS('clip-path', 'inset(50%)')
+    await expect(input).toHaveAttribute('tabindex', '-1')
+  }
+  await expect(page.getByText('No file chosen', { exact: true })).toHaveCount(2)
+  await page.screenshot({ path: `${SHOTS}/upload.png` })
+
+  // Picking a file still runs the wallpaper flow and shows the chosen name.
+  await inputs.first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await expect(zones.first().locator('.sd-file-name')).toHaveText('upscaled-32-to-128.png')
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+
+  // Dropping a file adds the drag-over state, clears it, and uploads the dropped file.
+  await page.evaluate(data => {
+    const bytes = Uint8Array.from(atob(data), character => character.charCodeAt(0))
+    const transfer = new DataTransfer()
+    transfer.items.add(new File([bytes], 'drop.png', { type: 'image/png' }))
+    ;(window as Window & { __transfer?: DataTransfer }).__transfer = transfer
+    document.querySelector('.sd-file')!.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer }))
+  }, DROP_PNG)
+  await expect(zones.first()).toHaveAttribute('data-dragover', 'true')
+  await page.evaluate(() => {
+    const transfer = (window as Window & { __transfer?: DataTransfer }).__transfer
+    document.querySelector('.sd-file')!.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }))
+  })
+  await expect(zones.first()).not.toHaveAttribute('data-dragover')
+  await expect(zones.first().locator('.sd-file-name')).toHaveText('drop.png')
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+
+  let scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // The same control in zh-CN.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '背景', exact: true }).click()
+  await expect(page.getByRole('button', { name: '上传本地图片（PNG、JPEG、WebP，每张最大 5 MB）', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '上传本地视频（MP4 或 WebM，最大 30 MB）', exact: true })).toBeVisible()
+  await expect(page.getByText('未选择文件', { exact: true })).toHaveCount(2)
+  await page.screenshot({ path: `${SHOTS}/upload-zh.png` })
+
+  scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('background and layout controls explain their effect', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+
+  // The image hint is part of the upload block, directly after the image picker.
+  const imageHint = page.getByText('Upload an image to adjust blur, grayscale, zoom and focal point.')
+  await expect(imageHint).toBeVisible()
+  expect(await imageHint.evaluate(element => element.parentElement?.classList.contains('sd-upload'))).toBe(true)
+  expect(await imageHint.evaluate(element => element.previousElementSibling?.classList.contains('sd-file'))).toBe(true)
+  await page.getByRole('radio', { name: 'Video', exact: true }).click()
+  await expect(imageHint).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await expect(imageHint).toHaveCount(0)
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+
+  const hint = async (name: string) => {
+    const row = page.locator('.sd-row').filter({ has: page.getByText(name, { exact: true }) }).first()
+    const small = row.locator('.sd-range-hint')
+    await expect(small, `${name} hint`).toHaveCount(1)
+    const text = (await small.innerText()).trim()
+    expect(text, `${name} hint is not empty`).not.toBe('')
+    expect(text, `${name} hint is not the label`).not.toBe(name)
+    return text
+  }
+  const overflow = async () => page.locator('.sd-panel').evaluate(element => element.scrollWidth <= element.clientWidth)
+
+  for (const label of ['Overlay opacity', 'Vignette', 'Grayscale', 'Image zoom']) await hint(label)
+  expect(await overflow(), 'background panel').toBe(true)
+
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  for (const label of ['Area opacity', 'Area blur', 'Area padding', 'Top accent divider', 'Right accent divider', 'Bottom accent divider', 'Left accent divider', 'Max columns']) await hint(label)
+  expect(await overflow(), 'layout panel at 1400').toBe(true)
+  await page.setViewportSize({ width: 420, height: 800 })
+  expect(await overflow(), 'layout panel at 420').toBe(true)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  expect(await overflow(), 'background panel at 420').toBe(true)
+  await page.setViewportSize({ width: 1400, height: 900 })
+
+  // The same hints in zh-CN.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '背景', exact: true }).click()
+  for (const label of ['遮罩浓度', '晕影', '灰度', '图片缩放']) await hint(label)
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  for (const label of ['区域透明度', '区域模糊', '区域内边距', '上边强调线', '右边强调线', '下边强调线', '左边强调线', '每行最多列数']) await hint(label)
+  expect(await overflow(), 'zh layout panel').toBe(true)
+
+  expect(errors).toEqual([])
+})
+
+test('range hints describe their sliders for screen readers', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+
+  const rowFor = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const slider = (label: string) => page.getByRole('slider', { name: label, exact: true }).first()
+  const describe = async (label: string, description: string) => {
+    await expect(slider(label), label).toHaveAccessibleDescription(description)
+  }
+
+  // No visual change: the hint still sits under the label inside the range head.
+  const overlayRow = rowFor('Overlay opacity')
+  const small = overlayRow.locator('.sd-range-hint')
+  await expect(small).toHaveCount(1)
+  const labelBox = await overlayRow.locator('.sd-label').boundingBox()
+  const hintBox = await small.boundingBox()
+  expect(hintBox!.y, 'hint is under the label').toBeGreaterThanOrEqual(labelBox!.y + labelBox!.height)
+  expect(await small.evaluate(element => element.parentElement?.classList.contains('sd-range-head'))).toBe(true)
+
+  // Every hint-bearing slider in en, and its number input, is described by the hint.
+  await describe('Overlay opacity', 'Darkens the page behind the content.')
+  await expect(page.getByRole('spinbutton', { name: 'Overlay opacity value', exact: true }).first()).toHaveAccessibleDescription('Darkens the page behind the content.')
+  await describe('Vignette', 'Darkens the corners of the image.')
+  await describe('Grayscale', 'Removes colour from the image.')
+  await describe('Image zoom', 'Scales the image inside its frame.')
+
+  // A range without a hint has no description.
+  await expect(slider('Blur')).toHaveAccessibleDescription('')
+  await expect(page.getByRole('spinbutton', { name: 'Blur value', exact: true }).first()).toHaveAccessibleDescription('')
+
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await describe('Area opacity', 'Fades this area’s background behind its widgets.')
+  await describe('Area blur', 'Blurs what shows through this area.')
+  await describe('Area padding', 'Adds space between the area edge and its widgets.')
+  await describe('Top accent divider', 'Draws an accent line along the top edge.')
+  await describe('Right accent divider', 'Draws an accent line along the right edge.')
+  await describe('Bottom accent divider', 'Draws an accent line along the bottom edge.')
+  await describe('Left accent divider', 'Draws an accent line along the left edge.')
+  await describe('Max columns', 'Sets how many shortcuts fit on one row.')
+
+  let scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // A zh-CN sample: the description is the translated hint.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '背景', exact: true }).click()
+  await describe('遮罩浓度', '加深内容后方的页面底色。')
+  await expect(page.getByRole('spinbutton', { name: '遮罩浓度的数值', exact: true }).first()).toHaveAccessibleDescription('加深内容后方的页面底色。')
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await describe('区域透明度', '调整区域背景在其组件后方的透明度。')
+  await describe('每行最多列数', '设置每行可容纳的快捷方式数量。')
+
+  scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
 
   expect(errors).toEqual([])
 })

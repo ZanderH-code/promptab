@@ -1,8 +1,10 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { RANGES } from '../../../core/schema/defaults'
 import type { ProfileV2 } from '../../../core/schema/profile'
 import type { MessageKey } from '../../../i18n'
 import { ColorField, RangeField, Row, Segmented } from '../controls'
+import { FilePicker } from '../FilePicker'
 import { colorsFor } from '../themeApi'
 import { touch, type Ctx, type Item } from './shared'
 
@@ -43,14 +45,22 @@ export function backgroundItems(ctx: Ctx): Item[] {
     return touch({ ...p, background })
   })
   const stops = bg.gradient?.stops ?? []
+  const angle = bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE
   const setStops = (next: string[]) => setBackground(b => ({ ...b, gradient: { angle: b.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE, stops: next } }))
   const position = parsePosition(image?.position ?? 'center')
   const setExact = (x: number, y: number) => setImage({ position: `${x}% ${y}%` })
-  const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string } = {}): Item => ({
+  /** Pointer moves on the preview write the same exact position the sliders write. */
+  const moveFocal = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = Math.round(Math.min(100, Math.max(0, (event.clientX - rect.left) / rect.width * 100)))
+    const y = Math.round(Math.min(100, Math.max(0, (event.clientY - rect.top) / rect.height * 100)))
+    setExact(x, y)
+  }
+  const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string; hint?: MessageKey } = {}): Item => ({
     id, group: 'settings.imageGroup', keys: [label],
-    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} onChange={set} />,
+    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} hint={extra.hint ? t(extra.hint) : undefined} onChange={set} />,
   })
-  const uploadHint = !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
+  const uploadHint = bg.type === 'image' && !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
   const items: Item[] = [
     {
       id: 'bg-type', keys: ['settings.bgType', 'settings.bgTheme', 'settings.bgColor', 'settings.bgGradient', 'settings.bgAccent', 'settings.bgImage', 'settings.bgVideo', 'settings.wallpaperVideo'],
@@ -72,8 +82,15 @@ export function backgroundItems(ctx: Ctx): Item[] {
       id: 'bg-gradient', keys: ['settings.bgGradient', 'settings.gradientAngle'],
       node: (
         <div className="sd-gradient">
-          <div className="sd-gradient-preview" aria-hidden="true" style={{ background: `linear-gradient(${bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE}deg, ${stops.join(', ')})` }} />
-          <RangeField t={t} label={t('settings.gradientAngle')} value={bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE} min={0} max={360} unit="°" onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
+          <div className="sd-gradient-preview" aria-hidden="true" data-angle={angle} style={{ background: `linear-gradient(${angle}deg, ${stops.join(', ')})` }}>
+            <span className="sd-gradient-arrow" style={{ transform: `rotate(${angle}deg)` }}>↑</span>
+            <span className="sd-gradient-angle">{angle}°</span>
+            {stops.map((stop, index) => (
+              <span key={index} className="sd-gradient-stop" data-position={Math.round((index / Math.max(1, stops.length - 1)) * 100)} style={{ background: stop, left: `clamp(5px, ${(index / Math.max(1, stops.length - 1)) * 100}%, calc(100% - 5px))` }} />
+            ))}
+          </div>
+          {mode === 'light' && <p className="sd-hint">{t('settings.gradientDarkOnly')}</p>}
+          <RangeField t={t} label={t('settings.gradientAngle')} value={angle} min={0} max={360} unit="°" onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
           {stops.map((stop, index) => (
             <div className="sd-stop" key={index}>
               <ColorField t={t} label={t('settings.gradientStop', { n: index + 1 })} value={stop} onChange={value => setStops(stops.map((item, i) => i === index ? value : item))} />
@@ -91,18 +108,16 @@ export function backgroundItems(ctx: Ctx): Item[] {
       id: 'wallpaper', keys: ['settings.wallpaper', 'settings.wallpaperUpload', 'settings.wallpaperRemove', 'settings.blur', 'settings.grayscale', 'settings.imageScale', 'settings.vignette', 'settings.focal'],
       node: (
         <div className="sd-upload">
-          <label className="sd-label" htmlFor="sd-wallpaper-file">{t('settings.wallpaperUpload')}</label>
-          <input id="sd-wallpaper-file" type="file" multiple accept="image/png,image/jpeg,image/webp" onChange={event => { ctx.onWallpaperFiles(Array.from(event.target.files ?? [])); event.target.value = '' }} />
-          <label className="sd-label" htmlFor="sd-wallpaper-video">{t('settings.wallpaperVideo')}</label>
-          <input id="sd-wallpaper-video" type="file" accept="video/mp4,video/webm" onChange={event => { ctx.onWallpaperVideoFile(event.target.files?.[0]); event.target.value = '' }} />
+          <FilePicker t={t} label={t('settings.wallpaperUpload')} accept="image/png,image/jpeg,image/webp" multiple onFiles={ctx.onWallpaperFiles} />
           {uploadHint}
+          <FilePicker t={t} label={t('settings.wallpaperVideo')} accept="video/mp4,video/webm" onFiles={files => ctx.onWallpaperVideoFile(files[0])} />
           {(image || video || bg.rotation) && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
         </div>
       ),
     })
   }
   items.push(
-    { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
+    { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} hint={t('settings.hint.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
   )
   if (bg.type === 'image' && bg.rotation) items.push({
     id: 'wallpaper-rotation', keys: ['settings.wallpaperRotation', 'settings.rotationOpen', 'settings.rotationHour', 'settings.rotationDay'],
@@ -113,13 +128,23 @@ export function backgroundItems(ctx: Ctx): Item[] {
   if (image) {
     items.push(
       imageRange('blur', 'settings.blur', image.blur, RANGES.blur, blur => setImage({ blur }), { unit: 'px' }),
-      imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%' }),
-      imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×' }),
-      imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%' }),
+      imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }),
+      imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×', hint: 'settings.hint.imageScale' }),
+      imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%', hint: 'settings.hint.vignette' }),
       {
         id: 'focal', group: 'settings.imageGroup', keys: ['settings.focal', 'settings.focalX', 'settings.focalY', ...NAMED_POSITIONS.map(([, key]) => key)],
         node: (
           <div className="sd-focal">
+            {ctx.wallpaperUrl && (
+              <div
+                className="sd-focal-preview" aria-hidden="true"
+                style={{ backgroundImage: `url("${ctx.wallpaperUrl}")`, backgroundPosition: `${position.x}% ${position.y}%` }}
+                onPointerDown={event => { event.currentTarget.setPointerCapture(event.pointerId); moveFocal(event) }}
+                onPointerMove={event => { if (event.buttons === 1) moveFocal(event) }}
+              >
+                <span className="sd-focal-crosshair" style={{ left: `${position.x}%`, top: `${position.y}%` }} />
+              </div>
+            )}
             <Row label={t('settings.focal')} stack>
               <Segmented label={t('settings.focal')} columns={3} value={position.named ?? ''} onChange={value => setImage({ position: value })}
                 options={NAMED_POSITIONS.map(([value, key]) => ({ value, label: t(key) }))} />
@@ -134,7 +159,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
   if (video) {
     items.push(
       imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }),
-      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%' }),
+      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }),
     )
   }
   return items

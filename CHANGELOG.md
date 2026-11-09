@@ -4,6 +4,27 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.15.0]
+
+### Added
+
+- Every settings section shows a sticky header with a one-line description and its “Restore section defaults” action, kept in view while scrolling.
+- The Layout section draws the committed area grid, names its areas for screen readers, explains that custom areas can be renamed, and renames them in place across every breakpoint, widget and area style in one undo step.
+- The gradient editor shows the real gradient at page size with its angle and stops, and says gradients only render in dark mode.
+- An image background previews the focal point with a crosshair that can be clicked or dragged, sharing the stored position with the named buttons and sliders.
+- Both wallpaper pickers are styled, localized controls with file names and drag-and-drop.
+- Background and layout controls gained one-line explanations that screen readers also receive.
+
+### Fixed
+
+- Clicks on the page behind settings are blocked at every viewport width, and a click on the scrim dismisses the drawer without activating anything underneath.
+- Settings search opens the Advanced layout fields it matches.
+
+### Changed
+
+- The raw layout DSL now sits behind an “Advanced” disclosure.
+- Numeric hints are announced as the control’s accessible description.
+
 ## [0.14.0]
 
 ### Added
