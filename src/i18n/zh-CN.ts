@@ -79,6 +79,8 @@ export const zhCN = {
   'onboarding.ai': '用 AI 创建',
   'settings.open': '打开设置',
   'settings.close': '关闭设置',
+  'settings.peek': '预览页面',
+  'settings.peekRestore': '显示设置',
   'settings.button': '设置',
   'settings.kicker': '打造你的空间',
   'builtin.defaultProfile': '默认',

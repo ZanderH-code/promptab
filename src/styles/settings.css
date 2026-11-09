@@ -12,6 +12,25 @@
   font-size: var(--mnt-text-md);
 }
 
+/* Peeking: the page is shown at full brightness on desktop, still behind a click-blocking scrim. */
+.sd-peeked { transform: translateX(calc(100% + 12px)); }
+.sd-peek-handle {
+  position: fixed; z-index: calc(var(--mnt-z-drawer) + 1); top: var(--mnt-banner-h, 0px); right: 0; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  width: 40px; padding: 0; border: 0; border-left: 1px solid var(--mnt-border);
+  background: var(--mnt-surface); color: var(--mnt-text-muted); font: inherit; cursor: pointer;
+}
+.sd-peek-handle span { writing-mode: vertical-rl; font-size: var(--mnt-text-xs); letter-spacing: .08em; }
+.sd-peek-handle:hover { color: var(--mnt-text); }
+.sd-peek-handle:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: -2px; color: var(--mnt-text); }
+
+@media (min-width: 1024px) {
+  /* The widgets layer disables the scrim's pointer events; the settings drawer needs them to keep the page click-blocked. */
+  .sd-scrim { background: transparent; pointer-events: auto; }
+  .sd { transition: transform var(--mnt-dur-base) var(--mnt-ease); }
+  @media (prefers-reduced-motion: reduce) { .sd { transition: none; } }
+}
+
 .sd p { margin: 0; font-size: var(--mnt-text-sm); line-height: 1.6; color: var(--mnt-text-muted); }
 
 .sd-head { display: flex; align-items: center; justify-content: space-between; padding: var(--mnt-space-4) var(--mnt-space-4) var(--mnt-space-2) var(--mnt-space-5); }

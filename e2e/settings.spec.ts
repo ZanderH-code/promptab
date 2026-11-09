@@ -454,3 +454,79 @@ test('the settings rail groups sections and navigates with the keyboard', async 
 
   expect(errors).toEqual([])
 })
+
+/** Alpha of the scrim over the page, 0 (transparent) to 1 (opaque). */
+async function scrimAlpha(page: Page) {
+  return await page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const context = canvas.getContext('2d')!
+    context.fillStyle = getComputedStyle(document.querySelector('.scrim')!).backgroundColor
+    context.fillRect(0, 0, 1, 1)
+    return context.getImageData(0, 0, 1, 1).data[3] / 255
+  })
+}
+
+/** The topmost element at the page centre; the scrim must cover the page even when transparent. */
+async function centreIsScrim(page: Page) {
+  return await page.evaluate(() => document.elementFromPoint(200, 450)?.classList.contains('scrim') ?? false)
+}
+
+test('the page stays bright while editing and the panel can peek away', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+
+  // Transparent but still click-blocking: a click on the page never reaches a tile.
+  expect(await scrimAlpha(page)).toBe(0)
+  expect(await centreIsScrim(page)).toBe(true)
+  // Nothing dims the page through an ancestor filter, and the scrim is the only overlay.
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).filter)).toBe('none')
+  expect(await page.evaluate(() => getComputedStyle(document.body).filter)).toBe('none')
+  await expect(page.locator('.scrim')).toHaveCount(1)
+  const url = page.url()
+  await page.mouse.click(200, 450)
+  expect(page.url()).toBe(url)
+  await expect(page.locator('.edit-toolbar')).toHaveCount(0)
+  await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
+
+  // Reopen, pick a section, and peek: the drawer leaves the viewport but the page stays blocked.
+  await openDrawer(page)
+  expect(await page.evaluate(() => document.querySelector('.sd')?.contains(document.activeElement))).toBe(true)
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await page.screenshot({ path: `${SHOTS}/preview-full.png` })
+  await page.getByRole('button', { name: 'Peek', exact: true }).click()
+  const handle = page.getByRole('button', { name: 'Show settings', exact: true })
+  await expect(handle).toBeVisible()
+  await expect(handle).toBeFocused()
+  await expect.poll(async () => (await page.locator('.sd').boundingBox())!.x).toBeGreaterThanOrEqual(1400)
+  expect(await centreIsScrim(page)).toBe(true)
+  await page.screenshot({ path: `${SHOTS}/preview-peeked.png` })
+
+  // The handle restores the panel at the same section.
+  await handle.click()
+  await expect(page.getByRole('tab', { name: 'Widgets', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect.poll(async () => {
+    const box = (await page.locator('.sd').boundingBox())!
+    return box.x + box.width
+  }).toBeLessThanOrEqual(1401)
+
+  // Esc restores a peeked panel as well.
+  await page.getByRole('button', { name: 'Peek', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: 'Peek', exact: true })).toBeFocused()
+  await expect(page.getByRole('tab', { name: 'Widgets', exact: true })).toHaveAttribute('aria-selected', 'true')
+
+  // Under 1024 px the dimmed scrim stays and there is no Peek affordance.
+  await page.setViewportSize({ width: 800, height: 900 })
+  await expect(page.getByRole('button', { name: 'Peek', exact: true })).toHaveCount(0)
+  const alpha = await scrimAlpha(page)
+  expect(alpha).toBeGreaterThanOrEqual(.55)
+  expect(alpha).toBeLessThanOrEqual(.65)
+
+  expect(errors).toEqual([])
+})

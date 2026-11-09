@@ -1,6 +1,6 @@
-import { Braces, Database, Sparkles, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
+import { Braces, ChevronLeft, Database, Eye, Sparkles, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import type { Settings } from '../../core/model'
 import type { ProfileV2 } from '../../core/schema/profile'
@@ -51,6 +51,16 @@ const RAIL_GROUPS: { label: MessageKey; tabs: TabId[] }[] = [
 ]
 const LEGACY_ANCHORS: Record<string, TabId> = { 'wallpaper-settings': 'background', 'component-settings': 'widgets', 'search-settings': 'search', 'data-settings': 'data' }
 
+/** Peeking is a desktop-only affordance: the scrim becomes transparent from this width up. */
+const WIDE_QUERY = '(min-width: 1024px)'
+const subscribeWide = (onChange: () => void) => {
+  if (typeof window.matchMedia !== 'function') return () => {}
+  const query = window.matchMedia(WIDE_QUERY)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+const isWide = () => typeof window.matchMedia === 'function' && window.matchMedia(WIDE_QUERY).matches
+
 export function initialTab(section?: string): TabId {
   if (!section) return 'appearance'
   if ((TABS as readonly string[]).includes(section)) return section as TabId
@@ -84,7 +94,11 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   }, [currentGrid])
   const drawer = useRef<HTMLElement>(null)
   const search = useRef<HTMLInputElement>(null)
+  const peekButton = useRef<HTMLButtonElement>(null)
+  const peekHandle = useRef<HTMLButtonElement>(null)
   const uid = useId()
+  const wide = useSyncExternalStore(subscribeWide, isWide, () => false)
+  const [peeked, setPeeked] = useState(false)
   const searching = query.trim() !== ''
   const terms = useMemo(() => query.toLocaleLowerCase().split(/\s+/).filter(Boolean), [query])
   /** Why an item matched when no query term is in its visible labels: the hidden words or the section name. */
@@ -117,6 +131,27 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     const left = active.getBoundingClientRect().left - rail.getBoundingClientRect().left + rail.scrollLeft
     rail.scrollLeft = Math.max(0, left - 8)
   }, [searching, tab])
+
+  // Peeking is desktop-only; shrinking the window restores the panel.
+  useEffect(() => { if (!wide && peeked) setPeeked(false) }, [wide, peeked])
+  // Esc restores a peeked panel even though the drawer itself is off-screen.
+  useEffect(() => {
+    if (!peeked) return
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      event.preventDefault()
+      setPeeked(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [peeked])
+  // Moving between the panel and its edge handle keeps the keyboard on the visible affordance.
+  const wasPeeked = useRef(false)
+  useEffect(() => {
+    if (peeked) peekHandle.current?.focus()
+    else if (wasPeeked.current) peekButton.current?.focus()
+    wasPeeked.current = peeked
+  }, [peeked])
 
   const ctx: Ctx = {
     t, s, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
@@ -176,14 +211,18 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
 
   return (
     <>
-      <div className="scrim" onClick={onClose} />
-      <aside ref={drawer} className="drawer sd" role="dialog" aria-label={t('settings.button')} onKeyDown={onDrawerKeyDown}>
+      <div className="scrim sd-scrim" onClick={onClose} />
+      <aside ref={drawer} className={`drawer sd${peeked ? ' sd-peeked' : ''}`} role="dialog" aria-label={t('settings.button')} onKeyDown={onDrawerKeyDown}>
         <header className="sd-head">
           <div>
             <small>{t('settings.kicker')}</small>
             <h2>{t('settings.title')}</h2>
           </div>
-          <div className="sd-head-actions"><button type="button" className="sd-button" onClick={onEnterEditMode}>{t('edit.enter')}</button><button type="button" className="sd-icon-button" onClick={onClose} aria-label={t('settings.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>
+          <div className="sd-head-actions">
+            {wide && <button ref={peekButton} type="button" className="sd-button sd-peek" onClick={() => setPeeked(true)}><Eye size={16} strokeWidth={1.5} aria-hidden="true" />{t('settings.peek')}</button>}
+            <button type="button" className="sd-button" onClick={onEnterEditMode}>{t('edit.enter')}</button>
+            <button type="button" className="sd-icon-button" onClick={onClose} aria-label={t('settings.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button>
+          </div>
         </header>
         <div className="sd-search">
           <Search size={16} strokeWidth={1.5} aria-hidden="true" />
@@ -239,6 +278,12 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
           )}
         </Tabs.Root>
       </aside>
+      {peeked && (
+        <button ref={peekHandle} type="button" className="sd-peek-handle" aria-label={t('settings.peekRestore')} title={t('settings.peekRestore')} onClick={() => setPeeked(false)}>
+          <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />
+          <span>{t('settings.peekRestore')}</span>
+        </button>
+      )}
     </>
   )
 }

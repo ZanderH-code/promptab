@@ -79,6 +79,8 @@ export const en: Record<BaseMessageKey, string> = {
   'onboarding.ai': 'Create with AI',
   'settings.open': 'Open settings',
   'settings.close': 'Close settings',
+  'settings.peek': 'Peek',
+  'settings.peekRestore': 'Show settings',
   'settings.button': 'Settings',
   'settings.kicker': 'MAKE IT YOURS',
   'builtin.defaultProfile': 'Default',
