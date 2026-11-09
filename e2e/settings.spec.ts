@@ -179,3 +179,29 @@ test('the custom CSS status reflects the enable switch', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+test('wallpaper uploads are offered only for image and video backgrounds', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+
+  const group = page.getByRole('radiogroup', { name: 'Background type' })
+  const hint = page.getByText('Upload an image to adjust blur, grayscale, zoom and focal point.')
+  const visibleInputs = () => page.locator('input[type=file]:visible').count()
+
+  for (const [type, expected] of [['Theme', 0], ['Solid color', 0], ['Gradient', 0], ['Accent', 0], ['Image', 2], ['Video', 2]] as const) {
+    await group.getByRole('radio', { name: type, exact: true }).click()
+    await expect.poll(visibleInputs, { message: `${type} file inputs` }).toBe(expected)
+    if (expected === 0) await expect(hint, `${type} shows no upload hint`).toHaveCount(0)
+  }
+
+  // The hint stays with the pickers it explains.
+  await group.getByRole('radio', { name: 'Image', exact: true }).click()
+  await expect(hint).toBeVisible()
+
+  expect(errors).toEqual([])
+})

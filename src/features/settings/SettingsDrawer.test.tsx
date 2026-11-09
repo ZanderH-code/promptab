@@ -335,7 +335,10 @@ describe('SettingsDrawer background', () => {
   })
 
   it('adjusts wallpaper fields only when an image exists', () => {
-    setup({ initialSection: 'background' })
+    // The hint lives with the upload pickers, so ask for the image type without an image.
+    const noImage = structuredClone(base)
+    noImage.background = { ...noImage.background, type: 'image' }
+    setup({ profile: noImage, initialSection: 'background' })
     expect(screen.queryByRole('slider', { name: 'Blur' })).toBeNull()
     expect(screen.getByText(/Upload an image to adjust/)).toBeInTheDocument()
     cleanup()
