@@ -24,8 +24,8 @@ export function layoutItems(ctx: Ctx): Item[] {
     id, keys: [label, ...options.map(([, key]) => key)],
     node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
   })
-  const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string, revert?: () => void): Item => ({
-    id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}{revert && <button type="button" className="sd-button" onClick={revert}>{t('settings.gridRevert')}</button>}</Row>,
+  const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string, revert?: () => void, placeholder?: string): Item => ({
+    id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} placeholder={placeholder} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}{revert && <button type="button" className="sd-button" onClick={revert}>{t('settings.gridRevert')}</button>}</Row>,
   })
   const templateLabels: Record<(typeof LAYOUT_TEMPLATES)[number], MessageKey> = { stacked: 'settings.layoutStacked', split: 'settings.layoutSplit', 'top-grid': 'settings.layoutTopGrid', websites: 'settings.layoutWebsites', zen: 'settings.layoutZen', dashboard: 'settings.layoutDashboard', 'icon-split': 'settings.layoutIconSplit', banner: 'settings.layoutBanner' }
   const baseGrid = profile.layout
@@ -120,9 +120,9 @@ export function layoutItems(ctx: Ctx): Item[] {
     const draftOf = (key: GridKey) => ctx.layoutDrafts?.[prefix]?.[key]
     const committedText = (key: GridKey) => grid[key]?.join('\n') ?? ''
     return [
-      textField(`${prefix}-areas`, label, field('areas'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas'), draftOf('areas') !== undefined && draftOf('areas') !== committedText('areas') ? () => reverted('areas') : undefined),
-      textField(`${prefix}-columns`, 'settings.layoutColumns', field('columns'), value => editGrid('columns', value, narrowGrid), fieldIssue('columns')),
-      textField(`${prefix}-rows`, 'settings.layoutRows', field('rows'), value => editGrid('rows', value, narrowGrid), fieldIssue('rows')),
+      textField(`${prefix}-areas`, label, field('areas'), value => editGrid('areas', value, narrowGrid), fieldIssue('areas'), draftOf('areas') !== undefined && draftOf('areas') !== committedText('areas') ? () => reverted('areas') : undefined, 'overview bookmarks\ntop side'),
+      textField(`${prefix}-columns`, 'settings.layoutColumns', field('columns'), value => editGrid('columns', value, narrowGrid), fieldIssue('columns'), undefined, '1fr 240px minmax(0, 1fr)'),
+      textField(`${prefix}-rows`, 'settings.layoutRows', field('rows'), value => editGrid('rows', value, narrowGrid), fieldIssue('rows'), undefined, 'auto 1fr'),
     ]
   }
   const patchWidget = (id: string, props: Record<string, unknown>) => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === id ? { ...item, props: { ...item.props, ...props } as typeof item.props } : item) as typeof p.widgets }))
@@ -200,7 +200,12 @@ export function layoutItems(ctx: Ctx): Item[] {
   return [
     { id: 'layout-template', keys: ['settings.layout', ...Object.values(templateLabels)], node: <Row label={t('settings.layout')}><Select ctx={ctx} label={t('settings.layout')} value={detectTemplate(profile)} options={LAYOUT_TEMPLATES.map(value => ({ value, label: t(templateLabels[value]) }))} onChange={value => change(p => touch(applyTemplate(p, value as (typeof LAYOUT_TEMPLATES)[number])))} /></Row> },
     { id: 'grid-preview', keys: ['settings.gridPreview'], node: <AreaGridPreview layout={baseGrid} label={areaLabel} t={t} onRename={renameArea} /> },
-    ...gridItems,
+    { id: 'layout-advanced', keys: ['settings.advanced', ...gridItems.flatMap(item => item.keys)], node: (
+      <details className="sd-advanced">
+        <summary>{t('settings.advanced')}</summary>
+        <div className="sd-advanced-body">{gridItems.map(item => <div key={item.id}>{item.node}</div>)}</div>
+      </details>
+    ) },
     ...(ctx.movedWidgets?.length ? [{ id: 'widget-area-moved', keys: ['settings.widgetArea'], node: <div className="sd-note" role="status">{ctx.movedWidgets.map(message => <div key={message}>{t('settings.widgetMoved', { message })}</div>)}</div> } as Item] : []),
     ...widgetItems, ...areaControls,
     choice('alignment', 'settings.alignment', s.alignment, [['center', 'settings.alignCenter'], ['left', 'settings.alignLeft']], value => patch({ alignment: value as Settings['alignment'] })),

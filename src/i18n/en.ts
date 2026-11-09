@@ -311,6 +311,7 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.gridPreview': 'Current area grid preview',
   'settings.gridPreviewName': 'Current area grid preview: {areas}',
   'settings.gridPreviewHint': 'Click a custom area to rename it. Overview and Shortcuts are built in.',
+  'settings.advanced': 'Advanced',
   'settings.renameArea': 'Rename area',
   'settings.renameAreaAction': 'Rename',
   'settings.areaNameEmpty': 'Enter an area name.',

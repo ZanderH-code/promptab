@@ -21,8 +21,10 @@ async function openStyle(page: Page) {
   await expect(page.locator('.cm-content')).toBeVisible()
 }
 
-async function openLayout(page: Page) {
+async function openLayout(page: Page, advanced = true) {
   await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  if (!advanced) return
+  await page.locator('.sd-advanced summary').click()
   await expect(page.getByRole('textbox', { name: 'Area grid' })).toBeVisible()
 }
 
@@ -831,6 +833,55 @@ test('the preview explains which areas can be renamed', async ({ page }) => {
   await page.getByRole('option', { name: '简体中文', exact: true }).click()
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
   await expect(page.locator('.sd-grid-figure .sd-hint')).toHaveText('点击自定义区域即可重命名。概览和快捷方式是内置区域。')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('the raw layout DSL sits behind an advanced disclosure', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page, false)
+
+  const advanced = page.locator('.sd-advanced')
+  const summary = advanced.locator('summary')
+  await expect(summary).toHaveText('Advanced')
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+  await expect(page.locator('.sd-panel textarea:visible')).toHaveCount(0)
+  await expect(page.locator('.sd-grid-preview')).toBeVisible()
+  // The visual path — template, preview, hint — plus the Advanced entry fit above the fold.
+  const summaryBox = (await summary.boundingBox())!
+  expect(summaryBox.y + summaryBox.height).toBeLessThanOrEqual(900)
+  await page.screenshot({ path: `${SHOTS}/layout-collapsed.png` })
+
+  await summary.click()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(true)
+  const fields = advanced.locator('textarea')
+  await expect(fields).toHaveCount(6)
+  await expect(page.locator('.sd-panel textarea:visible')).toHaveCount(6)
+  expect(await fields.evaluateAll(elements => elements.map(element => (element as HTMLTextAreaElement).placeholder))).toEqual([
+    'overview bookmarks\ntop side', '1fr 240px minmax(0, 1fr)', 'auto 1fr',
+    'overview bookmarks\ntop side', '1fr 240px minmax(0, 1fr)', 'auto 1fr',
+  ])
+  await page.screenshot({ path: `${SHOTS}/layout-expanded.png` })
+
+  // A custom area gives the preview a rename control; it precedes Advanced in the tab order.
+  await fields.nth(0).fill('overview bookmarks\nside side')
+  await summary.click()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+  await page.getByRole('combobox', { name: 'Layout', exact: true }).focus()
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.sd-grid-preview button[data-area="side"]')).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(summary).toBeFocused()
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
