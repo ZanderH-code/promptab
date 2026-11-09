@@ -59,6 +59,8 @@ for (const language of ['zh-CN', 'en'] as const) {
       await openTab(page, 'about')
       await page.getByRole('combobox', { name: '语言', exact: true }).click()
       await page.getByRole('option', { name: 'English', exact: true }).click()
+      // openTab reads html[lang]; wait for the switch instead of racing it.
+      await expect(page.locator('html')).toHaveAttribute('lang', 'en')
     }
     await openTab(page, 'ai')
     const search = page.getByRole('searchbox', { name: language === 'en' ? 'Search settings' : '搜索设置' })
