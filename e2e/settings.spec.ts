@@ -71,3 +71,80 @@ test('an unapplied custom CSS draft survives navigation', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+const SHOTS = '/tmp/magpie-claude-work-1001/settingsprobe/shots'
+
+type Rgb = { r: number; g: number; b: number; a: number }
+
+async function editorColors(page: Page) {
+  return await page.evaluate(() => {
+    // Canvas normalizes any computed CSS colour (rgb, oklab, color-mix result) to 8-bit sRGB.
+    const toRgb = (value: string) => {
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = 1
+      const context = canvas.getContext('2d')!
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data
+      return { r, g, b, a }
+    }
+    const read = (selector: string, property: 'backgroundColor' | 'color') => {
+      const element = document.querySelector(selector)
+      if (!element) throw new Error(`missing ${selector}`)
+      return toRgb(getComputedStyle(element)[property])
+    }
+    return {
+      editorBg: read('.cm-editor', 'backgroundColor'),
+      gutterBg: read('.cm-gutters', 'backgroundColor'),
+      gutterText: read('.cm-gutters', 'color'),
+      contentText: read('.cm-content', 'color'),
+    }
+  })
+}
+
+const luminance = ({ r, g, b }: Rgb) => [r, g, b]
+  .map(value => value / 255)
+  .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4)
+  .reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0)
+const ratio = (a: Rgb, b: Rgb) => {
+  const la = luminance(a), lb = luminance(b)
+  return (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05)
+}
+
+async function expectEditorReadable(page: Page) {
+  const colors = await editorColors(page)
+  // The gutter may be transparent over the editor, but it must never sit on a different colour.
+  if (colors.gutterBg.a !== 0) expect(colors.gutterBg).toEqual(colors.editorBg)
+  expect(ratio(colors.gutterText, colors.gutterBg.a === 0 ? colors.editorBg : colors.gutterBg), 'gutter text contrast').toBeGreaterThanOrEqual(4.5)
+  expect(ratio(colors.contentText, colors.editorBg), 'editor text contrast').toBeGreaterThanOrEqual(4.5)
+}
+
+test('the custom CSS editor follows the active theme', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+
+  // Dark is the seeded theme. A rule makes the syntax colours and the gutter visible in the shot.
+  await openStyle(page)
+  await typeDraft(page, MARKER)
+  await expectEditorReadable(page)
+  await page.screenshot({ path: `${SHOTS}/style-dark.png` })
+
+  // A light preset stores the light palette; the default profile has no separate light colours.
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
+  await page.getByRole('button', { name: 'Paper', exact: true }).click()
+  await openStyle(page)
+  await expectEditorReadable(page)
+  await page.screenshot({ path: `${SHOTS}/style-light.png` })
+
+  await page.getByRole('tab', { name: 'Appearance', exact: true }).click()
+  await page.getByRole('button', { name: 'Contrast', exact: true }).click()
+  await openStyle(page)
+  await expectEditorReadable(page)
+  await page.screenshot({ path: `${SHOTS}/style-contrast.png` })
+
+  expect(errors).toEqual([])
+})
