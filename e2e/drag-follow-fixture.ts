@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-export type FollowFrame = { t: number; delta: number | null; visible: boolean; error: number | null }
+export type FollowFrame = { t: number; delta: number | null; visible: boolean; error: number | null; cursor: { x: number; y: number } | null; center: { x: number; y: number } | null; size: { w: number; h: number } | null; grab: { x: number; y: number } | null }
 
 /**
  * Installs a rAF sampler. Every frame records the cursor, the pointer delta since press, whether a
@@ -12,7 +12,7 @@ export async function installFollowSampler(page: Page) {
   await page.evaluate(() => {
     type Down = { id: string | null; x: number; y: number; left: number; top: number }
     type State = { frames: FollowFrame[]; cursor: { x: number; y: number } | null; down: Down | null; running: boolean }
-    type FollowFrame = { t: number; delta: number | null; visible: boolean; error: number | null }
+    type FollowFrame = { t: number; delta: number | null; visible: boolean; error: number | null; cursor: { x: number; y: number } | null; center: { x: number; y: number } | null; size: { w: number; h: number } | null; grab: { x: number; y: number } | null }
     const state: State = { frames: [], cursor: null, down: null, running: false }
     ;(window as unknown as { __follow: State }).__follow = state
     const setCursor = (x: number, y: number) => { state.cursor = { x, y } }
@@ -29,17 +29,22 @@ export async function installFollowSampler(page: Page) {
       const touch = event.touches[0]
       if (touch) { setCursor(touch.clientX, touch.clientY); press(event.target as Element | null, touch.clientX, touch.clientY) }
     }, true)
+    const errorAgainst = (frame: FollowFrame, cursor: { x: number; y: number }) =>
+      Math.hypot(frame.center!.x - (cursor.x - frame.grab!.x + frame.size!.w / 2), frame.center!.y - (cursor.y - frame.grab!.y + frame.size!.h / 2))
     const sample = () => {
       const overlay = document.querySelector('.mnt-drag-overlay')
       const moving = overlay?.parentElement ?? document.querySelector('[data-sortable-id][data-dragging="true"]')
-      const frame: FollowFrame = { t: performance.now(), delta: null, visible: !!moving, error: null }
-      if (state.cursor && state.down) frame.delta = Math.hypot(state.cursor.x - state.down.x, state.cursor.y - state.down.y)
-      if (moving && state.cursor && state.down) {
-        const rect = moving.getBoundingClientRect()
-        const expectedX = state.cursor.x - (state.down.x - state.down.left) + rect.width / 2
-        const expectedY = state.cursor.y - (state.down.y - state.down.top) + rect.height / 2
-        frame.error = Math.hypot(rect.left + rect.width / 2 - expectedX, rect.top + rect.height / 2 - expectedY)
+      const cursor = state.cursor ? { x: state.cursor.x, y: state.cursor.y } : null
+      const rect = moving?.getBoundingClientRect()
+      const grab = state.down ? { x: state.down.x - state.down.left, y: state.down.y - state.down.top } : null
+      const frame: FollowFrame = {
+        t: performance.now(), delta: null, visible: !!moving, error: null, cursor,
+        center: rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : null,
+        size: rect ? { w: rect.width, h: rect.height } : null,
+        grab,
       }
+      if (cursor && state.down) frame.delta = Math.hypot(cursor.x - state.down.x, cursor.y - state.down.y)
+      if (rect && cursor && grab) frame.error = errorAgainst(frame, cursor)
       state.frames.push(frame)
     }
     const tick = () => { if (!state.running) return; requestAnimationFrame(tick); setTimeout(sample, 0) }
@@ -93,12 +98,24 @@ export function assertFollow(frames: FollowFrame[], limit: number, { gap = false
   const errors = active.map(frame => frame.error).filter((error): error is number => typeof error === 'number')
   // Every active frame must have a measurable visual: a missing one is a dropped frame, not a pass.
   expect(errors.length, 'frames with a dragged visual').toBe(active.length)
-  expect(Math.max(...errors), 'max follow error').toBeLessThan(limit)
-  expect(Math.max(...errors)).toBeGreaterThanOrEqual(0)
+  // A frame's commit can belong to the pointer position one frame earlier or later: input can be
+  // processed after the frame callback but still painted in that frame, or the other way round.
+  // Compare each frame against its neighbours' cursor too, so exactly one frame of skew is allowed;
+  // a visual that stops following is many frames away from all three.
+  const errorAgainst = (frame: FollowFrame, cursor: { x: number; y: number }) =>
+    Math.hypot(frame.center!.x - (cursor.x - frame.grab!.x + frame.size!.w / 2), frame.center!.y - (cursor.y - frame.grab!.y + frame.size!.h / 2))
+  const best = active.map(frame => {
+    const index = frames.indexOf(frame)
+    const cursors = [frames[index - 1]?.cursor, frame.cursor, frames[index + 1]?.cursor]
+      .filter((cursor): cursor is { x: number; y: number } => !!cursor)
+    return Math.min(...cursors.map(cursor => errorAgainst(frame, cursor)))
+  })
+  expect(Math.max(...best), 'max follow error').toBeLessThan(limit)
+  expect(Math.max(...best)).toBeGreaterThanOrEqual(0)
   if (gap) {
     let run = 0, longest = 0
     for (const frame of active) { run = frame.visible ? 0 : run + 1; longest = Math.max(longest, run) }
     expect(longest, 'consecutive frames with nothing under the cursor').toBeLessThanOrEqual(1)
   }
-  return Math.max(...errors)
+  return Math.max(...best)
 }
