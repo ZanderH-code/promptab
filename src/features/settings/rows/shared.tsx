@@ -17,6 +17,8 @@ export type Item = { id: string; group?: MessageKey; keys: MessageKey[]; words?:
 export type Ctx = {
   t: Translate
   s: Settings
+  /** Settings search is active: matched controls inside collapsed disclosures are shown. */
+  searching?: boolean
   profile: ProfileV2
   mode: ThemeMode
   store: StoreApi<ProfileStore>

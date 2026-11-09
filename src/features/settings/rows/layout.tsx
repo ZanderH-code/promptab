@@ -201,7 +201,7 @@ export function layoutItems(ctx: Ctx): Item[] {
     { id: 'layout-template', keys: ['settings.layout', ...Object.values(templateLabels)], node: <Row label={t('settings.layout')}><Select ctx={ctx} label={t('settings.layout')} value={detectTemplate(profile)} options={LAYOUT_TEMPLATES.map(value => ({ value, label: t(templateLabels[value]) }))} onChange={value => change(p => touch(applyTemplate(p, value as (typeof LAYOUT_TEMPLATES)[number])))} /></Row> },
     { id: 'grid-preview', keys: ['settings.gridPreview'], node: <AreaGridPreview layout={baseGrid} label={areaLabel} t={t} onRename={renameArea} /> },
     { id: 'layout-advanced', keys: ['settings.advanced', ...gridItems.flatMap(item => item.keys)], node: (
-      <details className="sd-advanced">
+      <details className="sd-advanced" open={ctx.searching || undefined}>
         <summary>{t('settings.advanced')}</summary>
         <div className="sd-advanced-body">{gridItems.map(item => <div key={item.id}>{item.node}</div>)}</div>
       </details>

@@ -888,3 +888,46 @@ test('the raw layout DSL sits behind an advanced disclosure', async ({ page }) =
 
   expect(errors).toEqual([])
 })
+
+test('search opens the advanced layout fields it matches', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page, false)
+
+  const advanced = page.locator('.sd-advanced')
+  const summary = advanced.locator('summary')
+  await expect(summary).toHaveText('Advanced')
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+
+  const search = page.getByRole('searchbox', { name: 'Search settings' })
+  await search.fill('Column sizes')
+  // The matched field is reachable while the query is alive.
+  await expect(summary).toBeVisible()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(true)
+  const columns = page.getByRole('textbox', { name: 'Column sizes' }).first()
+  await expect(columns).toBeVisible()
+  // Editing still commits as it does outside search.
+  await columns.fill('1fr')
+  await expect.poll(async () => await page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.columns ?? null
+  })).toEqual(['1fr'])
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // Clearing the query returns the disclosure to its normal collapsed state.
+  await search.fill('')
+  await expect(summary).toBeVisible()
+  expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(false)
+  await expect(page.locator('.sd-panel textarea:visible')).toHaveCount(0)
+
+  expect(errors).toEqual([])
+})
