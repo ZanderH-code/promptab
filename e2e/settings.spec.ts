@@ -648,7 +648,7 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   const blocks = preview.locator('.sd-grid-block')
   await expect(preview).toBeVisible()
   await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
-  await expect(preview).toHaveAttribute('role', 'img')
+  await expect(preview).toHaveAttribute('role', 'group')
   await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Overview, Shortcuts')
   // Read-only: nothing in the diagram is focusable or editable.
   await expect(preview.locator('input, textarea, select, button, [contenteditable]')).toHaveCount(0)
@@ -725,4 +725,75 @@ test('the grid preview names its areas in the current locale', async ({ page }) 
   await expect(preview).toBeVisible()
   await expect(preview.locator('.sd-grid-block')).toHaveText(['概览', '快捷方式'])
   await expect(preview).toHaveAttribute('aria-label', '当前区域网格预览：概览、快捷方式')
+})
+
+test('a custom area can be renamed from the layout diagram', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  // Two custom areas: the preview names them and only they are renameable.
+  const areas = page.getByRole('textbox', { name: 'Area grid' })
+  await areas.fill('overview bookmarks\ntop side')
+  const preview = page.locator('.sd-grid-preview')
+  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Shortcuts', 'top', 'side'])
+  await expect(preview.locator('button.sd-grid-block')).toHaveCount(2)
+  await expect(preview.locator('button[data-area="overview"], button[data-area="bookmarks"]')).toHaveCount(0)
+
+  // The narrow grid must know the area too: widgets may only live in areas every grid has.
+  const narrowAreas = page.getByRole('textbox', { name: 'Narrow layout' })
+  await narrowAreas.fill('overview\nbookmarks\nside')
+  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Shortcuts', 'top', 'side'])
+
+  // Put a widget in the area, so the rename has to carry it across.
+  const clockItem = page.locator('.sd-note').filter({ hasText: 'Show clock' })
+  await clockItem.getByRole('combobox', { name: 'Widget area' }).click()
+  await page.getByRole('option', { name: 'side', exact: true }).click()
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+
+  await preview.locator('[data-area="side"]').click()
+  const field = page.getByRole('textbox', { name: 'Rename area' })
+  await expect(field).toBeVisible()
+  await expect(field).toHaveValue('side')
+  await field.fill('aside')
+  await field.press('Enter')
+  await expect(field).toHaveCount(0)
+
+  // Grid text, preview, widget area and the rendered page all follow the rename.
+  await expect(areas).toHaveValue('overview bookmarks\ntop aside')
+  await expect(narrowAreas).toHaveValue('overview\nbookmarks\naside')
+  await expect(preview.locator('[data-area="side"]')).toHaveCount(0)
+  await expect(preview.locator('[data-area="aside"]')).toHaveText('aside')
+  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('aside')
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="aside"] .clock')).toBeVisible()
+  await expect(page.locator('.mnt-layout')).toHaveAttribute('style', /aside/)
+
+  // The whole rename is one undo step.
+  await page.keyboard.press('Control+z')
+  await expect(preview.locator('[data-area="aside"]')).toHaveCount(0)
+  await expect(preview.locator('[data-area="side"]')).toHaveText('side')
+  await expect(areas).toHaveValue('overview bookmarks\ntop side')
+  await expect(narrowAreas).toHaveValue('overview\nbookmarks\nside')
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('side')
+
+  // A duplicate name shows the alert and commits nothing.
+  await preview.locator('[data-area="side"]').click()
+  await field.fill('top')
+  await field.press('Enter')
+  await expect(page.getByRole('alert')).toContainText('“top”')
+  await expect(preview.locator('[data-area="side"]')).toHaveText('side')
+  await expect(areas).toHaveValue('overview bookmarks\ntop side')
+  await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
 })

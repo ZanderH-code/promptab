@@ -163,9 +163,43 @@ export function layoutItems(ctx: Ctx): Item[] {
     </div> }
   })
   const gridItems = [...gridEditor(), ...(narrow ? gridEditor(true) : [{ id: 'narrow-grid', keys: ['settings.layoutNarrow'], node: <button type="button" className="sd-button" onClick={() => change(p => touch({ ...p, layout: { ...p.layout, breakpoints: { ...p.layout.breakpoints, narrow: { areas: p.layout.areas } } } }))}>{t('settings.layoutNarrow')}</button> } as Item]) ]
+  /** Renames a custom area wherever it appears, in one undoable change: grids, widgets and area styles. */
+  const renameArea = (from: string, to: string): string | null => {
+    const name = to.trim()
+    if (!name) return t('settings.areaNameEmpty')
+    if (name === from) return null
+    // A grid area name is a CSS identifier: no spaces, quotes or dots, and no reserved keywords.
+    if (!/^[\p{L}_][\p{L}\p{N}_-]*$/u.test(name)) return t('settings.areaNameInvalid')
+    if (['overview', 'bookmarks', 'none', 'auto', 'span', 'inherit', 'initial', 'unset', 'revert', 'revert-layer'].includes(name.toLowerCase())) return t('settings.areaNameReserved', { name })
+    const gridsOf = (layout: ProfileV2['layout']) => [layout, ...Object.values(layout.breakpoints ?? {})].filter((grid): grid is NonNullable<typeof grid> => grid !== undefined)
+    const affected = gridsOf(profile.layout).filter(grid => areaNames(grid.areas).includes(from))
+    if (affected.some(grid => areaNames(grid.areas).includes(name))) return t('settings.gridDuplicate', { area: areaLabel(name) })
+    const replace = (row: string) => row.split(/(\s+)/).map(part => part === from ? name : part).join('')
+    change(current => {
+      const next = structuredClone(current)
+      for (const grid of gridsOf(next.layout)) if (areaNames(grid.areas).includes(from)) grid.areas = grid.areas.map(replace)
+      next.widgets = next.widgets.map(widget => widget.area === from ? { ...widget, area: name } : widget)
+      if (next.layout.areaStyles?.[from]) {
+        const styles = { ...next.layout.areaStyles, [name]: next.layout.areaStyles[from] }
+        delete styles[from]
+        next.layout.areaStyles = styles
+      }
+      return touch(next)
+    })
+    if (ctx.layoutDrafts) {
+      const drafts = Object.fromEntries(Object.entries(ctx.layoutDrafts).flatMap(([key, draft]) => {
+        if (!draft) return []
+        const rest = { ...draft }
+        delete rest.areas
+        return Object.keys(rest).length ? [[key, rest]] : []
+      })) as NonNullable<Ctx['layoutDrafts']>
+      ctx.onLayoutDraftsChange?.(drafts)
+    }
+    return null
+  }
   return [
     { id: 'layout-template', keys: ['settings.layout', ...Object.values(templateLabels)], node: <Row label={t('settings.layout')}><Select ctx={ctx} label={t('settings.layout')} value={detectTemplate(profile)} options={LAYOUT_TEMPLATES.map(value => ({ value, label: t(templateLabels[value]) }))} onChange={value => change(p => touch(applyTemplate(p, value as (typeof LAYOUT_TEMPLATES)[number])))} /></Row> },
-    { id: 'grid-preview', keys: ['settings.gridPreview'], node: <AreaGridPreview layout={baseGrid} label={areaLabel} t={t} /> },
+    { id: 'grid-preview', keys: ['settings.gridPreview'], node: <AreaGridPreview layout={baseGrid} label={areaLabel} t={t} onRename={renameArea} /> },
     ...gridItems,
     ...(ctx.movedWidgets?.length ? [{ id: 'widget-area-moved', keys: ['settings.widgetArea'], node: <div className="sd-note" role="status">{ctx.movedWidgets.map(message => <div key={message}>{t('settings.widgetMoved', { message })}</div>)}</div> } as Item] : []),
     ...widgetItems, ...areaControls,
