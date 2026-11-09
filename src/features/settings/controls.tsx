@@ -43,6 +43,7 @@ type RangeProps = { label: string; value: number; min: number; max: number; step
 /** Slider paired with a numeric field; typing a value commits on Enter or blur and is clamped to the range. */
 export function RangeField({ label, value, min, max, step = 1, unit = '', t, hint, onChange }: RangeProps) {
   const id = useId()
+  const hintId = `${id}-hint`
   const [local, setLocal] = useState(value)
   const [text, setText] = useState(String(value))
   const dragging = useRef(false)
@@ -65,7 +66,7 @@ export function RangeField({ label, value, min, max, step = 1, unit = '', t, hin
         <span className="sd-number">
           <input
             type="number" inputMode="decimal" min={min} max={max} step={step} value={text}
-            aria-label={t('settings.valueOf', { label })}
+            aria-label={t('settings.valueOf', { label })} aria-describedby={hint ? hintId : undefined}
             onChange={event => setText(event.target.value)}
             onBlur={commit}
             onKeyDown={event => {
@@ -75,11 +76,11 @@ export function RangeField({ label, value, min, max, step = 1, unit = '', t, hin
           />
           {unit && <span aria-hidden="true">{unit}</span>}
         </span>
-        {hint && <small className="sd-range-hint"><Highlighted text={hint} /></small>}
+        {hint && <small id={hintId} className="sd-range-hint"><Highlighted text={hint} /></small>}
       </div>
       <input
         id={id} className="sd-slider" type="range" min={min} max={max} step={step} value={local} style={fill(local, min, max)}
-        aria-valuetext={`${local}${unit}`}
+        aria-valuetext={`${local}${unit}`} aria-describedby={hint ? hintId : undefined}
         onPointerDown={() => { dragging.current = true }}
         onPointerUp={end} onPointerCancel={end} onBlur={end}
         onChange={event => update(normalize(Number(event.target.value)))}

@@ -1225,3 +1225,72 @@ test('background and layout controls explain their effect', async ({ page }) => 
 
   expect(errors).toEqual([])
 })
+
+test('range hints describe their sliders for screen readers', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+
+  const rowFor = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const slider = (label: string) => page.getByRole('slider', { name: label, exact: true }).first()
+  const describe = async (label: string, description: string) => {
+    await expect(slider(label), label).toHaveAccessibleDescription(description)
+  }
+
+  // No visual change: the hint still sits under the label inside the range head.
+  const overlayRow = rowFor('Overlay opacity')
+  const small = overlayRow.locator('.sd-range-hint')
+  await expect(small).toHaveCount(1)
+  const labelBox = await overlayRow.locator('.sd-label').boundingBox()
+  const hintBox = await small.boundingBox()
+  expect(hintBox!.y, 'hint is under the label').toBeGreaterThanOrEqual(labelBox!.y + labelBox!.height)
+  expect(await small.evaluate(element => element.parentElement?.classList.contains('sd-range-head'))).toBe(true)
+
+  // Every hint-bearing slider in en, and its number input, is described by the hint.
+  await describe('Overlay opacity', 'Darkens the page behind the content.')
+  await expect(page.getByRole('spinbutton', { name: 'Overlay opacity value', exact: true }).first()).toHaveAccessibleDescription('Darkens the page behind the content.')
+  await describe('Vignette', 'Darkens the corners of the image.')
+  await describe('Grayscale', 'Removes colour from the image.')
+  await describe('Image zoom', 'Scales the image inside its frame.')
+
+  // A range without a hint has no description.
+  await expect(slider('Blur')).toHaveAccessibleDescription('')
+  await expect(page.getByRole('spinbutton', { name: 'Blur value', exact: true }).first()).toHaveAccessibleDescription('')
+
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await describe('Area opacity', 'Fades this area’s background behind its widgets.')
+  await describe('Area blur', 'Blurs what shows through this area.')
+  await describe('Area padding', 'Adds space between the area edge and its widgets.')
+  await describe('Top accent divider', 'Draws an accent line along the top edge.')
+  await describe('Right accent divider', 'Draws an accent line along the right edge.')
+  await describe('Bottom accent divider', 'Draws an accent line along the bottom edge.')
+  await describe('Left accent divider', 'Draws an accent line along the left edge.')
+  await describe('Max columns', 'Sets how many shortcuts fit on one row.')
+
+  let scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  // A zh-CN sample: the description is the translated hint.
+  await page.getByRole('tab', { name: 'About', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Language', exact: true }).click()
+  await page.getByRole('option', { name: '简体中文', exact: true }).click()
+  await page.getByRole('tab', { name: '背景', exact: true }).click()
+  await describe('遮罩浓度', '加深内容后方的页面底色。')
+  await expect(page.getByRole('spinbutton', { name: '遮罩浓度的数值', exact: true }).first()).toHaveAccessibleDescription('加深内容后方的页面底色。')
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await describe('区域透明度', '调整区域背景在其组件后方的透明度。')
+  await describe('每行最多列数', '设置每行可容纳的快捷方式数量。')
+
+  scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
