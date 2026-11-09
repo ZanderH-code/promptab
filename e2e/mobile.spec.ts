@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { openTab, seedExistingUser, templateBookmarks } from './helpers'
 import { seedBookmarkFolders } from './bookmark-folder-fixture'
+import { assertFollow, installFollowSampler, startFollow, stopFollow, waitForDragStart, waitForOver } from './drag-follow-fixture'
 
 test('bookmark folders open on a phone and close without horizontal overflow', async ({ page }) => {
   await seedBookmarkFolders(page)
@@ -23,8 +24,48 @@ test('bookmark folders open on a phone and close without horizontal overflow', a
   await expect(dialog).toHaveCount(0)
 })
 
-const viewports = [
-  { width: 360, height: 740 },
+test('touch: a held bookmark follows the finger and reorders', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  await page.route('**/favicon.ico', route => route.abort())
+  await page.setViewportSize({ width: 412, height: 915 })
+  await seedExistingUser(page, { language: 'en', shortcuts: templateBookmarks, columns: 6 })
+  await page.goto('/')
+  await expect(page.locator('.mnt-layout')).toBeVisible()
+  await installFollowSampler(page)
+  // Start and finish one touch gesture: the grid swaps to the drag layer only after the gesture ends.
+  const grid = page.locator('.bookmarks')
+  await grid.dispatchEvent('touchstart')
+  await grid.dispatchEvent('touchend')
+  await expect(page.locator('.bookmarks[data-display-drag]')).toBeVisible({ timeout: 5000 })
+  const order = await page.locator('.bookmarks [data-sortable-id]').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.sortableId!))
+  expect(order.length).toBeGreaterThan(3)
+  const fromId = order[order.length - 1], toId = order[0]
+  const box = (await page.locator(`.bookmarks [data-sortable-id="${fromId}"]`).boundingBox())!
+  const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+  const targetBox = (await page.locator(`.bookmarks [data-sortable-id="${toId}"]`).boundingBox())!
+  const to = { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 }
+  const cdp = await page.context().newCDPSession(page)
+  const point = (x: number, y: number) => [{ x: Math.round(x), y: Math.round(y), id: 1 }]
+  await startFollow(page)
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(from.x, from.y) })
+  // Move as soon as activation is proven; a held finger long enough (550 ms) opens the app menu,
+  // which cancels the drag.
+  await waitForDragStart(page)
+  for (let step = 1; step <= 12; step += 1) {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: point(from.x + (to.x - from.x) * step / 12, from.y + (to.y - from.y) * step / 12) })
+    await page.waitForTimeout(16)
+  }
+  await waitForOver(page, fromId, toId)
+  await page.waitForTimeout(100)
+  const frames = await stopFollow(page)
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+  await cdp.detach()
+  assertFollow(frames, 10)
+  await expect.poll(() => page.locator('.bookmarks [data-sortable-id]').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.sortableId!)))
+    .toEqual([fromId, toId, ...order.slice(1, -1)])
+})
+
+const viewports = [  { width: 360, height: 740 },
   { width: 412, height: 915 },
   { width: 768, height: 1024 },
   { width: 1024, height: 768 },

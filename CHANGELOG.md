@@ -4,6 +4,18 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.13.2]
+
+### Fixed
+
+- Keep dragged icons under the cursor on the home page, inside folders, and when dragged out of a folder. Before, the icon jumped between grid slots, did not move over a folder, and was offset by about 250 px after leaving a folder.
+- Stop the browser's long-press menu on touch screens from cancelling a drag and losing the drop.
+
+### Changed
+
+- Lift the dragged icon with a shadow, leave a dashed placeholder in its original spot, animate the drop into place (none with reduced motion), and highlight the folder under the icon more clearly.
+- No new permissions are requested; the drag code still loads only when needed.
+
 ## [0.13.1]
 
 ### Added

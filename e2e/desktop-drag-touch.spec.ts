@@ -5,6 +5,7 @@ import {
   center, expectIntegrity, launchExtension, loadDragLayer, openApp, readGroups, seedGroups, seedSettings, tile, waitForOrders,
   type ExtensionSession, type SeedGroup,
 } from './extension-fixture'
+import { waitForDragStart, waitForOver } from './drag-follow-fixture'
 
 const item = (id: string) => ({ id, name: id.toUpperCase() })
 
@@ -32,10 +33,12 @@ test('touch: hold and move reorders, hold opens the menu, swipe scrolls, tap nav
 
     const from = await center(tile(page, 'i2')), to = await center(tile(page, 'i1'))
     await touch('touchStart', [from])
-    await page.waitForTimeout(450)
+    // Move as soon as the overlay proves the 350 ms sensor has activated: the first move cancels
+    // the app's 550 ms long-press menu, which would otherwise win the race and end the drag.
+    await waitForDragStart(page)
     for (let step = 1; step <= 6; step++) await touch('touchMove', [{ x: from.x + (to.x - from.x) * step / 6, y: from.y + (to.y - from.y) * step / 6 }])
-    // Release only after the last move has reached dnd-kit; otherwise drag-end can see a stale `over`.
-    await page.waitForTimeout(50)
+    // Release only after dnd-kit has processed the last move and resolved `over` to the target.
+    await waitForOver(page, 'i2', 'i1')
     await touch('touchEnd', [])
     await waitForOrders(page, [['i0', 'i2', 'i1', ...Array.from({ length: 37 }, (_, index) => `i${index + 3}`)]])
 
@@ -90,12 +93,14 @@ test('touch: hold and move reorders at 390px', async () => {
     const cdp = await session.context.newCDPSession(page)
     const from = await center(tile(page, 'c')), to = await center(tile(page, 'a'))
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: Math.round(from.x), y: Math.round(from.y), id: 1 }] })
-    await page.waitForTimeout(450)
+    // Move as soon as the overlay proves the 350 ms sensor has activated: the first move cancels
+    // the app's 550 ms long-press menu, which would otherwise win the race and end the drag.
+    await waitForDragStart(page)
     for (let step = 1; step <= 6; step++) {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: Math.round(from.x + (to.x - from.x) * step / 6), y: Math.round(from.y + (to.y - from.y) * step / 6), id: 1 }] })
     }
-    // Release only after the last move has reached dnd-kit; otherwise drag-end can see a stale `over`.
-    await page.waitForTimeout(50)
+    // Release only after dnd-kit has processed the last move and resolved `over` to the target.
+    await waitForOver(page, 'c', 'a')
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
     await waitForOrders(page, [['c', 'a', 'b'], ['w1']])
     expectIntegrity(before, await readGroups(page))

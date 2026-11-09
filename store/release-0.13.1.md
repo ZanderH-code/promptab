@@ -52,4 +52,4 @@ Compared with `dfde218` (`public/manifest.json`), the only manifest change is `v
 4. Check the workflow logs and Partner Center submission status. Successful upload/submission is not the same as certification approval or store publication.
 5. After approval, verify the public listing, install/update from the store, and check the release version and permissions.
 
-**Status (2026-11-08): 待提交。** No upload, workflow run, or store submission has been started.
+**Status (2026-11-09): 已认证并在商店上线。** The store serves 0.13.1 as of 2026-11-09 (checked 2026-11-09). This supersedes the earlier submission record above.
