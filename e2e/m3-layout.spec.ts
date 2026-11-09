@@ -106,8 +106,11 @@ test('banner uses the full-page English 1440 by 900 baseline', async ({ page }) 
 test('layout controls can refine icon split and banner templates', async ({ page }) => {
   const layout = page.locator('.mnt-layout')
   await chooseTemplate(page, '左右分区 · 纯图标')
+  // The raw DSL sits behind the Advanced disclosure, so open it before editing.
+  await page.locator('.sd-advanced summary').click()
   const baseAreas = page.getByRole('textbox', { name: '区域网格' })
   const baseColumns = page.getByRole('textbox', { name: '列规格' }).first()
+  await expect(baseAreas).toBeVisible()
   await baseAreas.fill('bookmarks divider overview')
   await expectGrid(page, '"bookmarks divider overview"')
   await baseColumns.fill('minmax(0, 1fr)\n1px\nminmax(280px, 0.7fr)')
