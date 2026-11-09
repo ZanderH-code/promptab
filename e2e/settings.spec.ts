@@ -931,3 +931,93 @@ test('search opens the advanced layout fields it matches', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+test('the gradient editor previews the rendered background', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('radio', { name: 'Gradient', exact: true }).click()
+
+  const strip = page.locator('.sd-gradient-preview')
+  await expect(strip).toBeVisible()
+  const box = (await strip.boundingBox())!
+  expect(box.width).toBeGreaterThan(400)
+  expect(box.height).toBeGreaterThanOrEqual(72)
+  await expect(strip).toHaveAttribute('data-angle', '135')
+  await expect(page.locator('.sd-gradient-angle')).toHaveText('135°')
+  await expect(page.locator('.sd-gradient-stop')).toHaveCount(2)
+  await expect(page.locator('.sd-gradient-stop[data-position="0"], .sd-gradient-stop[data-position="100"]')).toHaveCount(2)
+
+  // The strip and the page's background layer render the same gradient, not a placeholder bar.
+  const backgrounds = () => page.evaluate(() => ({
+    strip: getComputedStyle(document.querySelector('.sd-gradient-preview')!).backgroundImage,
+    page: getComputedStyle(document.querySelector('.app')!).backgroundImage,
+  }))
+  await expect.poll(async () => { const value = await backgrounds(); return value.strip === value.page && value.strip !== 'none' }).toBe(true)
+  const corners = async () => {
+    const rect = (await strip.boundingBox())!
+    return {
+      topLeft: await page.screenshot({ clip: { x: rect.x + 4, y: rect.y + 4, width: 1, height: 1 } }),
+      bottomRight: await page.screenshot({ clip: { x: rect.x + rect.width - 5, y: rect.y + rect.height - 5, width: 1, height: 1 } }),
+    }
+  }
+  await page.screenshot({ path: `${SHOTS}/gradient-135.png` })
+  const before = await corners()
+  expect(before.topLeft.equals(before.bottomRight)).toBe(false)
+
+  await page.getByRole('spinbutton', { name: 'Angle value' }).fill('45')
+  await page.getByRole('spinbutton', { name: 'Angle value' }).press('Enter')
+  await expect(strip).toHaveAttribute('data-angle', '45')
+  await expect(page.locator('.sd-gradient-angle')).toHaveText('45°')
+  await expect.poll(async () => { const value = await backgrounds(); return value.strip === value.page }).toBe(true)
+  const after = await corners()
+  // Rotating from 135° to 45° swaps the colour at each corner.
+  expect(after.topLeft.equals(before.topLeft)).toBe(false)
+  expect(after.bottomRight.equals(before.bottomRight)).toBe(false)
+  await page.screenshot({ path: `${SHOTS}/gradient-45.png` })
+
+  // The border separates the strip from the panel in both modes.
+  const contrast = () => page.evaluate(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 1
+    const context = canvas.getContext('2d')!
+    const rgb = (value: string) => {
+      context.clearRect(0, 0, 1, 1)
+      context.fillStyle = value
+      context.fillRect(0, 0, 1, 1)
+      return [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map(channel => {
+        const s = channel / 255
+        return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4
+      })
+    }
+    const luminance = (channels: number[]) => .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
+    const strip = document.querySelector('.sd-gradient-preview')!
+    const drawer = document.querySelector('.drawer.sd')!
+    const a = luminance(rgb(getComputedStyle(strip).borderTopColor))
+    const b = luminance(rgb(getComputedStyle(drawer).backgroundColor))
+    return (Math.max(a, b) + .05) / (Math.min(a, b) + .05)
+  })
+  expect(await contrast()).toBeGreaterThanOrEqual(3)
+
+  // Light mode never renders the gradient, so the strip says so instead of pretending.
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Theme', exact: true }).click()
+  await page.getByRole('option', { name: 'Light', exact: true }).click()
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await expect(page.locator('.sd-gradient')).toContainText('Gradients are only shown in dark mode.')
+  const modes = await backgrounds()
+  expect(modes.strip).not.toBe('none')
+  expect(modes.page).toBe('none')
+  expect(await contrast()).toBeGreaterThanOrEqual(3)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})

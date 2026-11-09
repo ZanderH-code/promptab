@@ -367,6 +367,7 @@ export const zhCN = {
   'settings.gradientStop': '色标 {n}',
   'settings.gradientAdd': '添加色标',
   'settings.gradientRemove': '删除色标 {n}',
+  'settings.gradientDarkOnly': '渐变仅在深色模式下显示。',
   'settings.imageGroup': '图片调整',
   'settings.blur': '模糊',
   'settings.grayscale': '灰度',

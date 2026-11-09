@@ -209,7 +209,10 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-upload { display: flex; flex-direction: column; align-items: flex-start; gap: var(--mnt-space-2); padding: var(--mnt-space-1) 0; }
 .sd-upload input[type="file"] { width: 100%; }
 .sd-gradient { display: grid; gap: var(--mnt-space-1); }
-.sd-gradient-preview { height: 28px; border: 1px solid var(--mnt-border); border-radius: 8px; }
+.sd-gradient-preview { position: relative; width: 100%; height: 88px; border: 1px solid var(--mnt-text-muted); border-radius: 8px; overflow: hidden; }
+.sd-gradient-arrow { position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in oklch, var(--mnt-bg), transparent 30%); color: var(--mnt-text); font-size: 14px; line-height: 1; transform-origin: center; }
+.sd-gradient-angle { position: absolute; top: 9px; left: 36px; padding: 2px 6px; border-radius: 999px; background: color-mix(in oklch, var(--mnt-bg), transparent 30%); color: var(--mnt-text); font-size: var(--mnt-text-xs); font-variant-numeric: tabular-nums; }
+.sd-gradient-stop { position: absolute; bottom: 8px; width: 10px; height: 10px; border: 1px solid var(--mnt-bg); border-radius: 50%; box-shadow: 0 0 0 1px var(--mnt-text-muted); transform: translateX(-50%); }
 .sd-stop { display: flex; align-items: center; gap: var(--mnt-space-2); }
 .sd-stop > .sd-row { flex: 1; }
 .sd-note { display: grid; gap: var(--mnt-space-2); padding: var(--mnt-space-2) 0; }

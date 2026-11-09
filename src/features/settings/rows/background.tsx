@@ -43,6 +43,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
     return touch({ ...p, background })
   })
   const stops = bg.gradient?.stops ?? []
+  const angle = bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE
   const setStops = (next: string[]) => setBackground(b => ({ ...b, gradient: { angle: b.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE, stops: next } }))
   const position = parsePosition(image?.position ?? 'center')
   const setExact = (x: number, y: number) => setImage({ position: `${x}% ${y}%` })
@@ -72,8 +73,15 @@ export function backgroundItems(ctx: Ctx): Item[] {
       id: 'bg-gradient', keys: ['settings.bgGradient', 'settings.gradientAngle'],
       node: (
         <div className="sd-gradient">
-          <div className="sd-gradient-preview" aria-hidden="true" style={{ background: `linear-gradient(${bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE}deg, ${stops.join(', ')})` }} />
-          <RangeField t={t} label={t('settings.gradientAngle')} value={bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE} min={0} max={360} unit="°" onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
+          <div className="sd-gradient-preview" aria-hidden="true" data-angle={angle} style={{ background: `linear-gradient(${angle}deg, ${stops.join(', ')})` }}>
+            <span className="sd-gradient-arrow" style={{ transform: `rotate(${angle}deg)` }}>↑</span>
+            <span className="sd-gradient-angle">{angle}°</span>
+            {stops.map((stop, index) => (
+              <span key={index} className="sd-gradient-stop" data-position={Math.round((index / Math.max(1, stops.length - 1)) * 100)} style={{ background: stop, left: `clamp(5px, ${(index / Math.max(1, stops.length - 1)) * 100}%, calc(100% - 5px))` }} />
+            ))}
+          </div>
+          {mode === 'light' && <p className="sd-hint">{t('settings.gradientDarkOnly')}</p>}
+          <RangeField t={t} label={t('settings.gradientAngle')} value={angle} min={0} max={360} unit="°" onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
           {stops.map((stop, index) => (
             <div className="sd-stop" key={index}>
               <ColorField t={t} label={t('settings.gradientStop', { n: index + 1 })} value={stop} onChange={value => setStops(stops.map((item, i) => i === index ? value : item))} />

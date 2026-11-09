@@ -367,6 +367,7 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.gradientStop': 'Stop {n}',
   'settings.gradientAdd': 'Add stop',
   'settings.gradientRemove': 'Remove stop {n}',
+  'settings.gradientDarkOnly': 'Gradients are only shown in dark mode.',
   'settings.imageGroup': 'Image adjustments',
   'settings.blur': 'Blur',
   'settings.grayscale': 'Grayscale',
