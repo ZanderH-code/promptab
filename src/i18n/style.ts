@@ -20,6 +20,7 @@ const messages = {
   "css.valid": ['没有发现问题', 'No problems found'],
   "css.dirty": ['有未应用的修改', 'Unapplied changes'],
   "css.applied": ['已应用', 'Applied'],
+  "css.disabled": ['已禁用', 'Disabled'],
   "css.usage": ['{kb} / 64 KB · {rules} / 2000 条规则', '{kb} / 64 KB · {rules} / 2000 rules'],
   "css.errorCount": ['{count} 个问题，修正后才能应用', '{count} problems to fix before applying'],
   "css.at": ['第 {line} 行第 {column} 列', 'Line {line}, column {column}'],

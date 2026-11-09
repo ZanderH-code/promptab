@@ -148,3 +148,34 @@ test('the custom CSS editor follows the active theme', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+test('the custom CSS status reflects the enable switch', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await openDrawer(page)
+  await openStyle(page)
+  await typeDraft(page, MARKER)
+  await page.getByRole('button', { name: 'Apply', exact: true }).click()
+
+  const status = page.locator('.sd-css-status')
+  await expect(status).toContainText('Applied')
+
+  const toggle = page.getByRole('checkbox', { name: 'Enable custom CSS' })
+  await toggle.click()
+  await expect(status).toContainText('Disabled')
+  await expect(status).not.toContainText('Applied')
+
+  await toggle.click()
+  await expect(status).toContainText('Applied')
+
+  // A valid change with the switch on is a draft, not an applied stylesheet.
+  await page.locator('.cm-content').click()
+  await page.keyboard.press('Control+End')
+  await page.keyboard.type(' .mnt-date { color: rgb(4, 5, 6); }')
+  await expect(status).toContainText('Unapplied changes')
+
+  expect(errors).toEqual([])
+})

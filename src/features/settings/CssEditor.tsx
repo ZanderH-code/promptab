@@ -38,6 +38,7 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
 
   const result = useMemo(() => sanitizeCss(text), [text])
   const dirty = text !== stored
+  const enabled = profile.custom.cssEnabled
   const apply = () => {
     drafts.delete(profileId)
     change(p => ({ ...p, custom: { ...p.custom, css: result.css === '' ? '' : text, cssEnabled: text.trim() !== '' } }), 'theme')
@@ -53,8 +54,8 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
       </Suspense>
       <div className="sd-css-status">
         <span className="sd-usage">{t('css.usage', { kb: (result.bytes / 1024).toFixed(1), rules: result.rules })}</span>
-        <span data-state={result.ok ? (dirty ? 'dirty' : 'ok') : 'error'}>
-          {result.ok ? t(dirty ? 'css.dirty' : 'css.applied') : t('css.errorCount', { count: result.errors.length })}
+        <span data-state={!enabled ? 'disabled' : result.ok ? (dirty ? 'dirty' : 'ok') : 'error'}>
+          {!enabled ? t('css.disabled') : result.ok ? t(dirty ? 'css.dirty' : 'css.applied') : t('css.errorCount', { count: result.errors.length })}
         </span>
       </div>
       {!result.ok && (
