@@ -75,9 +75,13 @@
 }
 
 @layer widgets {
+  /* Accent-text is the accent hue at a readable lightness (derive.ts keeps it ≥4.5:1 on both bg and
+     surface), so the ring stays above 3:1 whatever accent the profile picks; the soft fill makes
+     the target read at a glance. */
   .mnt-folder[data-drop-target="true"] {
-    outline: 2px solid var(--mnt-accent);
+    outline: 3px solid var(--mnt-accent-text);
     outline-offset: 2px;
+    background: var(--mnt-accent-soft);
     transform: translateY(-2px) scale(1.04);
   }
   .bookmarks[data-reduce-motion="true"] .mnt-folder[data-drop-target="true"] { transform: none; }

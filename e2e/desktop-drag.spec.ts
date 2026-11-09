@@ -66,6 +66,57 @@ test('drags into a folder with a highlight and persists', async () => {
   } finally { await session.close() }
 })
 
+test('folder highlight clears on leave and cancel, and shows a visible ring', async () => {
+  const session = await launchExtension()
+  try {
+    await setup(session, [
+      { id: 'desk', name: 'Desktop', items: ['a', 'b', 'c'].map(item) },
+      { id: 'folder-work', name: 'Work', items: ['w1'].map(item) },
+    ])
+    const page = session.page
+    const before = await readGroups(page)
+    const beforeState = await readState(page)
+    const folder = folderTile(page, 'folder-work')
+    await loadDragLayer(page, 'a')
+    await dragMouse(page, await center(tile(page, 'a')), await center(folder), { release: false })
+    await expect(folder).toHaveAttribute('data-drop-target', 'true')
+    // The attribute is only useful if it paints: a solid, non-transparent ring of at least 3 px.
+    const ring = await folder.evaluate(el => {
+      const style = getComputedStyle(el)
+      return { width: style.outlineWidth, style: style.outlineStyle, color: style.outlineColor }
+    })
+    expect(ring.style).toBe('solid')
+    expect(parseFloat(ring.width)).toBeGreaterThanOrEqual(3)
+    expect(ring.color).not.toBe('rgba(0, 0, 0, 0)')
+
+    // Leave the folder: the highlight clears while the drag is still live.
+    const leave = await center(tile(page, 'b'))
+    await page.mouse.move(leave.x, leave.y, { steps: 8 })
+    await expect(folder).not.toHaveAttribute('data-drop-target', 'true', { timeout: 1500 })
+
+    // Back over the folder, then cancel: highlight clears and nothing is written.
+    const back = await center(folder)
+    await page.mouse.move(back.x, back.y, { steps: 8 })
+    await expect(folder).toHaveAttribute('data-drop-target', 'true')
+    await page.keyboard.press('Escape')
+    await expect(folder).not.toHaveAttribute('data-drop-target', 'true', { timeout: 1500 })
+    await page.mouse.up()
+    await page.waitForTimeout(500)
+    const afterCancel = await readState(page)
+    expect(afterCancel.revision).toBe(beforeState.revision)
+    expect(afterCancel.groups).toEqual(beforeState.groups)
+
+    // And a real drop clears it too, with the item moved into the folder.
+    await loadDragLayer(page, 'a')
+    await dragMouse(page, await center(tile(page, 'a')), await center(folder), { release: false })
+    await expect(folder).toHaveAttribute('data-drop-target', 'true')
+    await page.mouse.up()
+    await waitForOrders(page, [['b', 'c'], ['w1', 'a']])
+    await expect(folder).not.toHaveAttribute('data-drop-target', 'true', { timeout: 1500 })
+    expectIntegrity(before, await readGroups(page))
+  } finally { await session.close() }
+})
+
 test('reorders inside a folder dialog', async () => {
   const session = await launchExtension()
   try {
