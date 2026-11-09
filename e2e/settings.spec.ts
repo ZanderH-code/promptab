@@ -496,16 +496,17 @@ test('the page stays bright while editing and the panel can peek away', async ({
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).filter)).toBe('none')
   expect(await page.evaluate(() => getComputedStyle(document.body).filter)).toBe('none')
   await expect(page.locator('.scrim')).toHaveCount(1)
-  expect(await page.evaluate(() => document.querySelector('.sd')?.contains(document.activeElement))).toBe(true)
   const url = page.url()
   await page.mouse.click(200, 450)
   expect(page.url()).toBe(url)
-  // The scrim blocks the page but does not dismiss settings.
-  await expect(page.getByRole('dialog')).toBeVisible()
+  // The scrim absorbs the click, then dismisses settings.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
   await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
 
-  // Pick a section and peek: the drawer leaves the viewport but the page stays blocked.
+  // Reopen, pick a section, and peek: the drawer leaves the viewport but the page stays blocked.
+  await openDrawer(page)
+  expect(await page.evaluate(() => document.querySelector('.sd')?.contains(document.activeElement))).toBe(true)
   await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
   await page.screenshot({ path: `${SHOTS}/preview-full.png` })
   await page.getByRole('button', { name: 'Peek', exact: true }).click()
@@ -549,26 +550,37 @@ test('the settings scrim blocks page clicks at every width', async ({ page }) =>
   await launch(page)
   await page.setViewportSize({ width: 800, height: 900 })
   await openDrawer(page)
+  const violations = async () => (await new AxeBuilder({ page }).analyze()).violations.filter(issue => issue.impact === 'serious' || issue.impact === 'critical')
+  expect(await violations()).toEqual([])
 
   // The drawer is 640 px wide; the strip left of it is the dimmed scrim.
+  const shortcuts = await page.locator('.shortcut').count()
+  const pages = page.context().pages().length
+  const url = page.url()
   const alpha = await scrimAlpha(page)
   expect(alpha).toBeGreaterThanOrEqual(.55)
   expect(alpha).toBeLessThanOrEqual(.65)
   expect(await leftIsScrim(page)).toBe(true)
 
-  const url = page.url()
   await page.mouse.click(80, 450)
   expect(page.url()).toBe(url)
-  await expect(page.getByRole('dialog')).toBeVisible()
+  expect(await page.locator('.shortcut').count()).toBe(shortcuts)
+  expect(page.context().pages().length).toBe(pages)
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
   await expect(page.locator('[data-edit-mode]')).toHaveCount(0)
+  // The click is absorbed by the scrim, then dismisses settings.
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 
-  // At 1400 px the scrim is transparent but still blocks, as before.
+  // At 1400 px the scrim is transparent but still blocks and dismisses.
+  await openDrawer(page)
   await page.setViewportSize({ width: 1400, height: 900 })
   expect(await scrimAlpha(page)).toBe(0)
   expect(await centreIsScrim(page)).toBe(true)
   await page.mouse.click(200, 450)
-  await expect(page.getByRole('dialog')).toBeVisible()
+  expect(page.url()).toBe(url)
+  expect(await page.locator('.shortcut').count()).toBe(shortcuts)
+  expect(page.context().pages().length).toBe(pages)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
 
   // The generic widget scrim keeps passing clicks through; only the settings one blocks.
   expect(await page.evaluate(() => {
@@ -580,7 +592,5 @@ test('the settings scrim blocks page clicks at every width', async ({ page }) =>
     return value
   })).toBe('none')
 
-  const violations = (await new AxeBuilder({ page }).analyze()).violations.filter(issue => issue.impact === 'serious' || issue.impact === 'critical')
-  expect(violations).toEqual([])
   expect(errors).toEqual([])
 })
