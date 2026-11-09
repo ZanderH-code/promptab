@@ -42,6 +42,10 @@ const TAB_LABELS: Record<TabId, MessageKey> = {
   appearance: 'settings.tab.appearance', background: 'settings.tab.background', layout: 'settings.tab.layout', widgets: 'settings.tab.widgets',
   shortcuts: 'settings.tab.shortcuts', search: 'settings.tab.search', style: 'settings.tab.style', ai: 'settings.tab.ai', data: 'settings.tab.data', about: 'settings.tab.about',
 }
+const SECTION_DESC: Record<TabId, MessageKey> = {
+  appearance: 'settings.desc.appearance', background: 'settings.desc.background', layout: 'settings.desc.layout', widgets: 'settings.desc.widgets',
+  shortcuts: 'settings.desc.shortcuts', search: 'settings.desc.search', style: 'settings.desc.style', ai: 'settings.desc.ai', data: 'settings.desc.data', about: 'settings.desc.about',
+}
 const RAIL_GROUPS: { label: MessageKey; tabs: TabId[] }[] = [
   { label: 'settings.group.look', tabs: ['appearance', 'background'] },
   { label: 'settings.group.layout', tabs: ['layout', 'widgets'] },
@@ -215,9 +219,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
       group = item.group
       const reason = searching ? matchReason(item, id) : []
       return <div className="sd-item" key={item.id}>{heading}{reason.length > 0 && <p className="sd-matches">{t('settings.findMatches', { terms: reason.join(', ') })}</p>}{item.node}</div>
-    }).concat(!searching && (RESETTABLE as readonly string[]).includes(id)
-      ? [<div className="sd-restore" key="restore"><button type="button" className="sd-button" onClick={() => void restore(id as ResettableTab)}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.restoreSection')}</button></div>]
-      : [])
+    })
   }
 
   return (
@@ -280,6 +282,15 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
             </div>
           ) : (
             <Tabs.Content value={tab} className="sd-panel">
+              <header className="sd-section-head">
+                <div>
+                  <h3 className="sd-section-title">{t(TAB_LABELS[tab])}</h3>
+                  <p className="sd-section-desc">{t(SECTION_DESC[tab])}</p>
+                </div>
+                {(RESETTABLE as readonly string[]).includes(tab) && (
+                  <button type="button" className="sd-button" onClick={() => void restore(tab as ResettableTab)}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.restoreSection')}</button>
+                )}
+              </header>
               {results.map(section => (
                 <section key={section.id} className="sd-section">
                   {body(section.id, section.items)}

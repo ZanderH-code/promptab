@@ -594,3 +594,41 @@ test('the settings scrim blocks page clicks at every width', async ({ page }) =>
 
   expect(errors).toEqual([])
 })
+
+test('the section header stays in view with the reset action', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await openLayout(page)
+
+  const panel = page.getByRole('tabpanel')
+  const header = page.locator('.sd-section-head')
+  await expect(header).toBeVisible()
+  await expect(header.getByRole('heading', { name: 'Areas & grid', exact: true })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeVisible()
+  // Only the header owns the reset; the old panel footer is gone.
+  await expect(page.getByRole('button', { name: 'Restore section defaults', exact: true })).toHaveCount(1)
+  await expect(page.locator('.sd-restore')).toHaveCount(0)
+  await page.screenshot({ path: `${SHOTS}/header-top.png` })
+
+  const panelBox = (await panel.boundingBox())!
+  const before = (await header.boundingBox())!
+  await panel.evaluate(element => { element.scrollTop = 600 })
+  await expect.poll(() => panel.evaluate(element => element.scrollTop)).toBe(600)
+
+  const after = (await header.boundingBox())!
+  // Sticky: the header stays at the panel's top edge (the 8 px content padding included) while scrolling.
+  expect(after.y).toBeGreaterThanOrEqual(panelBox.y)
+  expect(after.y).toBeLessThanOrEqual(panelBox.y + 10)
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1)
+  await expect(header.getByRole('heading', { name: 'Areas & grid', exact: true })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeInViewport()
+  await page.screenshot({ path: `${SHOTS}/header-scrolled.png` })
+
+  expect(errors).toEqual([])
+})
