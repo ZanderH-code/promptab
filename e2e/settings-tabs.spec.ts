@@ -86,7 +86,8 @@ test('settings tab keyboard navigation and AI search are preserved', async ({ pa
 
   const appearance = page.getByRole('tab', { name: 'Theme', exact: true })
   await appearance.focus()
-  await page.keyboard.press('ArrowDown')
+  // This viewport is 420 px wide, where the rail runs horizontally.
+  await page.keyboard.press('ArrowRight')
   const background = page.getByRole('tab', { name: 'Background', exact: true })
   await expect(background).toBeFocused()
   await page.keyboard.press('Home')
@@ -94,7 +95,7 @@ test('settings tab keyboard navigation and AI search are preserved', async ({ pa
   await page.keyboard.press('End')
   const about = page.getByRole('tab', { name: 'About', exact: true })
   await expect(about).toBeFocused()
-  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('ArrowRight')
   await expect(appearance).toBeFocused()
 
   const search = page.getByRole('searchbox', { name: 'Search settings' })

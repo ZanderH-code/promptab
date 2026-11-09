@@ -61,6 +61,16 @@ const subscribeWide = (onChange: () => void) => {
 }
 const isWide = () => typeof window.matchMedia === 'function' && window.matchMedia(WIDE_QUERY).matches
 
+/** The rail is horizontal at the same width where the CSS flips it; its arrow keys must match. */
+const COMPACT_QUERY = '(max-width: 640px)'
+const subscribeCompact = (onChange: () => void) => {
+  if (typeof window.matchMedia !== 'function') return () => {}
+  const query = window.matchMedia(COMPACT_QUERY)
+  query.addEventListener('change', onChange)
+  return () => query.removeEventListener('change', onChange)
+}
+const isCompact = () => typeof window.matchMedia === 'function' && window.matchMedia(COMPACT_QUERY).matches
+
 export function initialTab(section?: string): TabId {
   if (!section) return 'appearance'
   if ((TABS as readonly string[]).includes(section)) return section as TabId
@@ -98,6 +108,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const peekHandle = useRef<HTMLButtonElement>(null)
   const uid = useId()
   const wide = useSyncExternalStore(subscribeWide, isWide, () => false)
+  const compact = useSyncExternalStore(subscribeCompact, isCompact, () => false)
   const [peeked, setPeeked] = useState(false)
   const searching = query.trim() !== ''
   const terms = useMemo(() => query.toLocaleLowerCase().split(/\s+/).filter(Boolean), [query])
@@ -229,7 +240,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
           <input ref={search} type="search" value={query} placeholder={t('settings.find')} aria-label={t('settings.find')} autoComplete="off" onChange={event => setQuery(event.target.value)} />
           {query && <button type="button" className="sd-icon-button" aria-label={t('settings.findClear')} onClick={() => { setQuery(''); search.current?.focus() }}><X size={14} strokeWidth={1.5} aria-hidden="true" /></button>}
         </div>
-        <Tabs.Root value={tab} onValueChange={value => setTab(value as TabId)} orientation="vertical" className="sd-body">
+        <Tabs.Root value={tab} onValueChange={value => setTab(value as TabId)} orientation={compact ? 'horizontal' : 'vertical'} className="sd-body">
           {!searching && (
             <Tabs.List className="sd-rail" aria-label={t('settings.tabs')}>
               {RAIL_GROUPS.map(group => (

@@ -86,7 +86,7 @@ test('settings drawer fills a 400px viewport and supports keyboard navigation', 
   expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(400)
   expect(bounds!.width).toBeGreaterThanOrEqual(380)
 
-  const appearance = page.getByRole('tab', { name: '外观', exact: true })
+  const appearance = page.getByRole('tab', { name: '主题', exact: true })
   await appearance.focus()
   await page.keyboard.press('ArrowRight')
   await expect(page.getByRole('tab', { name: '背景', exact: true })).toBeFocused()
