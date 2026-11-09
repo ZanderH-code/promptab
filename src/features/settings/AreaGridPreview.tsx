@@ -14,10 +14,12 @@ export function AreaGridPreview({ layout, label, t }: { layout: ProfileV2['layou
   const tracks = (layout.columns?.length ? layout.columns : Array.from({ length: columns }, () => '1fr'))
     .map(track => /([\d.]+)fr/.exec(track)?.[0] ?? track)
     .join(' ')
+  /** The accessible name lists the areas in reading order, so the diagram explains its own contents. */
+  const name = t('settings.gridPreviewName', { areas: names.map(label).join(t('settings.listSeparator')) })
   return (
     <figure className="sd-grid-figure">
       <div
-        className="sd-grid-preview" role="img" aria-label={t('settings.gridPreview')}
+        className="sd-grid-preview" role="img" aria-label={name}
         data-columns={tracks} data-rows={rows.length}
         style={{
           gridTemplateAreas: rows.map(row => `"${row.join(' ')}"`).join(' '),

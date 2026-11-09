@@ -309,6 +309,8 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.desc.data': 'Profiles, backups and browser imports.',
   'settings.desc.about': 'Version, links and licence.',
   'settings.gridPreview': 'Current area grid preview',
+  'settings.gridPreviewName': 'Current area grid preview: {areas}',
+  'settings.listSeparator': ', ',
   'settings.find': 'Search settings',
   'settings.findClear': 'Clear search',
   'settings.findResults': 'Search results',

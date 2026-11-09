@@ -649,7 +649,7 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   await expect(preview).toBeVisible()
   await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
   await expect(preview).toHaveAttribute('role', 'img')
-  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview')
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Overview, Shortcuts')
   // Read-only: nothing in the diagram is focusable or editable.
   await expect(preview.locator('input, textarea, select, button, [contenteditable]')).toHaveCount(0)
 
@@ -682,6 +682,7 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   await expect.poll(async () => (await geometry()).page.areas).toBe('"bookmarks overview"')
   await expect.poll(async () => (await geometry()).preview.areas).toBe('"bookmarks overview"')
   await expect(blocks).toHaveText(['Shortcuts', 'Overview'])
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Shortcuts, Overview')
   const split = await geometry()
   const previewWidth = await preview.evaluate(element => element.clientWidth)
   for (const area of ['bookmarks', 'overview']) {
@@ -711,4 +712,17 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
 
   expect(errors).toEqual([])
+})
+
+test('the grid preview names its areas in the current locale', async ({ page }) => {
+  await seedExistingUser(page, { language: 'zh-CN' })
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await page.goto('/')
+  await expect(page.locator('.mnt-layout')).toBeVisible()
+  await page.locator('.mnt-settings-entry').first().click()
+  await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  const preview = page.locator('.sd-grid-preview')
+  await expect(preview).toBeVisible()
+  await expect(preview.locator('.sd-grid-block')).toHaveText(['概览', '快捷方式'])
+  await expect(preview).toHaveAttribute('aria-label', '当前区域网格预览：概览、快捷方式')
 })
