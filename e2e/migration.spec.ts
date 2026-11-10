@@ -187,8 +187,10 @@ test('history preview, restore and pin', async ({ page }) => {
   await expect.poll(async () => (await readV2(page)).history.profiles[id].snapshots.filter((s: any) => s.pinned).length).toBe(1)
 
   // Restore asks for confirmation, applies the snapshot and records a restore entry.
-  page.once('dialog', dialog => { expect(dialog.message()).toContain('恢复此历史记录'); void dialog.accept() })
   await entries.first().getByRole('button', { name: '恢复', exact: true }).click()
+  const restoreDialog = page.getByRole('alertdialog')
+  await expect(restoreDialog).toContainText('恢复此历史记录')
+  await restoreDialog.getByRole('button', { name: '恢复', exact: true }).click()
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe(DEFAULT_ACCENT)
   await expect(page.locator('html')).toHaveCSS('--mnt-accent', DEFAULT_ACCENT)
   await expect.poll(async () => (await readV2(page)).history.profiles[id].snapshots.map((s: any) => s.kind)).toContain('restore')
