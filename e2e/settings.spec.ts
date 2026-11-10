@@ -1747,3 +1747,78 @@ test('settings resets use one accessible confirmation dialog', async ({ page }) 
 
   expect(errors).toEqual([])
 })
+
+test('confirm dialog returns focus and keeps Tab inside', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const restore = page.getByRole('button', { name: 'Restore section defaults', exact: true })
+  const dialog = page.getByRole('alertdialog')
+
+  // Esc closes and native focus restore lands on the button that opened the dialog.
+  await restore.click()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(restore).toBeFocused()
+
+  // Tab and Shift+Tab cycle between the dialog buttons and never leave the modal.
+  await restore.click()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+
+  // Cancel also returns focus to the opener.
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(restore).toBeFocused()
+
+  // Confirm returns focus to the opener as well.
+  await restore.click()
+  await dialog.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(restore).toBeFocused()
+
+  // Deleting a profile disables its opener, so focus moves to the selected tab instead of body.
+  await page.getByRole('tab', { name: 'Backup & import', exact: true }).click()
+  page.once('dialog', prompt => void prompt.accept('Second profile'))
+  await page.getByRole('button', { name: 'New profile', exact: true }).click()
+  const profileSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Profiles', exact: true }) }).last()
+  const remove = profileSection.getByRole('button', { name: 'Delete', exact: true })
+  await expect(remove).toBeEnabled()
+  await remove.click()
+  await dialog.getByRole('button', { name: 'Delete', exact: true }).click()
+  await expect(page.getByRole('tab', { name: 'Backup & import', exact: true })).toBeFocused()
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false)
+
+  // The global reset behaves the same after Esc, Cancel and Confirm. It also restores the stored
+  // interface language, so the opener is matched by either label once it has been confirmed.
+  const resetAll = page.getByRole('button', { name: /^(Reset settings|恢复默认设置)$/ })
+  await resetAll.click()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(resetAll).toBeFocused()
+  await resetAll.click()
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(resetAll).toBeFocused()
+  await resetAll.click()
+  await dialog.getByRole('button', { name: 'Reset settings', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(resetAll).toBeFocused()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})
