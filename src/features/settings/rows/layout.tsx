@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from '../../../core/model'
-import { RANGES } from '../../../core/schema/defaults'
+import { DEFAULT_AREA_STYLE, RANGES } from '../../../core/schema/defaults'
 import { profileIssues, type ProfileV2 } from '../../../core/schema/profile'
 import { applyTemplate, detectTemplate } from '../../../core/layout/profile'
 import { areaGridProblem, areaNames } from '../../../core/layout/grid'
 import { LAYOUT_TEMPLATES } from '../../../core/layout/templates'
 import type { MessageKey } from '../../../i18n'
 import { weatherText } from '../../../core/weatherMessages'
-import { ColorField, RangeField, Row, Toggle } from '../controls'
+import { ColorField, RangeField, Row, Toggle, type RowState } from '../controls'
 import { AreaGridPreview } from '../AreaGridPreview'
-import { maxColumnsDefault } from '../rowDefaults'
+import { layoutDefaults, maxColumnsDefault } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
@@ -22,9 +22,11 @@ function AreaBleedToggle({ label, checked, onChange }: { label: string; checked:
 export function layoutItems(ctx: Ctx): Item[] {
   const { t, s, profile, change, patch } = ctx
   const columnsDefault = ctx.defaults ? maxColumnsDefault(ctx.defaults) : undefined
-  const choice = (id: string, label: MessageKey, value: string, options: [string, MessageKey][], set: (value: string) => void): Item => ({
+  const fallback = ctx.defaults ? layoutDefaults(ctx.defaults) : null
+  const resetLabel = (label: MessageKey) => t('settings.resetRow', { label: t(label) })
+  const choice = (id: string, label: MessageKey, value: string, options: [string, MessageKey][], set: (value: string) => void, state?: RowState): Item => ({
     id, keys: [label, ...options.map(([, key]) => key)],
-    node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
+    node: <Row label={t(label)} {...state}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
   })
   const textField = (id: string, label: MessageKey, value: string, set: (value: string) => void, issue?: string, revert?: () => void, placeholder?: string): Item => ({
     id, keys: [label], node: <Row label={t(label)} stack><textarea data-user-content className="sd-input sd-code" rows={Math.min(5, Math.max(2, value.split('\n').length))} value={value} aria-label={t(label)} placeholder={placeholder} onChange={event => set(event.target.value)} />{issue && <small role="alert">{issue}</small>}{revert && <button type="button" className="sd-button" onClick={revert}>{t('settings.gridRevert')}</button>}</Row>,
@@ -153,15 +155,30 @@ export function layoutItems(ctx: Ctx): Item[] {
   const areaControls: Item[] = areas.map(area => {
     const style = profile.layout.areaStyles?.[area] ?? {}
     const setStyle = (updates: Record<string, unknown>) => change(p => touch({ ...p, layout: { ...p.layout, areaStyles: { ...p.layout.areaStyles, [area]: { ...p.layout.areaStyles?.[area], ...updates } } } }))
+    /** Clearing a field drops it, then drops the border/area keys once nothing else is customised. */
+    const clearStyle = (field: 'opacity' | 'blur' | 'padding' | 'border', side?: 'top' | 'right' | 'bottom' | 'left') => change(p => {
+      const styles = { ...p.layout.areaStyles }
+      const current = { ...styles[area] }
+      if (field === 'border') {
+        const border = { ...current.border }
+        if (side) delete border[side]
+        if (Object.keys(border).length) current.border = border
+        else delete current.border
+      } else delete current[field]
+      if (Object.keys(current).length) styles[area] = current
+      else delete styles[area]
+      return touch({ ...p, layout: { ...p.layout, areaStyles: Object.keys(styles).length ? styles : undefined } })
+    })
+    const mark = (label: MessageKey, changed: boolean, clear: () => void): RowState => ({ changed, onReset: changed ? clear : undefined, resetLabel: resetLabel(label) })
     return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding', 'settings.areaBackground', 'settings.areaOpacity', 'settings.areaBleed', 'settings.areaAlign', 'settings.areaBorderTop', 'settings.areaBorderRight', 'settings.areaBorderBottom', 'settings.areaBorderLeft'], node: <div className="sd-note"><strong data-user-content>{areaLabel(area)}</strong>
       <Row label={t('settings.areaBackground')}><Select ctx={ctx} label={t('settings.areaBackground')} value={style.background ?? 'surface'} options={[{ value: 'surface', label: t('settings.colorSurface') }, { value: 'accent', label: t('settings.accent') }, { value: 'bg', label: t('settings.background') }, { value: '#102932', label: t('common.custom') }]} onChange={background => setStyle({ background })} /></Row>
       {style.background && style.background.startsWith('#') && <ColorField t={t} label={t('settings.areaBackground')} value={style.background} onChange={background => setStyle({ background })} />}
-      <RangeField t={t} label={t('settings.areaOpacity')} hint={t('settings.hint.areaOpacity')} value={style.opacity ?? 100} min={0} max={100} unit="%" onChange={opacity => setStyle({ opacity })} />
-      <RangeField t={t} label={t('settings.areaBlur')} hint={t('settings.hint.areaBlur')} value={style.blur ?? 0} min={0} max={40} unit="px" onChange={blur => setStyle({ blur })} />
-      <RangeField t={t} label={t('settings.areaPadding')} hint={t('settings.hint.areaPadding')} value={style.padding ?? 0} min={0} max={200} unit="px" onChange={padding => setStyle({ padding })} />
+      <RangeField t={t} label={t('settings.areaOpacity')} hint={t('settings.hint.areaOpacity')} value={style.opacity ?? DEFAULT_AREA_STYLE.opacity} min={0} max={100} unit="%" {...mark('settings.areaOpacity', style.opacity !== undefined && style.opacity !== DEFAULT_AREA_STYLE.opacity, () => clearStyle('opacity'))} onChange={opacity => setStyle({ opacity })} />
+      <RangeField t={t} label={t('settings.areaBlur')} hint={t('settings.hint.areaBlur')} value={style.blur ?? DEFAULT_AREA_STYLE.blur} min={0} max={40} unit="px" {...mark('settings.areaBlur', style.blur !== undefined && style.blur !== DEFAULT_AREA_STYLE.blur, () => clearStyle('blur'))} onChange={blur => setStyle({ blur })} />
+      <RangeField t={t} label={t('settings.areaPadding')} hint={t('settings.hint.areaPadding')} value={style.padding ?? DEFAULT_AREA_STYLE.padding} min={0} max={200} unit="px" {...mark('settings.areaPadding', style.padding !== undefined && style.padding !== DEFAULT_AREA_STYLE.padding, () => clearStyle('padding'))} onChange={padding => setStyle({ padding })} />
       <AreaBleedToggle label={t('settings.areaBleed')} checked={style.bleed ?? false} onChange={bleed => setStyle({ bleed })} />
       <Row label={t('settings.areaAlign')}><Select ctx={ctx} label={t('settings.areaAlign')} value={style.align ?? 'center-center'} options={(['top-left','top-center','top-right','center-left','center-center','center-right','bottom-left','bottom-center','bottom-right'] as const).map((value, index) => ({ value, label: t((['settings.posTopLeft','settings.posTop','settings.posTopRight','settings.posLeft','settings.posCenter','settings.posRight','settings.posBottomLeft','settings.posBottom','settings.posBottomRight'] as const)[index]) }))} onChange={align => setStyle({ align })} /></Row>
-      {(['top', 'right', 'bottom', 'left'] as const).map(side => <RangeField key={side} t={t} label={t(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} hint={t(`settings.hint.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} value={style.border?.[side] ?? 0} min={0} max={16} unit="px" onChange={width => setStyle({ border: { ...style.border, [side]: width } })} />)}
+      {(['top', 'right', 'bottom', 'left'] as const).map(side => <RangeField key={side} t={t} label={t(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} hint={t(`settings.hint.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} value={style.border?.[side] ?? DEFAULT_AREA_STYLE.border} min={0} max={16} unit="px" {...mark(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey, !!style.border?.[side], () => clearStyle('border', side))} onChange={width => setStyle({ border: { ...style.border, [side]: width } })} />)}
     </div> }
   })
   const gridItems = [...gridEditor(), ...(narrow ? gridEditor(true) : [{ id: 'narrow-grid', keys: ['settings.layoutNarrow'], node: <button type="button" className="sd-button" onClick={() => change(p => touch({ ...p, layout: { ...p.layout, breakpoints: { ...p.layout.breakpoints, narrow: { areas: p.layout.areas } } } }))}>{t('settings.layoutNarrow')}</button> } as Item]) ]
@@ -210,11 +227,11 @@ export function layoutItems(ctx: Ctx): Item[] {
     ) },
     ...(ctx.movedWidgets?.length ? [{ id: 'widget-area-moved', keys: ['settings.widgetArea'], node: <div className="sd-note" role="status">{ctx.movedWidgets.map(message => <div key={message}>{t('settings.widgetMoved', { message })}</div>)}</div> } as Item] : []),
     ...widgetItems, ...areaControls,
-    choice('alignment', 'settings.alignment', s.alignment, [['center', 'settings.alignCenter'], ['left', 'settings.alignLeft']], value => patch({ alignment: value as Settings['alignment'] })),
-    { id: 'content-width', keys: ['settings.contentWidth'], node: <RangeField t={t} label={t('settings.contentWidth')} value={profile.layout.contentWidth} min={RANGES.contentWidth.min} max={RANGES.contentWidth.max} step={10} unit="px" onChange={contentWidth => change(p => touch({ ...p, layout: { ...p.layout, contentWidth } }))} /> },
-    { id: 'gap', keys: ['settings.gap'], node: <RangeField t={t} label={t('settings.gap')} value={profile.layout.gap} min={RANGES.gap.min} max={RANGES.gap.max} unit="px" onChange={gap => change(p => touch({ ...p, layout: { ...p.layout, gap } }))} /> },
-    { id: 'columns', keys: ['settings.columns'], node: <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={s.columns} min={2} max={10} changed={columnsDefault !== undefined && s.columns !== columnsDefault} onReset={columnsDefault !== undefined ? () => patch({ columns: columnsDefault }) : undefined} resetLabel={t('settings.resetRow', { label: t('settings.columns') })} onChange={columns => patch({ columns })} /> },
-    { id: 'icon-size', keys: ['settings.iconSize'], node: <RangeField t={t} label={t('settings.iconSize')} value={s.iconSize} min={40} max={120} unit="px" onChange={iconSize => patch({ iconSize })} /> },
-    choice('icon-shape', 'settings.iconShape', s.iconShape, [['circle', 'settings.shapeCircle'], ['rounded', 'settings.shapeRounded'], ['square', 'settings.shapeSquare']], value => patch({ iconShape: value as Settings['iconShape'] })),
+    choice('alignment', 'settings.alignment', s.alignment, [['center', 'settings.alignCenter'], ['left', 'settings.alignLeft']], value => patch({ alignment: value as Settings['alignment'] }), fallback ? { changed: s.alignment !== fallback.alignment, onReset: () => patch({ alignment: fallback.alignment as Settings['alignment'] }), resetLabel: resetLabel('settings.alignment') } : undefined),
+    { id: 'content-width', keys: ['settings.contentWidth'], node: <RangeField t={t} label={t('settings.contentWidth')} value={profile.layout.contentWidth} min={RANGES.contentWidth.min} max={RANGES.contentWidth.max} step={10} unit="px" changed={!!fallback && profile.layout.contentWidth !== fallback.contentWidth} onReset={fallback ? () => change(p => touch({ ...p, layout: { ...p.layout, contentWidth: fallback.contentWidth } })) : undefined} resetLabel={resetLabel('settings.contentWidth')} onChange={contentWidth => change(p => touch({ ...p, layout: { ...p.layout, contentWidth } }))} /> },
+    { id: 'gap', keys: ['settings.gap'], node: <RangeField t={t} label={t('settings.gap')} value={profile.layout.gap} min={RANGES.gap.min} max={RANGES.gap.max} unit="px" changed={!!fallback && profile.layout.gap !== fallback.gap} onReset={fallback ? () => change(p => touch({ ...p, layout: { ...p.layout, gap: fallback.gap } })) : undefined} resetLabel={resetLabel('settings.gap')} onChange={gap => change(p => touch({ ...p, layout: { ...p.layout, gap } }))} /> },
+    { id: 'columns', keys: ['settings.columns'], node: <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={s.columns} min={2} max={10} changed={columnsDefault !== undefined && s.columns !== columnsDefault} onReset={columnsDefault !== undefined ? () => patch({ columns: columnsDefault }) : undefined} resetLabel={resetLabel('settings.columns')} onChange={columns => patch({ columns })} /> },
+    { id: 'icon-size', keys: ['settings.iconSize'], node: <RangeField t={t} label={t('settings.iconSize')} value={s.iconSize} min={40} max={120} unit="px" changed={!!fallback && s.iconSize !== fallback.iconSize} onReset={fallback ? () => patch({ iconSize: fallback.iconSize }) : undefined} resetLabel={resetLabel('settings.iconSize')} onChange={iconSize => patch({ iconSize })} /> },
+    choice('icon-shape', 'settings.iconShape', s.iconShape, [['circle', 'settings.shapeCircle'], ['rounded', 'settings.shapeRounded'], ['square', 'settings.shapeSquare']], value => patch({ iconShape: value as Settings['iconShape'] }), fallback ? { changed: s.iconShape !== fallback.iconShape, onReset: () => patch({ iconShape: fallback.iconShape as Settings['iconShape'] }), resetLabel: resetLabel('settings.iconShape') } : undefined),
   ]
 }

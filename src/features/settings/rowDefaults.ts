@@ -36,3 +36,14 @@ export function backgroundDefaults(profile: ProfileV2) {
     video: { blur: DEFAULT_MEDIA.blur, grayscale: DEFAULT_MEDIA.grayscale },
   }
 }
+
+/** The Layout rows' defaults, read from the default profile. */
+export function layoutDefaults(profile: ProfileV2) {
+  return {
+    contentWidth: profile.layout.contentWidth,
+    gap: profile.layout.gap,
+    alignment: profile.layout.align === 'center-left' ? 'left' : 'center',
+    iconSize: profile.theme.iconSize,
+    iconShape: profile.theme.iconShape,
+  }
+}

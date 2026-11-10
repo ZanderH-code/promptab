@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaults } from '../../core/model'
-import { DEFAULT_DIM, DEFAULT_GLASS, DEFAULT_GRADIENT_ANGLE, DEFAULT_MEDIA, DEFAULT_RADIUS, RANGES } from '../../core/schema/defaults'
-import { appearanceDefaults, backgroundDefaults, maxColumnsDefault } from './rowDefaults'
+import { DEFAULT_AREA_STYLE, DEFAULT_CONTENT_WIDTH, DEFAULT_DIM, DEFAULT_GLASS, DEFAULT_GRADIENT_ANGLE, DEFAULT_MEDIA, DEFAULT_RADIUS, RANGES } from '../../core/schema/defaults'
+import { appearanceDefaults, backgroundDefaults, layoutDefaults, maxColumnsDefault } from './rowDefaults'
 import { defaultProfile } from './sectionDefaults'
 import { colorsFor } from './themeApi'
 
@@ -49,5 +49,21 @@ describe('row defaults', () => {
     expect(values.image.scale).toBeLessThanOrEqual(RANGES.scale.max)
     expect(values.image.position).toBe(DEFAULT_MEDIA.position)
     expect(values.video).toEqual({ blur: RANGES.blur.min, grayscale: RANGES.grayscale.min })
+  })
+
+  it('layout rows compare against the default profile', async () => {
+    const profile = await defaultProfile('en')
+    const values = layoutDefaults(profile)
+    expect(values).toEqual({
+      contentWidth: profile.layout.contentWidth,
+      gap: profile.layout.gap,
+      alignment: profile.layout.align === 'center-left' ? 'left' : 'center',
+      iconSize: profile.theme.iconSize,
+      iconShape: profile.theme.iconShape,
+    })
+    expect(values.contentWidth).toBe(DEFAULT_CONTENT_WIDTH)
+    expect(DEFAULT_AREA_STYLE.blur).toBe(RANGES.blur.min)
+    expect(DEFAULT_AREA_STYLE.opacity).toBeGreaterThanOrEqual(0)
+    expect(DEFAULT_AREA_STYLE.opacity).toBeLessThanOrEqual(100)
   })
 })

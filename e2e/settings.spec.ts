@@ -1513,3 +1513,78 @@ test('background rows show a dot and reset to their defaults', async ({ page }) 
 
   expect(errors).toEqual([])
 })
+
+test('layout rows show a dot and reset to their defaults', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const reset = (label: string) => page.getByRole('button', { name: `Reset ${label} to its default`, exact: true })
+  const storedStyles = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.areaStyles ?? null
+  })
+
+  // The default profile marks none of the wired rows.
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  // Content width compares with the default profile; reset is one undo step.
+  const widthRow = row('Content width')
+  const width = widthRow.getByRole('spinbutton', { name: 'Content width value', exact: true })
+  await expect(width).toHaveValue('960')
+  await width.fill('1200')
+  await width.press('Enter')
+  await expect(widthRow.locator('.sd-dot')).toHaveCount(1)
+  await reset('Content width').click()
+  await expect(width).toHaveValue('960')
+  await expect(widthRow.locator('.sd-dot')).toHaveCount(0)
+  await page.keyboard.press('Control+z')
+  await expect(width).toHaveValue('1200')
+  await expect(widthRow.locator('.sd-dot')).toHaveCount(1)
+
+  // An area-style reset drops its key, then the whole area style when nothing else remains.
+  const area = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Overview' }) }).first()
+  const opacityRow = area.locator('.sd-row').filter({ has: page.getByText('Area opacity', { exact: true }) }).first()
+  const opacity = area.getByRole('spinbutton', { name: 'Area opacity value', exact: true })
+  await opacity.fill('50')
+  await opacity.press('Enter')
+  await expect(opacityRow.locator('.sd-dot')).toHaveCount(1)
+  expect(await storedStyles()).toEqual({ overview: { opacity: 50 } })
+  await area.getByRole('button', { name: 'Reset Area opacity to its default', exact: true }).click()
+  await expect(opacity).toHaveValue('100')
+  await expect(opacityRow.locator('.sd-dot')).toHaveCount(0)
+  expect(await storedStyles()).toBeNull()
+  await page.keyboard.press('Control+z')
+  await expect(opacity).toHaveValue('50')
+  await expect(opacityRow.locator('.sd-dot')).toHaveCount(1)
+
+  const topRow = area.locator('.sd-row').filter({ has: page.getByText('Top accent divider', { exact: true }) }).first()
+  const top = area.getByRole('spinbutton', { name: 'Top accent divider value', exact: true })
+  await top.fill('3')
+  await top.press('Enter')
+  await expect(topRow.locator('.sd-dot')).toHaveCount(1)
+  expect(await storedStyles()).toEqual({ overview: { opacity: 50, border: { top: 3 } } })
+  await area.getByRole('button', { name: 'Reset Top accent divider to its default', exact: true }).click()
+  await expect(top).toHaveValue('0')
+  await expect(topRow.locator('.sd-dot')).toHaveCount(0)
+  expect(await storedStyles()).toEqual({ overview: { opacity: 50 } })
+
+  // Restoring the section clears every mark.
+  await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+  await expect(width).toHaveValue('960')
+  await expect(opacity).toHaveValue('100')
+  expect(await storedStyles()).toBeNull()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})

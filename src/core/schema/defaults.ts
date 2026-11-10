@@ -32,6 +32,8 @@ export const DEFAULT_DIM = 35
 export const DEFAULT_MEDIA = { blur: RANGES.blur.min, grayscale: RANGES.grayscale.min, scale: 1, vignette: RANGES.vignette.min, position: 'center' } as const
 /** Angle a gradient starts with when the background type switches to gradient. */
 export const DEFAULT_GRADIENT_ANGLE = 135
+/** The implicit look of a layout area before any area style is stored. */
+export const DEFAULT_AREA_STYLE = { background: 'surface', opacity: 100, blur: RANGES.blur.min, padding: 0, bleed: false, align: 'center-center', border: 0 } as const
 
 export const DARK_COLORS = { bg: '#102932', text: '#eeeae5', accent: '#90d5cd' } as const
 export const LIGHT_COLORS = { bg: '#eeeae4', text: '#302d29' } as const
