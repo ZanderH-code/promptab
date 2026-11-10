@@ -22,8 +22,9 @@
  * Files written per scenario: `frames/*.jpg`, `frames.json`, `data.json`.
  * The console prints one row per scenario:
  *   scenario, first captured frame colour, first frame that already matches the scheme background,
- *   FP, FCP, main.loading window, content frame, onboarding frame, max CLS, wallpaper frame, and whether
- *   the wallpaper appeared after the content.
+ *   FP, FCP, main.loading window, content frame, onboarding frame, max CLS, first wallpaper frame
+ *   (preview or full), first full-resolution wallpaper frame, and whether the wallpaper appeared
+ *   after the content.
  *
  * Profile directories live under `<out>/profiles/<scenario>` and are recreated for every run,
  * so repeated runs start from the same state. Only Chromium is supported (extensions need a
@@ -81,6 +82,7 @@ function instrument() {
     const html = document.documentElement
     const body = document.body
     const wallpaper = document.querySelector('.wallpaper-image')
+    const wallpaperImage = wallpaper ? String(css(wallpaper, 'backgroundImage')) : ''
     const tile = document.querySelector('.shortcut')
     const clock = document.querySelector('.mnt-clock')
     const search = document.querySelector('#search, .search-input, input[type=search]')
@@ -95,7 +97,8 @@ function instrument() {
       shortcuts: document.querySelectorAll('.shortcut').length,
       onboarding: !!document.querySelector('.onboarding-card'),
       wall: !!wallpaper,
-      wallImg: wallpaper ? String(css(wallpaper, 'backgroundImage')).slice(0, 40) : '',
+      wallImg: wallpaperImage.slice(0, 40),
+      wallKind: wallpaperImage.includes('data:') ? 'preview' : wallpaperImage.includes('blob:') ? 'full' : '',
       wallBox: wallpaper ? `${Math.round(wallpaper.getBoundingClientRect().width)}x${Math.round(wallpaper.getBoundingClientRect().height)}` : '',
       clock: rect(clock),
       search: rect(search),
@@ -162,7 +165,7 @@ async function prepare(scenario, userDataDir) {
     if (scenario === 'wallpaper') await uploadWallpaper(page)
     // A warm scenario is only meaningful when F2a's snapshot exists before the profile is closed.
     try {
-      await page.waitForFunction(() => !!localStorage.getItem('mnt:paint-cache:v1') && !!document.querySelector('.shortcut'), null, { timeout: 20000 })
+      await page.waitForFunction(scenario => !!localStorage.getItem('mnt:paint-cache:v1') && !!document.querySelector('.shortcut') && (scenario !== 'wallpaper' || !!localStorage.getItem('mnt:wallpaper-preview:v1')), scenario, { timeout: 20000 })
     } catch {
       console.warn(`${scenario}: paint cache was not written before the profile closed; the warm scenario may be a first migration`)
     }
@@ -251,6 +254,7 @@ async function measure(scenario, userDataDir, outDir) {
     const content = samples.find(sample => sample.shortcuts > 0)
     const onboarding = samples.find(sample => sample.onboarding)
     const wallpaper = samples.find(sample => sample.wallImg.startsWith('url('))
+    const fullWallpaper = samples.find(sample => sample.wallKind === 'full')
     const cls = result.flash.shifts.reduce((sum, shift) => sum + shift.value, 0)
     const summary = {
       scenario,
@@ -268,6 +272,7 @@ async function measure(scenario, userDataDir, outDir) {
       onboardingFrame: onboarding?.t ?? null,
       cls,
       wallpaperFrame: wallpaper?.t ?? null,
+      fullWallpaperFrame: fullWallpaper?.t ?? null,
       wallpaperAfterContent: !!(content && wallpaper && wallpaper.t > content.t),
       schemeBackground: schemeValue || schemeSample?.htmlBg || '',
       shifts: result.flash.shifts,
@@ -300,7 +305,7 @@ for (const scenario of names) {
   const summary = await measure(scenario, userDataDir, outDir)
   rows.push(summary)
   const loading = summary.loading ? `${fmt(summary.loading.start)}→${fmt(summary.loading.end)} (${fmt(summary.loading.duration)})` : 'none'
-  console.log(`${pad(scenario, 10)} first=${pad(summary.firstFrame.colour, 18)} styled=${pad(fmt(summary.firstStyledFrame), 4)} FP=${pad(fmt(summary.firstPaint), 5)} FCP=${pad(fmt(summary.firstContentfulPaint), 5)} loading=${pad(loading, 17)} content=${pad(fmt(summary.contentFrame), 5)} onboarding=${pad(fmt(summary.onboardingFrame), 5)} CLS=${pad(summary.cls.toFixed(4), 7)} wallpaper=${pad(fmt(summary.wallpaperFrame), 5)} wall>content=${summary.wallpaperAfterContent ? 'yes' : 'no'}`)
+  console.log(`${pad(scenario, 10)} first=${pad(summary.firstFrame.colour, 18)} styled=${pad(fmt(summary.firstStyledFrame), 4)} FP=${pad(fmt(summary.firstPaint), 5)} FCP=${pad(fmt(summary.firstContentfulPaint), 5)} loading=${pad(loading, 17)} content=${pad(fmt(summary.contentFrame), 5)} onboarding=${pad(fmt(summary.onboardingFrame), 5)} CLS=${pad(summary.cls.toFixed(4), 7)} wallpaper=${pad(fmt(summary.wallpaperFrame), 5)} fullwall=${pad(fmt(summary.fullWallpaperFrame), 5)} wall>content=${summary.wallpaperAfterContent ? 'yes' : 'no'}`)
 }
 await writeFile(join(outRoot, 'summary.json'), JSON.stringify(rows, null, 1))
 console.log(`wrote ${rows.length} scenario${rows.length === 1 ? '' : 's'} to ${outRoot}`)
