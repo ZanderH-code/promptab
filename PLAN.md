@@ -1,8 +1,12 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.16.0
+## Release status — 0.16.1
 
-The settings UX overhaul (batch 3) is done in 0.16.0. Next: the 8 Tabler icon tickets. Batch 3 commits on `feat/settings-ux-3`:
+The new-tab first-paint (flash) work is done in 0.16.1. Seven commits on `fix/first-paint`: measurement harness `caf701f`, profile paint cache `3512861`, starter-site lazy load `c2fcc55`, static onboarding card `2a7cfdf`, cached first render `29eb01b`, wallpaper preview `ca4958f`, recovery screen `f38e1be`.
+
+Publishing 0.16.1 is held: the live Edge store is 0.13.1 and 0.13.2 is still in certification. Merge 0.16.1 now and fold it into the next store submission after 0.13.2 clears. The 0.16.0 settings UX overhaul is included in this release.
+
+Batch 3 commits on `feat/settings-ux-3`:
 
 - 0.16.0 settings UX batch 3: collapsible widget cards `618d96f`, empty disclosure fix `c94fee1`, changed-row marks and resets `0952c6b`, background row marks `4c177b8`, layout row marks `2fc175c`, shortcut/search/widget row marks `55bdd6b`, accessible reset dialog `dd6c01d`, dialog focus return `d6d0e28`, section starts at top `3c2985f`, row labels focus controls `63d32b9`, AI steps fold `9f8b3b2`.
 

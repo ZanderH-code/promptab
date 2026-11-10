@@ -4,6 +4,20 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.16.1]
+
+### Fixed
+
+- Returning profiles paint from the last committed snapshot instead of showing the loading screen while storage opens.
+- The onboarding card renders with the first grid, removing the 154 px page re-centre (CLS 0.0688 → 0.0000).
+- Image wallpapers paint a cached preview with the first content frame, then replace it with the full asset without a layout shift.
+
+### Changed
+
+- Starter sites load only for the first-run migration, reclaiming about 5.6 KB of startup JavaScript.
+- Startup JavaScript is 475,816 bytes raw / 151,265 gzip, under the unchanged 480,000-byte budget.
+- No new permissions are requested.
+
 ## [0.16.0]
 
 ### Added

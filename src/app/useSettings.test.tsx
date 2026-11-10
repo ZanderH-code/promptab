@@ -6,7 +6,7 @@ import { migrateV1 } from '../core/migrate/v1'
 const mocks = vi.hoisted(() => ({ bootstrap: vi.fn(), read: vi.fn(), write: vi.fn() }))
 vi.mock('../storage/bootstrap', () => ({ bootstrap: mocks.bootstrap }))
 vi.mock('../storage/profiles', () => ({ createLocalStorageBackend: vi.fn(), createChromeStorageBackend: vi.fn(), createProfileStorage: () => ({ read: mocks.read, write: mocks.write }), PROFILE_INDEX_KEY: 'profiles:v2:index' }))
-import { useSettings } from './useSettings'
+import { projectPaint, useSettings } from './useSettings'
 
 afterEach(() => { cleanup(); vi.clearAllMocks() })
 
@@ -23,6 +23,15 @@ async function setup(split = false) {
 }
 
 describe('v2 settings integration', () => {
+  it('projects cached image shortcuts without the asset id or a data URL', async () => {
+    const profile = await migrateV1(defaults, { id: () => 'main', now: () => '2026-10-31T00:00:00Z', add: vi.fn() })
+    profile.bookmarks.groups = [{ id: 'g', name: 'G', collapsed: false, items: [{ id: 'x', name: 'X', url: 'https://example.com', color: '#123456', icon: 'X', image: `mnt-asset:${'a'.repeat(64)}` }] }]
+    const settings = projectPaint(profile)
+    expect(settings.shortcuts).toHaveLength(1)
+    expect(settings.shortcuts[0]).not.toHaveProperty('image')
+    expect(settings.shortcuts[0].url).toBe('https://example.com')
+  })
+
   it('adds a bookmark to its chosen group in one undoable update', async () => {
     const hook = await setup()
     act(() => hook.result.current.run((store, id) => store.getState().updateProfile(id, p => ({ ...p, bookmarks: { groups: [...p.bookmarks.groups, { id: 'other', name: 'Other', collapsed: false, items: [] }] } }))))

@@ -5,6 +5,7 @@ import { MAX_WALLPAPER_VIDEO_BYTES, validateVideo } from '../core/video'
 import type { ProfileV2 } from '../core/schema/profile'
 import { toMessageRef, type MessageRef } from '../i18n'
 import { assets, type AppProfileStore } from './useSettings'
+import { readWallpaperPreview, writeWallpaperPreview } from './wallpaperPreview'
 
 const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
 
@@ -37,7 +38,8 @@ async function videoPoster(file: File): Promise<Blob> {
 }
 
 export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (error: MessageRef) => void) {
-  const [url, setUrl] = useState('')
+  const initialAsset = profile?.background.type === 'image' ? profile.background.image?.asset : undefined
+  const [url, setUrl] = useState(() => initialAsset ? readWallpaperPreview(initialAsset) ?? '' : '')
   const [videoUrl, setVideoUrl] = useState('')
   const [posterUrl, setPosterUrl] = useState('')
   const sequencePromise = useRef<Promise<number> | null>(null)
@@ -75,7 +77,8 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
 
   useEffect(() => {
     let alive = true, imageObjectUrl = '', videoObjectUrl = '', posterObjectUrl = ''
-    setUrl(''); setVideoUrl(''); setPosterUrl('')
+    setUrl(imageReference ? readWallpaperPreview(imageReference) ?? '' : '')
+    setVideoUrl(''); setPosterUrl('')
     const timer = setTimeout(() => {
       void Promise.all([
         imageReference ? assets.get(imageReference) : undefined,
@@ -86,7 +89,10 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
         if (videoReference && !video) throw new Error(`Missing wallpaper video: ${videoReference}`)
         if (posterReference && !poster) throw new Error(`Missing wallpaper poster: ${posterReference}`)
         if (!alive) return
-        if (image) { imageObjectUrl = URL.createObjectURL(image); setUrl(imageObjectUrl) }
+        if (image) {
+          imageObjectUrl = URL.createObjectURL(image); setUrl(imageObjectUrl)
+          if (imageReference) void writeWallpaperPreview(imageReference, image)
+        }
         if (video) { videoObjectUrl = URL.createObjectURL(video); setVideoUrl(videoObjectUrl) }
         if (poster) { posterObjectUrl = URL.createObjectURL(poster); setPosterUrl(posterObjectUrl) }
       }).catch(error => { console.error(error); if (alive) onError(toMessageRef(error, 'error.readWallpaper')) })

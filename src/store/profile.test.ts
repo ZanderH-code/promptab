@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createProfileStore } from './profile'
+import { createProfileStore, type Committed } from './profile'
 import type { ProfileV2 } from '../core/schema/profile'
 
 const profile = (id = 'a'): ProfileV2 => ({
@@ -10,7 +10,7 @@ const profile = (id = 'a'): ProfileV2 => ({
   search: { engines: [{ id: 'g', name: 'Google', template: 'https://google.com/?q={query}' }], defaultEngineId: 'g' }, custom: { css: '', cssEnabled: false, variables: [], values: {} },
 })
 
-function setup(options: { onExternalRefresh?: () => void } = {}) {
+function setup(options: { onExternalRefresh?: () => void; onCommit?: (state: Committed, revision: number | null) => void } = {}) {
   let saved: any = null
   let fail = false
   let id = 0
@@ -34,7 +34,7 @@ function setup(options: { onExternalRefresh?: () => void } = {}) {
     saved = { revision: (current?.revision ?? 0) + 1, profiles: { activeProfileId, profiles }, history: current?.history ?? { profiles: {} } }
     writes.push(structuredClone(saved))
   }
-  return { persistence, writes, external, fail: (value: boolean) => { fail = value }, store: createProfileStore({ persistence, initialProfile: profile(), now: () => 1000, createId: () => `id${++id}`, onExternalRefresh: options.onExternalRefresh }) }
+  return { persistence, writes, external, fail: (value: boolean) => { fail = value }, store: createProfileStore({ persistence, initialProfile: profile(), now: () => 1000, createId: () => `id${++id}`, onExternalRefresh: options.onExternalRefresh, onCommit: options.onCommit }) }
 }
 
 describe('profile store', () => {
@@ -246,5 +246,42 @@ describe('profile store', () => {
     await expect(store.getState().importCollection({ activeProfileId: 'a', profiles: [profile('a'), profile('a')] })).rejects.toThrow()
     expect(Object.keys(store.getState().profiles)).toEqual(['a'])
     expect(store.getState().revision).toBeNull()
+  })
+
+  it('reports every persisted change to the paint cache with the stored revision', async () => {
+    const calls: Array<{ id: string; profile: ProfileV2; revision: number | null }> = []
+    const { store, external, writes } = setup({ onCommit: (state, revision) => calls.push({ id: state.activeProfileId, profile: state.profiles[state.activeProfileId], revision }) })
+    await store.getState().initialize()
+    const expectFresh = () => {
+      const call = calls.at(-1)!
+      const stored = writes.at(-1)
+      const active = stored.profiles.activeProfileId
+      expect(call.id).toBe(active)
+      expect(call.profile.meta.id).toBe(active)
+      expect(call.revision).toBe(stored.revision)
+      expect(call.profile.meta.updatedAt).toBe(stored.profiles.profiles[active].meta.updatedAt)
+    }
+    await store.getState().updateProfile('a', p => ({ ...p, custom: { ...p.custom, css: 'one' } }))
+    expectFresh()
+    await store.getState().undo('a')
+    expectFresh()
+    await store.getState().createProfile(profile('b'))
+    await store.getState().switchProfile('b')
+    expect(calls.at(-1)!.id).toBe('b')
+    expectFresh()
+    await store.getState().importProfile('b', { ...profile('b'), meta: { ...profile('b').meta, name: 'imported' } })
+    expectFresh()
+    const count = calls.length
+    store.getState().setDraft('b', profile('b'))
+    store.getState().setPreview('b', profile('b'))
+    store.getState().clearDraft()
+    store.getState().clearPreview()
+    expect(calls).toHaveLength(count)
+    await store.getState().deleteProfile('b')
+    expect(calls.at(-1)!.id).toBe('a')
+    expectFresh()
+    external(value => ({ ...value, meta: { ...value.meta, name: 'Other tab' } }))
+    await store.getState().refresh()
+    expectFresh()
   })
 })
