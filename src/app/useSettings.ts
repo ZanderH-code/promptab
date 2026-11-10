@@ -201,7 +201,7 @@ export function useSettings() {
         document.removeEventListener('visibilitychange', onVisibility)
         onChanged?.removeListener(changed)
       }
-    }).catch(e => { if (alive) setError(toMessageRef(e, 'error.loadSettings')) })
+    }).catch(e => { if (alive) { setProfile(null); setSettings(null); setError(toMessageRef(e, 'error.loadSettings')) } })
     return () => { alive = false; unsubscribe(); removeExternal(); clearTimeout(timer.current) }
   }, [])
   const [scheme, setScheme] = useState(0)
