@@ -1,8 +1,12 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.15.0
+## Release status — 0.16.0
 
-The settings UX overhaul (batch 2) is done in 0.15.0. Next is settings UX batch 3, then the UI icon pack (Tabler). Batch 2 commits on `feat/settings-ux-2`:
+The settings UX overhaul (batch 3) is done in 0.16.0. Next: the 8 Tabler icon tickets. Batch 3 commits on `feat/settings-ux-3`:
+
+- 0.16.0 settings UX batch 3: collapsible widget cards `618d96f`, empty disclosure fix `c94fee1`, changed-row marks and resets `0952c6b`, background row marks `4c177b8`, layout row marks `2fc175c`, shortcut/search/widget row marks `55bdd6b`, accessible reset dialog `dd6c01d`, dialog focus return `d6d0e28`, section starts at top `3c2985f`, row labels focus controls `63d32b9`, AI steps fold `9f8b3b2`.
+
+Batch 2 commits on `feat/settings-ux-2`:
 
 - 0.15.0 settings UX batch 2: scrim blocks clicks `abb117b`, scrim dismisses `ca52439`, sticky section header `6da68a7`, grid preview `1fec394`, grid preview accessible name `2861aaa`, rename from preview `4acbaf6`, rename hint `65936dc`, advanced DSL `86a122e`, search opens advanced `2e68df1`, gradient preview `755c55e`, focal preview `c56c12d`, styled upload picker `7d38fa9`, control hints `40447a2`, hint descriptions `ee00e4a`.
 
