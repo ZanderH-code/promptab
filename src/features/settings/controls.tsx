@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { RotateCcw } from 'lucide-react'
 import type { Translate } from '../../i18n'
+import { Select } from './rows/shared'
 import { Highlighted } from './searchHighlight'
 
 const HEX = /^#[\da-f]{6}$/i
@@ -21,16 +22,36 @@ export function rovingIndex(key: string, index: number, count: number, columns =
 
 export type RowState = { changed?: boolean; onReset?: () => void; resetLabel?: string }
 
+/** Gives the first text field or select in a row the id its label points at. */
+function associate(children: ReactNode, id: string): { node: ReactNode; linked: boolean } {
+  let linked = false
+  const visit = (node: ReactNode): ReactNode => {
+    if (linked) return node
+    if (Array.isArray(node)) return node.map(visit)
+    if (!isValidElement<{ id?: string }>(node)) return node
+    if (node.type === 'input' || node.type === 'textarea' || node.type === Select) {
+      linked = true
+      return cloneElement(node, { id })
+    }
+    return node
+  }
+  const node = visit(children)
+  return { node, linked }
+}
+
 export function Row({ label, hint, children, htmlFor, stack = false, changed = false, onReset, resetLabel }: { label: string; hint?: string; children: ReactNode; htmlFor?: string; stack?: boolean } & RowState) {
+  const generated = useId()
+  const controlId = htmlFor ?? generated
+  const field = htmlFor ? { node: children, linked: true } : associate(children, generated)
   return (
     <div className={'sd-row' + (stack ? ' sd-stack' : '')}>
       <div className="sd-label">
-        {htmlFor ? <label htmlFor={htmlFor}><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</label> : <span><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</span>}
+        {field.linked ? <label htmlFor={controlId}><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</label> : <span><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</span>}
         {hint && <small><Highlighted text={hint} /></small>}
       </div>
       <div className="sd-control">
         {changed && onReset && <button type="button" className="sd-row-reset" aria-label={resetLabel} onClick={onReset}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" /></button>}
-        {children}
+        {field.node}
       </div>
     </div>
   )

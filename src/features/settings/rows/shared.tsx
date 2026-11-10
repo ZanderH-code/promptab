@@ -52,6 +52,6 @@ export type Ctx = {
 
 export const touch = (profile: ProfileV2): ProfileV2 => ({ ...profile, meta: { ...profile.meta, updatedAt: new Date().toISOString() } })
 
-export function Select({ ctx, label, value, options, onChange, wide }: { ctx: Ctx; label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; wide?: boolean }) {
-  return <Dropdown theme={ctx.mode} label={label} value={value} options={options} onChange={onChange} fullWidth={wide} />
+export function Select({ ctx, label, value, options, onChange, wide, id }: { ctx: Ctx; label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; wide?: boolean; id?: string }) {
+  return <Dropdown theme={ctx.mode} label={label} value={value} options={options} onChange={onChange} fullWidth={wide} id={id} />
 }

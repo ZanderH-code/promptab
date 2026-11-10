@@ -9,12 +9,13 @@ type Props = {
   onChange: (value: string) => void
   fullWidth?: boolean
   theme: 'dark' | 'light'
+  id?: string
 }
 
-export function Dropdown({ label, value, options, onChange, fullWidth = false, theme }: Props) {
+export function Dropdown({ label, value, options, onChange, fullWidth = false, theme, id }: Props) {
   return (
     <Select.Root value={value} onValueChange={onChange}>
-      <Select.Trigger className={'dropdown-trigger' + (fullWidth ? ' dropdown-wide' : '')} aria-label={label}>
+      <Select.Trigger id={id} className={'dropdown-trigger' + (fullWidth ? ' dropdown-wide' : '')} aria-label={label}>
         <Select.Value />
         <Select.Icon className="dropdown-chevron" aria-hidden>
           <ChevronDown size={16} strokeWidth={1.5} />

@@ -1874,3 +1874,53 @@ test('a newly selected settings section starts at the top', async ({ page }) => 
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
 })
+
+test('settings row labels focus or open their controls', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const label = (name: string) => row(name).locator('label').first()
+
+  // A text input receives focus when its row label is clicked.
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await page.locator('[data-widget-card="widget-clock"] summary').click()
+  const separator = page.getByRole('textbox', { name: 'Time separator', exact: true })
+  await expect(separator).toBeVisible()
+  await label('Time separator').click()
+  await expect(separator).toBeFocused()
+
+  // Dropdown triggers open from their row label, close on Esc, and keep the stored value.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const layout = page.getByRole('combobox', { name: 'Layout', exact: true })
+  const layoutValue = await layout.textContent()
+  await label('Layout').click()
+  await expect(page.getByRole('listbox')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('listbox')).toHaveCount(0)
+  await expect(layout).toHaveText(layoutValue ?? '')
+
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  for (const name of ['Website style', 'Bookmark source']) {
+    const trigger = page.getByRole('combobox', { name, exact: true })
+    await expect(trigger).toHaveCount(1)
+    const value = await trigger.textContent()
+    await label(name).click()
+    await expect(page.getByRole('listbox')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('listbox')).toHaveCount(0)
+    await expect(trigger).toHaveText(value ?? '')
+  }
+
+  // Every id inside the drawer is unique.
+  const ids = await page.locator('.drawer.sd [id]').evaluateAll(nodes => nodes.map(node => node.id))
+  expect(new Set(ids).size).toBe(ids.length)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})
