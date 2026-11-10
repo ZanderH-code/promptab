@@ -22,8 +22,8 @@
  * Files written per scenario: `frames/*.jpg`, `frames.json`, `data.json`.
  * The console prints one row per scenario:
  *   scenario, first captured frame colour, first frame that already matches the scheme background,
- *   FP, FCP, main.loading window, content frame, max CLS, wallpaper frame, and whether the wallpaper
- *   appeared after the content.
+ *   FP, FCP, main.loading window, content frame, onboarding frame, max CLS, wallpaper frame, and whether
+ *   the wallpaper appeared after the content.
  *
  * Profile directories live under `<out>/profiles/<scenario>` and are recreated for every run,
  * so repeated runs start from the same state. Only Chromium is supported (extensions need a
@@ -93,6 +93,7 @@ function instrument() {
       bodyBg: css(body, 'backgroundColor'),
       loading: !!document.querySelector('main.loading'),
       shortcuts: document.querySelectorAll('.shortcut').length,
+      onboarding: !!document.querySelector('.onboarding-card'),
       wall: !!wallpaper,
       wallImg: wallpaper ? String(css(wallpaper, 'backgroundImage')).slice(0, 40) : '',
       wallBox: wallpaper ? `${Math.round(wallpaper.getBoundingClientRect().width)}x${Math.round(wallpaper.getBoundingClientRect().height)}` : '',
@@ -242,6 +243,7 @@ async function measure(scenario, userDataDir, outDir) {
     const loadingStart = samples.find(sample => sample.loading)
     const loadingEnd = loadingStart ? samples.slice(samples.indexOf(loadingStart) + 1).find(sample => !sample.loading) : undefined
     const content = samples.find(sample => sample.shortcuts > 0)
+    const onboarding = samples.find(sample => sample.onboarding)
     const wallpaper = samples.find(sample => sample.wallImg.startsWith('url('))
     const cls = result.flash.shifts.reduce((sum, shift) => sum + shift.value, 0)
     const summary = {
@@ -257,6 +259,7 @@ async function measure(scenario, userDataDir, outDir) {
       firstContentfulPaint,
       loading: loadingStart ? { start: loadingStart.t, end: loadingEnd?.t ?? null, duration: loadingEnd ? loadingEnd.t - loadingStart.t : null } : null,
       contentFrame: content?.t ?? null,
+      onboardingFrame: onboarding?.t ?? null,
       cls,
       wallpaperFrame: wallpaper?.t ?? null,
       wallpaperAfterContent: !!(content && wallpaper && wallpaper.t > content.t),
@@ -291,7 +294,7 @@ for (const scenario of names) {
   const summary = await measure(scenario, userDataDir, outDir)
   rows.push(summary)
   const loading = summary.loading ? `${fmt(summary.loading.start)}→${fmt(summary.loading.end)} (${fmt(summary.loading.duration)})` : 'none'
-  console.log(`${pad(scenario, 10)} first=${pad(summary.firstFrame.colour, 18)} styled=${pad(fmt(summary.firstStyledFrame), 4)} FP=${pad(fmt(summary.firstPaint), 5)} FCP=${pad(fmt(summary.firstContentfulPaint), 5)} loading=${pad(loading, 17)} content=${pad(fmt(summary.contentFrame), 5)} CLS=${pad(summary.cls.toFixed(4), 7)} wallpaper=${pad(fmt(summary.wallpaperFrame), 5)} wall>content=${summary.wallpaperAfterContent ? 'yes' : 'no'}`)
+  console.log(`${pad(scenario, 10)} first=${pad(summary.firstFrame.colour, 18)} styled=${pad(fmt(summary.firstStyledFrame), 4)} FP=${pad(fmt(summary.firstPaint), 5)} FCP=${pad(fmt(summary.firstContentfulPaint), 5)} loading=${pad(loading, 17)} content=${pad(fmt(summary.contentFrame), 5)} onboarding=${pad(fmt(summary.onboardingFrame), 5)} CLS=${pad(summary.cls.toFixed(4), 7)} wallpaper=${pad(fmt(summary.wallpaperFrame), 5)} wall>content=${summary.wallpaperAfterContent ? 'yes' : 'no'}`)
 }
 await writeFile(join(outRoot, 'summary.json'), JSON.stringify(rows, null, 1))
 console.log(`wrote ${rows.length} scenario${rows.length === 1 ? '' : 's'} to ${outRoot}`)

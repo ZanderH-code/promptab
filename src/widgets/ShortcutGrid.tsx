@@ -4,7 +4,8 @@ import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
 import { GroupMenuTrigger, ShortcutLink, type ContextMenuEvent } from './ShortcutGridContent'
-import { BookmarkFolder, OnboardingCard } from './lazyWidgets'
+import { BookmarkFolder } from './lazyWidgets'
+import { OnboardingCard } from './OnboardingCard'
 
 export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
@@ -54,7 +55,7 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
     onDragIntent(mode)
   })
   return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined} onPointerOver={intent(1)} onPointerDown={intent(4)} onTouchStart={intent(2)} onTouchEnd={intent(3)} onTouchCancel={intent(3)} onFocus={intent(0)}>
-    {onboarding && <Suspense fallback={null}><OnboardingCard t={t} onAction={onOnboardingAction} /></Suspense>}
+    {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
     {editing && <div className="bookmark-edit-tools"><button type="button" disabled>{t('groups.add')}</button></div>}
     {(folderMode ? visibleGroups.slice(0, 1) : visibleGroups).map(group => <div key={group.id} data-drop-group={group.id}>
       {(showGroupTitles || editing) && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
