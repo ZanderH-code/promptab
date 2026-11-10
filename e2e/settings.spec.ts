@@ -1084,10 +1084,12 @@ test('the focal point preview shares the stored position', async ({ page }) => {
   }).toBe(true)
 
   // Keyboard navigation stays on the existing controls; the preview never enters the tab order.
+  // The changed focal rows now own reset buttons, so tab past those and the value fields.
   await page.getByRole('slider', { name: 'Horizontal position' }).focus()
-  await page.keyboard.press('Tab')
-  expect(await page.evaluate(() => document.activeElement?.classList.contains('sd-focal-preview'))).toBe(false)
-  await page.keyboard.press('Tab')
+  for (let step = 0; step < 3; step++) {
+    await page.keyboard.press('Tab')
+    expect(await page.evaluate(() => document.activeElement?.classList.contains('sd-focal-preview'))).toBe(false)
+  }
   await expect(page.getByRole('slider', { name: 'Vertical position' })).toBeFocused()
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
@@ -1412,6 +1414,99 @@ test('changed rows show a dot and reset to their default', async ({ page }) => {
   expect(await page.locator('.sd-dot').count()).toBeGreaterThan(3)
   await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
   await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('background rows show a dot and reset to their defaults', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const reset = (label: string) => page.getByRole('button', { name: `Reset ${label} to its default`, exact: true })
+
+  // Nothing is marked on the default profile.
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  // Overlay opacity compares with the default profile; reset is a single undo step.
+  const overlay = row('Overlay opacity')
+  const overlayValue = overlay.getByRole('spinbutton', { name: 'Overlay opacity value', exact: true })
+  await overlayValue.fill('60')
+  await overlayValue.press('Enter')
+  await expect(overlay.locator('.sd-dot')).toHaveCount(1)
+  await reset('Overlay opacity').click()
+  await expect(overlayValue).toHaveValue('35')
+  await expect(overlay.locator('.sd-dot')).toHaveCount(0)
+  await page.keyboard.press('Control+z')
+  await expect(overlayValue).toHaveValue('60')
+  await expect(overlay.locator('.sd-dot')).toHaveCount(1)
+
+  // A fresh image starts at the schema defaults, and every adjustment resets on its own while the image stays.
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+  for (const [label, original] of [['Blur', '0'], ['Grayscale', '0'], ['Image zoom', '1'], ['Vignette', '0']] as const) {
+    const target = row(label)
+    await expect(target.locator('.sd-dot'), label).toHaveCount(0)
+    await expect(target.getByRole('spinbutton', { name: `${label} value`, exact: true }), label).toHaveValue(original)
+  }
+  for (const [label, changed, original] of [['Blur', '8', '0'], ['Grayscale', '40', '0'], ['Image zoom', '1.5', '1'], ['Vignette', '20', '0']] as const) {
+    const target = row(label)
+    const value = target.getByRole('spinbutton', { name: `${label} value`, exact: true })
+    await value.fill(changed)
+    await value.press('Enter')
+    await expect(target.locator('.sd-dot'), label).toHaveCount(1)
+    await reset(label).click()
+    await expect(value, label).toHaveValue(original)
+    await expect(target.locator('.sd-dot'), label).toHaveCount(0)
+  }
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+  await expect(page.getByText('upscaled-32-to-128.png', { exact: true })).toBeVisible()
+
+  // Focal position marks the named row and each axis separately.
+  const focal = row('Focal point')
+  await page.getByRole('radio', { name: 'Top left', exact: true }).click()
+  await expect(focal.locator('.sd-dot')).toHaveCount(1)
+  const horizontal = row('Horizontal position')
+  await expect(horizontal.locator('.sd-dot')).toHaveCount(1)
+  await reset('Focal point').click()
+  await expect(page.getByRole('radio', { name: 'Center', exact: true })).toHaveAttribute('aria-checked', 'true')
+  await expect(focal.locator('.sd-dot')).toHaveCount(0)
+  await expect(horizontal.locator('.sd-dot')).toHaveCount(0)
+  const x = horizontal.getByRole('spinbutton', { name: 'Horizontal position value', exact: true })
+  await x.fill('25')
+  await x.press('Enter')
+  await expect(horizontal.locator('.sd-dot')).toHaveCount(1)
+  await expect(row('Vertical position').locator('.sd-dot')).toHaveCount(0)
+  await reset('Horizontal position').click()
+  await expect(x).toHaveValue('50')
+
+  // The gradient angle has a schema default; stops do not, so they are never marked.
+  await page.getByRole('radio', { name: 'Gradient', exact: true }).click()
+  const angle = row('Angle')
+  const angleValue = angle.getByRole('spinbutton', { name: 'Angle value', exact: true })
+  await expect(angle.locator('.sd-dot')).toHaveCount(0)
+  await expect(angleValue).toHaveValue('135')
+  await angleValue.fill('90')
+  await angleValue.press('Enter')
+  await expect(angle.locator('.sd-dot')).toHaveCount(1)
+  await reset('Angle').click()
+  await expect(angleValue).toHaveValue('135')
+  await expect(angle.locator('.sd-dot')).toHaveCount(0)
+  const stop = row('Stop 1')
+  const hex = stop.getByRole('textbox', { name: 'Stop 1 hex value', exact: true })
+  await hex.fill('#ff0000')
+  await hex.press('Enter')
+  await expect(stop.locator('.sd-dot')).toHaveCount(0)
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])

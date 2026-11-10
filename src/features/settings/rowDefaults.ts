@@ -1,3 +1,4 @@
+import { DEFAULT_GRADIENT_ANGLE, DEFAULT_MEDIA } from '../../core/schema/defaults'
 import type { ProfileV2 } from '../../core/schema/profile'
 import { colorsFor, type ThemeMode } from './themeApi'
 
@@ -24,4 +25,14 @@ export function appearanceDefaults(profile: ProfileV2, mode: ThemeMode) {
 export function maxColumnsDefault(profile: ProfileV2): number | undefined {
   const widget = profile.widgets.find(item => item.type === 'bookmarks')
   return widget?.type === 'bookmarks' ? widget.props.maxColumns : undefined
+}
+
+/** The Background rows' defaults: the overlay from the default profile, media from the schema's neutral values. */
+export function backgroundDefaults(profile: ProfileV2) {
+  return {
+    dim: profile.background.dim,
+    gradientAngle: DEFAULT_GRADIENT_ANGLE,
+    image: DEFAULT_MEDIA,
+    video: { blur: DEFAULT_MEDIA.blur, grayscale: DEFAULT_MEDIA.grayscale },
+  }
 }

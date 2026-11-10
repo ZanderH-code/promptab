@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaults } from '../../core/model'
-import { DEFAULT_GLASS, DEFAULT_RADIUS, RANGES } from '../../core/schema/defaults'
-import { appearanceDefaults, maxColumnsDefault } from './rowDefaults'
+import { DEFAULT_DIM, DEFAULT_GLASS, DEFAULT_GRADIENT_ANGLE, DEFAULT_MEDIA, DEFAULT_RADIUS, RANGES } from '../../core/schema/defaults'
+import { appearanceDefaults, backgroundDefaults, maxColumnsDefault } from './rowDefaults'
 import { defaultProfile } from './sectionDefaults'
 import { colorsFor } from './themeApi'
 
@@ -33,5 +33,21 @@ describe('row defaults', () => {
     const profile = await defaultProfile('en')
     expect(maxColumnsDefault(profile)).toBe(defaults.columns)
     expect(maxColumnsDefault(profile)).toBe(6)
+  })
+
+  it('background rows compare against the default profile and the schema media defaults', async () => {
+    const profile = await defaultProfile('en')
+    const values = backgroundDefaults(profile)
+    expect(values.dim).toBe(profile.background.dim)
+    expect(values.dim).toBe(DEFAULT_DIM)
+    expect(values.gradientAngle).toBe(DEFAULT_GRADIENT_ANGLE)
+    expect(values.image.blur).toBe(RANGES.blur.min)
+    expect(values.image.grayscale).toBe(RANGES.grayscale.min)
+    expect(values.image.vignette).toBe(RANGES.vignette.min)
+    expect(values.image.scale).toBe(DEFAULT_MEDIA.scale)
+    expect(values.image.scale).toBeGreaterThanOrEqual(RANGES.scale.min)
+    expect(values.image.scale).toBeLessThanOrEqual(RANGES.scale.max)
+    expect(values.image.position).toBe(DEFAULT_MEDIA.position)
+    expect(values.video).toEqual({ blur: RANGES.blur.min, grayscale: RANGES.grayscale.min })
   })
 })
