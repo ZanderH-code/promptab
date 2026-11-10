@@ -70,6 +70,16 @@ export async function openTab(page: Page, tab: keyof typeof TAB_LABELS) {
   const name = TAB_LABELS[tab][language === 'en' ? 1 : 0]
   await page.getByRole('tab', { name, exact: true }).click()
   await expect(page.getByRole('tab', { name, exact: true })).toHaveAttribute('aria-selected', 'true')
+  // The AI tab starts with its reply step folded; tests that paste a reply open it like a person would.
+  if (tab === 'ai') {
+    const reply = page.locator('.sd-ai textarea:not(.sd-ai-request)')
+    await expect(reply).toBeAttached()
+    if (!(await reply.isVisible())) {
+      const step = page.locator('details.sd-ai-step').filter({ has: page.getByRole('heading', { name: language === 'en' ? "Step 2: paste the AI's reply" : '第 2 步：粘贴 AI 的回复', exact: true }) })
+      await step.locator('summary').click()
+      await expect(reply).toBeVisible()
+    }
+  }
 }
 
 export async function setAccent(page: Page, value: string) {

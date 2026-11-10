@@ -1924,3 +1924,48 @@ test('settings row labels focus or open their controls', async ({ page }) => {
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
 })
+
+test('AI steps fold and open with a reply', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'AI assistant', exact: true }).click()
+  const step = (heading: string) => page.locator('details.sd-ai-step').filter({ has: page.getByRole('heading', { name: heading, exact: true }) })
+  const step1 = step('Step 1: copy the prompt pack')
+  const step2 = step("Step 2: paste the AI's reply")
+  const reply = page.getByRole('textbox', { name: "The AI's reply", exact: true })
+
+  // Empty reply: step 1 expanded, step 2 folded with its textarea hidden, no step 3.
+  await expect(step1).toHaveAttribute('open', '')
+  await expect(step2).not.toHaveAttribute('open', '')
+  await expect(reply).toBeHidden()
+  await expect(page.locator('details.sd-ai-step')).toHaveCount(2)
+
+  // Opening step 2 reveals the paste box; a valid reply opens the review step with its analysis.
+  await step2.locator('summary').click()
+  await expect(step2).toHaveAttribute('open', '')
+  await expect(reply).toBeVisible()
+  const pack = { kind: 'mnt.theme-pack', meta: { name: 'Fold test' }, theme: { mode: 'dark', radius: 12, color: { bg: '#10141b', text: '#ffffff', accent: '#7ee0c3' } }, css: '.mnt-clock { letter-spacing: 0.1em; }' }
+  await reply.fill('```json\n' + JSON.stringify(pack) + '\n```')
+  const step3 = step('Step 3: review')
+  await expect(step2).toHaveAttribute('open', '')
+  await expect(step3).toHaveAttribute('open', '')
+  await expect(page.locator('.sd-ai-ok')).toBeVisible()
+  await page.screenshot({ path: `${SHOTS}/ai-steps.png` })
+
+  // Settings search opens every step, including the review.
+  const search = page.getByRole('searchbox', { name: 'Search settings', exact: true })
+  await search.fill('prompt')
+  await expect(step1).toHaveAttribute('open', '')
+  await expect(step2).toHaveAttribute('open', '')
+  await expect(step3).toHaveAttribute('open', '')
+  await search.fill('')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})
