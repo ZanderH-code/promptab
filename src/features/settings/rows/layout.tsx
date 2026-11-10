@@ -9,7 +9,7 @@ import type { MessageKey } from '../../../i18n'
 import { weatherText } from '../../../core/weatherMessages'
 import { ColorField, RangeField, Row, Toggle, type RowState } from '../controls'
 import { AreaGridPreview } from '../AreaGridPreview'
-import { layoutDefaults, maxColumnsDefault } from '../rowDefaults'
+import { layoutDefaults, maxColumnsDefault, widgetDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
@@ -23,6 +23,7 @@ export function layoutItems(ctx: Ctx): Item[] {
   const { t, s, profile, change, patch } = ctx
   const columnsDefault = ctx.defaults ? maxColumnsDefault(ctx.defaults) : undefined
   const fallback = ctx.defaults ? layoutDefaults(ctx.defaults) : null
+  const widgetFallback = ctx.defaults ? widgetDefaults(ctx.defaults, s.language) : null
   const resetLabel = (label: MessageKey) => t('settings.resetRow', { label: t(label) })
   const choice = (id: string, label: MessageKey, value: string, options: [string, MessageKey][], set: (value: string) => void, state?: RowState): Item => ({
     id, keys: [label, ...options.map(([, key]) => key)],
@@ -146,8 +147,8 @@ export function layoutItems(ctx: Ctx): Item[] {
       <Toggle label={widget.type === 'clock' ? t('settings.showClock') : widget.type === 'date' ? t('settings.showDate') : widget.type === 'search' ? t('settings.showSearch') : widget.type === 'bookmarks' ? t('settings.shortcuts') : t('settings.widgets')} checked={!widget.hidden} onChange={visible => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, hidden: !visible } : item) }))} />
       <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areas.map(area => ({ value: area, label: areaLabel(area) }))} onChange={area => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, area } : item) }))} /></Row>
       <Row label={t('settings.widgetOrder')}><button className="sd-button" disabled={widget.order <= 0} onClick={() => widgetMove(widget.id, -1)}>↑</button><button className="sd-button" onClick={() => widgetMove(widget.id, 1)}>↓</button></Row>
-      <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} onChange={size => patchWidget(widget.id, { size })} />
-      <Row label={t('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget(widget.id, { align })} /></Row>
+      <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} changed={!!widgetFallback && (widget.props.size ?? 1) !== widgetFallback.size} onReset={widgetFallback ? () => patchWidget(widget.id, { size: widgetFallback.size }) : undefined} resetLabel={resetLabel('settings.widgetSize')} onChange={size => patchWidget(widget.id, { size })} />
+      <Row label={t('settings.widgetAlign')} changed={!!widgetFallback && (widget.props.align ?? 'center') !== widgetFallback.align} onReset={widgetFallback ? () => patchWidget(widget.id, { align: widgetFallback.align }) : undefined} resetLabel={resetLabel('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget(widget.id, { align })} /></Row>
       {widget.type === 'clock' && <Toggle label={t('settings.widgetEyebrow')} checked={widget.props.eyebrow === true} onChange={eyebrow => patchWidget(widget.id, { eyebrow })} />}
       {widget.type === 'greeting' && <Toggle label={t('settings.greetingTransition')} checked={widget.props.transitional === true} onChange={transitional => patchWidget(widget.id, { transitional })} />}
     </div>,
