@@ -160,6 +160,12 @@ async function prepare(scenario, userDataDir) {
       await page.waitForTimeout(300)
     }
     if (scenario === 'wallpaper') await uploadWallpaper(page)
+    // A warm scenario is only meaningful when F2a's snapshot exists before the profile is closed.
+    try {
+      await page.waitForFunction(() => !!localStorage.getItem('mnt:paint-cache:v1') && !!document.querySelector('.shortcut'), null, { timeout: 20000 })
+    } catch {
+      console.warn(`${scenario}: paint cache was not written before the profile closed; the warm scenario may be a first migration`)
+    }
   } finally {
     await context.close()
   }

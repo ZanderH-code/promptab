@@ -9,7 +9,7 @@ import { createAssetLibrary } from '../storage/assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, PROFILE_INDEX_KEY } from '../storage/profiles'
 import { extensionApi } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
-import { writePaintCache } from './paintCache'
+import { readPaintCache, writePaintCache } from './paintCache'
 import type { SavedTheme } from '../core/themes/library'
 
 export const assets = createAssetLibrary()
@@ -46,16 +46,11 @@ async function dataUrl(blob: Blob): Promise<string> {
   })
 }
 
-async function project(profile: ProfileV2): Promise<Settings> {
+/** Synchronous paint projection; skips asset reads, so image shortcuts use the automatic icon. */
+export function projectPaint(profile: ProfileV2): Settings {
   const widget = (type: string) => profile.widgets.find(item => item.type === type)
   const clock = widget('clock'), date = widget('date'), search = widget('search'), bookmarks = widget('bookmarks')
-  const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async item => {
-    if (!item.image) return item
-    const blob = await assets.get(item.image)
-    // A missing asset degrades to the text/automatic icon instead of blocking the page.
-    if (!blob) { const { image: _missing, ...rest } = item; return rest }
-    return { ...item, image: await dataUrl(blob) }
-  }))
+  const shortcuts = profile.bookmarks.groups.flatMap(group => group.items).map(({ image: _image, ...item }) => item)
   const engine = profile.search.engines.find(item => item.id === profile.search.defaultEngineId)
   const language = profile.prefs.language === 'system' ? systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]) : profile.prefs.language
   const theme = profile.theme.mode === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : profile.theme.mode
@@ -76,6 +71,17 @@ async function project(profile: ProfileV2): Promise<Settings> {
     reverse,
     overlay: profile.background.dim,
   }
+}
+
+async function project(profile: ProfileV2): Promise<Settings> {
+  const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async item => {
+    if (!item.image) return item
+    const blob = await assets.get(item.image)
+    // A missing asset degrades to the text/automatic icon instead of blocking the page.
+    if (!blob) { const { image: _missing, ...rest } = item; return rest }
+    return { ...item, image: await dataUrl(blob) }
+  }))
+  return { ...projectPaint(profile), shortcuts }
 }
 
 async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targetGroupId?: string): Promise<ProfileV2> {
@@ -145,10 +151,18 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targ
   return p
 }
 
+// Read once at module init so the first render can paint the last committed profile.
+const cachedPaint = readPaintCache()
+let initialProfile: ProfileV2 | null = null
+let initialSettings: Settings | null = null
+if (cachedPaint) {
+  try { initialProfile = cachedPaint.profile; initialSettings = projectPaint(cachedPaint.profile) } catch { /* Ignore an unusable cache. */ }
+}
+
 export function useSettings() {
   const [store, setStore] = useState<AppProfileStore | null>(null)
-  const [profile, setProfile] = useState<ProfileV2 | null>(null)
-  const [settings, setSettings] = useState<Settings | null>(null)
+  const [profile, setProfile] = useState<ProfileV2 | null>(initialProfile)
+  const [settings, setSettings] = useState<Settings | null>(initialSettings)
   const [error, setError] = useState<MessageRef | null>(null)
   const [undoNotice, setUndoNotice] = useState(false)
   const queue = useRef<Promise<void>>(Promise.resolve())
@@ -202,7 +216,7 @@ export function useSettings() {
   useEffect(() => {
     if (!profile) return
     let alive = true
-    project(profile).then(value => { if (alive) setSettings(value) }).catch(e => { if (alive) { setSettings(null); setError(toMessageRef(e, 'error.loadSettings')) } })
+    project(profile).then(value => { if (alive) setSettings(value) }).catch(e => { if (alive) { setSettings(current => current ?? null); setError(toMessageRef(e, 'error.loadSettings')) } })
     return () => { alive = false }
   }, [profile, scheme])
   const run = useCallback((operation: (store: AppProfileStore, id: string) => Promise<void>, notice = true) => {
