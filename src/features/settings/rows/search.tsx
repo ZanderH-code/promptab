@@ -6,6 +6,7 @@ import { Select, type Ctx, type Item } from './shared'
 
 export function searchItems(ctx: Ctx): Item[] {
   const { t, s, patch, onError } = ctx
+  const openNewTabDefault = ctx.defaults?.prefs.openSearchInNewTab
   const presets = SEARCH_ENGINES.map(({ template, name }) => ({ value: template, label: name }))
   const options = [
     ...presets,
@@ -13,7 +14,7 @@ export function searchItems(ctx: Ctx): Item[] {
   ]
   return [
     { id: 'engine', keys: ['settings.searchEngine'], words: SEARCH_ENGINES.map(engine => engine.name), node: <Row label={t('settings.searchEngine')} stack><Select ctx={ctx} wide label={t('settings.searchEngine')} value={s.searchTemplate} options={options} onChange={searchTemplate => patch({ searchTemplate })} /></Row> },
-    { id: 'search-new-tab', keys: ['settings.openSearchNewTab'], node: <Toggle label={t('settings.openSearchNewTab')} checked={ctx.profile.prefs.openSearchInNewTab} onChange={openSearchInNewTab => ctx.change(p => ({ ...p, prefs: { ...p.prefs, openSearchInNewTab } }))} /> },
+    { id: 'search-new-tab', keys: ['settings.openSearchNewTab'], node: <Toggle label={t('settings.openSearchNewTab')} checked={ctx.profile.prefs.openSearchInNewTab} changed={openNewTabDefault !== undefined && ctx.profile.prefs.openSearchInNewTab !== openNewTabDefault} onReset={openNewTabDefault !== undefined ? () => ctx.change(p => ({ ...p, prefs: { ...p.prefs, openSearchInNewTab: openNewTabDefault } })) : undefined} resetLabel={t('settings.resetRow', { label: t('settings.openSearchNewTab') })} onChange={openSearchInNewTab => ctx.change(p => ({ ...p, prefs: { ...p.prefs, openSearchInNewTab } }))} /> },
     {
       id: 'engine-custom', keys: ['settings.searchCustom'],
       node: (

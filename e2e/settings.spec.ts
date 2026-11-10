@@ -1084,10 +1084,12 @@ test('the focal point preview shares the stored position', async ({ page }) => {
   }).toBe(true)
 
   // Keyboard navigation stays on the existing controls; the preview never enters the tab order.
+  // The changed focal rows now own reset buttons, so tab past those and the value fields.
   await page.getByRole('slider', { name: 'Horizontal position' }).focus()
-  await page.keyboard.press('Tab')
-  expect(await page.evaluate(() => document.activeElement?.classList.contains('sd-focal-preview'))).toBe(false)
-  await page.keyboard.press('Tab')
+  for (let step = 0; step < 3; step++) {
+    await page.keyboard.press('Tab')
+    expect(await page.evaluate(() => document.activeElement?.classList.contains('sd-focal-preview'))).toBe(false)
+  }
   await expect(page.getByRole('slider', { name: 'Vertical position' })).toBeFocused()
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
@@ -1292,5 +1294,680 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
 
+  expect(errors).toEqual([])
+})
+
+test('widget settings are grouped into collapsible cards', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+
+  const cards = page.locator('.sd-widget-card')
+  await expect(cards).toHaveCount(4)
+  // Clock and date keep their disclosure; default rows keep it closed.
+  for (const id of ['widget-clock', 'widget-date']) {
+    const card = page.locator(`[data-widget-card="${id}"]`)
+    await expect(card.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
+    await expect(card.locator('summary')).toHaveAttribute('aria-expanded', 'false')
+  }
+  // Search and shortcuts only have a header switch: no summary and no chevron.
+  const searchCard = page.locator('[data-widget-card="showSearch"]')
+  const shortcutsCard = page.locator('[data-widget-card="widget-shortcuts"]')
+  for (const card of [searchCard, shortcutsCard]) {
+    await expect(card).toHaveClass(/sd-widget-card-plain/)
+    await expect(card.locator('input[type=checkbox]')).toHaveCount(1)
+    await expect(card.locator('summary')).toHaveCount(0)
+    await expect(card.locator('svg')).toHaveCount(0)
+  }
+  await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
+  // Tab moves straight from one plain switch to the next card.
+  await searchCard.locator('input[type=checkbox]').focus()
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => document.activeElement?.closest('[data-widget-card]')?.getAttribute('data-widget-card'))).toBe('widget-shortcuts')
+
+  // One click opens the clock card; its header switch hides the clock and the card stays open.
+  const clockCard = page.locator('[data-widget-card="widget-clock"]')
+  const clockSummary = clockCard.locator('summary')
+  await clockSummary.click()
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await expect(clockCard.getByLabel('Show hours')).toBeVisible()
+  await clockCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="clock"]')).toHaveCount(0)
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await clockCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="clock"]')).toHaveCount(1)
+
+  // Enter and Space toggle the same disclosure; a closed card keeps its rows out of the tab order.
+  await clockSummary.focus()
+  await page.keyboard.press('Enter')
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'false')
+  await expect(clockCard.getByLabel('Show hours')).toBeHidden()
+  const hoursId = await clockCard.getByLabel('Show hours').getAttribute('id')
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => document.activeElement?.id)).not.toBe(hoursId)
+  await clockSummary.focus()
+  await page.keyboard.press('Space')
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await expect(clockCard.getByLabel('Show hours')).toBeVisible()
+
+  // Date and search switch the rendered page immediately, and their cards stay open.
+  const dateCard = page.locator('[data-widget-card="widget-date"]')
+  await dateCard.locator('summary').click()
+  await dateCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="date"]')).toHaveCount(0)
+  await expect(dateCard.locator('summary')).toHaveAttribute('aria-expanded', 'true')
+  await searchCard.locator('input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="search"]')).toHaveCount(0)
+  await shortcutsCard.locator('input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="bookmarks"]')).toHaveCount(0)
+
+  // Open state survives leaving and re-entering the section within the same drawer.
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await expect(dateCard.locator('summary')).toHaveAttribute('aria-expanded', 'true')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('changed rows show a dot and reset to their default', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+
+  // A changed row gains an accent dot and a reset button; reset returns to the schema default.
+  const row = page.locator('.sd-row').filter({ has: page.getByText('Max columns', { exact: true }) }).first()
+  const reset = row.getByRole('button', { name: 'Reset Max columns to its default', exact: true })
+  const value = row.getByRole('spinbutton', { name: 'Max columns value', exact: true })
+  await expect(row.locator('.sd-dot')).toHaveCount(0)
+  await expect(reset).toHaveCount(0)
+  await value.fill('4')
+  await value.press('Enter')
+  await expect(row.locator('.sd-dot')).toHaveCount(1)
+  await expect(reset).toBeVisible()
+  await reset.click()
+  await expect(value).toHaveValue('6')
+  await expect(row.locator('.sd-dot')).toHaveCount(0)
+  // The reset is one undo step; undoing it brings the changed value back.
+  await page.keyboard.press('Control+z')
+  await expect(value).toHaveValue('4')
+  await expect(row.locator('.sd-dot')).toHaveCount(1)
+
+  // Applying a theme preset marks every changed theme row; restoring the section clears them.
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
+  await page.getByRole('button', { name: 'Paper', exact: true }).click()
+  await expect(page.locator('.sd-dot').first()).toBeVisible()
+  expect(await page.locator('.sd-dot').count()).toBeGreaterThan(3)
+  await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('background rows show a dot and reset to their defaults', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const reset = (label: string) => page.getByRole('button', { name: `Reset ${label} to its default`, exact: true })
+
+  // Nothing is marked on the default profile.
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  // Overlay opacity compares with the default profile; reset is a single undo step.
+  const overlay = row('Overlay opacity')
+  const overlayValue = overlay.getByRole('spinbutton', { name: 'Overlay opacity value', exact: true })
+  await overlayValue.fill('60')
+  await overlayValue.press('Enter')
+  await expect(overlay.locator('.sd-dot')).toHaveCount(1)
+  await reset('Overlay opacity').click()
+  await expect(overlayValue).toHaveValue('35')
+  await expect(overlay.locator('.sd-dot')).toHaveCount(0)
+  await page.keyboard.press('Control+z')
+  await expect(overlayValue).toHaveValue('60')
+  await expect(overlay.locator('.sd-dot')).toHaveCount(1)
+
+  // A fresh image starts at the schema defaults, and every adjustment resets on its own while the image stays.
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+  for (const [label, original] of [['Blur', '0'], ['Grayscale', '0'], ['Image zoom', '1'], ['Vignette', '0']] as const) {
+    const target = row(label)
+    await expect(target.locator('.sd-dot'), label).toHaveCount(0)
+    await expect(target.getByRole('spinbutton', { name: `${label} value`, exact: true }), label).toHaveValue(original)
+  }
+  for (const [label, changed, original] of [['Blur', '8', '0'], ['Grayscale', '40', '0'], ['Image zoom', '1.5', '1'], ['Vignette', '20', '0']] as const) {
+    const target = row(label)
+    const value = target.getByRole('spinbutton', { name: `${label} value`, exact: true })
+    await value.fill(changed)
+    await value.press('Enter')
+    await expect(target.locator('.sd-dot'), label).toHaveCount(1)
+    await reset(label).click()
+    await expect(value, label).toHaveValue(original)
+    await expect(target.locator('.sd-dot'), label).toHaveCount(0)
+  }
+  await expect(page.locator('.sd-focal-preview')).toBeVisible()
+  await expect(page.getByText('upscaled-32-to-128.png', { exact: true })).toBeVisible()
+
+  // Focal position marks the named row and each axis separately.
+  const focal = row('Focal point')
+  await page.getByRole('radio', { name: 'Top left', exact: true }).click()
+  await expect(focal.locator('.sd-dot')).toHaveCount(1)
+  const horizontal = row('Horizontal position')
+  await expect(horizontal.locator('.sd-dot')).toHaveCount(1)
+  await reset('Focal point').click()
+  await expect(page.getByRole('radio', { name: 'Center', exact: true })).toHaveAttribute('aria-checked', 'true')
+  await expect(focal.locator('.sd-dot')).toHaveCount(0)
+  await expect(horizontal.locator('.sd-dot')).toHaveCount(0)
+  const x = horizontal.getByRole('spinbutton', { name: 'Horizontal position value', exact: true })
+  await x.fill('25')
+  await x.press('Enter')
+  await expect(horizontal.locator('.sd-dot')).toHaveCount(1)
+  await expect(row('Vertical position').locator('.sd-dot')).toHaveCount(0)
+  await reset('Horizontal position').click()
+  await expect(x).toHaveValue('50')
+
+  // The gradient angle has a schema default; stops do not, so they are never marked.
+  await page.getByRole('radio', { name: 'Gradient', exact: true }).click()
+  const angle = row('Angle')
+  const angleValue = angle.getByRole('spinbutton', { name: 'Angle value', exact: true })
+  await expect(angle.locator('.sd-dot')).toHaveCount(0)
+  await expect(angleValue).toHaveValue('135')
+  await angleValue.fill('90')
+  await angleValue.press('Enter')
+  await expect(angle.locator('.sd-dot')).toHaveCount(1)
+  await reset('Angle').click()
+  await expect(angleValue).toHaveValue('135')
+  await expect(angle.locator('.sd-dot')).toHaveCount(0)
+  const stop = row('Stop 1')
+  const hex = stop.getByRole('textbox', { name: 'Stop 1 hex value', exact: true })
+  await hex.fill('#ff0000')
+  await hex.press('Enter')
+  await expect(stop.locator('.sd-dot')).toHaveCount(0)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('layout rows show a dot and reset to their defaults', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const reset = (label: string) => page.getByRole('button', { name: `Reset ${label} to its default`, exact: true })
+  const storedStyles = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.areaStyles ?? null
+  })
+
+  // The default profile marks none of the wired rows.
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  // Content width compares with the default profile; reset is one undo step.
+  const widthRow = row('Content width')
+  const width = widthRow.getByRole('spinbutton', { name: 'Content width value', exact: true })
+  await expect(width).toHaveValue('960')
+  await width.fill('1200')
+  await width.press('Enter')
+  await expect(widthRow.locator('.sd-dot')).toHaveCount(1)
+  await reset('Content width').click()
+  await expect(width).toHaveValue('960')
+  await expect(widthRow.locator('.sd-dot')).toHaveCount(0)
+  await page.keyboard.press('Control+z')
+  await expect(width).toHaveValue('1200')
+  await expect(widthRow.locator('.sd-dot')).toHaveCount(1)
+
+  // An area-style reset drops its key, then the whole area style when nothing else remains.
+  const area = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Overview' }) }).first()
+  const opacityRow = area.locator('.sd-row').filter({ has: page.getByText('Area opacity', { exact: true }) }).first()
+  const opacity = area.getByRole('spinbutton', { name: 'Area opacity value', exact: true })
+  await opacity.fill('50')
+  await opacity.press('Enter')
+  await expect(opacityRow.locator('.sd-dot')).toHaveCount(1)
+  expect(await storedStyles()).toEqual({ overview: { opacity: 50 } })
+  await area.getByRole('button', { name: 'Reset Area opacity to its default', exact: true }).click()
+  await expect(opacity).toHaveValue('100')
+  await expect(opacityRow.locator('.sd-dot')).toHaveCount(0)
+  expect(await storedStyles()).toBeNull()
+  await page.keyboard.press('Control+z')
+  await expect(opacity).toHaveValue('50')
+  await expect(opacityRow.locator('.sd-dot')).toHaveCount(1)
+
+  const topRow = area.locator('.sd-row').filter({ has: page.getByText('Top accent divider', { exact: true }) }).first()
+  const top = area.getByRole('spinbutton', { name: 'Top accent divider value', exact: true })
+  await top.fill('3')
+  await top.press('Enter')
+  await expect(topRow.locator('.sd-dot')).toHaveCount(1)
+  expect(await storedStyles()).toEqual({ overview: { opacity: 50, border: { top: 3 } } })
+  await area.getByRole('button', { name: 'Reset Top accent divider to its default', exact: true }).click()
+  await expect(top).toHaveValue('0')
+  await expect(topRow.locator('.sd-dot')).toHaveCount(0)
+  expect(await storedStyles()).toEqual({ overview: { opacity: 50 } })
+
+  // Restoring the section clears every mark.
+  await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+  await expect(width).toHaveValue('960')
+  await expect(opacity).toHaveValue('100')
+  expect(await storedStyles()).toBeNull()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('shortcut, search and widget rows show a dot and reset to their defaults', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const reset = (label: string) => page.getByRole('button', { name: `Reset ${label} to its default`, exact: true })
+
+  // Shortcuts: bookmark props compare with the default profile, and reset is one undo step.
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+  const styleRow = row('Website style')
+  const style = styleRow.getByRole('combobox', { name: 'Website style', exact: true })
+  await style.click()
+  await page.getByRole('option', { name: 'List', exact: true }).click()
+  await expect(styleRow.locator('.sd-dot')).toHaveCount(1)
+  await reset('Website style').click()
+  await expect(style).toHaveText('Tiles')
+  await expect(styleRow.locator('.sd-dot')).toHaveCount(0)
+  await page.keyboard.press('Control+z')
+  await expect(style).toHaveText('List')
+  await expect(styleRow.locator('.sd-dot')).toHaveCount(1)
+  const accent = page.getByLabel('Use accent color for all icons', { exact: true })
+  await accent.click()
+  await expect(accent).toBeChecked()
+  await expect(row('Use accent color for all icons').locator('.sd-dot')).toHaveCount(1)
+  await reset('Use accent color for all icons').click()
+  await expect(accent).not.toBeChecked()
+
+  // Search: only the open behaviour has a default; the engine stays unmarked.
+  await page.getByRole('tab', { name: 'Search', exact: true }).click()
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+  const newTab = page.getByLabel('Open search results in a new tab', { exact: true })
+  await newTab.click()
+  await expect(newTab).toBeChecked()
+  const newTabRow = row('Open search results in a new tab')
+  await expect(newTabRow.locator('.sd-dot')).toHaveCount(1)
+  await reset('Open search results in a new tab').click()
+  await expect(newTab).not.toBeChecked()
+  await expect(newTabRow.locator('.sd-dot')).toHaveCount(0)
+  await page.keyboard.press('Control+z')
+  await expect(newTab).toBeChecked()
+  await expect(newTabRow.locator('.sd-dot')).toHaveCount(1)
+
+  // Widgets: clock props reset independently; the formatted preview is never marked.
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await page.locator('[data-widget-card="widget-clock"] summary').click()
+  const twelve = page.getByLabel('12-hour clock', { exact: true })
+  await twelve.click()
+  await expect(twelve).toBeChecked()
+  await expect(row('12-hour clock').locator('.sd-dot')).toHaveCount(1)
+  await reset('12-hour clock').click()
+  await expect(twelve).not.toBeChecked()
+  const separator = page.getByRole('textbox', { name: 'Time separator', exact: true })
+  await separator.fill('.')
+  const separatorRow = row('Time separator')
+  await expect(separatorRow.locator('.sd-dot')).toHaveCount(1)
+  await reset('Time separator').click()
+  await expect(separator).toHaveValue(':')
+  await expect(separatorRow.locator('.sd-dot')).toHaveCount(0)
+
+  // The clock widget's size has a common schema default and resets on its own.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const clock = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Clock' }) }).first()
+  const sizeRow = clock.locator('.sd-row').filter({ has: page.getByText('Widget size', { exact: true }) }).first()
+  const size = clock.getByRole('spinbutton', { name: 'Widget size value', exact: true })
+  await size.fill('1.5')
+  await size.press('Enter')
+  await expect(sizeRow.locator('.sd-dot')).toHaveCount(1)
+  await clock.getByRole('button', { name: 'Reset Widget size to its default', exact: true }).click()
+  await expect(size).toHaveValue('1')
+  await expect(sizeRow.locator('.sd-dot')).toHaveCount(0)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('settings resets use one accessible confirmation dialog', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.evaluate(() => {
+    const state = window as Window & { __confirms?: number }
+    state.__confirms = 0
+    window.confirm = () => { state.__confirms = (state.__confirms ?? 0) + 1; return false }
+  })
+  const storedWidth = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.contentWidth as number
+  })
+
+  // A changed Layout value gives the section reset something to restore.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const width = page.getByRole('spinbutton', { name: 'Content width value', exact: true })
+  await width.fill('1200')
+  await width.press('Enter')
+  await expect.poll(storedWidth).toBe(1200)
+  const restore = page.getByRole('button', { name: 'Restore section defaults', exact: true })
+
+  // Section restore: scope copy, Cancel focused, Esc and Cancel change nothing.
+  await restore.click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('Restores Areas & grid to its defaults. Other sections, websites and uploaded media stay.', { exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.screenshot({ path: `${SHOTS}/reset-dialog.png` })
+  const openScan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(openScan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('.drawer.sd')).toBeVisible()
+  expect(await storedWidth()).toBe(1200)
+  await restore.click()
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(await storedWidth()).toBe(1200)
+
+  // Confirm applies the scoped reset and the existing undo toast restores the previous profile.
+  await restore.click()
+  await dialog.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(storedWidth).toBe(960)
+  const toast = page.locator('.undo-toast')
+  await expect(toast).toBeVisible()
+  await toast.locator('button').click()
+  await expect.poll(storedWidth).toBe(1200)
+
+  // The global reset uses the same dialog and the same undo path.
+  await page.getByRole('tab', { name: 'Backup & import', exact: true }).click()
+  await page.getByRole('button', { name: 'Reset settings', exact: true }).click()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(/Resets this profile’s theme, background, layout, widgets, websites, search and custom CSS/)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await dialog.getByRole('button', { name: 'Reset settings', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(storedWidth).toBe(960)
+  await expect(toast).toBeVisible()
+  await toast.locator('button').click()
+  await expect.poll(storedWidth).toBe(1200)
+
+  expect(await page.evaluate(() => (window as Window & { __confirms?: number }).__confirms)).toBe(0)
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('confirm dialog returns focus and keeps Tab inside', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const restore = page.getByRole('button', { name: 'Restore section defaults', exact: true })
+  const dialog = page.getByRole('alertdialog')
+
+  // Esc closes and native focus restore lands on the button that opened the dialog.
+  await restore.click()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(restore).toBeFocused()
+
+  // Tab and Shift+Tab cycle between the dialog buttons and never leave the modal.
+  await restore.click()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+
+  // Cancel also returns focus to the opener.
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(restore).toBeFocused()
+
+  // Confirm returns focus to the opener as well.
+  await restore.click()
+  await dialog.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(restore).toBeFocused()
+
+  // Deleting a profile disables its opener, so focus moves to the selected tab instead of body.
+  await page.getByRole('tab', { name: 'Backup & import', exact: true }).click()
+  page.once('dialog', prompt => void prompt.accept('Second profile'))
+  await page.getByRole('button', { name: 'New profile', exact: true }).click()
+  const profileSection = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Profiles', exact: true }) }).last()
+  const remove = profileSection.getByRole('button', { name: 'Delete', exact: true })
+  await expect(remove).toBeEnabled()
+  await remove.click()
+  await dialog.getByRole('button', { name: 'Delete', exact: true }).click()
+  await expect(page.getByRole('tab', { name: 'Backup & import', exact: true })).toBeFocused()
+  expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false)
+
+  // The global reset behaves the same after Esc, Cancel and Confirm. It also restores the stored
+  // interface language, so the opener is matched by either label once it has been confirmed.
+  const resetAll = page.getByRole('button', { name: /^(Reset settings|恢复默认设置)$/ })
+  await resetAll.click()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(resetAll).toBeFocused()
+  await resetAll.click()
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(resetAll).toBeFocused()
+  await resetAll.click()
+  await dialog.getByRole('button', { name: 'Reset settings', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect(resetAll).toBeFocused()
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('a newly selected settings section starts at the top', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  const panel = page.locator('.sd-panel')
+  const scrollTop = () => panel.evaluate(element => element.scrollTop)
+  const toBottom = async () => {
+    await panel.evaluate(element => { element.scrollTop = element.scrollHeight })
+    await expect.poll(scrollTop).toBeGreaterThan(0)
+  }
+  const firstItem = panel.locator('.sd-item').first()
+
+  // Clicking a rail tab replaces a scrolled section with one that starts at its first row.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await toBottom()
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  await expect.poll(scrollTop).toBe(0)
+  await expect(firstItem).toBeInViewport()
+
+  // The same happens when the rail moves the selection with the arrow keys.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await toBottom()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('tab', { name: 'Widgets', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect.poll(scrollTop).toBe(0)
+  await expect(firstItem).toBeInViewport()
+
+  // At 390 px the horizontal rail keeps its selected tab in view, starts the panel at the top,
+  // and the page itself never scrolls sideways.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await toBottom()
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  await expect.poll(scrollTop).toBe(0)
+  await expect(firstItem).toBeInViewport()
+  const railBox = await page.locator('.sd-rail').boundingBox()
+  const tabBox = await page.getByRole('tab', { name: 'Websites', exact: true }).boundingBox()
+  expect(railBox).not.toBeNull()
+  expect(tabBox).not.toBeNull()
+  expect(tabBox!.x).toBeGreaterThanOrEqual(railBox!.x - 1)
+  expect(tabBox!.x + tabBox!.width).toBeLessThanOrEqual(railBox!.x + railBox!.width + 1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('settings row labels focus or open their controls', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  const row = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
+  const label = (name: string) => row(name).locator('label').first()
+
+  // A text input receives focus when its row label is clicked.
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await page.locator('[data-widget-card="widget-clock"] summary').click()
+  const separator = page.getByRole('textbox', { name: 'Time separator', exact: true })
+  await expect(separator).toBeVisible()
+  await label('Time separator').click()
+  await expect(separator).toBeFocused()
+
+  // Dropdown triggers open from their row label, close on Esc, and keep the stored value.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const layout = page.getByRole('combobox', { name: 'Layout', exact: true })
+  const layoutValue = await layout.textContent()
+  await label('Layout').click()
+  await expect(page.getByRole('listbox')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('listbox')).toHaveCount(0)
+  await expect(layout).toHaveText(layoutValue ?? '')
+
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  for (const name of ['Website style', 'Bookmark source']) {
+    const trigger = page.getByRole('combobox', { name, exact: true })
+    await expect(trigger).toHaveCount(1)
+    const value = await trigger.textContent()
+    await label(name).click()
+    await expect(page.getByRole('listbox')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('listbox')).toHaveCount(0)
+    await expect(trigger).toHaveText(value ?? '')
+  }
+
+  // Every id inside the drawer is unique.
+  const ids = await page.locator('.drawer.sd [id]').evaluateAll(nodes => nodes.map(node => node.id))
+  expect(new Set(ids).size).toBe(ids.length)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test('AI steps fold and open with a reply', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'AI assistant', exact: true }).click()
+  const step = (heading: string) => page.locator('details.sd-ai-step').filter({ has: page.getByRole('heading', { name: heading, exact: true }) })
+  const step1 = step('Step 1: copy the prompt pack')
+  const step2 = step("Step 2: paste the AI's reply")
+  const reply = page.getByRole('textbox', { name: "The AI's reply", exact: true })
+
+  // Empty reply: step 1 expanded, step 2 folded with its textarea hidden, no step 3.
+  await expect(step1).toHaveAttribute('open', '')
+  await expect(step2).not.toHaveAttribute('open', '')
+  await expect(reply).toBeHidden()
+  await expect(page.locator('details.sd-ai-step')).toHaveCount(2)
+
+  // Opening step 2 reveals the paste box; a valid reply opens the review step with its analysis.
+  await step2.locator('summary').click()
+  await expect(step2).toHaveAttribute('open', '')
+  await expect(reply).toBeVisible()
+  const pack = { kind: 'mnt.theme-pack', meta: { name: 'Fold test' }, theme: { mode: 'dark', radius: 12, color: { bg: '#10141b', text: '#ffffff', accent: '#7ee0c3' } }, css: '.mnt-clock { letter-spacing: 0.1em; }' }
+  await reply.fill('```json\n' + JSON.stringify(pack) + '\n```')
+  const step3 = step('Step 3: review')
+  await expect(step2).toHaveAttribute('open', '')
+  await expect(step3).toHaveAttribute('open', '')
+  await expect(page.locator('.sd-ai-ok')).toBeVisible()
+  await page.screenshot({ path: `${SHOTS}/ai-steps.png` })
+
+  // Settings search opens every step, including the review.
+  const search = page.getByRole('searchbox', { name: 'Search settings', exact: true })
+  await search.fill('prompt')
+  await expect(step1).toHaveAttribute('open', '')
+  await expect(step2).toHaveAttribute('open', '')
+  await expect(step3).toHaveAttribute('open', '')
+  await search.fill('')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
 })

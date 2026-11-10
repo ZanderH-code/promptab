@@ -11,6 +11,7 @@ export const zhCN = {
 
   'common.close': '关闭',
   'common.cancel': '取消',
+  'common.continue': '继续',
   'common.edit': '编辑',
   'common.custom': '自定义',
 
@@ -198,6 +199,7 @@ export const zhCN = {
   'settings.hint.grayscale': '去除图片的颜色。',
   'settings.hint.imageScale': '在画框内缩放图片。',
   'settings.hint.maxColumns': '设置每行可容纳的快捷方式数量。',
+  'settings.resetRow': '将“{label}”恢复为默认值',
   'settings.wallpaperRemove': '移除壁纸',
   'settings.widgets': '桌面组件',
   'settings.addProductivityWidget': '添加实用组件',
@@ -297,6 +299,8 @@ export const zhCN = {
   'settings.import': '导入备份',
   'settings.reset': '恢复默认设置',
   'settings.confirmReset': '确定恢复默认设置？',
+  'settings.resetAllScope': '将当前配置的主题、背景、布局、组件、网站、搜索与自定义 CSS 恢复为默认值；配置名称与历史记录会保留。',
+  'settings.restoreScope': '将“{section}”恢复为默认值，其他区域、网站和已上传的媒体会保留。',
   'settings.tabs': '设置分区',
   'settings.group.look': '外观',
   'settings.group.layout': '布局',

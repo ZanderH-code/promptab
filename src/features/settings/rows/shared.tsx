@@ -43,10 +43,15 @@ export type Ctx = {
   onGridCommit?: (profile: ProfileV2) => void
   movedWidgets?: string[]
   onMovedWidgets?: (messages: string[]) => void
+  /** Widget cards whose open state the user has changed, keyed by card id. */
+  widgetCards?: Record<string, boolean>
+  onWidgetCardsChange?: (cards: Record<string, boolean>) => void
+  /** The default profile for this language: rows compare against it and reset to it. */
+  defaults?: ProfileV2 | null
 }
 
 export const touch = (profile: ProfileV2): ProfileV2 => ({ ...profile, meta: { ...profile.meta, updatedAt: new Date().toISOString() } })
 
-export function Select({ ctx, label, value, options, onChange, wide }: { ctx: Ctx; label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; wide?: boolean }) {
-  return <Dropdown theme={ctx.mode} label={label} value={value} options={options} onChange={onChange} fullWidth={wide} />
+export function Select({ ctx, label, value, options, onChange, wide, id }: { ctx: Ctx; label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; wide?: boolean; id?: string }) {
+  return <Dropdown theme={ctx.mode} label={label} value={value} options={options} onChange={onChange} fullWidth={wide} id={id} />
 }

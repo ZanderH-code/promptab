@@ -1,6 +1,6 @@
 import type { Language } from '../i18n'
 
-export type SyncMessage = 'title' | 'hint' | 'enable' | 'extensionOnly' | 'conflict' | 'keepLocal' | 'pullCloud' | 'undo' | 'saved' | 'disabled' | 'pulled' | 'undone' | 'quota' | 'error' | 'deleteCloud' | 'deleteConfirm' | 'deleted' | 'missing' | 'undoUnavailable' | 'dismiss'
+export type SyncMessage = 'title' | 'hint' | 'enable' | 'extensionOnly' | 'conflict' | 'keepLocal' | 'pullCloud' | 'undo' | 'saved' | 'disabled' | 'pulled' | 'undone' | 'quota' | 'error' | 'deleteCloud' | 'deleteConfirm' | 'deleted' | 'missing' | 'undoUnavailable' | 'dismiss' | 'cancel'
 
 export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
   en: {
@@ -19,6 +19,7 @@ export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
     quota: 'This profile is too large for browser sync. Use Export backup to move the full profile.',
     error: 'Could not read or write browser sync data.',
     deleteCloud: 'Delete browser sync data',
+    cancel: 'Cancel',
     deleteConfirm: 'Delete the synced profile from your browser account and turn sync off on this device?',
     deleted: 'Browser sync data deleted; sync is off on this device.',
     missing: 'The browser sync copy is missing. Your local profile was kept.',
@@ -41,6 +42,7 @@ export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
     quota: '配置过大，无法通过浏览器同步。请使用“导出备份”迁移完整配置。',
     error: '无法读取或写入浏览器同步数据。',
     deleteCloud: '删除浏览器同步数据',
+    cancel: '取消',
     deleteConfirm: '确定删除浏览器账号中的同步配置，并关闭此设备上的同步吗？',
     deleted: '浏览器同步数据已删除，此设备上的同步已关闭。',
     missing: '浏览器同步副本不存在。本地配置已保留。',

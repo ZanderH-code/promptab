@@ -1,6 +1,6 @@
 import { useMessagesVersion } from '../../i18n/useMessages'
 import '../../i18n/ai'
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 const Gallery = lazy(() => import('./Gallery').then(m => ({ default: m.Gallery })))
 import { analyzeCandidate } from '../../core/ai/analyze'
 import { applyPack, exportThemePack } from '../../core/ai/apply'
@@ -62,6 +62,15 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
   const [exportedName, setExportedName] = useState('')
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [excludeCss, setExcludeCss] = useState(false)
+  const [steps, setSteps] = useState({ one: true, two: false, three: false })
+  const hasReply = state.reply.trim() !== ''
+  // A reply opens the review steps; the person can fold them again, and search forces every step open.
+  useEffect(() => { if (hasReply) setSteps(current => current.two && current.three ? current : { ...current, two: true, three: true }) }, [hasReply])
+  const stepOpen = (key: keyof typeof steps) => ctx.searching === true || steps[key]
+  const toggleStep = (key: keyof typeof steps) => (event: SyntheticEvent<HTMLDetailsElement>) => {
+    const open = event.currentTarget.open
+    if (!ctx.searching) setSteps(current => ({ ...current, [key]: open }))
+  }
   const exportButton = useRef<HTMLButtonElement>(null)
   const cancelExport = useRef<HTMLButtonElement>(null)
   useEffect(() => { if (exportOpen) cancelExport.current?.focus() }, [exportOpen])
@@ -153,8 +162,8 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
       <p className="sd-hint">{t('ai.intro')}</p>
       <p className="sd-hint"><a href="https://zanderh-code.github.io/promptab/docs/" target="_blank" rel="noreferrer">{t('ai.docsReference')}</a></p>
 
-      <section className="sd-ai-step" aria-labelledby="ai-step1">
-        <h3 id="ai-step1">{t('ai.step1')}</h3>
+      <details className="sd-ai-step" open={stepOpen('one')} onToggle={toggleStep('one')}>
+        <summary><h3 id="ai-step1">{t('ai.step1')}</h3></summary>
         <label className="sd-label" htmlFor="ai-request">{t('ai.request')}</label>
         <textarea id="ai-request" className="sd-code sd-ai-request" rows={3} value={state.request} placeholder={t('ai.requestPlaceholder')} onChange={event => set({ request: event.target.value })} />
         <Toggle label={t('ai.includeCurrent')} checked={state.includeCurrent} onChange={value => set({ includeCurrent: value })} />
@@ -162,12 +171,12 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
           <button type="button" className="sd-button" onClick={() => void copy(buildPromptPack({ language: ctx.s.language, request: state.request, current: state.includeCurrent ? active : null }), 'ai.copied')}>{t('ai.copyPrompt')}</button>
           <span className="sd-ai-notice" role="status">{notice ? t(notice) : ''}</span>
         </div>
-      </section>
+      </details>
 
       <ByokPanel ctx={ctx} prompt={buildPromptPack({ language: ctx.s.language, request: state.request, current: null })} onReply={reply => edit({ reply, pick: 0 })} />
 
-      <section className="sd-ai-step" aria-labelledby="ai-step2">
-        <h3 id="ai-step2">{t('ai.step2')}</h3>
+      <details className="sd-ai-step" open={stepOpen('two')} onToggle={toggleStep('two')}>
+        <summary><h3 id="ai-step2">{t('ai.step2')}</h3></summary>
         <textarea
           className="sd-code" data-user-content aria-label={t('ai.reply')} value={state.reply} rows={10} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off"
           placeholder={t('ai.replyPlaceholder')} onChange={event => edit({ reply: event.target.value, pick: 0 })}
@@ -183,7 +192,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
             <Dropdown theme={ctx.mode} label={t('ai.candidates', { count: candidates.length })} value={String(pick)} options={candidates.map((_, index) => ({ value: String(index), label: candidateLabel(index) }))} onChange={value => edit({ pick: Number(value) })} fullWidth />
           </div>
         )}
-      </section>
+      </details>
 
       {exportOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget) closeExport() }}>
         <div className="modal" role="dialog" aria-modal="true" aria-labelledby="theme-export-title" onKeyDown={event => {
@@ -207,9 +216,9 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
           {exportComplete && <div className="sd-hint"><p>{t('ai.submitGalleryHint')}</p><a href={gallerySubmissionUrl(exportedName)} target="_blank" rel="noreferrer">{t('ai.submitGallery')}</a></div>}
         </div>
       </div>}
-      {state.reply.trim() !== '' && (
-        <section className="sd-ai-step" aria-labelledby="ai-step3">
-          <h3 id="ai-step3">{t('ai.step3')}</h3>
+      {hasReply && (
+        <details className="sd-ai-step" open={stepOpen('three')} onToggle={toggleStep('three')}>
+          <summary><h3 id="ai-step3">{t('ai.step3')}</h3></summary>
           {!analysis && <p className="sd-ai-problem" role="alert">{t('ai.nothingFound')}</p>}
           {analysis && (
             <>
@@ -256,7 +265,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
               {previewing && <p className="sd-hint">{t('ai.previewHint')}</p>}
             </>
           )}
-        </section>
+        </details>
       )}
     </div>
   )

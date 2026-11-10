@@ -10,6 +10,7 @@ import { FontUpload } from '../FontUpload'
 import { WallpaperContrast } from '../WallpaperContrast'
 import { MyThemes } from '../MyThemes'
 import { FONT_KEYS, PRESETS, applyPreset, colorsFor, contrastIssues, editTheme, fixedColors, isFontKey, thumbnailTokens, withColors, type BaseColors, type ThemeMode } from '../themeApi'
+import { appearanceDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 const derivedSurface = (mode: ThemeMode, colors: BaseColors, bg = colors.bg) => (mode === 'dark' ? darkSurface(bg, colors.text) : lightSurface(bg))
@@ -29,6 +30,8 @@ export function appearanceItems(ctx: Ctx): Item[] {
   const lang = ctx.s.language
   const theme = profile.theme
   const colors = colorsFor(theme, mode)
+  const defaults = ctx.defaults ? appearanceDefaults(ctx.defaults, mode) : null
+  const resetLabel = (label: MessageKey) => t('settings.resetRow', { label: t(label) })
   const setColor = (key: keyof BaseColors, value: string) => change(p => {
     const current = colorsFor(p.theme, mode)
     const next = { ...current, [key]: value }
@@ -38,19 +41,22 @@ export function appearanceItems(ctx: Ctx): Item[] {
   const setTheme = (changes: Partial<ProfileV2['theme']>) => change(p => touch({ ...p, theme: editTheme(p.theme, changes) }))
   const issues = contrastIssues(theme, mode)
   const colorName = { colorText: 'settings.colorText', colorMuted: 'settings.colorMuted', colorOnAccent: 'settings.colorOnAccent', colorSurface: 'settings.colorSurface', background: 'settings.background', accent: 'settings.accent' } as const
-  const fontRow = (which: 'display' | 'ui', label: MessageKey): Item => ({
-    id: `font-${which}`, group: 'settings.typography', keys: [label, 'settings.fontSystem', 'settings.fontSerif', 'settings.fontMono', 'settings.fontRounded', 'font.barlowCondensed', 'font.cormorant', 'font.outfit'],
-    node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={theme.font[which]} options={fontOptions(ctx, theme.font[which])} onChange={value => setTheme({ font: { ...theme.font, [which]: value } })} /></Row>,
-  })
-  const range = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string } = {}): Item => ({
+  const fontRow = (which: 'display' | 'ui', label: MessageKey): Item => {
+    const fallback = defaults ? (which === 'display' ? defaults.fontDisplay : defaults.fontUi) : undefined
+    return {
+      id: `font-${which}`, group: 'settings.typography', keys: [label, 'settings.fontSystem', 'settings.fontSerif', 'settings.fontMono', 'settings.fontRounded', 'font.barlowCondensed', 'font.cormorant', 'font.outfit'],
+      node: <Row label={t(label)} changed={fallback !== undefined && theme.font[which] !== fallback} onReset={fallback !== undefined ? () => setTheme({ font: { ...theme.font, [which]: fallback } }) : undefined} resetLabel={resetLabel(label)}><Select ctx={ctx} label={t(label)} value={theme.font[which]} options={fontOptions(ctx, theme.font[which])} onChange={value => setTheme({ font: { ...theme.font, [which]: value } })} /></Row>,
+    }
+  }
+  const range = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string } = {}, fallback?: number): Item => ({
     id, group: 'settings.shapeGroup', keys: [label],
-    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} onChange={set} />,
+    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} changed={fallback !== undefined && value !== fallback} onReset={fallback !== undefined ? () => set(fallback) : undefined} resetLabel={resetLabel(label)} onChange={set} />,
   })
   return [
     {
       id: 'mode', keys: ['settings.theme', 'settings.themeSystem', 'settings.themeDark', 'settings.themeLight'],
       node: (
-        <Row label={t('settings.theme')}>
+        <Row label={t('settings.theme')} changed={!!defaults && theme.mode !== defaults.mode} onReset={defaults ? () => change(p => touch({ ...p, theme: { ...p.theme, mode: defaults.mode } })) : undefined} resetLabel={resetLabel('settings.theme')}>
           <Select ctx={ctx} label={t('settings.theme')} value={theme.mode} onChange={value => change(p => touch({ ...p, theme: { ...p.theme, mode: value as ThemeMode | 'system' } }))}
             options={[{ value: 'system', label: t('settings.themeSystem') }, { value: 'dark', label: t('settings.themeDark') }, { value: 'light', label: t('settings.themeLight') }]} />
         </Row>
@@ -87,10 +93,10 @@ export function appearanceItems(ctx: Ctx): Item[] {
         </div>
       ),
     },
-    { id: 'color-bg', group: 'settings.colors', keys: ['settings.background', 'settings.colors'], node: <ColorField t={t} label={t('settings.background')} value={colors.bg} onChange={value => setColor('bg', value)} /> },
-    { id: 'color-surface', group: 'settings.colors', keys: ['settings.colorSurface', 'settings.colors'], node: <ColorField t={t} label={t('settings.colorSurface')} value={colors.surface} onChange={value => setColor('surface', value)} /> },
-    { id: 'color-text', group: 'settings.colors', keys: ['settings.colorText', 'settings.colors'], node: <ColorField t={t} label={t('settings.colorText')} value={colors.text} onChange={value => setColor('text', value)} /> },
-    { id: 'color-accent', group: 'settings.colors', keys: ['settings.accent', 'settings.colors'], node: <ColorField t={t} label={t('settings.accent')} value={colors.accent} onChange={value => setColor('accent', value)} /> },
+    { id: 'color-bg', group: 'settings.colors', keys: ['settings.background', 'settings.colors'], node: <ColorField t={t} label={t('settings.background')} value={colors.bg} changed={!!defaults && colors.bg.toLowerCase() !== defaults.colorBg.toLowerCase()} onReset={defaults ? () => setColor('bg', defaults.colorBg) : undefined} resetLabel={resetLabel('settings.background')} onChange={value => setColor('bg', value)} /> },
+    { id: 'color-surface', group: 'settings.colors', keys: ['settings.colorSurface', 'settings.colors'], node: <ColorField t={t} label={t('settings.colorSurface')} value={colors.surface} changed={!!defaults && colors.surface.toLowerCase() !== defaults.colorSurface.toLowerCase()} onReset={defaults ? () => setColor('surface', defaults.colorSurface) : undefined} resetLabel={resetLabel('settings.colorSurface')} onChange={value => setColor('surface', value)} /> },
+    { id: 'color-text', group: 'settings.colors', keys: ['settings.colorText', 'settings.colors'], node: <ColorField t={t} label={t('settings.colorText')} value={colors.text} changed={!!defaults && colors.text.toLowerCase() !== defaults.colorText.toLowerCase()} onReset={defaults ? () => setColor('text', defaults.colorText) : undefined} resetLabel={resetLabel('settings.colorText')} onChange={value => setColor('text', value)} /> },
+    { id: 'color-accent', group: 'settings.colors', keys: ['settings.accent', 'settings.colors'], node: <ColorField t={t} label={t('settings.accent')} value={colors.accent} changed={!!defaults && colors.accent.toLowerCase() !== defaults.colorAccent.toLowerCase()} onReset={defaults ? () => setColor('accent', defaults.colorAccent) : undefined} resetLabel={resetLabel('settings.accent')} onChange={value => setColor('accent', value)} /> },
     {
       id: 'contrast', group: 'settings.colors', keys: ['settings.contrast', 'settings.contrastFix', 'settings.colorMuted', 'settings.colorOnAccent'],
       node: (
@@ -108,19 +114,19 @@ export function appearanceItems(ctx: Ctx): Item[] {
     fontRow('display', 'settings.fontDisplay'),
     fontRow('ui', 'settings.fontUi'),
     { id: 'font-upload', group: 'settings.typography', keys: ['font.upload', 'font.uploadHint', 'font.uploadDisplay', 'font.uploadUi'], words: ['font', 'woff2', 'ttf', 'otf'], node: <FontUpload ctx={ctx} /> },
-    range('radius', 'settings.radius', theme.radius, RANGES.radius, value => setTheme({ radius: value }), { unit: 'px' }),
-    range('shadow', 'settings.shadow', theme.shadow, RANGES.shadow, value => setTheme({ shadow: value })),
-    range('glass', 'settings.glass', theme.glass, RANGES.glass, value => setTheme({ glass: value })),
+    range('radius', 'settings.radius', theme.radius, RANGES.radius, value => setTheme({ radius: value }), { unit: 'px' }, defaults?.radius),
+    range('shadow', 'settings.shadow', theme.shadow, RANGES.shadow, value => setTheme({ shadow: value }), {}, defaults?.shadow),
+    range('glass', 'settings.glass', theme.glass, RANGES.glass, value => setTheme({ glass: value }), {}, defaults?.glass),
     {
       id: 'density', group: 'settings.shapeGroup', keys: ['settings.density', 'settings.densityCompact', 'settings.densityComfortable', 'settings.densitySpacious'],
       node: (
-        <Row label={t('settings.density')} stack>
+        <Row label={t('settings.density')} stack changed={!!defaults && theme.density !== defaults.density} onReset={defaults ? () => setTheme({ density: defaults.density }) : undefined} resetLabel={resetLabel('settings.density')}>
           <Segmented label={t('settings.density')} value={theme.density} onChange={value => setTheme({ density: value })}
             options={[{ value: 'compact', label: t('settings.densityCompact') }, { value: 'comfortable', label: t('settings.densityComfortable') }, { value: 'spacious', label: t('settings.densitySpacious') }]} />
         </Row>
       ),
     },
-    range('scale', 'settings.scale', theme.scale, RANGES.scale, value => setTheme({ scale: value }), { step: 0.05, unit: '×' }),
+    range('scale', 'settings.scale', theme.scale, RANGES.scale, value => setTheme({ scale: value }), { step: 0.05, unit: '×' }, defaults?.scale),
     { id: 'shortcuts-new-tab', group: 'settings.shortcuts', keys: ['settings.openShortcutsNewTab'], node: <Toggle label={t('settings.openShortcutsNewTab')} checked={profile.prefs.openShortcutsInNewTab} onChange={openShortcutsInNewTab => change(p => touch({ ...p, prefs: { ...p.prefs, openShortcutsInNewTab } }))} /> },
     { id: 'lift-hover', group: 'settings.shortcuts', keys: ['settings.liftHover'], node: <Toggle label={t('settings.liftHover')} checked={profile.prefs.liftOnHover} onChange={liftOnHover => change(p => touch({ ...p, prefs: { ...p.prefs, liftOnHover } }))} /> },
     { id: 'keyboard-shortcuts', group: 'settings.shortcuts', keys: ['settings.keyboardShortcuts'], node: <Toggle label={t('settings.keyboardShortcuts')} checked={profile.prefs.keyboardShortcuts} onChange={keyboardShortcuts => change(p => touch({ ...p, prefs: { ...p.prefs, keyboardShortcuts } }))} /> },

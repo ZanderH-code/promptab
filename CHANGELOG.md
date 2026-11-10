@@ -4,6 +4,21 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.16.0]
+
+### Added
+
+- Widget settings are grouped into cards that fold away; Search and Shortcuts stay single rows.
+- Every settings row that differs from the default shows a dot and its own reset, so one changed value can be restored without resetting the whole section.
+- Destructive settings actions ask in one accessible dialog that says exactly what is reset and what is kept. Cancel has focus, and the existing undo toast still restores the previous profile.
+- The AI assistant's three steps fold, putting the review and apply controls within reach.
+
+### Fixed
+
+- The confirmation dialog returns focus to the control that opened it and keeps Tab inside itself.
+- A newly selected settings section opens at its top instead of keeping the previous scroll position.
+- Labels beside text fields and dropdowns now focus or open their control.
+
 ## [0.15.0]
 
 ### Added

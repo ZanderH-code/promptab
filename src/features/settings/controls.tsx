@@ -1,5 +1,7 @@
-import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { RotateCcw } from 'lucide-react'
 import type { Translate } from '../../i18n'
+import { Select } from './rows/shared'
 import { Highlighted } from './searchHighlight'
 
 const HEX = /^#[\da-f]{6}$/i
@@ -18,30 +20,55 @@ export function rovingIndex(key: string, index: number, count: number, columns =
   }
 }
 
-export function Row({ label, hint, children, htmlFor, stack = false }: { label: string; hint?: string; children: ReactNode; htmlFor?: string; stack?: boolean }) {
+export type RowState = { changed?: boolean; onReset?: () => void; resetLabel?: string }
+
+/** Gives the first text field or select in a row the id its label points at. */
+function associate(children: ReactNode, id: string): { node: ReactNode; linked: boolean } {
+  let linked = false
+  const visit = (node: ReactNode): ReactNode => {
+    if (linked) return node
+    if (Array.isArray(node)) return node.map(visit)
+    if (!isValidElement<{ id?: string }>(node)) return node
+    if (node.type === 'input' || node.type === 'textarea' || node.type === Select) {
+      linked = true
+      return cloneElement(node, { id })
+    }
+    return node
+  }
+  const node = visit(children)
+  return { node, linked }
+}
+
+export function Row({ label, hint, children, htmlFor, stack = false, changed = false, onReset, resetLabel }: { label: string; hint?: string; children: ReactNode; htmlFor?: string; stack?: boolean } & RowState) {
+  const generated = useId()
+  const controlId = htmlFor ?? generated
+  const field = htmlFor ? { node: children, linked: true } : associate(children, generated)
   return (
     <div className={'sd-row' + (stack ? ' sd-stack' : '')}>
       <div className="sd-label">
-        {htmlFor ? <label htmlFor={htmlFor}><Highlighted text={label} /></label> : <span><Highlighted text={label} /></span>}
+        {field.linked ? <label htmlFor={controlId}><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</label> : <span><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</span>}
         {hint && <small><Highlighted text={hint} /></small>}
       </div>
-      <div className="sd-control">{children}</div>
+      <div className="sd-control">
+        {changed && onReset && <button type="button" className="sd-row-reset" aria-label={resetLabel} onClick={onReset}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" /></button>}
+        {field.node}
+      </div>
     </div>
   )
 }
 
-export function Toggle({ label, checked, onChange, disabled = false }: { label: string; checked: boolean; onChange: (value: boolean) => void; disabled?: boolean }) {
+export function Toggle({ label, checked, onChange, disabled = false, changed, onReset, resetLabel }: { label: string; checked: boolean; onChange: (value: boolean) => void; disabled?: boolean } & RowState) {
   const id = useId()
-  return <Row label={label} htmlFor={id}><input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} /></Row>
+  return <Row label={label} htmlFor={id} changed={changed} onReset={onReset} resetLabel={resetLabel}><input id={id} type="checkbox" checked={checked} disabled={disabled} onChange={event => onChange(event.target.checked)} /></Row>
 }
 
 const fill = (value: number, min: number, max: number) => ({ '--fill': `${((value - min) / (max - min)) * 100}%` }) as CSSProperties
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
-type RangeProps = { label: string; value: number; min: number; max: number; step?: number; unit?: string; t: Translate; hint?: string; onChange: (value: number) => void }
+type RangeProps = { label: string; value: number; min: number; max: number; step?: number; unit?: string; t: Translate; hint?: string; onChange: (value: number) => void } & RowState
 
 /** Slider paired with a numeric field; typing a value commits on Enter or blur and is clamped to the range. */
-export function RangeField({ label, value, min, max, step = 1, unit = '', t, hint, onChange }: RangeProps) {
+export function RangeField({ label, value, min, max, step = 1, unit = '', t, hint, onChange, changed = false, onReset, resetLabel }: RangeProps) {
   const id = useId()
   const hintId = `${id}-hint`
   const [local, setLocal] = useState(value)
@@ -62,7 +89,8 @@ export function RangeField({ label, value, min, max, step = 1, unit = '', t, hin
   return (
     <div className="sd-row sd-range">
       <div className="sd-range-head">
-        <label className="sd-label" htmlFor={id}><Highlighted text={label} /></label>
+        <label className="sd-label" htmlFor={id}><Highlighted text={label} />{changed && <span className="sd-dot" aria-hidden="true" />}</label>
+        {changed && onReset && <button type="button" className="sd-row-reset" aria-label={resetLabel} onClick={onReset}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" /></button>}
         <span className="sd-number">
           <input
             type="number" inputMode="decimal" min={min} max={max} step={step} value={text}
@@ -90,7 +118,7 @@ export function RangeField({ label, value, min, max, step = 1, unit = '', t, hin
 }
 
 /** Colour swatch plus an editable hex value. */
-export function ColorField({ label, value, t, onChange }: { label: string; value: string; t: Translate; onChange: (value: string) => void }) {
+export function ColorField({ label, value, t, onChange, changed, onReset, resetLabel }: { label: string; value: string; t: Translate; onChange: (value: string) => void } & RowState) {
   const id = useId()
   const [text, setText] = useState(value)
   useEffect(() => setText(value), [value])
@@ -99,7 +127,7 @@ export function ColorField({ label, value, t, onChange }: { label: string; value
     if (HEX.test(next)) { if (next.toLowerCase() !== value) onChange(next.toLowerCase()) } else setText(value)
   }
   return (
-    <Row label={label} htmlFor={id}>
+    <Row label={label} htmlFor={id} changed={changed} onReset={onReset} resetLabel={resetLabel}>
       <span className="sd-color">
         <input id={id} type="color" value={value} onChange={event => onChange(event.target.value.toLowerCase())} />
         <input

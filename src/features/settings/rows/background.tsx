@@ -1,10 +1,11 @@
 import { Minus, Plus, Trash2 } from 'lucide-react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { RANGES } from '../../../core/schema/defaults'
+import { DEFAULT_GRADIENT_ANGLE, RANGES } from '../../../core/schema/defaults'
 import type { ProfileV2 } from '../../../core/schema/profile'
 import type { MessageKey } from '../../../i18n'
 import { ColorField, RangeField, Row, Segmented } from '../controls'
 import { FilePicker } from '../FilePicker'
+import { backgroundDefaults } from '../rowDefaults'
 import { colorsFor } from '../themeApi'
 import { touch, type Ctx, type Item } from './shared'
 
@@ -26,7 +27,7 @@ export function parsePosition(position: string): { named?: string; x: number; y:
   return match ? { x: Math.min(100, Math.max(0, Number(match[1]))), y: Math.min(100, Math.max(0, Number(match[2]))) } : { x: 50, y: 50 }
 }
 
-const GRADIENT_DEFAULT_ANGLE = 135
+const GRADIENT_DEFAULT_ANGLE = DEFAULT_GRADIENT_ANGLE
 
 export function backgroundItems(ctx: Ctx): Item[] {
   const { t, profile, mode, change } = ctx
@@ -34,6 +35,8 @@ export function backgroundItems(ctx: Ctx): Item[] {
   const image = bg.image
   const video = bg.video
   const colors = colorsFor(profile.theme, mode)
+  const fallback = ctx.defaults ? backgroundDefaults(ctx.defaults) : null
+  const resetLabel = (label: MessageKey) => t('settings.resetRow', { label: t(label) })
   const setBackground = (update: (background: ProfileV2['background']) => ProfileV2['background']) => change(p => touch({ ...p, background: update(p.background) }))
   const setImage = (changes: Partial<NonNullable<ProfileV2['background']['image']>>) => setBackground(b => b.image ? { ...b, image: { ...b.image, ...changes } } : b)
   const setVideo = (changes: Partial<NonNullable<ProfileV2['background']['video']>>) => setBackground(b => b.video ? { ...b, video: { ...b.video, ...changes } } : b)
@@ -48,6 +51,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
   const angle = bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE
   const setStops = (next: string[]) => setBackground(b => ({ ...b, gradient: { angle: b.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE, stops: next } }))
   const position = parsePosition(image?.position ?? 'center')
+  const defaultPosition = parsePosition(fallback?.image.position ?? 'center')
   const setExact = (x: number, y: number) => setImage({ position: `${x}% ${y}%` })
   /** Pointer moves on the preview write the same exact position the sliders write. */
   const moveFocal = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -56,9 +60,9 @@ export function backgroundItems(ctx: Ctx): Item[] {
     const y = Math.round(Math.min(100, Math.max(0, (event.clientY - rect.top) / rect.height * 100)))
     setExact(x, y)
   }
-  const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string; hint?: MessageKey } = {}): Item => ({
+  const imageRange = (id: string, label: MessageKey, value: number, bounds: { min: number; max: number }, set: (value: number) => void, extra: { step?: number; unit?: string; hint?: MessageKey } = {}, fallbackValue?: number): Item => ({
     id, group: 'settings.imageGroup', keys: [label],
-    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} hint={extra.hint ? t(extra.hint) : undefined} onChange={set} />,
+    node: <RangeField t={t} label={t(label)} value={value} min={bounds.min} max={bounds.max} {...extra} hint={extra.hint ? t(extra.hint) : undefined} changed={fallbackValue !== undefined && value !== fallbackValue} onReset={fallbackValue !== undefined ? () => set(fallbackValue) : undefined} resetLabel={resetLabel(label)} onChange={set} />,
   })
   const uploadHint = bg.type === 'image' && !image ? <p className="sd-hint">{t('settings.imageNone')}</p> : null
   const items: Item[] = [
@@ -90,7 +94,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
             ))}
           </div>
           {mode === 'light' && <p className="sd-hint">{t('settings.gradientDarkOnly')}</p>}
-          <RangeField t={t} label={t('settings.gradientAngle')} value={angle} min={0} max={360} unit="°" onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
+          <RangeField t={t} label={t('settings.gradientAngle')} value={angle} min={0} max={360} unit="°" changed={!!fallback && angle !== fallback.gradientAngle} onReset={fallback ? () => setBackground(b => ({ ...b, gradient: { angle: fallback.gradientAngle, stops: b.gradient?.stops ?? stops } })) : undefined} resetLabel={resetLabel('settings.gradientAngle')} onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
           {stops.map((stop, index) => (
             <div className="sd-stop" key={index}>
               <ColorField t={t} label={t('settings.gradientStop', { n: index + 1 })} value={stop} onChange={value => setStops(stops.map((item, i) => i === index ? value : item))} />
@@ -117,7 +121,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
     })
   }
   items.push(
-    { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} hint={t('settings.hint.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
+    { id: 'dim', keys: ['settings.overlay'], node: <RangeField t={t} label={t('settings.overlay')} hint={t('settings.hint.overlay')} value={bg.dim} min={RANGES.dim.min} max={RANGES.dim.max} unit="%" changed={!!fallback && bg.dim !== fallback.dim} onReset={fallback ? () => setBackground(b => ({ ...b, dim: fallback.dim })) : undefined} resetLabel={resetLabel('settings.overlay')} onChange={dim => setBackground(b => ({ ...b, dim }))} /> },
   )
   if (bg.type === 'image' && bg.rotation) items.push({
     id: 'wallpaper-rotation', keys: ['settings.wallpaperRotation', 'settings.rotationOpen', 'settings.rotationHour', 'settings.rotationDay'],
@@ -127,10 +131,10 @@ export function backgroundItems(ctx: Ctx): Item[] {
   })
   if (image) {
     items.push(
-      imageRange('blur', 'settings.blur', image.blur, RANGES.blur, blur => setImage({ blur }), { unit: 'px' }),
-      imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }),
-      imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×', hint: 'settings.hint.imageScale' }),
-      imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%', hint: 'settings.hint.vignette' }),
+      imageRange('blur', 'settings.blur', image.blur, RANGES.blur, blur => setImage({ blur }), { unit: 'px' }, fallback?.image.blur),
+      imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }, fallback?.image.grayscale),
+      imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×', hint: 'settings.hint.imageScale' }, fallback?.image.scale),
+      imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%', hint: 'settings.hint.vignette' }, fallback?.image.vignette),
       {
         id: 'focal', group: 'settings.imageGroup', keys: ['settings.focal', 'settings.focalX', 'settings.focalY', ...NAMED_POSITIONS.map(([, key]) => key)],
         node: (
@@ -145,12 +149,12 @@ export function backgroundItems(ctx: Ctx): Item[] {
                 <span className="sd-focal-crosshair" style={{ left: `${position.x}%`, top: `${position.y}%` }} />
               </div>
             )}
-            <Row label={t('settings.focal')} stack>
+            <Row label={t('settings.focal')} stack changed={!!fallback && (position.x !== defaultPosition.x || position.y !== defaultPosition.y)} onReset={fallback ? () => setImage({ position: fallback.image.position }) : undefined} resetLabel={resetLabel('settings.focal')}>
               <Segmented label={t('settings.focal')} columns={3} value={position.named ?? ''} onChange={value => setImage({ position: value })}
                 options={NAMED_POSITIONS.map(([value, key]) => ({ value, label: t(key) }))} />
             </Row>
-            <RangeField t={t} label={t('settings.focalX')} value={position.x} min={0} max={100} unit="%" onChange={x => setExact(x, position.y)} />
-            <RangeField t={t} label={t('settings.focalY')} value={position.y} min={0} max={100} unit="%" onChange={y => setExact(position.x, y)} />
+            <RangeField t={t} label={t('settings.focalX')} value={position.x} min={0} max={100} unit="%" changed={!!fallback && position.x !== defaultPosition.x} onReset={fallback ? () => setExact(defaultPosition.x, position.y) : undefined} resetLabel={resetLabel('settings.focalX')} onChange={x => setExact(x, position.y)} />
+            <RangeField t={t} label={t('settings.focalY')} value={position.y} min={0} max={100} unit="%" changed={!!fallback && position.y !== defaultPosition.y} onReset={fallback ? () => setExact(position.x, defaultPosition.y) : undefined} resetLabel={resetLabel('settings.focalY')} onChange={y => setExact(position.x, y)} />
           </div>
         ),
       },
@@ -158,8 +162,8 @@ export function backgroundItems(ctx: Ctx): Item[] {
   }
   if (video) {
     items.push(
-      imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }),
-      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }),
+      imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }, fallback?.video.blur),
+      imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }, fallback?.video.grayscale),
     )
   }
   return items

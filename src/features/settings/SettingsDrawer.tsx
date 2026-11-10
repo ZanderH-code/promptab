@@ -1,6 +1,6 @@
 import { Braces, ChevronLeft, Database, Eye, Sparkles, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import type { Settings } from '../../core/model'
 import type { ProfileV2 } from '../../core/schema/profile'
@@ -9,6 +9,7 @@ import type { ChangeKind } from '../../store/history'
 import type { ProfileStore } from '../../store/profile'
 import '../../styles/settings.css'
 import { SearchTermsContext } from './searchHighlight'
+import { useConfirm } from './ConfirmDialog'
 import { TABS, itemsFor, type Ctx, type Item, type TabId } from './rows'
 import { RESETTABLE, defaultProfile, resetSection, type ResettableTab } from './sectionDefaults'
 
@@ -97,6 +98,8 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const [query, setQuery] = useState('')
   const [layoutDrafts, setLayoutDrafts] = useState<NonNullable<Ctx['layoutDrafts']>>({})
   const [movedWidgets, setMovedWidgets] = useState<string[]>([])
+  const [widgetCards, setWidgetCards] = useState<Record<string, boolean>>({})
+  const [defaultsProfile, setDefaultsProfile] = useState<ProfileV2 | null>(null)
   const gridSignature = (value: ProfileV2) => JSON.stringify([value.meta.id, value.layout.areas, value.layout.columns, value.layout.rows, value.layout.breakpoints])
   const currentGrid = gridSignature(profile)
   const previousGrid = useRef(currentGrid)
@@ -109,6 +112,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     }
   }, [currentGrid])
   const drawer = useRef<HTMLElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
   const peekButton = useRef<HTMLButtonElement>(null)
   const peekHandle = useRef<HTMLButtonElement>(null)
@@ -116,6 +120,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const wide = useSyncExternalStore(subscribeWide, isWide, () => false)
   const compact = useSyncExternalStore(subscribeCompact, isCompact, () => false)
   const [peeked, setPeeked] = useState(false)
+  const { confirm, dialog } = useConfirm()
   const searching = query.trim() !== ''
   const terms = useMemo(() => query.toLocaleLowerCase().split(/\s+/).filter(Boolean), [query])
   /** Why an item matched when no query term is in its visible labels: the hidden words or the section name. */
@@ -128,6 +133,13 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     return terms.some(term => sectionName.toLocaleLowerCase().includes(term)) ? [sectionName] : []
   }
 
+  // Rows compare against the default profile, so it loads once per language.
+  useEffect(() => {
+    let live = true
+    void defaultProfile(s.language).then(profile => { if (live) setDefaultsProfile(profile) })
+    return () => { live = false }
+  }, [s.language])
+
   // Focus moves into the drawer on open and returns to whatever opened it on close.
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -135,6 +147,9 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     return () => { if (opener?.isConnected) opener.focus() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // A newly selected section starts at the top instead of inheriting the previous section's offset.
+  useLayoutEffect(() => { if (panel.current) panel.current.scrollTop = 0 }, [tab])
 
   // Follows the legacy anchors when the app asks an open drawer for another section.
   useEffect(() => { if (initialSection) setTab(initialTab(initialSection)) }, [initialSection])
@@ -173,10 +188,17 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const ctx: Ctx = {
     t, s, searching, wallpaperUrl, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
     change: (update, kind) => onProfileChange(update, kind),
-    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets, onEnterEditMode,
+    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets, widgetCards, onWidgetCardsChange: setWidgetCards, defaults: defaultsProfile, onEnterEditMode,
   }
 
   const restore = async (target: ResettableTab) => {
+    const accepted = await confirm({
+      title: t('settings.restoreSection'),
+      body: t('settings.restoreScope', { section: t(TAB_LABELS[target]) }),
+      confirmLabel: t('settings.restoreSection'),
+      cancelLabel: t('common.cancel'),
+    })
+    if (!accepted) return
     const fresh = await defaultProfile(s.language)
     onProfileChange(profile => resetSection(profile, fresh, target), 'reset')
   }
@@ -186,7 +208,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     return visible.map(id => ({ id, items: itemsFor(id, ctx) }))
     // ctx is rebuilt each render from the props listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searching, tab, s, profile, t, store, layoutDrafts, movedWidgets])
+  }, [searching, tab, s, profile, t, store, layoutDrafts, movedWidgets, widgetCards, defaultsProfile])
 
   const results = searching
     ? sections.map(section => ({
@@ -283,7 +305,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
               </SearchTermsContext.Provider>
             </div>
           ) : (
-            <Tabs.Content value={tab} className="sd-panel">
+            <Tabs.Content ref={panel} value={tab} className="sd-panel">
               <header className="sd-section-head">
                 <div>
                   <h3 className="sd-section-title">{t(TAB_LABELS[tab])}</h3>
@@ -302,6 +324,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
           )}
         </Tabs.Root>
       </aside>
+      {dialog}
       {peeked && (
         <button ref={peekHandle} type="button" className="sd-peek-handle" aria-label={t('settings.peekRestore')} title={t('settings.peekRestore')} onClick={() => setPeeked(false)}>
           <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />

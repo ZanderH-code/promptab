@@ -28,6 +28,21 @@ export const DEFAULT_CONTENT_WIDTH = 960
 export const DEFAULT_GAP = 24
 /** Wallpaper shade, matches the legacy overlay default. */
 export const DEFAULT_DIM = 35
+/** Neutral wallpaper adjustments applied on upload and when one media row resets. */
+export const DEFAULT_MEDIA = { blur: RANGES.blur.min, grayscale: RANGES.grayscale.min, scale: 1, vignette: RANGES.vignette.min, position: 'center' } as const
+/** Angle a gradient starts with when the background type switches to gradient. */
+export const DEFAULT_GRADIENT_ANGLE = 135
+/** The implicit look of a layout area before any area style is stored. */
+export const DEFAULT_AREA_STYLE = { background: 'surface', opacity: 100, blur: RANGES.blur.min, padding: 0, bleed: false, align: 'center-center', border: 0 } as const
+/** Defaults for the optional widget common props. */
+export const DEFAULT_WIDGET = { size: 1, align: 'center' } as const
+/** Clock props the renderer implies when the profile leaves them out. */
+export const DEFAULT_CLOCK = { hours: true, minutes: true, seconds: false, hour12: false, separator: ':', spacing: 0 } as const
+/** Date props the renderer implies when the profile leaves them out. */
+export const DEFAULT_DATE = { weekday: true, day: true, month: true, year: true, ordinal: false, uppercase: false, weekNumber: false, weekdayStyle: 'long', monthStyle: 'long', separator: ' ' } as const
+export const DEFAULT_DATE_ORDER = ['weekday', 'month', 'day', 'year'] as const
+/** Bookmarks widget props the renderer implies when the profile leaves them out. */
+export const DEFAULT_BOOKMARKS = { style: 'tile', source: 'all', showGroupTitles: true, iconColor: 'per-site' } as const
 
 export const DARK_COLORS = { bg: '#102932', text: '#eeeae5', accent: '#90d5cd' } as const
 export const LIGHT_COLORS = { bg: '#eeeae4', text: '#302d29' } as const

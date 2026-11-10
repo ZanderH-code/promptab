@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import type { Widget } from '../../../core/schema/profile'
 import { requestWeatherPermission, searchWeatherCities, type WeatherCity } from '../../../core/weather'
 import { weatherText, type WeatherMessage } from '../../../core/weatherMessages'
@@ -9,6 +9,7 @@ type WeatherWidget = Extract<Widget, { type: 'weather' }>
 type Props = { ctx: Ctx; widget: WeatherWidget; patch: (updates: Record<string, unknown>) => void }
 
 export function WeatherSettings({ ctx, widget, patch }: Props) {
+  const cityId = useId()
   const [query, setQuery] = useState(widget.props.currentLocation ? weatherText(ctx.s.language, 'currentLocation') : widget.props.city ?? '')
   useEffect(() => { if (widget.props.currentLocation) setQuery(weatherText(ctx.s.language, 'currentLocation')) }, [ctx.s.language, widget.props.currentLocation])
   const [cities, setCities] = useState<WeatherCity[]>([])
@@ -55,9 +56,9 @@ export function WeatherSettings({ ctx, widget, patch }: Props) {
 
   return <div className="sd-note" data-testid="weather-settings">
     <p>{message('privacyHint')}</p>
-    <Row label={message('city')} stack>
+    <Row label={message('city')} stack htmlFor={cityId}>
       <div className="sd-widget-actions">
-        <input className="sd-input" maxLength={100} value={query} aria-label={message('city')} onChange={event => setQuery(event.target.value)} />
+        <input id={cityId} className="sd-input" maxLength={100} value={query} aria-label={message('city')} onChange={event => setQuery(event.target.value)} />
         <button className="sd-button" type="button" disabled={busy} onClick={() => void search()}>{message('searchCity')}</button>
         <button className="sd-button" type="button" disabled={busy} onClick={useCurrentLocation}>{message('useLocation')}</button>
       </div>

@@ -3,6 +3,7 @@ import { useStore } from 'zustand'
 import type { StoreApi } from 'zustand/vanilla'
 import type { Language, Translate } from '../../i18n'
 import type { ProfileStore } from '../../store/profile'
+import { useConfirm } from './ConfirmDialog'
 
 export type ProfileSectionProps = { store: StoreApi<ProfileStore>; t: Translate; language: Language }
 
@@ -11,6 +12,7 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(false)
   const [previewId, setPreviewId] = useState<string | null>(null)
+  const { confirm, dialog } = useConfirm()
   const ownedPreview = useRef<ProfileStore['preview']>(null)
   useEffect(() => () => {
     if (ownedPreview.current && store.getState().preview === ownedPreview.current) store.getState().clearPreview()
@@ -61,8 +63,8 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
       <div className="backup-actions">
         <button type="button" className="reset" disabled={busy || !initialized || !active} onClick={create}>{t('profile.new')}</button>
         <button type="button" className="reset" disabled={busy || !initialized || !active} onClick={rename}>{t('profile.rename')}</button>
-        <button type="button" className="reset" disabled={busy || !initialized || Object.keys(profiles).length <= 1} onClick={() => {
-          if (active && window.confirm(t('profile.confirmDelete', { name: profileName(active) }))) {
+        <button type="button" className="reset" disabled={busy || !initialized || Object.keys(profiles).length <= 1} onClick={async () => {
+          if (active && await confirm({ title: t('profile.confirmDelete', { name: profileName(active) }), confirmLabel: t('profile.delete'), cancelLabel: t('common.cancel'), danger: true })) {
             clearPreview()
             void run(() => store.getState().deleteProfile(activeProfileId))
           }
@@ -84,8 +86,8 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
             if (previewId === snapshot.id) clearPreview()
             else { store.getState().setPreview(activeProfileId, snapshot.profile); ownedPreview.current = store.getState().preview; setPreviewId(snapshot.id) }
           }}>{t(previewId === snapshot.id ? 'profile.stopPreview' : 'profile.preview')}</button>{' '}
-          <button type="button" disabled={busy || !initialized} onClick={() => {
-            if (window.confirm(t('profile.confirmRestore'))) {
+          <button type="button" disabled={busy || !initialized} onClick={async () => {
+            if (await confirm({ title: t('profile.confirmRestore'), confirmLabel: t('profile.restore'), cancelLabel: t('common.cancel') })) {
               clearPreview()
               void run(() => store.getState().restoreSnapshot(activeProfileId, snapshot.id))
             }
@@ -94,6 +96,7 @@ export function ProfileSection({ store, t, language }: ProfileSectionProps) {
         </li>)}
       </ul>}
       {error && <p role="alert">{t('profile.error')}</p>}
+      {dialog}
     </section>
   )
 }

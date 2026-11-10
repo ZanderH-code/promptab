@@ -259,6 +259,8 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd .sd-primary:hover { border-color: var(--mnt-accent); filter: brightness(1.06); }
 .sd-ai { display: grid; gap: var(--mnt-space-4); }
 .sd-ai-step { display: grid; gap: var(--mnt-space-2); padding-top: var(--mnt-space-3); border-top: 1px solid var(--mnt-border); }
+.sd-ai-step > summary { cursor: pointer; }
+.sd-ai-step > summary h3 { display: inline; }
 .sd-ai-step h3 { margin: 0; font-size: var(--mnt-text-sm); font-weight: 600; }
 .sd .sd-code.sd-ai-request { min-height: 0; white-space: pre-wrap; font-family: inherit; }
 .sd-ai-notice { align-self: center; font-size: var(--mnt-text-xs); color: var(--mnt-accent); }
@@ -287,3 +289,33 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-file-button { max-width: 100%; text-align: left; white-space: normal; }
 .sd-file-name { color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); overflow-wrap: anywhere; }
 .sd-range-hint { flex-basis: 100%; margin: 2px 0 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-xs); line-height: 1.5; }
+
+/* Widget cards: a header visibility switch, a native disclosure and its rows. */
+.sd-widget-card { position: relative; border-top: 1px solid var(--mnt-border); }
+.sd-widget-card:first-child { border-top: 0; }
+.sd-widget-switch { position: relative; z-index: 2; pointer-events: none; }
+.sd-widget-switch .sd-row { min-height: 44px; margin: 0; justify-content: flex-end; }
+.sd-widget-switch .sd-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sd-widget-switch input { pointer-events: auto; }
+.sd-widget-details > summary { position: absolute; top: 0; left: 0; right: 44px; height: 44px; display: flex; align-items: center; gap: var(--mnt-space-2); padding: 0 var(--mnt-space-2) 0 var(--mnt-space-3); list-style: none; cursor: pointer; font-size: var(--mnt-text-md); }
+.sd-widget-details > summary::-webkit-details-marker { display: none; }
+.sd-widget-details > summary::marker { content: ''; }
+.sd-widget-details > summary svg { margin-left: auto; color: var(--mnt-text-muted); transition: transform var(--mnt-dur-fast) var(--mnt-ease); }
+.sd-widget-details[open] > summary svg { transform: rotate(180deg); }
+.sd-widget-details > summary:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: -2px; border-radius: var(--mnt-radius); }
+.sd-widget-card-body { padding: 0 0 var(--mnt-space-2); }
+.sd-widget-card-plain > .sd-row { min-height: 44px; margin: 0; }
+
+/* Changed rows: an accent dot and a reset button. */
+.sd-dot { display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: var(--mnt-accent); vertical-align: middle; }
+.sd-row-reset { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--mnt-text-muted); cursor: pointer; }
+.sd-row-reset:hover { color: var(--mnt-text); background: var(--mnt-surface-hover); }
+.sd-row-reset:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 1px; }
+@media (pointer: coarse) { .sd-row-reset { width: 44px; height: 44px; } }
+
+/* One confirmation dialog for every destructive settings action. */
+.sd-confirm { width: min(440px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: var(--mnt-surface); color: var(--mnt-text); box-shadow: var(--mnt-elev-3); }
+.sd-confirm::backdrop { background: var(--mnt-overlay); }
+.sd-confirm h2 { margin: 0 0 8px; font-size: 16px; }
+.sd-confirm-body { color: var(--mnt-text-muted); font-size: 13px; line-height: 1.5; }
+.sd-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
