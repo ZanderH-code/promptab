@@ -1308,13 +1308,26 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
 
   const cards = page.locator('.sd-widget-card')
   await expect(cards).toHaveCount(4)
-  // One visibility switch and one disclosure per card; default rows keep the cards closed.
-  for (const id of ['widget-clock', 'widget-date', 'showSearch', 'widget-shortcuts']) {
+  // Clock and date keep their disclosure; default rows keep it closed.
+  for (const id of ['widget-clock', 'widget-date']) {
     const card = page.locator(`[data-widget-card="${id}"]`)
     await expect(card.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
     await expect(card.locator('summary')).toHaveAttribute('aria-expanded', 'false')
   }
+  // Search and shortcuts only have a header switch: no summary and no chevron.
+  const searchCard = page.locator('[data-widget-card="showSearch"]')
+  const shortcutsCard = page.locator('[data-widget-card="widget-shortcuts"]')
+  for (const card of [searchCard, shortcutsCard]) {
+    await expect(card).toHaveClass(/sd-widget-card-plain/)
+    await expect(card.locator('input[type=checkbox]')).toHaveCount(1)
+    await expect(card.locator('summary')).toHaveCount(0)
+    await expect(card.locator('svg')).toHaveCount(0)
+  }
   await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
+  // Tab moves straight from one plain switch to the next card.
+  await searchCard.locator('input[type=checkbox]').focus()
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => document.activeElement?.closest('[data-widget-card]')?.getAttribute('data-widget-card'))).toBe('widget-shortcuts')
 
   // One click opens the clock card; its header switch hides the clock and the card stays open.
   const clockCard = page.locator('[data-widget-card="widget-clock"]')
@@ -1347,9 +1360,10 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
   await dateCard.locator('.sd-widget-switch input[type=checkbox]').click()
   await expect(page.locator('[data-widget="date"]')).toHaveCount(0)
   await expect(dateCard.locator('summary')).toHaveAttribute('aria-expanded', 'true')
-  const searchCard = page.locator('[data-widget-card="showSearch"]')
-  await searchCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await searchCard.locator('input[type=checkbox]').click()
   await expect(page.locator('[data-widget="search"]')).toHaveCount(0)
+  await shortcutsCard.locator('input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="bookmarks"]')).toHaveCount(0)
 
   // Open state survives leaving and re-entering the section within the same drawer.
   await page.getByRole('tab', { name: 'Background', exact: true }).click()

@@ -31,6 +31,12 @@ function WidgetFormatPreview({ type, props, language }: { type: 'clock' | 'date'
 function WidgetCard({ id, title, checked, onChange, defaultOpen, ctx, children }: {
   id: string; title: string; checked: boolean; onChange: (value: boolean) => void; defaultOpen: boolean; ctx: Ctx; children: ReactNode
 }) {
+  // A card with no rows is only its header switch; an empty disclosure would just look broken.
+  if (children === null || children === undefined) return (
+    <div className="sd-widget-card sd-widget-card-plain" data-widget-card={id}>
+      <Toggle label={title} checked={checked} onChange={onChange} />
+    </div>
+  )
   const open = ctx.searching === true || (ctx.widgetCards?.[id] ?? defaultOpen)
   const bodyId = `${id}-body`
   return (

@@ -302,3 +302,4 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-widget-details[open] > summary svg { transform: rotate(180deg); }
 .sd-widget-details > summary:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: -2px; border-radius: var(--mnt-radius); }
 .sd-widget-card-body { padding: 0 0 var(--mnt-space-2); }
+.sd-widget-card-plain > .sd-row { min-height: 44px; margin: 0; }
