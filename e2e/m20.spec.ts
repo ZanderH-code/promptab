@@ -8,7 +8,7 @@ test('date week number follows the selected week start', async ({ page }) => {
   await page.locator('.settings-button').click()
   await openTab(page, 'widgets')
   await page.locator('[data-widget-card="widget-date"] summary').click()
-  const weekNumber = page.getByLabel('Show week number')
+  const weekNumber = page.getByRole('checkbox', { name: 'Show week number', exact: true })
   await weekNumber.click()
   await expect(weekNumber).toBeChecked()
   await page.getByRole('combobox', { name: 'Week starts on' }).click()
