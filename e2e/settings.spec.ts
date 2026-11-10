@@ -1822,3 +1822,55 @@ test('confirm dialog returns focus and keeps Tab inside', async ({ page }) => {
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
 })
+
+test('a newly selected settings section starts at the top', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  const panel = page.locator('.sd-panel')
+  const scrollTop = () => panel.evaluate(element => element.scrollTop)
+  const toBottom = async () => {
+    await panel.evaluate(element => { element.scrollTop = element.scrollHeight })
+    await expect.poll(scrollTop).toBeGreaterThan(0)
+  }
+  const firstItem = panel.locator('.sd-item').first()
+
+  // Clicking a rail tab replaces a scrolled section with one that starts at its first row.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await toBottom()
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  await expect.poll(scrollTop).toBe(0)
+  await expect(firstItem).toBeInViewport()
+
+  // The same happens when the rail moves the selection with the arrow keys.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await toBottom()
+  await page.keyboard.press('ArrowDown')
+  await expect(page.getByRole('tab', { name: 'Widgets', exact: true })).toHaveAttribute('aria-selected', 'true')
+  await expect.poll(scrollTop).toBe(0)
+  await expect(firstItem).toBeInViewport()
+
+  // At 390 px the horizontal rail keeps its selected tab in view, starts the panel at the top,
+  // and the page itself never scrolls sideways.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await toBottom()
+  await page.getByRole('tab', { name: 'Websites', exact: true }).click()
+  await expect.poll(scrollTop).toBe(0)
+  await expect(firstItem).toBeInViewport()
+  const railBox = await page.locator('.sd-rail').boundingBox()
+  const tabBox = await page.getByRole('tab', { name: 'Websites', exact: true }).boundingBox()
+  expect(railBox).not.toBeNull()
+  expect(tabBox).not.toBeNull()
+  expect(tabBox!.x).toBeGreaterThanOrEqual(railBox!.x - 1)
+  expect(tabBox!.x + tabBox!.width).toBeLessThanOrEqual(railBox!.x + railBox!.width + 1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  expect(errors).toEqual([])
+})

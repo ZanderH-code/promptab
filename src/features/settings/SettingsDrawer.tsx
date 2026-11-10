@@ -1,6 +1,6 @@
 import { Braces, ChevronLeft, Database, Eye, Sparkles, Image, Info, LayoutGrid, Link, Palette, RotateCcw, Search, SearchX, Blocks, X, type LucideIcon } from 'lucide-react'
 import * as Tabs from '@radix-ui/react-tabs'
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import type { StoreApi } from 'zustand/vanilla'
 import type { Settings } from '../../core/model'
 import type { ProfileV2 } from '../../core/schema/profile'
@@ -112,6 +112,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     }
   }, [currentGrid])
   const drawer = useRef<HTMLElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
   const peekButton = useRef<HTMLButtonElement>(null)
   const peekHandle = useRef<HTMLButtonElement>(null)
@@ -146,6 +147,9 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     return () => { if (opener?.isConnected) opener.focus() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // A newly selected section starts at the top instead of inheriting the previous section's offset.
+  useLayoutEffect(() => { if (panel.current) panel.current.scrollTop = 0 }, [tab])
 
   // Follows the legacy anchors when the app asks an open drawer for another section.
   useEffect(() => { if (initialSection) setTab(initialTab(initialSection)) }, [initialSection])
@@ -301,7 +305,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
               </SearchTermsContext.Provider>
             </div>
           ) : (
-            <Tabs.Content value={tab} className="sd-panel">
+            <Tabs.Content ref={panel} value={tab} className="sd-panel">
               <header className="sd-section-head">
                 <div>
                   <h3 className="sd-section-title">{t(TAB_LABELS[tab])}</h3>
