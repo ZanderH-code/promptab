@@ -15,7 +15,7 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 ### Changed
 
 - Starter sites load only for the first-run migration, reclaiming about 5.6 KB of startup JavaScript.
-- Startup JavaScript is 475,798 bytes raw / 151,263 gzip, under the unchanged 480,000-byte budget.
+- Startup JavaScript is 475,816 bytes raw / 151,265 gzip, under the unchanged 480,000-byte budget.
 - No new permissions are requested.
 
 ## [0.16.0]

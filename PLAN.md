@@ -2,7 +2,7 @@
 
 ## Release status — 0.16.1
 
-The new-tab first-paint (flash) work is done in 0.16.1. Six commits on `fix/first-paint`: measurement harness `caf701f`, profile paint cache `3512861`, starter-site lazy load `c2fcc55`, static onboarding card `2a7cfdf`, cached first render `29eb01b`, wallpaper preview `ca4958f`.
+The new-tab first-paint (flash) work is done in 0.16.1. Seven commits on `fix/first-paint`: measurement harness `caf701f`, profile paint cache `3512861`, starter-site lazy load `c2fcc55`, static onboarding card `2a7cfdf`, cached first render `29eb01b`, wallpaper preview `ca4958f`, recovery screen `f38e1be`.
 
 Publishing 0.16.1 is held: the live Edge store is 0.13.1 and 0.13.2 is still in certification. Merge 0.16.1 now and fold it into the next store submission after 0.13.2 clears. The 0.16.0 settings UX overhaul is included in this release.
 

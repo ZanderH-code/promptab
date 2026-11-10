@@ -45,7 +45,7 @@ All executable extension code is packaged. Promptab does not fetch or execute re
 ## 精简版 publish_notes
 
 ```text
-Returning new tabs paint from the last saved profile with no loading screen, the onboarding card renders with the first grid, and image wallpapers show a cached preview at first paint before the full image replaces it. Starter sites load only for the first-run migration, keeping startup JavaScript at 475,798 bytes raw, under the unchanged 480 KB budget. No new permissions or data collection. All executable code is packaged. CSP: script-src 'self'; object-src 'none'; font-src 'self' data: blob:
+Returning new tabs paint from the last saved profile with no loading screen, the onboarding card renders with the first grid, and image wallpapers show a cached preview at first paint before the full image replaces it. Starter sites load only for the first-run migration, keeping startup JavaScript at 475,816 bytes raw, under the unchanged 480 KB budget. No new permissions or data collection. All executable code is packaged. CSP: script-src 'self'; object-src 'none'; font-src 'self' data: blob:
 ```
 
 Character count: **498**
@@ -62,7 +62,7 @@ No data-use change. The new caches stay in the browser's local storage for this 
 
 ## Startup
 
-Measured startup JavaScript with the 0.16.1 build: **475,798 bytes raw** (gzip 151,263), under the unchanged 480,000-byte budget. This is 1,096 bytes more than F2b (474,702) and 2,830 bytes less than 0.16.0 (478,628).
+Measured startup JavaScript with the 0.16.1 build: **475,816 bytes raw** (gzip 151,265), under the unchanged 480,000-byte budget. This is 1,114 bytes more than F2b (474,702) and 2,812 bytes less than 0.16.0 (478,628).
 
 ## Release steps and status
 
