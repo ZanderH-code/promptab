@@ -1,5 +1,4 @@
 import { defaults, type Settings } from '../core/model'
-import { STARTER_SITES } from '../core/starter-sites'
 import { migrateV1 } from '../core/migrate/v1'
 import { parseProfileV2, type ProfileV2 } from '../core/schema/profile'
 import { createHistory, type History } from '../store/history'
@@ -75,7 +74,11 @@ async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnap
     add: blob => assets.add(blob),
     wallpaper,
   })
-  if (fresh) profile.bookmarks.groups[0].items = structuredClone(STARTER_SITES)
+  if (fresh) {
+    // Starter sites are only needed for the first-run migration; keep them out of the startup bundle.
+    const { STARTER_SITES } = await import('../core/starter-sites')
+    profile.bookmarks.groups[0].items = structuredClone(STARTER_SITES)
+  }
   const snapshot = validateSnapshot(await profiles.write({ profiles: { activeProfileId: profile.meta.id, profiles: { [profile.meta.id]: profile } }, history: createHistory<ProfileV2>() }, null))
   if (fresh && typeof localStorage !== 'undefined') {
     try {
