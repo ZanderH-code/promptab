@@ -9,6 +9,7 @@ import { createAssetLibrary } from '../storage/assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, PROFILE_INDEX_KEY } from '../storage/profiles'
 import { extensionApi } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
+import { writePaintCache } from './paintCache'
 import type { SavedTheme } from '../core/themes/library'
 
 export const assets = createAssetLibrary()
@@ -164,7 +165,7 @@ export function useSettings() {
       .catch(error => console.warn('Asset session unavailable', error))
       .then(() => bootstrap({ backend, profiles: persistence, assets, defaultSettings: __WEB_BUILD__ ? { ...defaults, language: 'en' } : defaults })).then(async snapshot => {
       const initial = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
-      const next = createProfileStore({ persistence, initialProfile: initial, onExternalRefresh: () => setUndoNotice(false) })
+      const next = createProfileStore({ persistence, initialProfile: initial, onCommit: writePaintCache, onExternalRefresh: () => setUndoNotice(false) })
       await next.getState().initialize()
       if (!alive) return
       const sync = () => {

@@ -49,7 +49,7 @@ export interface ProfileStore {
   importCollection(incoming: ImportCollection): Promise<void>
 }
 
-type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string; onExternalRefresh?: () => void }
+type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string; onExternalRefresh?: () => void; onCommit?: (state: Committed, revision: number | null) => void }
 export type Committed = Pick<ProfileStore, 'profiles' | 'activeProfileId' | 'history' | 'archived'>
 
 function validateProfile(value: unknown, id?: string): ProfileV2 {
@@ -156,6 +156,7 @@ export function createProfileStore(options: Options) {
       // An in-session undo would restore a whole stale profile and erase the other tab's change.
       undos.clear()
       set({ ...committed, revision: saved.revision, draft: null, preview: null })
+      options.onCommit?.(committed, saved.revision)
       options.onExternalRefresh?.()
     }
     const isRevisionConflict = (error: unknown) => error instanceof Error && error.message === 'Profile revision conflict'
@@ -187,6 +188,7 @@ export function createProfileStore(options: Options) {
       }
       if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision returned by persistence')
       set({ ...next, revision: saved.revision })
+      options.onCommit?.({ ...next }, saved.revision)
       after?.()
     }
     // A functional update re-runs on the freshly read state; a write built from stale state must not.
@@ -218,8 +220,13 @@ export function createProfileStore(options: Options) {
         const saved = await options.persistence.read()
         if (saved) {
           if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision')
-          set({ ...validateStored(saved.profiles, saved.history), revision: saved.revision, initialized: true })
-        } else set({ initialized: true })
+          const committed = validateStored(saved.profiles, saved.history)
+          set({ ...committed, revision: saved.revision, initialized: true })
+          options.onCommit?.(committed, saved.revision)
+        } else {
+          set({ initialized: true })
+          options.onCommit?.(current(), null)
+        }
       }),
       refresh: () => enqueue(adoptExternal),
       updateProfile: update,
