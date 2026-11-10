@@ -462,6 +462,7 @@ describe('SettingsDrawer restore defaults', () => {
     custom.bookmarks.groups[0].name = 'Mine'
     const props = setup({ profile: custom })
     fireEvent.click(screen.getByRole('button', { name: 'Restore section defaults' }))
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Restore section defaults' }))
     await waitFor(() => expect(props.onProfileChange).toHaveBeenCalled())
     const { next, kind } = lastUpdate({ ...props, profile: custom } as ReturnType<typeof setup>)
     expect(kind).toBe('reset')
@@ -476,14 +477,21 @@ describe('SettingsDrawer restore defaults', () => {
     expect(screen.queryByRole('button', { name: 'Restore section defaults' })).toBeNull()
   })
 
-  it('confirms before the full reset', () => {
+  it('confirms before the full reset', async () => {
     const props = setup()
     fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+    const native = vi.spyOn(window, 'confirm')
     fireEvent.click(screen.getByRole('button', { name: 'Reset settings' }))
+    const dialog = screen.getByRole('alertdialog')
+    expect(within(dialog).getByText(/Resets this profile/)).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(props.onReset).not.toHaveBeenCalled()
+    // jsdom does not focus a clicked button, so focus returns to the theme tab; reopen the section.
+    fireEvent.click(screen.getByRole('tab', { name: 'Backup & import' }))
     fireEvent.click(screen.getByRole('button', { name: 'Reset settings' }))
-    expect(props.onReset).toHaveBeenCalledTimes(1)
-    confirm.mockRestore()
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Reset settings' }))
+    await waitFor(() => expect(props.onReset).toHaveBeenCalledTimes(1))
+    expect(native).not.toHaveBeenCalled()
+    native.mockRestore()
   })
 })

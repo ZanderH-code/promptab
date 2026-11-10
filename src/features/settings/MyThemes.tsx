@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { applyPack } from '../../core/ai/apply'
 import { MAX_SAVED_THEMES, type SavedTheme } from '../../core/themes/library'
 import { createAppThemeLibrary } from '../../app/useSettings'
+import { useConfirm } from './ConfirmDialog'
 import type { Ctx } from './rows/shared'
 
 export function MyThemes({ ctx }: { ctx: Ctx }) {
   const [themes, setThemes] = useState<SavedTheme[]>([])
   const [busy, setBusy] = useState(false)
+  const { confirm, dialog } = useConfirm()
   const library = createAppThemeLibrary()
   const refresh = () => library.read().then(setThemes).catch(() => ctx.onError({ key: 'error.loadSettings' }))
   useEffect(() => { void refresh() }, [])
@@ -28,7 +30,7 @@ export function MyThemes({ ctx }: { ctx: Ctx }) {
   }
 
   async function remove(theme: SavedTheme) {
-    if (!confirm(ctx.t('themes.deleteConfirm', { name: theme.name }))) return
+    if (!(await confirm({ title: ctx.t('themes.deleteConfirm', { name: theme.name }), confirmLabel: ctx.t('themes.delete'), cancelLabel: ctx.t('common.cancel'), danger: true }))) return
     try { await library.remove(theme.id); await refresh() }
     catch { ctx.onError({ key: 'themes.saveFailed' }) }
   }
@@ -60,5 +62,6 @@ export function MyThemes({ ctx }: { ctx: Ctx }) {
         <button type="button" className="sd-button" onClick={() => exportTheme(theme)}>{ctx.t('themes.export')}</button>
       </div>
     </li>)}</ul>
+    {dialog}
   </section>
 }

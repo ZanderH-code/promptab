@@ -9,6 +9,7 @@ import type { ChangeKind } from '../../store/history'
 import type { ProfileStore } from '../../store/profile'
 import '../../styles/settings.css'
 import { SearchTermsContext } from './searchHighlight'
+import { useConfirm } from './ConfirmDialog'
 import { TABS, itemsFor, type Ctx, type Item, type TabId } from './rows'
 import { RESETTABLE, defaultProfile, resetSection, type ResettableTab } from './sectionDefaults'
 
@@ -118,6 +119,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const wide = useSyncExternalStore(subscribeWide, isWide, () => false)
   const compact = useSyncExternalStore(subscribeCompact, isCompact, () => false)
   const [peeked, setPeeked] = useState(false)
+  const { confirm, dialog } = useConfirm()
   const searching = query.trim() !== ''
   const terms = useMemo(() => query.toLocaleLowerCase().split(/\s+/).filter(Boolean), [query])
   /** Why an item matched when no query term is in its visible labels: the hidden words or the section name. */
@@ -186,6 +188,13 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   }
 
   const restore = async (target: ResettableTab) => {
+    const accepted = await confirm({
+      title: t('settings.restoreSection'),
+      body: t('settings.restoreScope', { section: t(TAB_LABELS[target]) }),
+      confirmLabel: t('settings.restoreSection'),
+      cancelLabel: t('common.cancel'),
+    })
+    if (!accepted) return
     const fresh = await defaultProfile(s.language)
     onProfileChange(profile => resetSection(profile, fresh, target), 'reset')
   }
@@ -311,6 +320,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
           )}
         </Tabs.Root>
       </aside>
+      {dialog}
       {peeked && (
         <button ref={peekHandle} type="button" className="sd-peek-handle" aria-label={t('settings.peekRestore')} title={t('settings.peekRestore')} onClick={() => setPeeked(false)}>
           <ChevronLeft size={18} strokeWidth={1.5} aria-hidden="true" />

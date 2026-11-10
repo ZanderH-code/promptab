@@ -310,3 +310,10 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-row-reset:hover { color: var(--mnt-text); background: var(--mnt-surface-hover); }
 .sd-row-reset:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 1px; }
 @media (pointer: coarse) { .sd-row-reset { width: 44px; height: 44px; } }
+
+/* One confirmation dialog for every destructive settings action. */
+.sd-confirm { width: min(440px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: var(--mnt-surface); color: var(--mnt-text); box-shadow: var(--mnt-elev-3); }
+.sd-confirm::backdrop { background: var(--mnt-overlay); }
+.sd-confirm h2 { margin: 0 0 8px; font-size: 16px; }
+.sd-confirm-body { color: var(--mnt-text-muted); font-size: 13px; line-height: 1.5; }
+.sd-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }

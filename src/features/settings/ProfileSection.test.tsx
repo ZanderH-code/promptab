@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, cleanup } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, cleanup, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import type { ProfileStore } from '../../store/profile'
@@ -28,8 +28,8 @@ describe('ProfileSection', () => {
     await waitFor(() => expect(actions.createProfile).toHaveBeenCalledWith(expect.objectContaining({ meta: expect.objectContaining({ name: 'New profile' }) })))
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
     await waitFor(() => expect(actions.renameProfile).toHaveBeenCalledWith('a', 'Renamed'))
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Delete' }))
     await waitFor(() => expect(actions.deleteProfile).toHaveBeenCalledWith('a'))
   })
 
@@ -45,8 +45,8 @@ describe('ProfileSection', () => {
     const actions = setup()
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
     expect(actions.setPreview).toHaveBeenCalledWith('a', profile)
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     fireEvent.click(screen.getByRole('button', { name: 'Restore' }))
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Restore' }))
     await waitFor(() => expect(actions.restoreSnapshot).toHaveBeenCalledWith('a', 's1'))
     fireEvent.click(screen.getByRole('button', { name: 'Pin' }))
     await waitFor(() => expect(actions.pinSnapshot).toHaveBeenCalledWith('a', 's1', true))

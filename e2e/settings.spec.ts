@@ -1413,6 +1413,7 @@ test('changed rows show a dot and reset to their default', async ({ page }) => {
   await expect(page.locator('.sd-dot').first()).toBeVisible()
   expect(await page.locator('.sd-dot').count()).toBeGreaterThan(3)
   await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Restore section defaults', exact: true }).click()
   await expect(page.locator('.sd-dot')).toHaveCount(0)
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
@@ -1578,6 +1579,7 @@ test('layout rows show a dot and reset to their defaults', async ({ page }) => {
 
   // Restoring the section clears every mark.
   await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Restore section defaults', exact: true }).click()
   await expect(page.locator('.sd-dot')).toHaveCount(0)
   await expect(width).toHaveValue('960')
   await expect(opacity).toHaveValue('100')
@@ -1665,6 +1667,81 @@ test('shortcut, search and widget rows show a dot and reset to their defaults', 
   await expect(size).toHaveValue('1')
   await expect(sizeRow.locator('.sd-dot')).toHaveCount(0)
 
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})
+
+test('settings resets use one accessible confirmation dialog', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.evaluate(() => {
+    const state = window as Window & { __confirms?: number }
+    state.__confirms = 0
+    window.confirm = () => { state.__confirms = (state.__confirms ?? 0) + 1; return false }
+  })
+  const storedWidth = () => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem(`profiles:v2:generation:${index.generation}`)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].layout.contentWidth as number
+  })
+
+  // A changed Layout value gives the section reset something to restore.
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  const width = page.getByRole('spinbutton', { name: 'Content width value', exact: true })
+  await width.fill('1200')
+  await width.press('Enter')
+  await expect.poll(storedWidth).toBe(1200)
+  const restore = page.getByRole('button', { name: 'Restore section defaults', exact: true })
+
+  // Section restore: scope copy, Cancel focused, Esc and Cancel change nothing.
+  await restore.click()
+  const dialog = page.getByRole('alertdialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText('Restores Areas & grid to its defaults. Other sections, websites and uploaded media stay.', { exact: true })).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await page.screenshot({ path: `${SHOTS}/reset-dialog.png` })
+  const openScan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(openScan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(page.locator('.drawer.sd')).toBeVisible()
+  expect(await storedWidth()).toBe(1200)
+  await restore.click()
+  await dialog.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  expect(await storedWidth()).toBe(1200)
+
+  // Confirm applies the scoped reset and the existing undo toast restores the previous profile.
+  await restore.click()
+  await dialog.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(storedWidth).toBe(960)
+  const toast = page.locator('.undo-toast')
+  await expect(toast).toBeVisible()
+  await toast.locator('button').click()
+  await expect.poll(storedWidth).toBe(1200)
+
+  // The global reset uses the same dialog and the same undo path.
+  await page.getByRole('tab', { name: 'Backup & import', exact: true }).click()
+  await page.getByRole('button', { name: 'Reset settings', exact: true }).click()
+  await expect(dialog).toBeVisible()
+  await expect(dialog.getByText(/Resets this profile’s theme, background, layout, widgets, websites, search and custom CSS/)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
+  await dialog.getByRole('button', { name: 'Reset settings', exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(storedWidth).toBe(960)
+  await expect(toast).toBeVisible()
+  await toast.locator('button').click()
+  await expect.poll(storedWidth).toBe(1200)
+
+  expect(await page.evaluate(() => (window as Window & { __confirms?: number }).__confirms)).toBe(0)
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
 

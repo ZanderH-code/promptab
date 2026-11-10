@@ -1,6 +1,8 @@
 import { RotateCcw } from 'lucide-react'
 import { lazy, Suspense } from 'react'
+import type { Translate } from '../../../i18n'
 import { ProfileSection } from '../ProfileSection'
+import { useConfirm } from '../ConfirmDialog'
 import { countUnchangedStarterSites, removeUnchangedStarterSites } from '../../../core/starter-sites'
 import type { Ctx, Item } from './shared'
 
@@ -8,6 +10,16 @@ const BackupSection = lazy(() => import('../BackupSection').then(module => ({ de
 const BrowserBookmarkImport = lazy(() => import('../BrowserBookmarkImport').then(module => ({ default: module.BrowserBookmarkImport })))
 const NightTabImport = lazy(() => import('../NightTabImport').then(module => ({ default: module.NightTabImport })))
 const InfinityImport = lazy(() => import('../InfinityImport').then(module => ({ default: module.InfinityImport })))
+
+function ResetAllButton({ t, onReset }: { t: Translate; onReset: () => void }) {
+  const { confirm, dialog } = useConfirm()
+  return <>
+    <button type="button" className="sd-button sd-danger" onClick={async () => {
+      if (await confirm({ title: t('settings.confirmReset'), body: t('settings.resetAllScope'), confirmLabel: t('settings.reset'), cancelLabel: t('common.cancel'), danger: true })) onReset()
+    }}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.reset')}</button>
+    {dialog}
+  </>
+}
 
 export function dataItems(ctx: Ctx): Item[] {
   const { t, s, store, onError, onReset } = ctx
@@ -20,7 +32,7 @@ export function dataItems(ctx: Ctx): Item[] {
     ...(countUnchangedStarterSites(ctx.profile) ? [{ id: 'remove-starters', keys: ['settings.removeStarterSites'] as Item['keys'], node: <button type="button" className="sd-button" onClick={() => ctx.change(removeUnchangedStarterSites, 'import')}>{t('settings.removeStarterSites')}</button> }] : []),
     {
       id: 'reset-all', keys: ['settings.reset'],
-      node: <button type="button" className="sd-button sd-danger" onClick={() => { if (confirm(t('settings.confirmReset'))) onReset() }}><RotateCcw size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.reset')}</button>,
+      node: <ResetAllButton t={t} onReset={onReset} />,
     },
   ]
 }

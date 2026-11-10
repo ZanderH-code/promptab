@@ -11,6 +11,7 @@ export const en: Record<BaseMessageKey, string> = {
 
   'common.close': 'Close',
   'common.cancel': 'Cancel',
+  'common.continue': 'Continue',
   'common.edit': 'Edit',
   'common.custom': 'Custom',
 
@@ -298,6 +299,8 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.import': 'Import backup',
   'settings.reset': 'Reset settings',
   'settings.confirmReset': 'Reset all settings?',
+  'settings.resetAllScope': 'Resets this profile’s theme, background, layout, widgets, websites, search and custom CSS. The profile name and history stay.',
+  'settings.restoreScope': 'Restores {section} to its defaults. Other sections, websites and uploaded media stay.',
   'settings.tabs': 'Settings sections',
   'settings.group.look': 'Look',
   'settings.group.layout': 'Layout',

@@ -6,6 +6,7 @@ import { createBackupV2Service, type ImportAnalysis } from '../../storage/backup
 import type { BackupProfileSelection } from '../../core/backup-v2'
 import { assets } from '../../app/useSettings'
 import { createAppProfileStorage, createAppThemeLibrary, type AppProfileStore } from '../../app/useSettings'
+import { useConfirm } from './ConfirmDialog'
 import { SyncSection } from './SyncSection'
 
 type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean; store?: AppProfileStore }
@@ -17,6 +18,7 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
   const [pending, setPending] = useState<{ json: string; analysis: ImportAnalysis; revision: number | null } | null>(null)
   const [selection, setSelection] = useState<BackupProfileSelection & { savedThemes: boolean }>({ bookmarks: true, appearance: true, layout: true, savedThemes: true, settings: true })
   const [undoState, setUndoState] = useState<{ id: string; revision: number | null } | null>(null)
+  const { confirm, dialog } = useConfirm()
   const revision = store?.getState().revision ?? null
 
   async function exportFile() {
@@ -26,7 +28,7 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
       const { persistence } = createAppProfileStorage()
       const json = await createBackupV2Service({ profiles: persistence, assets, themes: createAppThemeLibrary() }).exportBackup()
       const size = new Blob([json]).size / (1024 * 1024)
-      if (size >= 10 && !confirm(t('backup.largeExport', { size: size.toFixed(1) }))) return
+      if (size >= 10 && !(await confirm({ title: t('backup.largeExport', { size: size.toFixed(1) }), confirmLabel: t('common.continue'), cancelLabel: t('common.cancel') }))) return
       const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
       const link = document.createElement('a')
       link.href = url
@@ -86,22 +88,20 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
       const wallpaper = analysis.format === 1
         ? t(JSON.parse(json).wallpaper ? 'backup.withWallpaper' : 'backup.withoutWallpaper')
         : t(hasWallpaper(json) ? 'backup.withWallpaper' : 'backup.withoutWallpaper')
-      const accepted = confirm(t('backup.confirmImport', {
-        count,
-        wallpaper,
-        date: new Date(exportedAt(json)).toLocaleString(settings.language),
+      const summary = {
         added: analysis.incoming.filter(item => !analysis.retained.includes(item.id)).length,
         retained: analysis.retained.length,
         archived: analysis.archived.length,
         restored: analysis.restored.length,
         assets: analysis.assetCount,
-      }) + (analysis.format === 2 ? `\n${t('backup.importSummary', {
-        added: analysis.incoming.filter(item => !analysis.retained.includes(item.id)).length,
-        retained: analysis.retained.length,
-        archived: analysis.archived.length,
-        restored: analysis.restored.length,
-        assets: analysis.assetCount,
-      })}` : ''))
+      }
+      const accepted = await confirm({
+        title: t('backup.confirmImport', { count, wallpaper, date: new Date(exportedAt(json)).toLocaleString(settings.language), ...summary }),
+        body: analysis.format === 2 ? t('backup.importSummary', summary) : undefined,
+        confirmLabel: t('common.continue'),
+        cancelLabel: t('common.cancel'),
+        danger: true,
+      })
       if (!accepted) return
       if (recovery) {
         await persistence.recover()
@@ -156,6 +156,7 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
         {status && <p role="status">{t(status)} {undoState && <button type="button" disabled={busy} onClick={() => void undoRestore()}>{t('undo.action')}</button>}</p>}
       </section>
       {!recovery && <SyncSection settings={settings} store={store} />}
+      {dialog}
     </>
   )
 }
