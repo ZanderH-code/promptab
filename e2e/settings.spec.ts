@@ -1674,6 +1674,7 @@ test('shortcut, search and widget rows show a dot and reset to their defaults', 
 })
 
 test('settings resets use one accessible confirmation dialog', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(String(error)))
@@ -1926,6 +1927,7 @@ test('settings row labels focus or open their controls', async ({ page }) => {
 })
 
 test('AI steps fold and open with a reply', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
   const errors: string[] = []
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
   page.on('pageerror', error => errors.push(String(error)))
