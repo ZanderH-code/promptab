@@ -1376,3 +1376,45 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
 
   expect(errors).toEqual([])
 })
+
+test('changed rows show a dot and reset to their default', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+
+  // A changed row gains an accent dot and a reset button; reset returns to the schema default.
+  const row = page.locator('.sd-row').filter({ has: page.getByText('Max columns', { exact: true }) }).first()
+  const reset = row.getByRole('button', { name: 'Reset Max columns to its default', exact: true })
+  const value = row.getByRole('spinbutton', { name: 'Max columns value', exact: true })
+  await expect(row.locator('.sd-dot')).toHaveCount(0)
+  await expect(reset).toHaveCount(0)
+  await value.fill('4')
+  await value.press('Enter')
+  await expect(row.locator('.sd-dot')).toHaveCount(1)
+  await expect(reset).toBeVisible()
+  await reset.click()
+  await expect(value).toHaveValue('6')
+  await expect(row.locator('.sd-dot')).toHaveCount(0)
+  // The reset is one undo step; undoing it brings the changed value back.
+  await page.keyboard.press('Control+z')
+  await expect(value).toHaveValue('4')
+  await expect(row.locator('.sd-dot')).toHaveCount(1)
+
+  // Applying a theme preset marks every changed theme row; restoring the section clears them.
+  await page.getByRole('tab', { name: 'Theme', exact: true }).click()
+  await page.getByRole('button', { name: 'Paper', exact: true }).click()
+  await expect(page.locator('.sd-dot').first()).toBeVisible()
+  expect(await page.locator('.sd-dot').count()).toBeGreaterThan(3)
+  await page.getByRole('button', { name: 'Restore section defaults', exact: true }).click()
+  await expect(page.locator('.sd-dot')).toHaveCount(0)
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})

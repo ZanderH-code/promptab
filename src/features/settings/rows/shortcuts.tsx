@@ -1,6 +1,7 @@
 import type { MessageKey } from '../../../i18n'
 import { RangeField, Row, Toggle } from '../controls'
 import { Highlighted } from '../searchHighlight'
+import { maxColumnsDefault } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 export function shortcutsItems(ctx: Ctx): Item[] {
@@ -18,7 +19,8 @@ export function shortcutsItems(ctx: Ctx): Item[] {
     row('source', ['settings.bookmarkSource', 'settings.bookmarkAll'], <Row label={t('settings.bookmarkSource')}><Select ctx={ctx} label={t('settings.bookmarkSource')} value={widget.props.source ?? 'all'} options={[{ value: 'all', label: t('settings.bookmarkAll') }, ...profile.bookmarks.groups.map(group => ({ value: group.id, label: group.builtinName ? t('builtin.quickLinks') : group.name }))]} onChange={source => patch({ source })} /></Row>)
     row('titles', ['settings.bookmarkTitles'], <Toggle label={t('settings.bookmarkTitles')} checked={widget.props.showGroupTitles !== false} onChange={showGroupTitles => patch({ showGroupTitles })} />)
     row('icon-color', ['settings.bookmarkIconAccent'], <Toggle label={t('settings.bookmarkIconAccent')} checked={widget.props.iconColor === 'accent'} onChange={enabled => patch({ iconColor: enabled ? 'accent' : 'per-site' })} />)
-    row('columns', ['settings.columns'], <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={widget.props.maxColumns ?? s.columns} min={2} max={10} step={1} onChange={maxColumns => patch({ maxColumns })} />)
+    const columnsDefault = ctx.defaults ? maxColumnsDefault(ctx.defaults) : undefined
+    row('columns', ['settings.columns'], <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={widget.props.maxColumns ?? s.columns} min={2} max={10} step={1} changed={columnsDefault !== undefined && (widget.props.maxColumns ?? s.columns) !== columnsDefault} onReset={columnsDefault !== undefined ? () => patch({ maxColumns: columnsDefault }) : undefined} resetLabel={t('settings.resetRow', { label: t('settings.columns') })} onChange={maxColumns => patch({ maxColumns })} />)
   }
   return items
 }

@@ -98,6 +98,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const [layoutDrafts, setLayoutDrafts] = useState<NonNullable<Ctx['layoutDrafts']>>({})
   const [movedWidgets, setMovedWidgets] = useState<string[]>([])
   const [widgetCards, setWidgetCards] = useState<Record<string, boolean>>({})
+  const [defaultsProfile, setDefaultsProfile] = useState<ProfileV2 | null>(null)
   const gridSignature = (value: ProfileV2) => JSON.stringify([value.meta.id, value.layout.areas, value.layout.columns, value.layout.rows, value.layout.breakpoints])
   const currentGrid = gridSignature(profile)
   const previousGrid = useRef(currentGrid)
@@ -128,6 +129,13 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     const sectionName = t(TAB_LABELS[section])
     return terms.some(term => sectionName.toLocaleLowerCase().includes(term)) ? [sectionName] : []
   }
+
+  // Rows compare against the default profile, so it loads once per language.
+  useEffect(() => {
+    let live = true
+    void defaultProfile(s.language).then(profile => { if (live) setDefaultsProfile(profile) })
+    return () => { live = false }
+  }, [s.language])
 
   // Focus moves into the drawer on open and returns to whatever opened it on close.
   useEffect(() => {
@@ -174,7 +182,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const ctx: Ctx = {
     t, s, searching, wallpaperUrl, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
     change: (update, kind) => onProfileChange(update, kind),
-    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets, widgetCards, onWidgetCardsChange: setWidgetCards, onEnterEditMode,
+    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets, widgetCards, onWidgetCardsChange: setWidgetCards, defaults: defaultsProfile, onEnterEditMode,
   }
 
   const restore = async (target: ResettableTab) => {
@@ -187,7 +195,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     return visible.map(id => ({ id, items: itemsFor(id, ctx) }))
     // ctx is rebuilt each render from the props listed here.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searching, tab, s, profile, t, store, layoutDrafts, movedWidgets, widgetCards])
+  }, [searching, tab, s, profile, t, store, layoutDrafts, movedWidgets, widgetCards, defaultsProfile])
 
   const results = searching
     ? sections.map(section => ({

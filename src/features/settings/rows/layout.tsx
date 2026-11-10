@@ -9,6 +9,7 @@ import type { MessageKey } from '../../../i18n'
 import { weatherText } from '../../../core/weatherMessages'
 import { ColorField, RangeField, Row, Toggle } from '../controls'
 import { AreaGridPreview } from '../AreaGridPreview'
+import { maxColumnsDefault } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
@@ -20,6 +21,7 @@ function AreaBleedToggle({ label, checked, onChange }: { label: string; checked:
 
 export function layoutItems(ctx: Ctx): Item[] {
   const { t, s, profile, change, patch } = ctx
+  const columnsDefault = ctx.defaults ? maxColumnsDefault(ctx.defaults) : undefined
   const choice = (id: string, label: MessageKey, value: string, options: [string, MessageKey][], set: (value: string) => void): Item => ({
     id, keys: [label, ...options.map(([, key]) => key)],
     node: <Row label={t(label)}><Select ctx={ctx} label={t(label)} value={value} onChange={set} options={options.map(([v, key]) => ({ value: v, label: t(key) }))} /></Row>,
@@ -211,7 +213,7 @@ export function layoutItems(ctx: Ctx): Item[] {
     choice('alignment', 'settings.alignment', s.alignment, [['center', 'settings.alignCenter'], ['left', 'settings.alignLeft']], value => patch({ alignment: value as Settings['alignment'] })),
     { id: 'content-width', keys: ['settings.contentWidth'], node: <RangeField t={t} label={t('settings.contentWidth')} value={profile.layout.contentWidth} min={RANGES.contentWidth.min} max={RANGES.contentWidth.max} step={10} unit="px" onChange={contentWidth => change(p => touch({ ...p, layout: { ...p.layout, contentWidth } }))} /> },
     { id: 'gap', keys: ['settings.gap'], node: <RangeField t={t} label={t('settings.gap')} value={profile.layout.gap} min={RANGES.gap.min} max={RANGES.gap.max} unit="px" onChange={gap => change(p => touch({ ...p, layout: { ...p.layout, gap } }))} /> },
-    { id: 'columns', keys: ['settings.columns'], node: <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={s.columns} min={2} max={10} onChange={columns => patch({ columns })} /> },
+    { id: 'columns', keys: ['settings.columns'], node: <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={s.columns} min={2} max={10} changed={columnsDefault !== undefined && s.columns !== columnsDefault} onReset={columnsDefault !== undefined ? () => patch({ columns: columnsDefault }) : undefined} resetLabel={t('settings.resetRow', { label: t('settings.columns') })} onChange={columns => patch({ columns })} /> },
     { id: 'icon-size', keys: ['settings.iconSize'], node: <RangeField t={t} label={t('settings.iconSize')} value={s.iconSize} min={40} max={120} unit="px" onChange={iconSize => patch({ iconSize })} /> },
     choice('icon-shape', 'settings.iconShape', s.iconShape, [['circle', 'settings.shapeCircle'], ['rounded', 'settings.shapeRounded'], ['square', 'settings.shapeSquare']], value => patch({ iconShape: value as Settings['iconShape'] })),
   ]

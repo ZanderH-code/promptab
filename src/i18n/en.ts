@@ -198,6 +198,7 @@ export const en: Record<BaseMessageKey, string> = {
   'settings.hint.grayscale': 'Removes colour from the image.',
   'settings.hint.imageScale': 'Scales the image inside its frame.',
   'settings.hint.maxColumns': 'Sets how many shortcuts fit on one row.',
+  'settings.resetRow': 'Reset {label} to its default',
   'settings.wallpaperRemove': 'Remove wallpaper',
   'settings.widgets': 'Widgets',
   'settings.addProductivityWidget': 'Add productivity widget',

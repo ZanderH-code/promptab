@@ -198,6 +198,7 @@ export const zhCN = {
   'settings.hint.grayscale': '去除图片的颜色。',
   'settings.hint.imageScale': '在画框内缩放图片。',
   'settings.hint.maxColumns': '设置每行可容纳的快捷方式数量。',
+  'settings.resetRow': '将“{label}”恢复为默认值',
   'settings.wallpaperRemove': '移除壁纸',
   'settings.widgets': '桌面组件',
   'settings.addProductivityWidget': '添加实用组件',
