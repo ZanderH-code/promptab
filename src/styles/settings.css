@@ -287,3 +287,18 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-file-button { max-width: 100%; text-align: left; white-space: normal; }
 .sd-file-name { color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); overflow-wrap: anywhere; }
 .sd-range-hint { flex-basis: 100%; margin: 2px 0 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-xs); line-height: 1.5; }
+
+/* Widget cards: a header visibility switch, a native disclosure and its rows. */
+.sd-widget-card { position: relative; border-top: 1px solid var(--mnt-border); }
+.sd-widget-card:first-child { border-top: 0; }
+.sd-widget-switch { position: relative; z-index: 2; pointer-events: none; }
+.sd-widget-switch .sd-row { min-height: 44px; margin: 0; justify-content: flex-end; }
+.sd-widget-switch .sd-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.sd-widget-switch input { pointer-events: auto; }
+.sd-widget-details > summary { position: absolute; top: 0; left: 0; right: 44px; height: 44px; display: flex; align-items: center; gap: var(--mnt-space-2); padding: 0 var(--mnt-space-2) 0 var(--mnt-space-3); list-style: none; cursor: pointer; font-size: var(--mnt-text-md); }
+.sd-widget-details > summary::-webkit-details-marker { display: none; }
+.sd-widget-details > summary::marker { content: ''; }
+.sd-widget-details > summary svg { margin-left: auto; color: var(--mnt-text-muted); transition: transform var(--mnt-dur-fast) var(--mnt-ease); }
+.sd-widget-details[open] > summary svg { transform: rotate(180deg); }
+.sd-widget-details > summary:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: -2px; border-radius: var(--mnt-radius); }
+.sd-widget-card-body { padding: 0 0 var(--mnt-space-2); }

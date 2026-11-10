@@ -1294,3 +1294,71 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
 
   expect(errors).toEqual([])
 })
+
+test('widget settings are grouped into collapsible cards', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-02T19:24:00Z'))
+  const errors: string[] = []
+  page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
+  page.on('pageerror', error => errors.push(String(error)))
+
+  await launch(page)
+  await page.setViewportSize({ width: 1400, height: 900 })
+  await openDrawer(page)
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+
+  const cards = page.locator('.sd-widget-card')
+  await expect(cards).toHaveCount(4)
+  // One visibility switch and one disclosure per card; default rows keep the cards closed.
+  for (const id of ['widget-clock', 'widget-date', 'showSearch', 'widget-shortcuts']) {
+    const card = page.locator(`[data-widget-card="${id}"]`)
+    await expect(card.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
+    await expect(card.locator('summary')).toHaveAttribute('aria-expanded', 'false')
+  }
+  await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
+
+  // One click opens the clock card; its header switch hides the clock and the card stays open.
+  const clockCard = page.locator('[data-widget-card="widget-clock"]')
+  const clockSummary = clockCard.locator('summary')
+  await clockSummary.click()
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await expect(clockCard.getByLabel('Show hours')).toBeVisible()
+  await clockCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="clock"]')).toHaveCount(0)
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await clockCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="clock"]')).toHaveCount(1)
+
+  // Enter and Space toggle the same disclosure; a closed card keeps its rows out of the tab order.
+  await clockSummary.focus()
+  await page.keyboard.press('Enter')
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'false')
+  await expect(clockCard.getByLabel('Show hours')).toBeHidden()
+  const hoursId = await clockCard.getByLabel('Show hours').getAttribute('id')
+  await page.keyboard.press('Tab')
+  expect(await page.evaluate(() => document.activeElement?.id)).not.toBe(hoursId)
+  await clockSummary.focus()
+  await page.keyboard.press('Space')
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await expect(clockCard.getByLabel('Show hours')).toBeVisible()
+
+  // Date and search switch the rendered page immediately, and their cards stay open.
+  const dateCard = page.locator('[data-widget-card="widget-date"]')
+  await dateCard.locator('summary').click()
+  await dateCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="date"]')).toHaveCount(0)
+  await expect(dateCard.locator('summary')).toHaveAttribute('aria-expanded', 'true')
+  const searchCard = page.locator('[data-widget-card="showSearch"]')
+  await searchCard.locator('.sd-widget-switch input[type=checkbox]').click()
+  await expect(page.locator('[data-widget="search"]')).toHaveCount(0)
+
+  // Open state survives leaving and re-entering the section within the same drawer.
+  await page.getByRole('tab', { name: 'Background', exact: true }).click()
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await expect(clockSummary).toHaveAttribute('aria-expanded', 'true')
+  await expect(dateCard.locator('summary')).toHaveAttribute('aria-expanded', 'true')
+
+  const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
+  expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
+
+  expect(errors).toEqual([])
+})

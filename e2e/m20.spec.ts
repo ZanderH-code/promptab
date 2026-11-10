@@ -7,6 +7,7 @@ test('date week number follows the selected week start', async ({ page }) => {
   await page.goto('/')
   await page.locator('.settings-button').click()
   await openTab(page, 'widgets')
+  await page.locator('[data-widget-card="widget-date"] summary').click()
   const weekNumber = page.getByLabel('Show week number')
   await weekNumber.click()
   await expect(weekNumber).toBeChecked()

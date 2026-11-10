@@ -43,6 +43,9 @@ export type Ctx = {
   onGridCommit?: (profile: ProfileV2) => void
   movedWidgets?: string[]
   onMovedWidgets?: (messages: string[]) => void
+  /** Widget cards whose open state the user has changed, keyed by card id. */
+  widgetCards?: Record<string, boolean>
+  onWidgetCardsChange?: (cards: Record<string, boolean>) => void
 }
 
 export const touch = (profile: ProfileV2): ProfileV2 => ({ ...profile, meta: { ...profile.meta, updatedAt: new Date().toISOString() } })
