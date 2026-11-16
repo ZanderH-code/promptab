@@ -4,6 +4,24 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.17.0]
+
+### Added
+
+- Importing a nightTab backup now brings its setup as well as its theme: clock parts, 12/24-hour time and separator; date parts, order, ordinal, week start and separator; greeting name and the "it's…" line; the search engine (presets, YouTube, Giphy and custom engines) and its new-tab option; layout alignment, overall size and page title; block or list bookmarks, new-tab links, lift on hover and address display; and random or cycling accent colours. Widgets nightTab hid stay hidden.
+- Settings → About → Tab title sets the text on the browser tab; leave it empty for the default.
+- Websites → Show the address on hover adds the site address under each website on hover or keyboard focus, for every bookmark style.
+
+### Fixed
+
+- nightTab bookmarks with Font Awesome brand icons (GitHub, YouTube and so on) no longer appear blank: they use the automatic website icon. Common generic icons map to the built-in set.
+- nightTab settings that cannot be imported (web wallpapers, saved nightTab themes, clocks and dates written in words) are listed as import notes instead of being dropped silently.
+
+### Changed
+
+- Startup JavaScript is 476,575 bytes raw, under the unchanged 480,000-byte budget.
+- No new permissions are requested.
+
 ## [0.16.1]
 
 ### Fixed

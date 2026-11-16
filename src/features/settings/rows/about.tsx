@@ -14,6 +14,14 @@ export function aboutItems(ctx: Ctx): Item[] {
         </Row>
       ),
     },
+    {
+      id: 'page-title', keys: ['settings.pageTitle', 'settings.hint.pageTitle'], words: ['tab', 'title', '标签页', '标题'],
+      node: (
+        <Row label={t('settings.pageTitle')} hint={t('settings.hint.pageTitle')} changed={!!profile.prefs.pageTitle} onReset={() => change(p => { const { pageTitle: _removed, ...prefs } = p.prefs; return touch({ ...p, prefs }) })} resetLabel={t('settings.resetRow', { label: t('settings.pageTitle') })}>
+          <input className="sd-input" maxLength={80} value={profile.prefs.pageTitle ?? ''} placeholder={t('app.title')} aria-label={t('settings.pageTitle')} onChange={event => { const title = event.target.value; change(p => { const { pageTitle: _removed, ...prefs } = p.prefs; return touch({ ...p, prefs: title ? { ...prefs, pageTitle: title } : prefs }) }) }} />
+        </Row>
+      ),
+    },
     { id: 'about', keys: ['settings.about', 'settings.aboutText', 'settings.intro', 'settings.privacy'], node: <div className="sd-note"><p>{t('settings.aboutText')}</p><p>{t('settings.intro')}</p><p><a href="https://zanderh-code.github.io/promptab/privacy/" target="_blank" rel="noopener noreferrer">{t('settings.privacy')}</a></p></div> },
   ]
 }

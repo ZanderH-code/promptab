@@ -1,10 +1,12 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.16.1
+## Release status — 0.17.0
 
-The new-tab first-paint (flash) work is done in 0.16.1. Seven commits on `fix/first-paint`: measurement harness `caf701f`, profile paint cache `3512861`, starter-site lazy load `c2fcc55`, static onboarding card `2a7cfdf`, cached first render `29eb01b`, wallpaper preview `ca4958f`, recovery screen `f38e1be`.
+0.17.0 completes the nightTab migration (setup, header widgets, search, layout, bookmark options and accent behaviour; brand icons resolve automatically) and adds a custom tab title and hover addresses for websites. 0.16.1 is live in Edge Add-ons; 0.17.0 is submitted from main after CI.
 
-Publishing 0.16.1 is held: the live Edge store is 0.13.1 and 0.13.2 is still in certification. Merge 0.16.1 now and fold it into the next store submission after 0.13.2 clears. The 0.16.0 settings UX overhaul is included in this release.
+Next: a usability pass over existing features (see the follow-up batch), then wide website tiles, which need the desktop drag grid to handle mixed tile sizes.
+
+0.16.1 first-paint work, seven commits on `fix/first-paint`: measurement harness `caf701f`, profile paint cache `3512861`, starter-site lazy load `c2fcc55`, static onboarding card `2a7cfdf`, cached first render `29eb01b`, wallpaper preview `ca4958f`, recovery screen `f38e1be`. The 0.16.0 settings UX overhaul shipped with it.
 
 Batch 3 commits on `feat/settings-ux-3`:
 

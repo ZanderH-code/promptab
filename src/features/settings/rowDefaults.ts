@@ -58,6 +58,7 @@ export function bookmarkDefaults(profile: ProfileV2) {
     source: props.source ?? DEFAULT_BOOKMARKS.source,
     showGroupTitles: props.showGroupTitles ?? DEFAULT_BOOKMARKS.showGroupTitles,
     iconColor: props.iconColor ?? DEFAULT_BOOKMARKS.iconColor,
+    showUrl: props.showUrl ?? false,
     maxColumns: maxColumnsDefault(profile),
   }
 }
