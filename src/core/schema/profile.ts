@@ -63,7 +63,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
-    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional(), iconColor: z.enum(['per-site', 'accent']).optional() }),
+    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional(), iconColor: z.enum(['per-site', 'accent']).optional(), showUrl: z.boolean().optional() }),
   }),
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional(), transitional: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
@@ -133,7 +133,7 @@ const wallpaperRotation = z.object({ images: z.array(asset).min(2).max(20), inte
 export const profileV2Schema = z.object({
   schemaVersion: z.literal(2),
   meta: z.object({ id: nonempty, name: nonempty, builtinName: z.literal('default-profile').optional(), createdAt: date, updatedAt: date }),
-  prefs: z.object({ language: z.enum(['system', 'zh-CN', 'en']), openIn: z.enum(['same-tab', 'new-tab']), openShortcutsInNewTab: z.boolean().default(false), openSearchInNewTab: z.boolean().default(false), keyboardShortcuts: z.boolean().default(true), accentOnOpen: z.enum(['off', 'random', 'cycle']).default('off'), liftOnHover: z.boolean().default(false), reduceMotion: z.enum(['system', 'on', 'off']), reduceTransparency: z.enum(['system', 'on', 'off']) }),
+  prefs: z.object({ language: z.enum(['system', 'zh-CN', 'en']), openIn: z.enum(['same-tab', 'new-tab']), openShortcutsInNewTab: z.boolean().default(false), openSearchInNewTab: z.boolean().default(false), keyboardShortcuts: z.boolean().default(true), accentOnOpen: z.enum(['off', 'random', 'cycle']).default('off'), liftOnHover: z.boolean().default(false), pageTitle: z.string().max(80).optional(), reduceMotion: z.enum(['system', 'on', 'off']), reduceTransparency: z.enum(['system', 'on', 'off']) }),
   theme: z.object({
     preset: nonempty.optional(), mode: z.enum(['dark', 'light', 'system']), color: baseColorsSchema, colorLight: baseColorsSchema.optional(),
     font: z.object({ display: fontRefSchema, ui: fontRefSchema }), radius: ranged(RANGES.radius), shadow: ranged(RANGES.shadow), glass: ranged(RANGES.glass),

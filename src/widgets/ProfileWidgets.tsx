@@ -104,7 +104,7 @@ export function ProfileWidgets(props: Props) {
     {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette), ...(detectTemplate(profile) === 'banner' && name === 'banner' ? { display: 'flex', paddingInline: '6%' } : {}) }}>
       {widgetsIn(profile.widgets, name).map(widget => {
         const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
-        const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} style={common}>{child}</div>
+        const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} data-show-url={widget.type === 'bookmarks' && widget.props.showUrl ? '' : undefined} style={common}>{child}</div>
         switch (widget.type) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} theme={profile.theme} custom={profile.custom} t={t} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)

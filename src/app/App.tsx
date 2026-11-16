@@ -128,8 +128,8 @@ export default function App() {
   useEffect(() => {
     if (!settings) return
     document.documentElement.lang = settings.language
-    document.title = translate(settings.language, 'app.title')
-  }, [settings?.language])
+    document.title = profile?.prefs.pageTitle?.trim() || translate(settings.language, 'app.title')
+  }, [settings?.language, profile?.prefs.pageTitle])
 
   useEffect(() => {
     if (!settings && error) {

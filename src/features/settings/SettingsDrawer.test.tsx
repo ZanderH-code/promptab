@@ -42,6 +42,15 @@ const lastUpdate = (props: ReturnType<typeof setup>) => {
 }
 
 describe('SettingsDrawer tabs', () => {
+  it('sets and clears the tab title in About', () => {
+    const props = setup({ initialSection: 'about' })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tab title' }), { target: { value: 'Studio' } })
+    expect(lastUpdate(props).next.prefs.pageTitle).toBe('Studio')
+    props.rerender({ ...base, prefs: { ...base.prefs, pageTitle: 'Studio' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tab title' }), { target: { value: '' } })
+    expect('pageTitle' in lastUpdate(props).next.prefs).toBe(false)
+  })
+
   it('edits theme variables in Appearance', () => {
     const profile: ProfileV2 = { ...base, custom: { ...base.custom, variables: [{ name: '--glow', label: { en: 'Glow', 'zh-CN': '光' }, type: 'toggle', default: 0 }], values: { '--glow': 0 } } }
     const props = setup({ profile })

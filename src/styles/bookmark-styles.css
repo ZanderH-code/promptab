@@ -13,9 +13,10 @@
   .mnt-bookmark-card .shortcut { min-height: 100px; padding: 16px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: var(--mnt-surface); }
   .mnt-bookmark-card .shortcut-icon { width: 44px; height: 44px; }
   .mnt-bookmark-icon-only .mnt-link-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .mnt-bookmark-icon-only .mnt-link { position: relative; }
-  .mnt-bookmark-icon-only .mnt-link::after { content: attr(data-link-host); position: absolute; top: calc(100% + 4px); z-index: 1; padding: 4px 7px; border-radius: 5px; background: var(--mnt-accent); color: var(--mnt-on-accent); opacity: 0; pointer-events: none; white-space: nowrap; }
-  .mnt-bookmark-icon-only .mnt-link:hover::after, .mnt-bookmark-icon-only .mnt-link:focus-visible::after { opacity: 1; }
+  /* The address bar under a link: always on hover for icon-only, and for any style when the bookmarks widget sets showUrl. */
+  :is(.mnt-bookmark-icon-only, [data-show-url]) .mnt-link { position: relative; }
+  :is(.mnt-bookmark-icon-only, [data-show-url]) .mnt-link::after { content: attr(data-link-host); position: absolute; top: calc(100% + 4px); z-index: 1; padding: 4px 7px; border-radius: 5px; background: var(--mnt-accent); color: var(--mnt-on-accent); opacity: 0; pointer-events: none; white-space: nowrap; }
+  :is(.mnt-bookmark-icon-only, [data-show-url]) .mnt-link:is(:hover, :focus-visible)::after { opacity: 1; }
   .mnt-bookmark-icon-only .mnt-link:hover { background: transparent; box-shadow: none; outline: none; }
   .mnt-bookmark-icon-only .mnt-link:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 3px; border-radius: var(--mnt-icon-radius); }
   .mnt-bookmark-list .add-shortcut { flex-direction: row; justify-content: flex-start; min-height: 56px; padding: 8px; text-align: left; }
