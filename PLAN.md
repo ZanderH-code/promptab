@@ -1,10 +1,12 @@
 # Promptab：产品与实施计划 v2
 
-## Release status — 0.17.0
+## Release status — 0.18.0
 
-0.17.0 completes the nightTab migration (setup, header widgets, search, layout, bookmark options and accent behaviour; brand icons resolve automatically) and adds a custom tab title and hover addresses for websites. 0.16.1 is live in Edge Add-ons; 0.17.0 is submitted from main after CI.
+0.18.0 is a usability pass: the website dialog (add title, focus, Escape), readable edit mode, a dismissible onboarding card, settings rows in the right sections, and one word ("websites") for the user's sites. 0.17.0 (nightTab migration, tab title, hover addresses) merged as `201cf48` but its Edge submission returned `InProgressSubmission` with 0.16.1 public, so 0.18.0 carries both batches to the store once the earlier submission clears.
 
-Next: a usability pass over existing features (see the follow-up batch), then wide website tiles, which need the desktop drag grid to handle mixed tile sizes.
+Next: wide website tiles, which need the desktop drag grid to handle mixed tile sizes.
+
+0.17.0 completes the nightTab migration (setup, header widgets, search, layout, bookmark options and accent behaviour; brand icons resolve automatically) and adds a custom tab title and hover addresses for websites.
 
 0.16.1 first-paint work, seven commits on `fix/first-paint`: measurement harness `caf701f`, profile paint cache `3512861`, starter-site lazy load `c2fcc55`, static onboarding card `2a7cfdf`, cached first render `29eb01b`, wallpaper preview `ca4958f`, recovery screen `f38e1be`. The 0.16.0 settings UX overhaul shipped with it.
 
