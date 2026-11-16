@@ -37,7 +37,7 @@ export function layoutItems(ctx: Ctx): Item[] {
   const narrow = profile.layout.breakpoints?.narrow
   const areas = areaNames(ctx.layoutDrafts?.base?.areas !== undefined ? ctx.layoutDrafts.base.areas.split('\n').map(line => line.trim()).filter(Boolean) : baseGrid.areas)
   const areaLabel = (area: string) => area === 'overview' ? t('settings.areaOverview') : area === 'bookmarks' ? t('settings.shortcuts') : area
-  const widgetLabel = (widget: ProfileV2['widgets'][number]) => widget.type === 'weather' ? weatherText(s.language, 'title') : ({ clock: t('settings.showClock'), date: t('settings.showDate'), search: t('settings.showSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar'), todo: t('widgets.todo'), note: t('widgets.note'), countdown: t('widgets.countdown') })[widget.type]
+  const widgetLabel = (widget: ProfileV2['widgets'][number]) => widget.type === 'weather' ? weatherText(s.language, 'title') : ({ clock: t('settings.widgetClock'), date: t('settings.widgetDate'), search: t('settings.widgetSearch'), bookmarks: t('settings.shortcuts'), greeting: t('settings.widgetGreeting'), text: t('settings.widgetText'), spacer: t('settings.widgetSpacer'), toolbar: t('widgets.toolbar'), todo: t('widgets.todo'), note: t('widgets.note'), countdown: t('widgets.countdown') })[widget.type]
   type GridKey = 'areas' | 'columns' | 'rows'
   const parse = (value: string) => value.split('\n').map(line => line.trim()).filter(Boolean)
   /** The area the shortcuts widget relies on: the grid editor refuses to remove it. */
@@ -143,8 +143,7 @@ export function layoutItems(ctx: Ctx): Item[] {
   })
   const widgetItems: Item[] = profile.widgets.map(widget => ({
     id: `widget-${widget.id}`, keys: ['settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.widgetEyebrow'],
-    node: <div className="sd-note"><strong>{widgetLabel(widget)}</strong>
-      <Toggle label={widget.type === 'clock' ? t('settings.showClock') : widget.type === 'date' ? t('settings.showDate') : widget.type === 'search' ? t('settings.showSearch') : widget.type === 'bookmarks' ? t('settings.shortcuts') : t('settings.widgets')} checked={!widget.hidden} onChange={visible => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, hidden: !visible } : item) }))} />
+    node: <div className="sd-note"><strong>{widgetLabel(widget)}{widget.hidden && <span className="sd-muted"> · {t('settings.widgetHidden')}</span>}</strong>
       <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areas.map(area => ({ value: area, label: areaLabel(area) }))} onChange={area => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, area } : item) }))} /></Row>
       <Row label={t('settings.widgetOrder')}><button className="sd-button" disabled={widget.order <= 0} onClick={() => widgetMove(widget.id, -1)}>↑</button><button className="sd-button" onClick={() => widgetMove(widget.id, 1)}>↓</button></Row>
       <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} changed={!!widgetFallback && (widget.props.size ?? 1) !== widgetFallback.size} onReset={widgetFallback ? () => patchWidget(widget.id, { size: widgetFallback.size }) : undefined} resetLabel={resetLabel('settings.widgetSize')} onChange={size => patchWidget(widget.id, { size })} />

@@ -1,5 +1,5 @@
 import { ArrowRight, Pencil, Plus, X } from 'lucide-react'
-import { useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { Group, ShortcutGridProps } from './ShortcutGrid'
@@ -18,7 +18,7 @@ function DropGroup({ id, children }: { id: string; children: React.ReactNode }) 
   const { setNodeRef } = useDroppable({ id: `group:${id}`, data: { groupId: id } })
   return <div ref={setNodeRef} data-drop-group={id}>{children}</div>
 }
-export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, onManageDone, t, onGroups, onEdit, onRemove, onMove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: Props) {
+export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, t, onGroups, onEdit, onRemove, onMove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const [dialog, setDialog] = useState<{ kind: 'name'; id?: string; value: string } | { kind: 'delete-group'; id: string } | { kind: 'delete-selected' } | null>(null)
@@ -29,6 +29,17 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
   )
   const dragTarget = useRef<{ id: string; startX: number; startY: number; x: number; y: number } | null>(null)
   const names = new Map(shortcuts.map(item => [item.id, item]))
+  // The edit toolbar's "Add group" asks the first bookmarks grid on the page to open its name dialog.
+  useEffect(() => {
+    if (!editing) return
+    const addGroup = (event: Event) => {
+      if (event.defaultPrevented) return
+      event.preventDefault()
+      setDialog({ kind: 'name', value: '' })
+    }
+    window.addEventListener('mnt:add-group', addGroup)
+    return () => window.removeEventListener('mnt:add-group', addGroup)
+  }, [editing])
   const update = (fn: (groups: Group[]) => Group[]) => onGroups(fn)
   const move = (ids: string[], group: string, before?: string) => update(current => moveBookmarks(current, ids, group, before))
   function dragStart({ active }: import('@dnd-kit/core').DragStartEvent) {
@@ -77,15 +88,16 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
     move(selected.includes(activeId) ? selected : [activeId], targetGroup.id, target.startsWith('group:') ? undefined : target)
   }
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
+  const hasItems = visibleGroups.some(group => group.items.length > 0)
   return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
-    {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
-    {editing && <div className="bookmark-edit-tools">
-      <button type="button" onClick={() => setDialog({ kind: 'name', value: '' })}>{t('groups.add')}</button>
-      {selected.length > 0 && <>
+    {onboarding && !hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
+    {editing && selected.length > 0 && <div className="bookmark-edit-tools">
+      <>
         <span>{t('groups.selected', { count: selected.length })}</span>
         <select aria-label={t('groups.moveSelected')} value="" onChange={event => { if (event.target.value) { move(selected, event.target.value); setSelected([]) } }}><option value="">{t('groups.moveTo')}</option>{groups.map(g => <option key={g.id} value={g.id}>{groupName(g)}</option>)}</select>
         <button type="button" onClick={() => setDialog({ kind: 'delete-selected' })}>{t('groups.deleteSelected')}</button>
-      </>}
+        <button type="button" onClick={() => setSelected([])}>{t('common.cancel')}</button>
+      </>
     </div>}
     <DndContext sensors={sensors} collisionDetection={groupAwareCollision} onDragStart={dragStart} onDragMove={dragMove} onDragEnd={dragEnd}>
       <SortableContext items={visibleGroups.flatMap(group => group.items.map(item => item.id))} strategy={rectSortingStrategy}>
@@ -102,7 +114,6 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
               {editing && <div className="shortcut-actions"><button aria-label={t('shortcuts.editNamed', { name })} onClick={() => onEdit(item)}><span className="visually-hidden">{t('common.edit')}</span><Pencil size={16} aria-hidden="true" /></button><button aria-label={t('shortcuts.moveToGroupNamed', { name: item.builtinName ? name : item.name })} onClick={() => onMove(item)}><span className="visually-hidden">{t('shortcuts.moveToGroup')}</span><ArrowRight size={16} aria-hidden="true" /></button><button aria-label={t('shortcuts.deleteNamed', { name })} onClick={() => onRemove(item)}><span className="visually-hidden">{t('shortcuts.delete')}</span><X size={16} aria-hidden="true" /></button></div>}
             </SortableShortcut> })}
           {(editing || (showAdd && group === visibleGroups[0])) && !(onboarding && group.items.length === 0) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
-          {editing && group === visibleGroups[0] && <button className="edit-done" type="button" onClick={onManageDone}>{t('groups.done')}</button>}
         </div>}
       </DropGroup>)}
       </SortableContext>
@@ -114,5 +125,6 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
       </form>
     </div>}
     {!groups.length && !onboarding && (editing || showAdd) && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
+    {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
   </div>
 }

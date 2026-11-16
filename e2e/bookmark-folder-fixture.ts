@@ -19,7 +19,7 @@ export async function seedBookmarkFolders(page: Page) {
     localStorage.setItem(key, JSON.stringify(snapshot))
   })
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Open folder Work Folder with 2 bookmarks' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Open folder Work Folder with 2 websites' })).toBeVisible()
 }
 
 export async function readBookmarkGroups(page: Page) {

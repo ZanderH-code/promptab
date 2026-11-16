@@ -5,7 +5,7 @@ import { readBookmarkGroups, seedBookmarkFolders } from './bookmark-folder-fixtu
 test('folders preserve bookmarks and support keyboard, backdrop, links, menus and accessibility', async ({ page }) => {
   await seedBookmarkFolders(page)
   const before = await readBookmarkGroups(page)
-  const opener = page.getByRole('button', { name: 'Open folder Work Folder with 2 bookmarks' })
+  const opener = page.getByRole('button', { name: 'Open folder Work Folder with 2 websites' })
   await expect(page.getByRole('link', { name: 'First Link' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Second Link' })).toHaveCount(0)
   await expect(opener).toHaveAttribute('aria-expanded', 'false')
@@ -58,7 +58,7 @@ test('folder context menu opens all of its bookmarks', async ({ page }) => {
     ;(window as Window & { __openedFolderUrls?: string[] }).__openedFolderUrls = recorded
     window.open = ((url?: string | URL) => { recorded.push(String(url)); return null }) as typeof window.open
   })
-  await page.getByRole('button', { name: 'Open folder Work Folder with 2 bookmarks' }).click({ button: 'right' })
+  await page.getByRole('button', { name: 'Open folder Work Folder with 2 websites' }).click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Open all' }).click()
   expect(await page.evaluate(() => (window as Window & { __openedFolderUrls?: string[] }).__openedFolderUrls)).toEqual(['https://example.com/second', 'https://example.com/third'])
 })
@@ -90,7 +90,7 @@ test('a very long folder name wraps without pushing the dialog outside a phone v
 test('empty folder and group actions work at a 360px viewport', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 })
   await seedBookmarkFolders(page)
-  const opener = page.getByRole('button', { name: 'Open folder Empty Folder with 0 bookmarks' })
+  const opener = page.getByRole('button', { name: 'Open folder Empty Folder with 0 websites' })
   await opener.focus()
   await page.keyboard.press('Shift+F10')
   await expect(page.getByRole('menuitem', { name: 'Open all' })).toBeVisible()

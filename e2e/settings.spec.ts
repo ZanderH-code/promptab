@@ -649,9 +649,9 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   const preview = page.locator('.sd-grid-preview')
   const blocks = preview.locator('.sd-grid-block')
   await expect(preview).toBeVisible()
-  await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
+  await expect(blocks).toHaveText(['Overview', 'Websites'])
   await expect(preview).toHaveAttribute('role', 'group')
-  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Overview, Shortcuts')
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Overview, Websites')
   // Read-only: nothing in the diagram is focusable or editable.
   await expect(preview.locator('input, textarea, select, button, [contenteditable]')).toHaveCount(0)
 
@@ -683,8 +683,8 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   await expect(page.locator('.mnt-layout')).toHaveAttribute('data-layout-template', 'split')
   await expect.poll(async () => (await geometry()).page.areas).toBe('"bookmarks overview"')
   await expect.poll(async () => (await geometry()).preview.areas).toBe('"bookmarks overview"')
-  await expect(blocks).toHaveText(['Shortcuts', 'Overview'])
-  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Shortcuts, Overview')
+  await expect(blocks).toHaveText(['Websites', 'Overview'])
+  await expect(preview).toHaveAttribute('aria-label', 'Current area grid preview: Websites, Overview')
   const split = await geometry()
   const previewWidth = await preview.evaluate(element => element.clientWidth)
   for (const area of ['bookmarks', 'overview']) {
@@ -711,7 +711,7 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
 
   await areas.fill('overview bookmarks')
   await expect.poll(async () => (await geometry()).preview.areas).toBe('"overview bookmarks"')
-  await expect(blocks).toHaveText(['Overview', 'Shortcuts'])
+  await expect(blocks).toHaveText(['Overview', 'Websites'])
 
   expect(errors).toEqual([])
 })
@@ -725,8 +725,8 @@ test('the grid preview names its areas in the current locale', async ({ page }) 
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
   const preview = page.locator('.sd-grid-preview')
   await expect(preview).toBeVisible()
-  await expect(preview.locator('.sd-grid-block')).toHaveText(['概览', '快捷方式'])
-  await expect(preview).toHaveAttribute('aria-label', '当前区域网格预览：概览、快捷方式')
+  await expect(preview.locator('.sd-grid-block')).toHaveText(['概览', '网站'])
+  await expect(preview).toHaveAttribute('aria-label', '当前区域网格预览：概览、网站')
 })
 
 test('a custom area can be renamed from the layout diagram', async ({ page }) => {
@@ -744,17 +744,17 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   const areas = page.getByRole('textbox', { name: 'Area grid' })
   await areas.fill('overview bookmarks\ntop side')
   const preview = page.locator('.sd-grid-preview')
-  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Shortcuts', 'top', 'side'])
+  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Websites', 'top', 'side'])
   await expect(preview.locator('button.sd-grid-block')).toHaveCount(2)
   await expect(preview.locator('button[data-area="overview"], button[data-area="bookmarks"]')).toHaveCount(0)
 
   // The narrow grid must know the area too: widgets may only live in areas every grid has.
   const narrowAreas = page.getByRole('textbox', { name: 'Narrow layout' })
   await narrowAreas.fill('overview\nbookmarks\nside')
-  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Shortcuts', 'top', 'side'])
+  await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Websites', 'top', 'side'])
 
   // Put a widget in the area, so the rename has to carry it across.
-  const clockItem = page.locator('.sd-note').filter({ hasText: 'Show clock' })
+  const clockItem = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Clock' }) }).first()
   await clockItem.getByRole('combobox', { name: 'Widget area' }).click()
   await page.getByRole('option', { name: 'side', exact: true }).click()
   await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
@@ -813,7 +813,7 @@ test('the preview explains which areas can be renamed', async ({ page }) => {
 
   const figure = page.locator('.sd-grid-figure')
   const hint = figure.locator('.sd-hint')
-  await expect(hint).toHaveText('Click a custom area to rename it. Overview and Shortcuts are built in.')
+  await expect(hint).toHaveText('Click a custom area to rename it. Overview and Websites are built in.')
   await expect(hint).toHaveClass(/\bsd-hint\b/)
   // It follows the diagram, outside the group that carries the diagram's name.
   expect(await figure.evaluate(element => {
@@ -832,7 +832,7 @@ test('the preview explains which areas can be renamed', async ({ page }) => {
   await page.getByRole('combobox', { name: 'Language', exact: true }).click()
   await page.getByRole('option', { name: '简体中文', exact: true }).click()
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
-  await expect(page.locator('.sd-grid-figure .sd-hint')).toHaveText('点击自定义区域即可重命名。概览和快捷方式是内置区域。')
+  await expect(page.locator('.sd-grid-figure .sd-hint')).toHaveText('点击自定义区域即可重命名。概览和网站是内置区域。')
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
@@ -1275,7 +1275,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await describe('Right accent divider', 'Draws an accent line along the right edge.')
   await describe('Bottom accent divider', 'Draws an accent line along the bottom edge.')
   await describe('Left accent divider', 'Draws an accent line along the left edge.')
-  await describe('Max columns', 'Sets how many shortcuts fit on one row.')
+  await describe('Max columns', 'Sets how many websites fit on one row.')
 
   let scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
@@ -1289,7 +1289,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await expect(page.getByRole('spinbutton', { name: '遮罩浓度的数值', exact: true }).first()).toHaveAccessibleDescription('加深内容后方的页面底色。')
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
   await describe('区域透明度', '调整区域背景在其组件后方的透明度。')
-  await describe('每行最多列数', '设置每行可容纳的快捷方式数量。')
+  await describe('每行最多列数', '设置每行最多显示的网站数量。')
 
   scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
@@ -1906,7 +1906,7 @@ test('settings row labels focus or open their controls', async ({ page }) => {
   await expect(layout).toHaveText(layoutValue ?? '')
 
   await page.getByRole('tab', { name: 'Websites', exact: true }).click()
-  for (const name of ['Website style', 'Bookmark source']) {
+  for (const name of ['Website style', 'Groups shown']) {
     const trigger = page.getByRole('combobox', { name, exact: true })
     await expect(trigger).toHaveCount(1)
     const value = await trigger.textContent()

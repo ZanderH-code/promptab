@@ -23,15 +23,14 @@
   .onboarding-actions button[data-primary] { border-color: var(--mnt-accent); background: var(--mnt-accent); color: var(--mnt-on-accent); }
   .onboarding-actions button:hover, .onboarding-actions button:focus-visible { border-color: var(--mnt-accent); background: var(--mnt-accent-soft); }
   .onboarding-actions button[data-primary]:hover, .onboarding-actions button[data-primary]:focus-visible { background: var(--mnt-accent-strong); color: var(--mnt-on-accent); }
-  .mnt-layout[data-edit-mode] .mnt-area { outline: 1px dashed var(--mnt-border-strong); outline-offset: 8px; position: relative; }
-  .mnt-layout[data-edit-mode] .mnt-area::before { content: attr(data-area); position: absolute; top: -22px; left: 0; color: var(--mnt-text-muted); font-size: 11px; }
+  .mnt-layout[data-edit-mode] .mnt-area { position: relative; }
   .shortcut-actions { position: absolute; top: 4px; right: 4px; z-index: 2; gap: 2px; padding: 3px; border-radius: 999px; background: var(--mnt-surface); box-shadow: var(--mnt-elev-1); opacity: 0; }
   .shortcut-wrap:hover .shortcut-actions, .shortcut-wrap:focus-within .shortcut-actions, .mnt-layout[data-edit-mode] .shortcut-actions { opacity: 1; }
   [data-edit-mode] .shortcut-wrap { position: relative; }
   [data-edit-mode] .shortcut-actions button { width: 28px; height: 28px; border-radius: 50%; }
   .bookmark-edit-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  /* Areas and widgets get a dashed outline only; the raw internal names (overview, search…) overlapped and meant nothing to people. */
   .mnt-layout[data-edit-mode] .mnt-widget-frame { outline: 1px dashed var(--mnt-border-strong); outline-offset: 4px; }
-  .mnt-layout[data-edit-mode] .mnt-widget-frame::after { content: attr(data-widget); position: absolute; top: -16px; left: 4px; color: var(--mnt-text-muted); font-size: 10px; }
   .mnt-productivity { width: min(100%, 420px); padding: var(--mnt-space-4); border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: color-mix(in oklch, var(--mnt-surface) 72%, transparent); color: var(--mnt-text); text-align: left; }
   .mnt-productivity h2 { margin: 0 0 var(--mnt-space-3); color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); font-weight: 500; }
   .mnt-productivity-empty { margin: 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
@@ -1198,4 +1197,46 @@
      overlay box painted a square slab behind the round icon and the label. */
   .mnt-drag-overlay[data-lifted] .shortcut-icon, .mnt-drag-ghost .shortcut-icon { box-shadow: var(--mnt-elev-2); }
   .mnt-drag-ghost { pointer-events: none; }
+
+  /* Edit mode: keep each tile readable. Actions sit in a slim row under the name instead of a pill that
+     wrapped over the icon, and the select control is a small check in the corner, not a toggle switch. */
+  .mnt-layout[data-edit-mode] .shortcut-wrap { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; column-gap: 0; }
+  .mnt-layout[data-edit-mode] .shortcut-wrap > .shortcut { flex: 0 0 100%; }
+  .mnt-layout[data-edit-mode] .shortcut-actions { position: static; display: inline-flex; flex-wrap: nowrap; gap: 0; margin: 4px 0 0; padding: 0; background: none; box-shadow: none; opacity: 1; }
+  .mnt-layout[data-edit-mode] .shortcut-actions button, .mnt-layout[data-edit-mode] .shortcut-wrap > .drag-handle {
+    width: 24px; height: 24px; min-width: 24px; min-height: 24px; margin: 4px 0 0; padding: 0; border: 0; border-radius: 50%;
+    background: transparent; color: var(--mnt-text-muted); cursor: pointer;
+  }
+  .mnt-layout[data-edit-mode] .shortcut-actions button { margin: 0; }
+  .mnt-layout[data-edit-mode] .shortcut-wrap > .drag-handle { cursor: grab; }
+  .mnt-layout[data-edit-mode] .shortcut-actions button:hover, .mnt-layout[data-edit-mode] .shortcut-actions button:focus-visible,
+  .mnt-layout[data-edit-mode] .shortcut-wrap > .drag-handle:hover, .mnt-layout[data-edit-mode] .shortcut-wrap > .drag-handle:focus-visible { background: var(--mnt-accent-soft); color: var(--mnt-text); }
+  .mnt-layout[data-edit-mode] .shortcut-actions button:last-child:hover { color: var(--mnt-danger); }
+  .shortcut-wrap > input[type=checkbox] {
+    position: absolute; top: 0; left: calc(50% - var(--mnt-effective-icon, var(--mnt-icon-size)) / 2 - 6px); z-index: 2;
+    width: 20px; height: 20px; border-radius: 50%; border-width: 1.5px; background: var(--mnt-surface); box-shadow: var(--mnt-elev-1);
+  }
+  .shortcut-wrap > input[type=checkbox]::after { top: 3px; left: 6px; width: 5px; height: 9px; border: solid var(--mnt-on-accent); border-width: 0 2px 2px 0; border-radius: 0; background: none; transform: rotate(45deg); opacity: 0; }
+  .shortcut-wrap > input[type=checkbox]:checked { background: var(--mnt-accent); }
+  .shortcut-wrap > input[type=checkbox]:checked::after { transform: rotate(45deg); background: none; opacity: 1; }
+  @media (pointer: coarse) {
+    .mnt-layout[data-edit-mode] .shortcut-actions button, .mnt-layout[data-edit-mode] .shortcut-wrap > .drag-handle,
+    .mnt-group-title > button, .mnt-group-title .group-actions button, .bookmark-edit-tools button, .bookmark-edit-tools select { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+    .bookmark-edit-tools button, .bookmark-edit-tools select { width: auto; }
+    .mnt-layout[data-edit-mode] .shortcut-actions { flex-wrap: wrap; justify-content: center; }
+    .shortcut-wrap > input[type=checkbox] { width: 28px; height: 28px; }
+    .shortcut-wrap > input[type=checkbox]::after { top: 5px; left: 9px; width: 6px; height: 11px; }
+  }
+
+  /* Group headers and the selection bar in edit mode use the same quiet buttons as the rest of the page. */
+  .mnt-group-title > button, .mnt-group-title .group-actions button, .bookmark-edit-tools button, .bookmark-edit-tools select {
+    display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid transparent; border-radius: 999px;
+    background: transparent; color: var(--mnt-text-muted); font: inherit; font-size: 12px; letter-spacing: normal; cursor: pointer;
+  }
+  .mnt-group-title > button, .mnt-group-title .group-actions button { padding: 0; }
+  .mnt-group-title .group-actions { display: inline-flex; gap: 2px; }
+  .bookmark-edit-tools button, .bookmark-edit-tools select { border-color: var(--mnt-border-strong); color: var(--mnt-text); }
+  .mnt-group-title > button:hover, .mnt-group-title .group-actions button:hover, .bookmark-edit-tools button:hover,
+  .mnt-group-title > button:focus-visible, .mnt-group-title .group-actions button:focus-visible, .bookmark-edit-tools button:focus-visible { background: var(--mnt-accent-soft); color: var(--mnt-text); }
+  .bookmark-edit-tools { justify-content: center; font-size: 12px; color: var(--mnt-text-muted); }
 }

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import '@testing-library/jest-dom/vitest'
 import { afterEach, expect, it, vi } from 'vitest'
 import { translate } from '../../i18n'
 import { ShortcutEditor } from './ShortcutEditor'
@@ -65,4 +66,19 @@ it('loads the brand catalog on search focus and stores the selected icon data', 
   selected = onChange.mock.lastCall?.[0]
   expect(selected).toMatchObject({ iconMode: 'brand', iconName: 'github', brand: { slug: 'github', title: 'GitHub', path: 'M0 0', hex: '000000' } })
   view.rerender(renderEditor(selected))
+})
+
+it('is a labelled modal titled for adding or editing, focuses the address and closes on Escape', () => {
+  const onClose = vi.fn()
+  const draft = { id: 'new', name: '', url: 'https://', color: '#123456', icon: '' }
+  const view = render(<ShortcutEditor shortcut={draft} isNew t={t} onChange={() => {}} onClose={onClose} onSave={event => event.preventDefault()} onError={() => {}} />)
+  const dialog = screen.getByRole('dialog', { name: 'Add website' })
+  expect(dialog).toHaveAttribute('aria-modal', 'true')
+  expect(screen.getByLabelText('URL')).toHaveFocus()
+  fireEvent.keyDown(screen.getByLabelText('URL'), { key: 'Escape' })
+  expect(onClose).toHaveBeenCalledOnce()
+  view.unmount()
+
+  render(<ShortcutEditor shortcut={{ ...draft, id: '1', name: 'Example', url: 'https://example.com' }} t={t} onChange={() => {}} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
+  expect(screen.getByRole('dialog', { name: 'Edit website' })).toBeInTheDocument()
 })

@@ -16,7 +16,7 @@ test('desktop edit mode is separate from settings and can be toggled with E', as
   await page.keyboard.press('e')
   await expect(page.locator('.edit-toolbar')).toBeVisible()
   await expect(page.locator('.mnt-layout')).toHaveAttribute('data-edit-mode', '')
-  await expect(page.locator('.mnt-area').first()).toHaveCSS('outline-style', 'dashed')
+  await expect(page.locator('.mnt-widget-frame').first()).toHaveCSS('outline-style', 'dashed')
 
   await page.getByRole('navigation', { name: '桌面编辑工具' }).getByRole('button', { name: '完成', exact: true }).click()
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)

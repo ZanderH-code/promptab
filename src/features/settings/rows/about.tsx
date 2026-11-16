@@ -1,5 +1,5 @@
 import type { ProfileV2 } from '../../../core/schema/profile'
-import { Row } from '../controls'
+import { Row, Toggle } from '../controls'
 import { Select, touch, type Ctx, type Item } from './shared'
 
 export function aboutItems(ctx: Ctx): Item[] {
@@ -22,6 +22,7 @@ export function aboutItems(ctx: Ctx): Item[] {
         </Row>
       ),
     },
+    { id: 'keyboard-shortcuts', keys: ['settings.keyboardShortcuts'], node: <Toggle label={t('settings.keyboardShortcuts')} checked={profile.prefs.keyboardShortcuts} onChange={keyboardShortcuts => change(p => touch({ ...p, prefs: { ...p.prefs, keyboardShortcuts } }))} /> },
     { id: 'about', keys: ['settings.about', 'settings.aboutText', 'settings.intro', 'settings.privacy'], node: <div className="sd-note"><p>{t('settings.aboutText')}</p><p>{t('settings.intro')}</p><p><a href="https://zanderh-code.github.io/promptab/privacy/" target="_blank" rel="noopener noreferrer">{t('settings.privacy')}</a></p></div> },
   ]
 }

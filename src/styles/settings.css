@@ -37,6 +37,8 @@
 .sd-head { display: flex; align-items: center; justify-content: space-between; padding: var(--mnt-space-4) var(--mnt-space-4) var(--mnt-space-2) var(--mnt-space-5); }
 .sd-head small { display: block; color: var(--mnt-accent); font-size: var(--mnt-text-xs); letter-spacing: .14em; }
 .sd-head h2 { margin: 2px 0 0; font-size: var(--mnt-text-lg); font-weight: 500; }
+.sd-head-actions { display: flex; align-items: center; gap: var(--mnt-space-2); }
+.sd-muted { color: var(--mnt-text-muted); font-weight: 400; }
 
 .sd-icon-button {
   display: inline-flex; align-items: center; justify-content: center; flex: none;
@@ -132,7 +134,7 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-segmented { display: flex; flex-wrap: wrap; gap: 4px; }
 .sd-segmented.sd-grid { display: grid; grid-template-columns: repeat(var(--sd-cols, 3), 1fr); }
 .sd-segmented button {
-  min-height: 32px; padding: 0 12px; border: 1px solid var(--mnt-border); border-radius: 999px; background: none; color: var(--mnt-text-muted);
+  min-height: 32px; padding: 0 12px; border: 1px solid var(--mnt-border-strong); border-radius: 999px; background: none; color: var(--mnt-text-muted);
   font: inherit; font-size: var(--mnt-text-sm); cursor: pointer;
 }
 .sd-segmented.sd-grid button { border-radius: 8px; padding: 0 4px; }
@@ -259,8 +261,15 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd .sd-primary:hover { border-color: var(--mnt-accent); filter: brightness(1.06); }
 .sd-ai { display: grid; gap: var(--mnt-space-4); }
 .sd-ai-step { display: grid; gap: var(--mnt-space-2); padding-top: var(--mnt-space-3); border-top: 1px solid var(--mnt-border); }
-.sd-ai-step > summary { cursor: pointer; }
-.sd-ai-step > summary h3 { display: inline; }
+.sd-ai-step > summary { display: flex; align-items: center; gap: var(--mnt-space-2); min-height: 32px; list-style: none; cursor: pointer; }
+.sd-ai-step > summary::-webkit-details-marker { display: none; }
+/* A rotating chevron instead of the browser's black ▼ marker. */
+.sd-ai-step > summary::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: -3px; border: solid var(--mnt-text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
+.sd-ai-step[open] > summary::before { margin-top: -4px; transform: rotate(45deg); }
+.sd-ai-step > summary:hover h3 { color: var(--mnt-accent); }
+.sd-ai-step > summary h3 { display: inline; margin: 0; padding: 0; border: 0; }
+.sd-hint a { color: var(--mnt-accent); text-underline-offset: 3px; }
+.sd-hint a:hover { text-decoration-thickness: 2px; }
 .sd-ai-step h3 { margin: 0; font-size: var(--mnt-text-sm); font-weight: 600; }
 .sd .sd-code.sd-ai-request { min-height: 0; white-space: pre-wrap; font-family: inherit; }
 .sd-ai-notice { align-self: center; font-size: var(--mnt-text-xs); color: var(--mnt-accent); }
