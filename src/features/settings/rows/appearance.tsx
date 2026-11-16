@@ -126,10 +126,8 @@ export function appearanceItems(ctx: Ctx): Item[] {
         </Row>
       ),
     },
-    range('scale', 'settings.scale', theme.scale, RANGES.scale, value => setTheme({ scale: value }), { step: 0.05, unit: '×' }, defaults?.scale),
-    { id: 'shortcuts-new-tab', group: 'settings.shortcuts', keys: ['settings.openShortcutsNewTab'], node: <Toggle label={t('settings.openShortcutsNewTab')} checked={profile.prefs.openShortcutsInNewTab} onChange={openShortcutsInNewTab => change(p => touch({ ...p, prefs: { ...p.prefs, openShortcutsInNewTab } }))} /> },
-    { id: 'lift-hover', group: 'settings.shortcuts', keys: ['settings.liftHover'], node: <Toggle label={t('settings.liftHover')} checked={profile.prefs.liftOnHover} onChange={liftOnHover => change(p => touch({ ...p, prefs: { ...p.prefs, liftOnHover } }))} /> },
-    { id: 'keyboard-shortcuts', group: 'settings.shortcuts', keys: ['settings.keyboardShortcuts'], node: <Toggle label={t('settings.keyboardShortcuts')} checked={profile.prefs.keyboardShortcuts} onChange={keyboardShortcuts => change(p => touch({ ...p, prefs: { ...p.prefs, keyboardShortcuts } }))} /> },
+    // Shown as a percentage: "1 ×" next to the field read like a close button.
+    range('scale', 'settings.scale', Math.round(theme.scale * 100), { min: Math.round(RANGES.scale.min * 100), max: Math.round(RANGES.scale.max * 100) }, value => setTheme({ scale: Math.round(value) / 100 }), { step: 5, unit: '%' }, defaults ? Math.round(defaults.scale * 100) : undefined),
     { id: 'accent-on-open', group: 'settings.colors', keys: ['settings.accentOnOpen'], node: <Row label={t('settings.accentOnOpen')}><Select ctx={ctx} label={t('settings.accentOnOpen')} value={profile.prefs.accentOnOpen} options={[{ value: 'off', label: t('settings.accentOff') }, { value: 'random', label: t('settings.accentRandom') }, { value: 'cycle', label: t('settings.accentCycle') }]} onChange={accentOnOpen => change(p => touch({ ...p, prefs: { ...p.prefs, accentOnOpen: accentOnOpen as typeof p.prefs.accentOnOpen } }))} /></Row> },
     { id: 'my-themes', group: 'settings.theme', keys: ['themes.title', 'themes.saveCurrent'], node: <MyThemes ctx={ctx} /> },
   ]

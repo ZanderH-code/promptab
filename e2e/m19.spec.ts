@@ -7,7 +7,7 @@ async function openApp(page: import('@playwright/test').Page) {
   await expect(page.locator('.clock')).toBeVisible()
 }
 
-async function openSettings(page: import('@playwright/test').Page, tab: 'appearance' | 'search' = 'appearance') {
+async function openSettings(page: import('@playwright/test').Page, tab: 'appearance' | 'search' | 'shortcuts' | 'about' = 'appearance') {
   await page.locator('.settings-button').click()
   await openTab(page, tab)
 }
@@ -21,8 +21,8 @@ async function changeAccent(page: import('@playwright/test').Page, value: string
 
 test('independent shortcut and search preferences open links in new tabs', async ({ page }) => {
   await openApp(page)
-  await openSettings(page)
-  const shortcutToggle = page.getByLabel('Open shortcuts in a new tab', { exact: true })
+  await openSettings(page, 'shortcuts')
+  const shortcutToggle = page.getByLabel('Open websites in a new tab', { exact: true })
   await shortcutToggle.click()
   await expect(shortcutToggle).toBeChecked()
   await page.getByRole('button', { name: 'Close settings' }).click()
@@ -74,7 +74,7 @@ test('keyboard shortcuts help, skip typing targets, and can be disabled', async 
   await page.keyboard.press('e')
   await expect(page.locator('.edit-toolbar')).toHaveCount(0)
   await page.locator('.settings-button').focus()
-  await openSettings(page)
+  await openSettings(page, 'about')
   const keyboardToggle = page.getByLabel('Enable keyboard shortcuts', { exact: true })
   await keyboardToggle.click()
   await expect(keyboardToggle).not.toBeChecked()

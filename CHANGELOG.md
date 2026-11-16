@@ -4,6 +4,28 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.18.0]
+
+0.17.0 was built but not submitted to Edge Add-ons (an earlier submission was still in progress), so 0.18.0 is the first store release with both batches.
+
+### Fixed
+
+- The website dialog says "Add website" when adding, focuses the address field, closes with Escape, keeps keyboard focus inside and returns it afterwards. It is announced as a dialog.
+- Edit mode no longer covers each website with a dark blob of buttons: edit, move, delete and drag sit in one row under the name, selection is a small check on the icon, and the group header buttons match the page. Raw area names (overview, search…) and doubled outlines are gone.
+- "Add group" in the edit toolbar opens the group name dialog; the duplicate "Add group" and "Done" buttons inside the grid are removed.
+- The onboarding card can be dismissed with "Not now", sits below the starter websites instead of pushing them off the first screen, and points to Settings → Backup & import.
+- Settings header buttons line up.
+
+### Changed
+
+- "Open websites in a new tab" and "Lift websites on hover" moved from Theme to Websites; "Enable keyboard shortcuts" moved to About.
+- Scale is shown as a percentage (100%) instead of "1 ×".
+- Areas & grid names each widget (Clock, Date, Search box…) and leaves showing or hiding widgets to the Widgets section.
+- AI assistant steps use a chevron, and the documentation link uses the accent colour.
+- The user's sites are called websites (网站) throughout; "bookmarks" now only means browser or nightTab bookmarks.
+- Startup JavaScript is 476,971 bytes raw, under the unchanged 480,000-byte budget.
+- No new permissions are requested.
+
 ## [0.17.0]
 
 ### Added

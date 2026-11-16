@@ -82,7 +82,6 @@ export default function App() {
   }, [undo, settings, patch, profile, keyboardHelpOpen])
   const [drawer, setDrawer] = useState(false)
   useEffect(() => { if (drawer) setSyncMounted(true) }, [drawer])
-  const [managingGroups, setManagingGroups] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [onboardingEligible, setOnboardingEligible] = useState(() => localStorage.getItem('mnt:onboarding:eligible') === 'true')
   const [onboardingDismissed, setOnboardingDismissed] = useState(() => localStorage.getItem('mnt:onboarding:dismissed') === 'true')
@@ -191,7 +190,6 @@ export default function App() {
 
   const openSettings = (section?: string) => {
     setEditMode(false)
-    setManagingGroups(false)
     setDrawerSection(section)
     setDrawer(true)
   }
@@ -309,7 +307,7 @@ export default function App() {
       </header>}
       {editMode && <nav className="edit-toolbar" aria-label={t('edit.toolbar')}>
         <button type="button" onClick={() => setEditing(newShortcut('#b0a092'))}><Plus size={18} aria-hidden="true" />{t('shortcuts.add')}</button>
-        <button type="button" onClick={() => setManagingGroups(true)}><Plus size={18} aria-hidden="true" />{t('groups.add')}</button>
+        <button type="button" onClick={() => window.dispatchEvent(new CustomEvent('mnt:add-group', { cancelable: true }))}><Plus size={18} aria-hidden="true" />{t('groups.add')}</button>
         <button type="button" onClick={() => openSettings('widgets')}><Plus size={18} aria-hidden="true" />{t('edit.addWidget')}</button>
         <button type="button" onClick={() => setEditMode(false)}><Check size={18} aria-hidden="true" />{t('groups.done')}</button>
       </nav>}
@@ -317,15 +315,16 @@ export default function App() {
         profile={profile}
         language={s.language}
         shortcuts={s.shortcuts}
-        editing={editMode || managingGroups}
+        editing={editMode}
         onboarding={!!profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && (onboardingEligible || profile.bookmarks.groups.every(group => group.items.length === 0))}
         onOnboardingAction={action => {
           localStorage.setItem('mnt:onboarding:dismissed', 'true')
           setOnboardingDismissed(true)
+          if (action === 'dismiss') return
           if (action === 'add') setEditing(newShortcut('#b0a092'))
           else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
         }}
-        onManageDone={() => { setEditMode(false); setManagingGroups(false) }}
+        onManageDone={() => setEditMode(false)}
         t={t}
         onError={setError}
         onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
@@ -377,7 +376,7 @@ export default function App() {
           wallpaperUrl={wallpaper.url}
         />
       )}
-      {editing && <ShortcutEditor key={editing.id} shortcut={editing} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
+      {editing && <ShortcutEditor key={editing.id} shortcut={editing} isNew={!s.shortcuts.some(item => item.id === editing.id)} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
     </main>
     </>
   )

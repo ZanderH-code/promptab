@@ -6,7 +6,7 @@ import { assertFollow, installFollowSampler, startFollow, stopFollow, waitForDra
 
 test('bookmark folders open on a phone and close without horizontal overflow', async ({ page }) => {
   await seedBookmarkFolders(page)
-  const folder = page.getByRole('button', { name: 'Open folder Work Folder with 2 bookmarks' })
+  const folder = page.getByRole('button', { name: 'Open folder Work Folder with 2 websites' })
   await folder.tap()
   const dialog = page.getByRole('dialog', { name: 'Work Folder' })
   await expect(dialog.getByRole('link', { name: 'Second Link' })).toBeVisible()

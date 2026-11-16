@@ -59,7 +59,7 @@ test('drags into a folder with a highlight and persists', async () => {
     await page.mouse.up()
     await waitForOrders(page, [['b', 'c'], ['w1', 'w2', 'a']])
     await expect(folderTile(page, 'folder-work')).not.toHaveAttribute('data-drop-target', 'true')
-    await expect(folderTile(page, 'folder-work')).toHaveAttribute('aria-label', 'Open folder Work with 3 bookmarks')
+    await expect(folderTile(page, 'folder-work')).toHaveAttribute('aria-label', 'Open folder Work with 3 websites')
     expectIntegrity(before, await readGroups(page))
     await reload(page)
     expect(idsOf(await readGroups(page))).toEqual([['b', 'c'], ['w1', 'w2', 'a']])

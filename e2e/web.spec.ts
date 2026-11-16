@@ -185,7 +185,7 @@ test('imports an Infinity backup in web storage and supports undo', async ({ pag
   const preview = page.getByRole('group', { name: 'Infinity import preview' })
   await expect(preview.getByRole('note')).toContainText('Groups: 1')
   await expect(preview.getByRole('note')).toContainText('Links: 1')
-  await page.getByRole('button', { name: 'Add to my bookmarks', exact: true }).click()
+  await page.getByRole('button', { name: 'Add to my websites', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Infinity backup imported')
   const imported = async () => page.evaluate(() => {
     const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)

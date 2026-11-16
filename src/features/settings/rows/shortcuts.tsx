@@ -25,5 +25,10 @@ export function shortcutsItems(ctx: Ctx): Item[] {
     const columnsDefault = defaults?.maxColumns
     row('columns', ['settings.columns'], <RangeField t={t} label={t('settings.columns')} hint={t('settings.hint.maxColumns')} value={widget.props.maxColumns ?? s.columns} min={2} max={10} step={1} changed={columnsDefault !== undefined && (widget.props.maxColumns ?? s.columns) !== columnsDefault} onReset={columnsDefault !== undefined ? () => patch({ maxColumns: columnsDefault }) : undefined} resetLabel={resetLabel('settings.columns')} onChange={maxColumns => patch({ maxColumns })} />)
   }
+  // Opening and hover behaviour apply to every website on the page, so they live here rather than under Theme.
+  items.push(
+    { id: 'shortcuts-new-tab', keys: ['settings.openShortcutsNewTab'], node: <Toggle label={t('settings.openShortcutsNewTab')} checked={profile.prefs.openShortcutsInNewTab} onChange={openShortcutsInNewTab => change(p => touch({ ...p, prefs: { ...p.prefs, openShortcutsInNewTab } }))} /> },
+    { id: 'lift-hover', keys: ['settings.liftHover'], node: <Toggle label={t('settings.liftHover')} checked={profile.prefs.liftOnHover} onChange={liftOnHover => change(p => touch({ ...p, prefs: { ...p.prefs, liftOnHover } }))} /> },
+  )
   return items
 }

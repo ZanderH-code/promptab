@@ -1,5 +1,5 @@
 import { Plus, X } from 'lucide-react'
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react'
 import { validateImage } from '../../core/image'
 import type { Shortcut } from '../../core/model'
 import { toMessageRef, type MessageKey, type Translate } from '../../i18n'
@@ -8,6 +8,8 @@ import { emojis, genericIcons, loadBrands, type BrandIcon } from '../../widgets/
 
 type Props = {
   shortcut: Shortcut
+  /** True when the shortcut is not saved yet, so the dialog reads "Add website" instead of "Edit website". */
+  isNew?: boolean
   t: Translate
   onChange: (shortcut: Shortcut) => void
   onClose: () => void
@@ -17,8 +19,24 @@ type Props = {
 
 const MAX_ICON_BYTES = 512 * 1024
 
-export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError }: Props) {
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]):not(.visually-hidden), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, onSave, onError }: Props) {
   const fileInput = useRef<HTMLInputElement>(null)
+  const form = useRef<HTMLFormElement>(null)
+  const firstField = useRef<HTMLInputElement>(null)
+  const titleId = useId()
+  // Focus the address on open and give focus back to whatever opened the dialog.
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const field = firstField.current
+    field?.focus()
+    // Put the caret after the "https://" draft (or the saved address) so typing continues the address.
+    field?.setSelectionRange(field.value.length, field.value.length)
+    return () => { if (previous?.isConnected) previous.focus() }
+    // Run once per opened dialog; App remounts the editor for each shortcut.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // A new shortcut starts as an empty name with the default draft URL; only that state (or a name the user clears) may auto-fill.
   const autoName = useRef(shortcut.name.trim() === '' && shortcut.url === 'https://')
   // Load the name table on demand so it stays out of the startup bundle.
@@ -99,6 +117,20 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
     }
   }
 
+  function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onClose()
+    } else if (event.key === 'Tab') {
+      const focusable = Array.from(form.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(element => element.offsetParent !== null || element === document.activeElement)
+      if (!focusable.length) return
+      if (event.shiftKey && document.activeElement === focusable[0]) { event.preventDefault(); focusable.at(-1)?.focus() }
+      else if (!event.shiftKey && document.activeElement === focusable.at(-1)) { event.preventDefault(); focusable[0].focus() }
+    }
+    // Keep app-level keyboard shortcuts (E, A, D, Ctrl+Z…) from acting on the page behind the dialog.
+    event.stopPropagation()
+  }
+
   const hint = selected === 'upload'
     ? t('editor.uploadHint')
     : selected === 'text'
@@ -107,18 +139,18 @@ export function ShortcutEditor({ shortcut, t, onChange, onClose, onSave, onError
 
   return (
     <div className="modal-backdrop">
-      <form className="modal shortcut-editor" onSubmit={onSave}>
+      <form ref={form} className="modal shortcut-editor" role="dialog" aria-modal="true" aria-labelledby={titleId} onSubmit={onSave} onKeyDown={onKeyDown}>
         <div className="editor-heading">
           <div>
             <span className="editor-kicker">{t('editor.kicker')}</span>
-            <h2>{t('shortcuts.edit')}</h2>
+            <h2 id={titleId}>{t(isNew ? 'shortcuts.add' : 'shortcuts.edit')}</h2>
           </div>
           <button type="button" className="editor-close" onClick={onClose} aria-label={t('common.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button>
         </div>
         <div className="editor-fields">
           <label className="stack">
             {t('editor.url')}
-            <input required value={shortcut.url} placeholder="https://example.com" onChange={event => changeUrl(event.target.value)} />
+            <input ref={firstField} required inputMode="url" autoComplete="url" value={shortcut.url} placeholder="https://example.com" onChange={event => changeUrl(event.target.value)} />
           </label>
           <label className="stack">
             {t('editor.name')}

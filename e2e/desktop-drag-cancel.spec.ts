@@ -118,7 +118,7 @@ test('handles one-item and empty-folder boundaries', async () => {
 
     await dragMouse(page, await center(tile(page, 'a')), await center(folderTile(page, 'folder-empty')))
     await waitForOrders(page, [[], ['a']])
-    await expect(folderTile(page, 'folder-empty')).toHaveAttribute('aria-label', 'Open folder Empty with 1 bookmarks')
+    await expect(folderTile(page, 'folder-empty')).toHaveAttribute('aria-label', 'Open folder Empty with 1 websites')
     expectIntegrity(before.groups, await readGroups(page))
     await openFolder(page, 'folder-empty', 'Empty')
     await expect(dialogItem(page, 'a')).toBeVisible()
@@ -141,7 +141,7 @@ test('drags the last item out of a folder, leaving the empty hint', async () => 
     await dragMouse(page, await center(dialogItem(page, 'x')), await center(tile(page, 'a')))
     await waitForOrders(page, [['x', 'a'], []])
     expectIntegrity(before, await readGroups(page))
-    await expect(folderTile(page, 'folder-solo')).toHaveAttribute('aria-label', 'Open folder Solo with 0 bookmarks')
+    await expect(folderTile(page, 'folder-solo')).toHaveAttribute('aria-label', 'Open folder Solo with 0 websites')
     await page.waitForTimeout(500)
     await folderTile(page, 'folder-solo').click()
     await expect(page.getByRole('dialog', { name: 'Solo' })).toContainText('This folder is empty')
