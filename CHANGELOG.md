@@ -4,6 +4,20 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.19.0]
+
+### Fixed
+
+- The weather widget works on its own: once a city or location is chosen it loads on every new tab, shows the last forecast immediately and refreshes in the background (30-minute cache). Before, it stayed empty until "Update weather" was pressed each time.
+- City search shows matching places while you type, with arrow keys, Enter and Escape; each result shows its region and country so same-named cities can be told apart.
+- Location errors say whether the browser blocked access, the device has no location, or the request timed out, and suggest searching instead.
+- An empty weather card offers "Choose city", which opens its settings; refresh is a small icon button.
+- In edit mode the dashed widget outlines no longer overlap, and a weather card under the search box keeps a gap.
+
+### Changed
+
+- Choosing a weather city or location asks once for both Open-Meteo hosts. The privacy policy now describes the automatic forecast load.
+
 ## [0.18.0]
 
 0.17.0 was built but not submitted to Edge Add-ons (an earlier submission was still in progress), so 0.18.0 is the first store release with both batches.
