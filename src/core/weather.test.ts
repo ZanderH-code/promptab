@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchWeatherForecast, parseOpenMeteoForecast, requestWeatherPermission, weatherIconForCode, type WeatherCache } from './weather'
+import { fetchWeatherForecast, hasWeatherPermission, isForecastFresh, locationProblem, parseOpenMeteoForecast, readCachedForecast, requestWeatherPermission, searchWeatherCities, weatherCityDetail, weatherCityLabel, weatherIconForCode, type WeatherCache } from './weather'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -45,7 +45,65 @@ describe('weather permissions', () => {
   })
 })
 
+describe('weather access for automatic loads', () => {
+  it('asks for both Open-Meteo hosts at once so choosing a city also allows the forecast', async () => {
+    const request = vi.fn().mockResolvedValue(true)
+    vi.stubGlobal('chrome', { runtime: { getURL: vi.fn() }, permissions: { request } })
+    await requestWeatherPermission('all')
+    expect(request).toHaveBeenCalledWith({ origins: ['https://api.open-meteo.com/*', 'https://geocoding-api.open-meteo.com/*'] })
+  })
+
+  it('checks the forecast permission without prompting', async () => {
+    const contains = vi.fn().mockResolvedValue(true)
+    const request = vi.fn()
+    vi.stubGlobal('chrome', { runtime: { getURL: vi.fn() }, permissions: { request, contains } })
+    await expect(hasWeatherPermission()).resolves.toBe(true)
+    expect(contains).toHaveBeenCalledWith({ origins: ['https://api.open-meteo.com/*'] })
+    expect(request).not.toHaveBeenCalled()
+  })
+})
+
+describe('weather cities and location', () => {
+  it('labels same-named cities by region and drops a region that repeats the city', () => {
+    expect(weatherCityLabel({ name: '北京', region: '北京市', country: '中国' })).toBe('北京, 中国')
+    expect(weatherCityLabel({ name: '北京', region: '重庆市', country: '中国' })).toBe('北京, 重庆市, 中国')
+    expect(weatherCityDetail({ name: 'London', region: 'England', country: 'United Kingdom' })).toBe('England, United Kingdom')
+    expect(weatherCityLabel({ name: 'Singapore', region: '', country: 'Singapore' })).toBe('Singapore, Singapore')
+  })
+
+  it('keeps the region from geocoding results', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ results: [{ id: 1, name: '北京', admin1: '重庆市', country: '中国', latitude: 30.7, longitude: 108.7 }] })))
+    await expect(searchWeatherCities('北京', { fetcher })).resolves.toEqual([{ id: 1, name: '北京', region: '重庆市', country: '中国', latitude: 30.7, longitude: 108.7 }])
+  })
+
+  it('turns geolocation error codes into actionable messages', () => {
+    expect(locationProblem(1)).toBe('locationDenied')
+    expect(locationProblem(2)).toBe('locationUnavailable')
+    expect(locationProblem(3)).toBe('locationTimeout')
+  })
+})
+
 describe('weather data', () => {
+  it('reads any saved forecast for instant display and reports freshness', () => {
+    const cache = memoryCache()
+    const forecast = parseOpenMeteoForecast(payload, 1_000)
+    cache.setItem('weather:51.50000:-0.12000:celsius', JSON.stringify(forecast))
+    expect(readCachedForecast(51.5, -0.12, 'celsius', cache)).toEqual(forecast)
+    expect(readCachedForecast(51.5, -0.12, 'fahrenheit', cache)).toBeNull()
+    expect(isForecastFresh(forecast, 1_000 + 29 * 60_000)).toBe(true)
+    expect(isForecastFresh(forecast, 1_000 + 31 * 60_000)).toBe(false)
+  })
+
+  it('skips a fresh cache when forced by the refresh button', async () => {
+    const cache = memoryCache()
+    const fetcher = vi.fn().mockImplementation(async () => new Response(JSON.stringify(payload)))
+    await fetchWeatherForecast(51.5, -0.12, 'celsius', { cache, fetcher, now: () => 1_000 })
+    await fetchWeatherForecast(51.5, -0.12, 'celsius', { cache, fetcher, now: () => 2_000 })
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    await fetchWeatherForecast(51.5, -0.12, 'celsius', { cache, fetcher, now: () => 3_000, force: true })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
   it('converts an Open-Meteo response into a compact forecast snapshot', () => {
     expect(parseOpenMeteoForecast(payload, 1_800_000_000_000)).toEqual({
       temperature: 18.5,

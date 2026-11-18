@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.19.0
+
+0.19.0 makes the weather widget usable: live city results while typing, automatic forecast loading with an instant cached view, actionable location errors, and a "Choose city" entry on the empty card. 0.18.0 is live in Edge Add-ons.
+
 ## Release status — 0.18.0
 
 0.18.0 is a usability pass: the website dialog (add title, focus, Escape), readable edit mode, a dismissible onboarding card, settings rows in the right sections, and one word ("websites") for the user's sites. 0.17.0 (nightTab migration, tab title, hover addresses) merged as `201cf48` but its Edge submission returned `InProgressSubmission` with 0.16.1 public, so 0.18.0 carries both batches to the store once the earlier submission clears.

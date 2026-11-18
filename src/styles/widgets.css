@@ -30,7 +30,7 @@
   [data-edit-mode] .shortcut-actions button { width: 28px; height: 28px; border-radius: 50%; }
   .bookmark-edit-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   /* Areas and widgets get a dashed outline only; the raw internal names (overview, search…) overlapped and meant nothing to people. */
-  .mnt-layout[data-edit-mode] .mnt-widget-frame { outline: 1px dashed var(--mnt-border-strong); outline-offset: 4px; }
+  .mnt-layout[data-edit-mode] .mnt-widget-frame { outline: 1px dashed var(--mnt-border-strong); outline-offset: -1px; }
   .mnt-productivity { width: min(100%, 420px); padding: var(--mnt-space-4); border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: color-mix(in oklch, var(--mnt-surface) 72%, transparent); color: var(--mnt-text); text-align: left; }
   .mnt-productivity h2 { margin: 0 0 var(--mnt-space-3); color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); font-weight: 500; }
   .mnt-productivity-empty { margin: 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }

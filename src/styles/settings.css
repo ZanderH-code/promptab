@@ -328,3 +328,16 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd-confirm h2 { margin: 0 0 8px; font-size: 16px; }
 .sd-confirm-body { color: var(--mnt-text-muted); font-size: 13px; line-height: 1.5; }
 .sd-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+/* Weather city search: results open under the field while typing. */
+.sd .sd-weather-search { position: relative; }
+.sd [data-testid="weather-settings"] .sd-widget-actions { margin-top: 8px; }
+.sd .sd-weather-results { position: absolute; z-index: 5; inset-inline: 0; top: calc(100% + 4px); max-height: 280px; margin: 0; padding: 4px; overflow-y: auto; list-style: none; border: 1px solid var(--mnt-border-strong); border-radius: 10px; background: var(--mnt-surface); box-shadow: var(--mnt-elev-2); }
+.sd .sd-weather-results li[role="option"] { display: grid; gap: 2px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.sd .sd-weather-results li[role="option"] strong { font-weight: 500; font-size: var(--mnt-text-sm); }
+.sd .sd-weather-results li[role="option"] span { color: var(--mnt-text-muted); font-size: var(--mnt-text-xs); }
+.sd .sd-weather-results li[aria-selected="true"] { background: var(--mnt-surface-hover); box-shadow: inset 2px 0 0 var(--mnt-accent); }
+.sd .sd-weather-pending { padding: 8px 10px; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
+.sd .sd-weather-allow { width: 100%; padding: 10px; border: 0; border-radius: 8px; background: transparent; color: var(--mnt-accent); font: inherit; font-size: var(--mnt-text-sm); text-align: left; cursor: pointer; }
+.sd .sd-weather-allow:hover, .sd .sd-weather-allow:focus-visible { background: var(--mnt-surface-hover); }
+.sd .sd-weather-status { margin: 8px 0 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }

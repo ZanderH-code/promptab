@@ -39,34 +39,49 @@ test('weather searches cities, changes units, caches results, and falls back off
   await page.locator('.settings-button').click()
   await openTab(page, 'widgets')
   await page.getByRole('button', { name: '天气', exact: true }).click()
-  const city = page.getByRole('textbox', { name: '城市' })
+  // Before a city is chosen the card says so and makes no request.
+  const widget = page.locator('[data-widget="weather"]')
+  await expect(widget.getByText('选择城市后即可显示天气。')).toBeVisible()
+  expect(forecastCalls).toBe(0)
+
+  // Typing shows matching cities in a list; no separate search button.
+  const city = page.getByRole('combobox', { name: '城市' })
   await city.fill('London')
-  await page.getByRole('button', { name: '搜索城市', exact: true }).click()
+  await expect(page.getByRole('option', { name: 'London, United Kingdom' })).toBeVisible()
   await page.getByRole('option', { name: 'London, United Kingdom' }).click()
-  await city.fill('Paris')
-  await page.getByRole('button', { name: '搜索城市', exact: true }).click()
-  await page.getByRole('option', { name: 'Paris, France' }).click()
+  await expect(city).toHaveValue('London, United Kingdom')
+  await expect(page.getByText('已保存「London, United Kingdom」，天气组件会自动加载。')).toBeVisible()
+
+  // Arrow keys and Enter pick from the list too.
+  await city.fill('Par')
+  await expect(page.getByRole('option')).toHaveCount(2)
+  await city.press('ArrowDown')
+  await city.press('Enter')
   await expect(city).toHaveValue('Paris, France')
+
   await page.getByRole('button', { name: '使用当前位置', exact: true }).click()
   await expect(city).toHaveValue('当前位置')
   await page.getByRole('combobox', { name: '温度单位' }).click()
   await page.getByRole('option', { name: '华氏度', exact: true }).click()
   await page.getByRole('button', { name: '关闭设置', exact: true }).click()
 
-  const widget = page.locator('[data-widget="weather"]')
+  // The widget loads by itself for the chosen place; nobody has to press refresh.
   await expect(widget.getByRole('heading', { name: '当前位置' })).toBeVisible()
-  expect(forecastCalls).toBe(0)
-  await widget.getByRole('button', { name: '更新天气' }).click()
   await expect(widget.getByText('68°F')).toBeVisible()
   await expect(widget.getByText('75°F / 58°F').first()).toBeVisible()
   await expect(widget.getByText('周一', { exact: true })).toBeVisible()
-  expect(forecastCalls).toBe(1)
   expect(forecastCoordinates).toBe('37.7749,-122.4194')
+
+  // A reload shows the saved forecast straight away from the 30-minute cache.
+  const callsBeforeReload = forecastCalls
+  await page.reload()
+  await expect(widget.getByText('68°F')).toBeVisible()
+  expect(forecastCalls).toBe(callsBeforeReload)
 
   online = false
   await page.clock.fastForward(31 * 60_000)
   await widget.getByRole('button', { name: '更新天气' }).click()
   await expect(widget.getByText('离线 · 显示已保存的天气')).toBeVisible()
   await expect(widget.getByText('68°F')).toBeVisible()
-  expect(forecastCalls).toBe(2)
+  expect(forecastCalls).toBeGreaterThan(callsBeforeReload)
 })
