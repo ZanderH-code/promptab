@@ -1120,13 +1120,13 @@ test('the wallpaper pickers are styled, labelled controls', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)', exact: true })).toHaveCount(0)
   await page.getByRole('radio', { name: 'Video', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)', exact: true })).toBeVisible()
-  await expect(page.locator('.sd-file input[type=file]')).toHaveCount(1)
+  await expect(page.locator('.sd-file input[accept^="video/"]')).toHaveCount(1)
   for (const input of await page.locator('.sd-file input[type=file]').all()) {
     await expect(input).toHaveClass(/visually-hidden/)
     await expect(input).toHaveAttribute('tabindex', '-1')
   }
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  const inputs = page.locator('.sd-file input[type=file]')
+  const inputs = page.locator('.sd-file input[accept^="image/"]')
   await expect(inputs).toHaveCount(1)
   for (const input of await inputs.all()) {
     await expect(input).toHaveClass(/visually-hidden/)
@@ -1196,7 +1196,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
   await page.getByRole('radio', { name: 'Video', exact: true }).click()
   await expect(imageHint).toHaveCount(0)
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await page.locator('.sd-file input[accept^="image/"]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
   await expect(imageHint).toHaveCount(0)
   await expect(page.locator('.sd-focal-preview')).toBeVisible()
 
@@ -1247,7 +1247,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await openDrawer(page)
   await page.getByRole('tab', { name: 'Background', exact: true }).click()
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await page.locator('.sd-file input[accept^="image/"]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
 
   const rowFor = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
   const slider = (label: string) => page.getByRole('slider', { name: label, exact: true }).first()
@@ -1461,7 +1461,7 @@ test('background rows show a dot and reset to their defaults', async ({ page }) 
 
   // A fresh image starts at the schema defaults, and every adjustment resets on its own while the image stays.
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await page.locator('.sd-file input[accept^="image/"]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
   await expect(page.locator('.sd-focal-preview')).toBeVisible()
   for (const [label, original] of [['Blur', '0'], ['Grayscale', '0'], ['Image zoom', '1'], ['Vignette', '0']] as const) {
     const target = row(label)
