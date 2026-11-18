@@ -177,6 +177,20 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [peeked])
+  // Clicking empty space in the panel, or removing the focused control, leaves focus on the page body;
+  // Esc should still close the panel then, not only while a control inside it has focus.
+  useEffect(() => {
+    if (peeked) return
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      if (event.target instanceof Node && drawer.current?.contains(event.target)) return
+      if (document.activeElement && document.activeElement !== document.body) return
+      event.preventDefault()
+      onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [peeked, onClose])
   // Moving between the panel and its edge handle keeps the keyboard on the visible affordance.
   const wasPeeked = useRef(false)
   useEffect(() => {
@@ -223,6 +237,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     const root = drawer.current
     if (!root || !(event.target instanceof Node) || !root.contains(event.target)) return
     if (event.key === 'Escape' && !event.defaultPrevented) {
+      event.preventDefault()
       if (event.target instanceof HTMLInputElement && event.target.type === 'search' && event.target.value) { setQuery(''); return }
       onClose()
       return
@@ -249,7 +264,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   return (
     <>
       <div className="scrim sd-scrim" onClick={onClose} />
-      <aside ref={drawer} className={`drawer sd${peeked ? ' sd-peeked' : ''}`} role="dialog" aria-label={t('settings.button')} onKeyDown={onDrawerKeyDown}>
+      <aside ref={drawer} className={`drawer sd${peeked ? ' sd-peeked' : ''}`} role="dialog" aria-label={t('settings.button')} tabIndex={-1} onKeyDown={onDrawerKeyDown}>
         <header className="sd-head">
           <div>
             <small>{t('settings.kicker')}</small>

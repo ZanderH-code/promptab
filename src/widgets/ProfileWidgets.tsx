@@ -12,10 +12,11 @@ import { Search } from './Search'
 import type { OnboardingAction } from './OnboardingCard'
 import { ShortcutGrid } from './ShortcutGrid'
 import type { ContextMenuEvent } from './ShortcutGridContent'
+import type { WidgetUpdate } from './ProductivityWidgets'
 const WeatherWidget = lazy(() => import('./WeatherWidget').then(module => ({ default: module.WeatherWidget })))
 const ProductivityWidgetView = lazy(() => import('./ProductivityWidgets').then(module => ({ default: module.ProductivityWidgetView })))
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: OnboardingAction) => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: ContextMenuEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void; onOpenSettings: (section?: string) => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' | 'weather' }>) => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: OnboardingAction) => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: ContextMenuEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void; onOpenSettings: (section?: string) => void; onEnterEditMode: () => void; onWidgetChange: WidgetUpdate }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -105,7 +106,7 @@ export function ProfileWidgets(props: Props) {
     {names.map(name => <div key={name} className="mnt-area" data-area={name} style={{ gridArea: name, ...areaStyle(profile.layout.areaStyles?.[name], palette), ...(detectTemplate(profile) === 'banner' && name === 'banner' ? { display: 'flex', paddingInline: '6%' } : {}) }}>
       {widgetsIn(profile.widgets, name).map(widget => {
         const common = { '--mnt-widget-size': widget.props.size ?? 1, ...(widget.props.align ? { textAlign: widget.props.align } : {}) } as CSSProperties
-        const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} data-show-url={widget.type === 'bookmarks' && widget.props.showUrl ? '' : undefined} style={common}>{child}</div>
+        const frame = (child: ReactNode) => <div key={widget.id} className="mnt-widget mnt-widget-frame" data-widget-id={widget.id} data-widget={widget.type} data-show-url={widget.type === 'bookmarks' && widget.props.showUrl ? '' : undefined} data-align={widget.props.align} style={common}>{child}</div>
         switch (widget.type) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} theme={profile.theme} custom={profile.custom} t={t} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)

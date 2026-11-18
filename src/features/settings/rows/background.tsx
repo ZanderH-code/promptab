@@ -112,9 +112,10 @@ export function backgroundItems(ctx: Ctx): Item[] {
       id: 'wallpaper', keys: ['settings.wallpaper', 'settings.wallpaperUpload', 'settings.wallpaperRemove', 'settings.blur', 'settings.grayscale', 'settings.imageScale', 'settings.vignette', 'settings.focal'],
       node: (
         <div className="sd-upload">
-          <FilePicker t={t} label={t('settings.wallpaperUpload')} accept="image/png,image/jpeg,image/webp" multiple onFiles={ctx.onWallpaperFiles} />
+          {/* Each background type offers only its own upload; picking 图片 and seeing a video button read as a mistake. */}
+          {bg.type === 'image' && <FilePicker t={t} label={t('settings.wallpaperUpload')} accept="image/png,image/jpeg,image/webp" multiple onFiles={ctx.onWallpaperFiles} />}
           {uploadHint}
-          <FilePicker t={t} label={t('settings.wallpaperVideo')} accept="video/mp4,video/webm" onFiles={files => ctx.onWallpaperVideoFile(files[0])} />
+          {bg.type === 'video' && <FilePicker t={t} label={t('settings.wallpaperVideo')} accept="video/mp4,video/webm" onFiles={files => ctx.onWallpaperVideoFile(files[0])} />}
           {(image || video || bg.rotation) && <button type="button" className="sd-button" onClick={ctx.onWallpaperRemove}><Trash2 size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.wallpaperRemove')}</button>}
         </div>
       ),

@@ -130,6 +130,7 @@ function DroppableFolder({ folder, name, shortcuts, style, iconColor, openInNewT
 
 export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system' }: Props) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
+  const hasItems = visibleGroups.some(group => group.items.length > 0)
   const folderMode = source === 'all' && visibleGroups.length >= 2
   const renderedGroups = folderMode ? visibleGroups.slice(0, 1) : visibleGroups
   const desktopId = renderedGroups[0]?.id
@@ -318,7 +319,8 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     }}
   >
     <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} data-reduce-motion={reducedMotion || undefined} data-display-drag>
-      {onboarding && <OnboardingCard t={t} onAction={onOnboardingAction} />}
+      {/* Same place as the static grid it replaces on first hover, so nothing jumps under the pointer. */}
+      {onboarding && !hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
       <SortableContext items={renderedGroups.flatMap(group => group.items.map(item => item.id))} strategy={rectSortingStrategy}>
         {renderedGroups.map(group => <div key={group.id} data-drop-group={group.id}>
           {showGroupTitles && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className="shortcuts-heading mnt-group-title" ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
@@ -337,6 +339,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
         </div>)}
       </SortableContext>
       {!groups.length && !onboarding && showAdd && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
+      {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} hasWebsites />}
     </div>
     {/* The overlay is the dragged visual for the whole drag, mouse, pen and touch alike.
         dnd-kit positions it in viewport coordinates, so it must be portalled out of the widget

@@ -104,6 +104,12 @@ describe('bookmark folders', () => {
     expect(screen.queryByRole('button', { name: /Open folder/ })).not.toBeInTheDocument()
     // The page-level edit toolbar asks the grid to name a new group.
     act(() => { window.dispatchEvent(new CustomEvent('mnt:add-group', { cancelable: true })) })
-    expect(screen.getByRole('dialog', { name: 'Group name' })).toBeVisible()
+    const dialog = screen.getByRole('dialog', { name: 'Add group' })
+    expect(within(dialog).getByRole('textbox', { name: 'Group name' })).toHaveFocus()
+    // An empty name explains itself instead of silently doing nothing; Esc closes the dialog.
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }))
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Enter a group name.')
+    fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Group name' }), { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Add group' })).not.toBeInTheDocument()
   })
 })

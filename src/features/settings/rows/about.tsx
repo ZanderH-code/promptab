@@ -1,4 +1,5 @@
 import type { ProfileV2 } from '../../../core/schema/profile'
+import { DraftText } from '../../../ui/DraftText'
 import { Row, Toggle } from '../controls'
 import { Select, touch, type Ctx, type Item } from './shared'
 
@@ -18,7 +19,7 @@ export function aboutItems(ctx: Ctx): Item[] {
       id: 'page-title', keys: ['settings.pageTitle', 'settings.hint.pageTitle'], words: ['tab', 'title', '标签页', '标题'],
       node: (
         <Row label={t('settings.pageTitle')} hint={t('settings.hint.pageTitle')} changed={!!profile.prefs.pageTitle} onReset={() => change(p => { const { pageTitle: _removed, ...prefs } = p.prefs; return touch({ ...p, prefs }) })} resetLabel={t('settings.resetRow', { label: t('settings.pageTitle') })}>
-          <input className="sd-input" maxLength={80} value={profile.prefs.pageTitle ?? ''} placeholder={t('app.title')} aria-label={t('settings.pageTitle')} onChange={event => { const title = event.target.value; change(p => { const { pageTitle: _removed, ...prefs } = p.prefs; return touch({ ...p, prefs: title ? { ...prefs, pageTitle: title } : prefs }) }) }} />
+          <DraftText className="sd-input" maxLength={80} value={profile.prefs.pageTitle ?? ''} placeholder={t('app.title')} aria-label={t('settings.pageTitle')} onCommit={title => { change(p => { const { pageTitle: _removed, ...prefs } = p.prefs; return touch({ ...p, prefs: title ? { ...prefs, pageTitle: title } : prefs }) }) }} />
         </Row>
       ),
     },

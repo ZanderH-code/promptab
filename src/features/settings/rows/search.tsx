@@ -25,6 +25,8 @@ export function searchItems(ctx: Ctx): Item[] {
               try { searchUrl(event.target.value, 'test'); if (event.target.value !== s.searchTemplate) patch({ searchTemplate: event.target.value }) }
               catch { onError({ key: 'error.searchTemplate' }) }
             }}
+            // Enter saves too, and Esc right after typing keeps the new address instead of dropping it with the panel.
+            onKeyDown={event => { if (event.key === 'Enter' || event.key === 'Escape') event.currentTarget.blur() }}
           />
         </Row>
       ),

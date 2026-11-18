@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.20.0
+
+0.20.0 is a usability pass over the remaining widgets and small features: keystroke-safe text fields, an on-page todo list, local-date countdowns, per-widget settings cards, modal group dialogs, search new-tab shortcuts, Escape and shortcut handling around Settings, and a steady onboarding card. 0.19.0 is live in Edge Add-ons.
+
 ## Release status — 0.19.0
 
 0.19.0 makes the weather widget usable: live city results while typing, automatic forecast loading with an instant cached view, actionable location errors, and a "Choose city" entry on the empty card. 0.18.0 is live in Edge Add-ons.

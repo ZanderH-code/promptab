@@ -4,6 +4,25 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.20.0]
+
+### Fixed
+
+- Typing in settings fields and the note widget no longer drops characters; text is saved after a short pause, on leaving the field, and works with Chinese input methods.
+- The todo widget is usable on the page: add a task with Enter, tick it instantly, delete it, or clear completed tasks. Checkboxes are round ticks instead of switches.
+- Countdowns use the local date, say "Tomorrow" and "Yesterday", and update at midnight; a new countdown starts a week from today.
+- Widget settings show one card per widget with move up/down, a greeting name, and a spacer height. A new widget scrolls into view with its first field focused; only one greeting can be added.
+- Group dialogs (add, rename, delete) are proper modals with a page backdrop; an empty name shows a message. Moving a website can create a new group, also when there is only one group.
+- Deleting a website no longer asks for confirmation; the undo toast restores it.
+- Search focuses the box when empty and opens results in a new tab with Ctrl/⌘ + Enter or a middle click.
+- Escape closes Settings even after clicking inside it; page shortcuts (like `e` for edit mode) are paused while Settings or a dialog is open.
+- The onboarding card no longer jumps on hover or disappears when adding a website is cancelled; with websites present it says "Add website".
+- Background settings show only the uploader for the chosen type.
+
+### Changed
+
+- Startup JavaScript is 479,217 bytes raw, under the unchanged 480,000-byte budget.
+
 ## [0.19.0]
 
 ### Fixed

@@ -10,7 +10,7 @@ test('desktop edit mode is separate from settings and can be toggled with E', as
   await expect(page.locator('.bookmarks .add-shortcut')).toHaveCount(1)
   await expect(page.locator('.shortcut')).toHaveCount(8)
   await expect(page.locator('.onboarding-actions button[data-primary]')).toHaveText('用 AI 创建')
-  await expect(page.locator('.onboarding-actions button').filter({ hasText: '添加第一个网站' })).not.toHaveAttribute('data-primary')
+  await expect(page.locator('.onboarding-actions button').filter({ hasText: '添加网站' })).not.toHaveAttribute('data-primary')
   await expect(page).toHaveScreenshot('onboarding-fresh-1440x900.png')
 
   await page.keyboard.press('e')
@@ -30,6 +30,9 @@ test('onboarding card disappears after the user chooses an action', async ({ pag
   await page.goto('/')
   await expect(page.locator('.onboarding-card')).toBeVisible()
   await page.getByRole('button', { name: '选择主题' }).click()
+  // The card stays while the theme is being chosen and goes once Settings closes.
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page.getByRole('button', { name: '关闭设置' }).click()
   await expect(page.locator('.onboarding-card')).toHaveCount(0)
   await page.reload()
   await expect(page.locator('.onboarding-card')).toHaveCount(0)

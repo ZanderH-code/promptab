@@ -259,7 +259,7 @@ test('wallpaper uploads are offered only for image and video backgrounds', async
   const hint = page.getByText('Upload an image to adjust blur, grayscale, zoom and focal point.')
   const visibleInputs = () => page.locator('input[type=file]:visible').count()
 
-  for (const [type, expected] of [['Theme', 0], ['Solid color', 0], ['Gradient', 0], ['Accent', 0], ['Image', 2], ['Video', 2]] as const) {
+  for (const [type, expected] of [['Theme', 0], ['Solid color', 0], ['Gradient', 0], ['Accent', 0], ['Image', 1], ['Video', 1]] as const) {
     await group.getByRole('radio', { name: type, exact: true }).click()
     await expect.poll(visibleInputs, { message: `${type} file inputs` }).toBe(expected)
     if (expected === 0) await expect(hint, `${type} shows no upload hint`).toHaveCount(0)
@@ -1113,18 +1113,27 @@ test('the wallpaper pickers are styled, labelled controls', async ({ page }) => 
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
 
   const zones = page.locator('.sd-file')
-  await expect(zones).toHaveCount(2)
+  // Only the uploader for the chosen background type is shown.
+  await expect(zones).toHaveCount(1)
   // The visible control is a localized button; the native input is clipped and out of the tab order.
   await expect(page.getByRole('button', { name: 'Upload images (PNG, JPEG, WebP, up to 5 MB each)', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)', exact: true })).toHaveCount(0)
+  await page.getByRole('radio', { name: 'Video', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)', exact: true })).toBeVisible()
-  const inputs = page.locator('.sd-file input[type=file]')
-  await expect(inputs).toHaveCount(2)
+  await expect(page.locator('.sd-file input[accept^="video/"]')).toHaveCount(1)
+  for (const input of await page.locator('.sd-file input[type=file]').all()) {
+    await expect(input).toHaveClass(/visually-hidden/)
+    await expect(input).toHaveAttribute('tabindex', '-1')
+  }
+  await page.getByRole('radio', { name: 'Image', exact: true }).click()
+  const inputs = page.locator('.sd-file input[accept^="image/"]')
+  await expect(inputs).toHaveCount(1)
   for (const input of await inputs.all()) {
     await expect(input).toHaveClass(/visually-hidden/)
     await expect(input).toHaveCSS('clip-path', 'inset(50%)')
     await expect(input).toHaveAttribute('tabindex', '-1')
   }
-  await expect(page.getByText('No file chosen', { exact: true })).toHaveCount(2)
+  await expect(page.getByText('No file chosen', { exact: true })).toHaveCount(1)
   await page.screenshot({ path: `${SHOTS}/upload.png` })
 
   // Picking a file still runs the wallpaper flow and shows the chosen name.
@@ -1158,8 +1167,7 @@ test('the wallpaper pickers are styled, labelled controls', async ({ page }) => 
   await page.getByRole('option', { name: '简体中文', exact: true }).click()
   await page.getByRole('tab', { name: '背景', exact: true }).click()
   await expect(page.getByRole('button', { name: '上传本地图片（PNG、JPEG、WebP，每张最大 5 MB）', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '上传本地视频（MP4 或 WebM，最大 30 MB）', exact: true })).toBeVisible()
-  await expect(page.getByText('未选择文件', { exact: true })).toHaveCount(2)
+  await expect(page.getByText('未选择文件', { exact: true })).toHaveCount(1)
   await page.screenshot({ path: `${SHOTS}/upload-zh.png` })
 
   scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
@@ -1188,7 +1196,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
   await page.getByRole('radio', { name: 'Video', exact: true }).click()
   await expect(imageHint).toHaveCount(0)
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await page.locator('.sd-file input[accept^="image/"]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
   await expect(imageHint).toHaveCount(0)
   await expect(page.locator('.sd-focal-preview')).toBeVisible()
 
@@ -1239,7 +1247,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await openDrawer(page)
   await page.getByRole('tab', { name: 'Background', exact: true }).click()
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await page.locator('.sd-file input[accept^="image/"]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
 
   const rowFor = (label: string) => page.locator('.sd-row').filter({ has: page.getByText(label, { exact: true }) }).first()
   const slider = (label: string) => page.getByRole('slider', { name: label, exact: true }).first()
@@ -1453,7 +1461,7 @@ test('background rows show a dot and reset to their defaults', async ({ page }) 
 
   // A fresh image starts at the schema defaults, and every adjustment resets on its own while the image stays.
   await page.getByRole('radio', { name: 'Image', exact: true }).click()
-  await page.locator('.sd-file input[type=file]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
+  await page.locator('.sd-file input[accept^="image/"]').first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
   await expect(page.locator('.sd-focal-preview')).toBeVisible()
   for (const [label, original] of [['Blur', '0'], ['Grayscale', '0'], ['Image zoom', '1'], ['Vignette', '0']] as const) {
     const target = row(label)
