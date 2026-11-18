@@ -4,6 +4,19 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.21.0]
+
+### Fixed
+
+- AI themes no longer come out boxed or cluttered. The prompt now says what each element actually is and how the page already looks, and lists the common mistakes; the bundled example no longer shows CSS that causes them. Before this, AI replies often framed the whole websites area in one box, drew a second box inside the search bar, doubled the group heading line, or spread Chinese dates with wide letter-spacing.
+- The AI review flags CSS that applies but looks wrong, and "Copy feedback for the AI" sends those notes back so the AI can fix its own reply.
+- The custom CSS editor warns about the same mistakes as you type, and its completions explain what each class is, in the interface language.
+- Copying the prompt pack opens step 2, ready for the reply.
+
+### Changed
+
+- Startup JavaScript is 479,230 bytes raw, under the unchanged 480,000-byte budget.
+
 ## [0.20.0]
 
 ### Fixed
