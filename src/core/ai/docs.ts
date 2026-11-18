@@ -1,38 +1,11 @@
 import { z } from 'zod'
 import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES, CSS_API_VERSION } from '../css/api'
+import { CLASS_NOTES as CSS_NOTES } from '../css/notes'
 import { EXAMPLES } from './examples'
 import { aiPackSchema, PACK_KIND, PACK_VERSION } from './pack'
 
-export const CLASS_NOTES: Record<(typeof CSS_API_CLASSES)[number], string> = {
-  'mnt-root': 'The page root. Theme variables and the background live here.',
-  'mnt-header': 'The top bar with the brand and the settings button. Protected.',
-  'mnt-settings-entry': 'The settings button. Protected: custom CSS cannot hide, move or cover it.',
-  'mnt-layout': 'The responsive layout grid; carries template, breakpoint and edit-mode attributes.',
-  'mnt-widget-frame': 'The outer frame for a profile widget; carries its type and ID.',
-  'mnt-widget-toolbar': 'The toolbar widget action container.',
-  'mnt-bookmark-tile': 'Bookmarks rendered in tile style.',
-  'mnt-bookmark-list': 'Bookmarks rendered in list style.',
-  'mnt-bookmark-minimal': 'Bookmarks rendered in minimal style.',
-  'mnt-bookmark-card': 'Bookmarks rendered in card style.',
-  'mnt-bookmark-icon-only': 'Bookmarks rendered in icon-only style.',
-  'mnt-area': 'One named responsive layout area. Carries `data-area` with its area name.',
-  'mnt-widget': 'Every widget block. Combine with `data-widget` to pick one.',
-  'mnt-clock': 'The time text.',
-  'mnt-date': 'The date line under the clock.',
-  'mnt-search': 'The search form.',
-  'mnt-search-input': 'The search text field.',
-  'mnt-group': 'One bookmark group.',
-  'mnt-group-title': 'The title of a bookmark group.',
-  'mnt-group-title-hidden': 'The group title remains in the accessibility tree while its visual text is hidden.',
-  'mnt-link': 'One bookmark tile. Carries `data-link-host` with the site host.',
-  'mnt-link-icon': 'The tile icon.',
-  'mnt-link-name': 'The tile label.',
-  'mnt-folder': 'A bookmark folder entry in the shortcut grid.',
-  'mnt-folder-preview': 'The folder entry’s miniature bookmark icon preview.',
-  'mnt-folder-name': 'The folder entry’s name.',
-  'mnt-folder-dialog': 'The open folder dialog containing its bookmarks.',
-  'mnt-folder-backdrop': 'The full-viewport overlay behind an open folder dialog.',
-}
+/** English class notes for the generated docs; the bilingual source is `core/css/notes`. */
+export const CLASS_NOTES = Object.fromEntries(Object.entries(CSS_NOTES).map(([name, note]) => [name, note.en])) as Record<(typeof CSS_API_CLASSES)[number], string>
 
 export const ATTRIBUTE_NOTES: Record<(typeof CSS_API_ATTRIBUTES)[number], string> = {
   '[data-area="clock"]': 'A layout area named clock.',

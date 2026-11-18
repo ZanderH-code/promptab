@@ -36,5 +36,5 @@
     },
     "dim": 0
   },
-  "css": ".mnt-clock {\n  letter-spacing: -0.02em;\n  text-transform: uppercase;\n}\n.mnt-date {\n  letter-spacing: 0.18em;\n  text-transform: uppercase;\n  color: var(--mnt-text-muted);\n}\n.mnt-link-name {\n  font-size: var(--mnt-text-sm);\n  letter-spacing: 0.04em;\n}\n.mnt-link:hover .mnt-link-icon {\n  box-shadow: 0 0 0 2px var(--mnt-accent);\n}\n@media (prefers-reduced-motion: no-preference) {\n  .mnt-link-icon {\n    transition: box-shadow var(--mnt-dur-base) var(--mnt-ease);\n  }\n}"
+  "css": ".mnt-clock {\n  letter-spacing: -0.02em;\n}\n.mnt-date {\n  color: var(--mnt-text-muted);\n}\n.mnt-search:focus-within {\n  border-color: var(--mnt-accent);\n}\n.mnt-link:hover .mnt-link-icon {\n  box-shadow: 0 0 0 2px var(--mnt-accent);\n}\n@media (prefers-reduced-motion: no-preference) {\n  .mnt-link-icon {\n    transition: box-shadow var(--mnt-dur-base) var(--mnt-ease);\n  }\n}"
 }

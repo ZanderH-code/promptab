@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES, CSS_API_VERSION } from '../src/core/css/api'
 import { CSS_SANITIZER_POLICY, MAX_CSS_BYTES, MAX_CSS_RULES } from '../src/core/css/sanitize'
 import { ATTRIBUTE_NOTES, CLASS_NOTES } from '../src/core/ai/docs'
+import { CLASS_NOTES as CSS_NOTES } from '../src/core/css/notes'
 import { aiPackSchema, PACK_KIND, PACK_VERSION } from '../src/core/ai/pack'
 
 const outDir = resolve('docs/docs')
@@ -77,10 +78,7 @@ function fieldTableZh(fields: Field[]) {
   return `<div class="table-wrap"><table><thead><tr><th>字段</th><th>类型</th><th>范围 / 可选值</th><th>必填？</th><th>Schema 默认值</th></tr></thead><tbody>${fields.map(field => `<tr><td><code>${escapeHtml(field.path)}</code></td>${tableCell(typeText(field.schema))}${tableCell(constraintText(field.schema))}${tableCell(field.required ? '所在对象中必填' : '可选')}${tableCell(defaultText(field) === 'Not declared' ? '未声明' : defaultText(field))}</tr>`).join('')}</tbody></table></div>`
 }
 
-const CLASS_ZH: Record<string, string> = {
-  'mnt-folder': '主页书签文件夹入口。', 'mnt-folder-preview': '文件夹内的书签图标预览。', 'mnt-folder-name': '文件夹入口名称。', 'mnt-folder-dialog': '打开的文件夹对话框。', 'mnt-folder-backdrop': '文件夹对话框背后的全屏遮罩。',
-  'mnt-root': '页面根容器；主题变量与背景位于此处。', 'mnt-header': '顶部栏，包含品牌和设置入口。', 'mnt-settings-entry': '设置入口，受保护样式保障可用。', 'mnt-layout': '响应式布局网格。', 'mnt-area': '一个具名的布局区域。', 'mnt-widget': '组件块。', 'mnt-widget-frame': '组件外框，带组件类型和 ID。', 'mnt-widget-toolbar': '工具栏组件的操作区域。', 'mnt-bookmark-tile': '平铺样式的书签。', 'mnt-bookmark-list': '列表样式的书签。', 'mnt-bookmark-minimal': '简约样式的书签。', 'mnt-bookmark-card': '卡片样式的书签。', 'mnt-bookmark-icon-only': '仅图标样式的书签。', 'mnt-clock': '时间文字。', 'mnt-date': '日期文字。', 'mnt-search': '搜索表单。', 'mnt-search-input': '搜索输入框。', 'mnt-group': '书签分组。', 'mnt-group-title': '书签分组标题。', 'mnt-group-title-hidden': '视觉上隐藏但仍保留在无障碍树中的分组标题。', 'mnt-link': '单个书签项。', 'mnt-link-icon': '书签图标。', 'mnt-link-name': '书签名称。',
-}
+const CLASS_ZH: Record<string, string> = Object.fromEntries(Object.entries(CSS_NOTES).map(([name, note]) => [name, note.zh]))
 function category(name: string) {
   if (/bg|surface|accent|border|danger/.test(name)) return 'Colors and surfaces'
   if (/text|font/.test(name)) return 'Typography'

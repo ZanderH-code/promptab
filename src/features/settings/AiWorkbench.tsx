@@ -8,7 +8,7 @@ import { PACK_PARTS, type PackPart } from '../../core/ai/pack'
 import { extractCandidates } from '../../core/ai/parse'
 import { buildPromptPack } from '../../core/ai/prompt'
 import { portableCss } from '../../core/css/sanitize'
-import { buildErrorFeedback, fixText, problemText, warningText } from '../../core/ai/report'
+import { buildErrorFeedback, fixText, isAdvice, problemText, warningText } from '../../core/ai/report'
 import type { MessageKey } from '../../i18n'
 import { Dropdown } from '../../ui/Dropdown'
 import { useAiState } from './aiState'
@@ -34,7 +34,7 @@ function problemContent(t: Ctx['t'], problem: Parameters<typeof problemText>[1],
 
 function warningContent(t: Ctx['t'], warning: Parameters<typeof warningText>[1]): ReactNode {
   const text = warningText(t, warning)
-  const values = warning.kind === 'unknown-key' ? [warning.path] : warning.kind === 'font' ? [warning.path, warning.value] : warning.kind === 'css-foreign' ? [warning.name] : []
+  const values = warning.kind === 'unknown-key' ? [warning.path] : warning.kind === 'font' ? [warning.path, warning.value] : warning.kind === 'css-foreign' ? [warning.name] : warning.kind === 'css-pitfall' ? [warning.pitfall.selector] : []
   return markDynamicText(text, values)
 }
 
@@ -168,7 +168,11 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
         <textarea id="ai-request" className="sd-code sd-ai-request" rows={3} value={state.request} placeholder={t('ai.requestPlaceholder')} onChange={event => set({ request: event.target.value })} />
         <Toggle label={t('ai.includeCurrent')} checked={state.includeCurrent} onChange={value => set({ includeCurrent: value })} />
         <div className="sd-css-actions">
-          <button type="button" className="sd-button" onClick={() => void copy(buildPromptPack({ language: ctx.s.language, request: state.request, current: state.includeCurrent ? active : null }), 'ai.copied')}>{t('ai.copyPrompt')}</button>
+          <button type="button" className="sd-button" onClick={() => {
+          void copy(buildPromptPack({ language: ctx.s.language, request: state.request, current: state.includeCurrent ? active : null }), 'ai.copied')
+          // The next thing to do is paste the reply, so its box opens.
+          setSteps(current => ({ ...current, two: true }))
+        }}>{t('ai.copyPrompt')}</button>
           <span className="sd-ai-notice" role="status">{notice ? t(notice) : ''}</span>
         </div>
       </details>
@@ -252,8 +256,8 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
               )}
 
               <div className="sd-css-actions">
-                {analysis.problems.length > 0 && (
-                  <button type="button" className="sd-button" onClick={() => void copy(buildErrorFeedback(t, analysis.problems, ctx.s.language), 'ai.copied')}>{t('ai.copyErrors')}</button>
+                {(analysis.problems.length > 0 || analysis.warnings.some(isAdvice)) && (
+                  <button type="button" className="sd-button" onClick={() => void copy(buildErrorFeedback(t, analysis.problems, ctx.s.language, analysis.warnings), 'ai.copied')}>{t(analysis.problems.length ? 'ai.copyErrors' : 'ai.copyAdvice')}</button>
                 )}
                 {analysis.pack && (
                   <>

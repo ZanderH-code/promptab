@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 
 const CssCodeMirror = lazy(() => import('./CssCodeMirror'))
 import { cssIssueText } from '../../core/css/messages'
+import { pitfallText } from '../../core/ai/report'
+import { findCssPitfalls } from '../../core/css/pitfalls'
 import { sanitizeCss } from '../../core/css/sanitize'
 import { Toggle } from './controls'
 import type { Ctx } from './rows'
@@ -37,6 +39,7 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
   }, [stored, profileId])
 
   const result = useMemo(() => sanitizeCss(text), [text])
+  const pitfalls = useMemo(() => findCssPitfalls(text, { cjk: ctx.s.language === 'zh-CN' }), [text, ctx.s.language])
   const dirty = text !== stored
   const enabled = profile.custom.cssEnabled
   const apply = () => {
@@ -50,7 +53,7 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
       {safeMode && <p className="sd-hint" role="note">{t('css.safeNote')}</p>}
       <Toggle label={t('css.enable')} checked={profile.custom.cssEnabled} onChange={value => change(p => ({ ...p, custom: { ...p.custom, cssEnabled: value } }), 'theme')} />
       <Suspense fallback={<textarea className="sd-code" aria-label={t('css.editor')} value={text} onChange={event => setText(event.target.value)} spellCheck={false} rows={12} />}>
-        <CssCodeMirror value={text} onChange={setText} label={t('css.editor')} t={t} />
+        <CssCodeMirror value={text} onChange={setText} label={t('css.editor')} t={t} language={ctx.s.language} />
       </Suspense>
       <div className="sd-css-status">
         <span className="sd-usage">{t('css.usage', { kb: (result.bytes / 1024).toFixed(1), rules: result.rules })}</span>
@@ -62,6 +65,13 @@ export function CssEditor({ ctx, safeMode }: { ctx: Ctx; safeMode: boolean }) {
         <ul className="sd-css-errors" aria-label={t('css.errorCount', { count: result.errors.length })}>
           {result.errors.map((issue, index) => (
             <li key={index}><code>{t('css.at', { line: issue.line, column: issue.column })}</code> {cssIssueText(t, issue)}</li>
+          ))}
+        </ul>
+      )}
+      {pitfalls.length > 0 && (
+        <ul className="sd-css-errors sd-css-warnings" aria-label={t('ai.warnings', { count: pitfalls.length })}>
+          {pitfalls.map((pitfall, index) => (
+            <li key={index}><code>{t('css.at', { line: pitfall.line, column: pitfall.column })}</code> {pitfallText(t, pitfall)}</li>
           ))}
         </ul>
       )}

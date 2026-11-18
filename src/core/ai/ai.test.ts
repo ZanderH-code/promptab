@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { translate } from '../../i18n'
 import { CSS_API_ATTRIBUTES, CSS_API_CLASSES, CSS_API_VARIABLES } from '../css/api'
+import { CLASS_NOTES } from '../css/notes'
+import { findCssPitfalls } from '../css/pitfalls'
 import { portableCss, sanitizeCss } from '../css/sanitize'
 import { applyTemplate } from '../layout/profile'
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
@@ -133,6 +135,25 @@ describe('analyzeCandidate', () => {
     expect(analysis.problems).toEqual([])
     const kinds = new Set(analysis.warnings.map(w => w.kind))
     for (const kind of ['unknown-key', 'contrast', 'font', 'css-important', 'css-foreign', 'css-animation', 'css-literal-color'] as const) expect(kinds).toContain(kind)
+  })
+})
+
+describe('display pitfalls', () => {
+  const reply = fence('json', JSON.stringify({ kind: 'mnt.theme-pack', css: '.mnt-bookmark-tile { border: 1px solid var(--mnt-border); }\n.mnt-date { letter-spacing: 0.2em; }' }))
+
+  it('warns about CSS that applies but looks wrong, with Chinese tracking only in Chinese', () => {
+    const pitfalls = (language: 'en' | 'zh-CN') => analyzeCandidate(extractCandidates(reply)[0], profile, language).warnings.flatMap(w => (w.kind === 'css-pitfall' ? [w.pitfall.kind] : []))
+    expect(pitfalls('en')).toEqual(['websites-box'])
+    expect(pitfalls('zh-CN')).toEqual(['websites-box', 'cjk-tracking'])
+  })
+
+  it('turns pitfalls into feedback for the AI even when nothing blocks applying', () => {
+    const analysis = analyzeCandidate(extractCandidates(reply)[0], profile, 'en')
+    expect(analysis.problems).toEqual([])
+    const feedback = buildErrorFeedback(t, analysis.problems, 'en', analysis.warnings)
+    expect(feedback).toContain(t('ai.feedback.adviceIntro'))
+    expect(feedback).toContain('1. .mnt-bookmark-tile is the whole websites area')
+    expect(feedback).not.toContain('Unknown field')
   })
 })
 
@@ -348,6 +369,17 @@ describe('buildPromptPack', () => {
       expect(prompt).toContain('prefers-reduced-motion')
     })
   }
+
+  it('says what each class really is and lists the common mistakes', () => {
+    const english = buildPromptPack({ language: 'en' })
+    expect(english).toContain(CLASS_NOTES['mnt-search-input'].en)
+    expect(english).toContain(CLASS_NOTES['mnt-bookmark-tile'].en)
+    const chinese = buildPromptPack({ language: 'zh-CN' })
+    expect(chinese).toContain(CLASS_NOTES['mnt-group-title'].zh)
+    for (const example of EXAMPLES) {
+      if (example.pack.css) expect(findCssPitfalls(example.pack.css, { cjk: true })).toEqual([])
+    }
+  })
 
   it('never leaks bookmarks, URLs or wallpaper assets from the current profile', () => {
     const prompt = buildPromptPack({ language: 'en', current: profile })
