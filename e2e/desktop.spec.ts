@@ -353,6 +353,7 @@ test('fresh extension installs show embedded starter sites and keep onboarding u
   await expect(page.locator('.onboarding-card')).toBeVisible()
   expect(starterRequests).toEqual([])
   await page.getByRole('button', { name: '选择主题', exact: true }).click()
+  await page.getByRole('button', { name: '关闭设置' }).click()
   await expect(page.locator('.onboarding-card')).toHaveCount(0)
   await page.reload()
   await expect(page.locator('.shortcut')).toHaveCount(8)
