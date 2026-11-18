@@ -1,6 +1,7 @@
 import type { z } from 'zod'
 import type { Language } from '../../i18n'
 import { CSS_API_CLASSES } from '../css/api'
+import { findCssPitfalls, type CssPitfall } from '../css/pitfalls'
 import { sanitizeCss, type CssIssue } from '../css/sanitize'
 import { isAssetFont, isFontKey } from '../font'
 import { profileIssues, type ProfileIssue, type ProfileV2 } from '../schema/profile'
@@ -29,6 +30,8 @@ export type Warning =
   | { kind: 'css-foreign'; name: string }
   | { kind: 'css-animation' }
   | { kind: 'css-literal-color' }
+  /** Valid CSS that reliably looks wrong on the page; worth sending back to the AI. */
+  | { kind: 'css-pitfall'; pitfall: CssPitfall }
 
 export type Analysis = {
   fixes: Fix[]
@@ -52,7 +55,7 @@ function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
 
 const fieldProblem = (issue: ProfileIssue): Problem => ({ kind: 'field', path: issue.path, expected: issue.expected, value: issue.value })
 
-function cssWarnings(pack: AiPack): Warning[] {
+function cssWarnings(pack: AiPack, language?: Language): Warning[] {
   const css = pack.css?.trim()
   if (!css) return []
   const result = sanitizeCss(css)
@@ -64,6 +67,7 @@ function cssWarnings(pack: AiPack): Warning[] {
   for (const name of result.classNames) if (!api.has(name)) warnings.push({ kind: 'css-foreign', name })
   if (/\banimation(?:-name)?\s*:/i.test(css) && !/prefers-reduced-motion/i.test(css)) warnings.push({ kind: 'css-animation' })
   if (/\b(?:rgb|hsl|hwb|oklch|oklab|lab|lch)a?\(/i.test(result.css)) warnings.push({ kind: 'css-literal-color' })
+  for (const pitfall of findCssPitfalls(css, { cjk: language === 'zh-CN' })) warnings.push({ kind: 'css-pitfall', pitfall })
   return warnings
 }
 
@@ -109,5 +113,5 @@ export function analyzeCandidate(candidate: Candidate, profile: ProfileV2, langu
   const merged = applyPack(profile, pack)
   if (!problems.length) for (const issue of profileIssues(merged, language)) problems.push(fieldProblem(issue))
   if (problems.length) return { fixes, problems, warnings, parts }
-  return { fixes, problems, warnings: [...warnings, ...themeWarnings(merged, pack), ...cssWarnings(pack)], pack, parts }
+  return { fixes, problems, warnings: [...warnings, ...themeWarnings(merged, pack), ...cssWarnings(pack, language)], pack, parts }
 }

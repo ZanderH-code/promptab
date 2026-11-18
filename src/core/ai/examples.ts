@@ -39,16 +39,12 @@ export const EXAMPLES: { id: string; pack: AiPack }[] = [
       css: [
         '.mnt-clock {',
         '  letter-spacing: -0.02em;',
-        '  text-transform: uppercase;',
         '}',
         '.mnt-date {',
-        '  letter-spacing: 0.18em;',
-        '  text-transform: uppercase;',
         '  color: var(--mnt-text-muted);',
         '}',
-        '.mnt-link-name {',
-        '  font-size: var(--mnt-text-sm);',
-        '  letter-spacing: 0.04em;',
+        '.mnt-search:focus-within {',
+        '  border-color: var(--mnt-accent);',
         '}',
         '.mnt-link:hover .mnt-link-icon {',
         '  box-shadow: 0 0 0 2px var(--mnt-accent);',
@@ -66,7 +62,7 @@ export const EXAMPLES: { id: string; pack: AiPack }[] = [
     pack: {
       kind: PACK_KIND,
       packVersion: PACK_VERSION,
-      meta: { name: 'Right-side banner', description: 'Warm translucent panel at the top with a compact clock and date.' },
+      meta: { name: 'Right-side banner', description: 'Warm translucent panel at the top with a compact clock and date; the search and websites stay below. Layout examples apply only when the user asks to rearrange the page.' },
       theme: { mode: 'dark', color: { bg: '#171a20', text: '#f2efe9', accent: '#c9a66b' }, font: { display: 'barlow-condensed', ui: 'system' }, radius: 8, shadow: 22, glass: 40 },
       background: { type: 'theme', dim: 48 },
       layout: {
@@ -78,8 +74,8 @@ export const EXAMPLES: { id: string; pack: AiPack }[] = [
       widgets: [
         { id: 'clock', type: 'clock', area: 'banner', order: 0, props: { hour12: false, pad: true, align: 'right' } },
         { id: 'date', type: 'date', area: 'banner', order: 1, props: { format: 'custom', weekday: true, day: true, month: true, order: ['weekday', 'day', 'month'], separator: ' / ', ordinal: true, uppercase: true, align: 'right' } },
-        { id: 'bookmarks', type: 'bookmarks', area: 'websites', order: 2, props: { style: 'icon-only', maxColumns: 3 }, hidden: true },
-        { id: 'search', type: 'search', area: 'websites', order: 3, props: {}, hidden: true },
+        { id: 'search', type: 'search', area: 'websites', order: 2, props: {} },
+        { id: 'bookmarks', type: 'bookmarks', area: 'websites', order: 3, props: { style: 'tile', maxColumns: 6 } },
       ],
     },
   },

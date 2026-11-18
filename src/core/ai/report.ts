@@ -2,6 +2,7 @@ import '../../i18n/ai'
 import type { Language, MessageKey, Translate } from '../../i18n'
 import { localizeIssue } from '../schema/issueMessages'
 import { cssIssueText } from '../css/messages'
+import type { CssPitfall } from '../css/pitfalls'
 import type { Problem, Warning } from './analyze'
 import type { Fix } from './fix'
 
@@ -33,15 +34,23 @@ export function warningText(t: Translate, warning: Warning): string {
     case 'css-important': return t('ai.warning.css-important')
     case 'css-animation': return t('ai.warning.css-animation')
     case 'css-literal-color': return t('ai.warning.css-literal-color')
+    case 'css-pitfall': return pitfallText(t, warning.pitfall)
   }
 }
+
+export function pitfallText(t: Translate, pitfall: CssPitfall): string {
+  return t(`css.pitfall.${pitfall.kind}` as MessageKey, { selector: pitfall.selector })
+}
+
+/** Warnings worth sending back to the AI: they mean the page will look wrong, not just that something is unusual. */
+export const isAdvice = (warning: Warning) => warning.kind === 'css-pitfall' || warning.kind === 'contrast'
 
 export function fixText(t: Translate, fix: Fix): string {
   return t(`ai.fix.${fix.kind}` as MessageKey, { path: fix.path, before: short(String(fix.before)), after: short(String(fix.after)) })
 }
 
 /** The message a person pastes back to the AI so it can repair its own reply: every problem, numbered, then the ask. */
-export function buildErrorFeedback(t: Translate, problems: readonly Problem[], language?: Language): string {
-  const lines = problems.map((problem, index) => `${index + 1}. ${problemText(t, problem, language)}`)
-  return [t('ai.feedback.intro'), '', ...lines, '', t('ai.feedback.outro')].join('\n') + '\n'
+export function buildErrorFeedback(t: Translate, problems: readonly Problem[], language?: Language, warnings: readonly Warning[] = []): string {
+  const lines = [...problems.map(problem => problemText(t, problem, language)), ...warnings.filter(isAdvice).map(warning => warningText(t, warning))].map((line, index) => `${index + 1}. ${line}`)
+  return [t(problems.length ? 'ai.feedback.intro' : 'ai.feedback.adviceIntro'), '', ...lines, '', t('ai.feedback.outro')].join('\n') + '\n'
 }

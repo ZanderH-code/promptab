@@ -8,8 +8,10 @@ import { tags } from '@lezer/highlight'
 import { autocompletion } from '@codemirror/autocomplete'
 import { linter, lintGutter } from '@codemirror/lint'
 import { cssIssueText } from '../../core/css/messages'
-import type { Translate } from '../../i18n'
-import { publicCssCompletion, sanitizerDiagnostics } from './cssEditorExtensions'
+import '../../i18n/ai'
+import type { Language, Translate } from '../../i18n'
+import { pitfallText } from '../../core/ai/report'
+import { cssCompletion, pitfallDiagnostics, sanitizerDiagnostics } from './cssEditorExtensions'
 
 /**
  * The editor chrome follows the design tokens instead of CodeMirror's light defaults. The editor,
@@ -41,7 +43,7 @@ const tokenHighlight = HighlightStyle.define([
   { tag: [tags.invalid], color: 'var(--mnt-danger)', textDecoration: 'underline' },
 ])
 
-export default function CssCodeMirror({ value, onChange, label, t }: { value: string; onChange: (value: string) => void; label: string; t: Translate }) {
+export default function CssCodeMirror({ value, onChange, label, t, language }: { value: string; onChange: (value: string) => void; label: string; t: Translate; language: Language }) {
   const host = useRef<HTMLDivElement>(null)
   const view = useRef<EditorView | null>(null)
   const onChangeRef = useRef(onChange)
@@ -51,8 +53,8 @@ export default function CssCodeMirror({ value, onChange, label, t }: { value: st
       parent: host.current!,
       state: EditorState.create({ doc: value, extensions: [
         css(), syntaxHighlighting(tokenHighlight), editorTheme, history(), keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
-        autocompletion({ override: [publicCssCompletion] }),
-        linter(state => sanitizerDiagnostics(state.state, issue => cssIssueText(t, issue))), lintGutter(),
+        autocompletion({ override: [cssCompletion(language)] }),
+        linter(state => [...sanitizerDiagnostics(state.state, issue => cssIssueText(t, issue)), ...pitfallDiagnostics(state.state, pitfall => pitfallText(t, pitfall), language === 'zh-CN')]), lintGutter(),
         placeholder('.mnt-clock {\n  letter-spacing: -0.05em;\n}'),
         EditorView.contentAttributes.of({ 'aria-label': label, spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),
         EditorView.updateListener.of(update => { if (update.docChanged) onChangeRef.current(update.state.doc.toString()) }),
@@ -62,7 +64,7 @@ export default function CssCodeMirror({ value, onChange, label, t }: { value: st
     return () => { view.current = null; editor.destroy() }
     // Text changes are synchronized separately to preserve the editor and its selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [label, t])
+  }, [label, t, language])
   useEffect(() => {
     const editor = view.current
     if (editor && editor.state.doc.toString() !== value) editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } })

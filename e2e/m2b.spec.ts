@@ -225,3 +225,26 @@ test('three quick Esc presses enter safe mode', async ({ page }) => {
   await expect(page.locator('.mnt-banner[data-kind="safe"]')).toBeVisible()
   expect(page.url()).toContain('#safe')
 })
+
+test('CSS that applies but looks wrong is flagged in the editor and handed back to the AI', async ({ page }) => {
+  const boxed = '.mnt-bookmark-tile { border: 1px solid var(--mnt-border); }'
+  await settingsEntry(page).click()
+  await openTab(page, 'style')
+  await cssEditor(page).fill(boxed)
+  const warnings = page.locator('.sd-css-warnings')
+  await expect(warnings).toContainText('.mnt-bookmark-tile')
+  await expect(warnings).toContainText(/\.mnt-link-icon/)
+  // A warning never blocks applying.
+  await expect(page.locator('.sd-css .sd-button', { hasText: /^(应用|Apply)$/ })).toBeEnabled()
+  await cssEditor(page).fill('.mnt-bookmark-tile .mnt-link-icon { border: 1px solid var(--mnt-border); }')
+  await expect(warnings).toHaveCount(0)
+
+  await openTab(page, 'ai')
+  await replyBox(page).fill(reply({ kind: 'mnt.theme-pack', meta: { name: 'Boxed' }, css: boxed }))
+  await expect(page.locator('.sd-ai-group[data-kind="problem"]')).toHaveCount(0)
+  await expect(page.locator('.sd-ai-group[data-kind="warning"]')).toContainText('.mnt-bookmark-tile')
+  await page.locator('.sd-ai .sd-button', { hasText: /^(复制修改意见给 AI|Copy feedback for the AI)$/ }).click()
+  const feedback = await page.evaluate(() => navigator.clipboard.readText())
+  expect(feedback).toContain('1. ')
+  expect(feedback).toContain('.mnt-bookmark-tile')
+})

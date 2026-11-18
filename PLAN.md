@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.21.0
+
+0.21.0 makes AI themes and custom CSS look good: the prompt says what each element really is and lists common mistakes, and a pitfall checker warns in the AI review (with feedback to copy back to the AI) and in the CSS editor. 0.20.0 was submitted to Edge Add-ons on 2026-11-18 and was still in review when 0.21.0 merged; 0.21.0 is published once that submission clears.
+
 ## Release status — 0.20.0
 
 0.20.0 is a usability pass over the remaining widgets and small features: keystroke-safe text fields, an on-page todo list, local-date countdowns, per-widget settings cards, modal group dialogs, search new-tab shortcuts, Escape and shortcut handling around Settings, and a steady onboarding card. 0.19.0 is live in Edge Add-ons.
