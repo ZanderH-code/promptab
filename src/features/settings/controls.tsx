@@ -4,6 +4,7 @@ import type { Translate } from '../../i18n'
 import { Select } from './rows/shared'
 import { DraftText } from '../../ui/DraftText'
 import { Highlighted } from './searchHighlight'
+import '../../i18n/lazy'
 
 const HEX = /^#[\da-f]{6}$/i
 

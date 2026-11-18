@@ -12,6 +12,7 @@ import { MyThemes } from '../MyThemes'
 import { FONT_KEYS, PRESETS, applyPreset, colorsFor, contrastIssues, editTheme, fixedColors, isFontKey, thumbnailTokens, withColors, type BaseColors, type ThemeMode } from '../themeApi'
 import { appearanceDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 const derivedSurface = (mode: ThemeMode, colors: BaseColors, bg = colors.bg) => (mode === 'dark' ? darkSurface(bg, colors.text) : lightSurface(bg))
 

@@ -6,6 +6,7 @@ import type { Translate } from '../i18n'
 import { GroupMenuTrigger, ShortcutLink, type ContextMenuEvent } from './ShortcutGridContent'
 import type { Group } from './ShortcutGrid'
 import { WebsiteIcon } from './WebsiteIcon'
+import '../i18n/lazy'
 
 /** Keeps a folder dialog open when the grid remounts for the lazy drag layer. */
 const openFolders = new Set<string>()

@@ -3,6 +3,7 @@ import { parseNightTabBackup } from '../../core/nighttab/import'
 import type { MessageKey } from '../../i18n'
 import { useConfirm } from './ConfirmDialog'
 import type { Ctx } from './rows/shared'
+import '../../i18n/lazy'
 
 export function NightTabImport({ ctx }: { ctx: Ctx }) {
   const input = useRef<HTMLInputElement>(null)

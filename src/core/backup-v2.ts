@@ -2,6 +2,7 @@ import { MessageError } from '../i18n'
 import { DEFAULT_MAX_ASSET_BYTES } from '../storage/assets'
 import { parseProfileV2, type ProfileV2 } from './schema/profile'
 import { parseSavedThemes, type SavedTheme } from './themes/library'
+import '../i18n/lazy'
 
 export const MAX_BACKUP_ASSET_BYTES = DEFAULT_MAX_ASSET_BYTES
 export const MAX_BACKUP_VIDEO_BYTES = 30 * 1024 * 1024

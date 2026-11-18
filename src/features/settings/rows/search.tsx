@@ -2,6 +2,7 @@ import { SEARCH_ENGINES } from '../../../core/search/engines'
 import { searchUrl } from '../../../core/model'
 import { Row, Toggle } from '../controls'
 import { Select, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 
 export function searchItems(ctx: Ctx): Item[] {

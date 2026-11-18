@@ -5,6 +5,7 @@ import { ProfileSection } from '../ProfileSection'
 import { useConfirm } from '../ConfirmDialog'
 import { countUnchangedStarterSites, removeUnchangedStarterSites } from '../../../core/starter-sites'
 import type { Ctx, Item } from './shared'
+import '../../../i18n/lazy'
 
 const BackupSection = lazy(() => import('../BackupSection').then(module => ({ default: module.BackupSection })))
 const BrowserBookmarkImport = lazy(() => import('../BrowserBookmarkImport').then(module => ({ default: module.BrowserBookmarkImport })))

@@ -3,6 +3,7 @@ import { appendImportedBookmarkGroups, collectBookmarkFolders, importBookmarkFol
 import type { MessageKey } from '../../i18n'
 import type { Ctx } from './rows/shared'
 import { extensionApi, isExtensionEnvironment } from '../../platform/extension'
+import '../../i18n/lazy'
 
 type Props = { ctx: Ctx }
 

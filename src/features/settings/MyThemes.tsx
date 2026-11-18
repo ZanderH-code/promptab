@@ -4,6 +4,7 @@ import { MAX_SAVED_THEMES, type SavedTheme } from '../../core/themes/library'
 import { createAppThemeLibrary } from '../../app/useSettings'
 import { useConfirm } from './ConfirmDialog'
 import type { Ctx } from './rows/shared'
+import '../../i18n/lazy'
 
 export function MyThemes({ ctx }: { ctx: Ctx }) {
   const [themes, setThemes] = useState<SavedTheme[]>([])

@@ -5,6 +5,7 @@ import type { Shortcut } from '../../core/model'
 import { toMessageRef, type MessageKey, type Translate } from '../../i18n'
 import { WebsiteIcon } from '../../widgets/WebsiteIcon'
 import { emojis, genericIcons, loadBrands, type BrandIcon } from '../../widgets/iconCatalog'
+import '../../i18n/lazy'
 
 type Props = {
   shortcut: Shortcut

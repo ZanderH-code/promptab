@@ -11,6 +11,7 @@ import { ColorField, RangeField, Row, Toggle, type RowState } from '../controls'
 import { AreaGridPreview } from '../AreaGridPreview'
 import { layoutDefaults, maxColumnsDefault, widgetDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   const [value, setValue] = useState(checked)

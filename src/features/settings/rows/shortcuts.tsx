@@ -3,6 +3,7 @@ import { RangeField, Row, Toggle } from '../controls'
 import { Highlighted } from '../searchHighlight'
 import { bookmarkDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 export function shortcutsItems(ctx: Ctx): Item[] {
   const { t, s, profile, change } = ctx

@@ -8,6 +8,7 @@ import { FilePicker } from '../FilePicker'
 import { backgroundDefaults } from '../rowDefaults'
 import { colorsFor } from '../themeApi'
 import { touch, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 const NAMED_POSITIONS = [
   ['top-left', 'settings.posTopLeft', 0, 0], ['top', 'settings.posTop', 50, 0], ['top-right', 'settings.posTopRight', 100, 0],

@@ -8,6 +8,7 @@ import { GroupMenuTrigger, ShortcutLink } from './ShortcutGridContent'
 import { OnboardingCard } from './OnboardingCard'
 import { moveBookmarks } from './bookmarkGroups'
 import { FormDialog } from '../ui/FormDialog'
+import '../i18n/lazy'
 
 type Props = ShortcutGridProps
 const groupAwareCollision: CollisionDetection = args => {

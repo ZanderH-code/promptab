@@ -2,6 +2,7 @@ import { MessageError } from '../i18n'
 import { loadSettings, saveSettings, readRawSettings, restoreRawSettings, type RawSettings } from '../storage/settings'
 import { readWallpaper, writeWallpaper } from '../storage/wallpaper'
 import { validate, type Settings } from './model'
+import '../i18n/lazy'
 
 const MAX_WALLPAPER_BYTES = 5 * 1024 * 1024
 const DATA_URL = /^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]*={0,2})$/

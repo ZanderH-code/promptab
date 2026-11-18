@@ -1,6 +1,7 @@
 import { Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { Translate } from '../../i18n'
+import '../../i18n/lazy'
 
 /**
  * A styled upload control: the native input stays clipped and out of the tab order, while a labelled

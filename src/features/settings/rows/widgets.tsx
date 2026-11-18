@@ -11,6 +11,7 @@ import { widgetDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 import { WeatherSettings } from './WeatherSettings'
 import { weatherText } from '../../../core/weatherMessages'
+import '../../../i18n/lazy'
 
 function usePreviewNow() {
   const [now, setNow] = useState(() => new Date())
