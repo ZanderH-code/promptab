@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.22.0
+
+0.22.0 makes nightTab backups import with nightTab's look (checked side by side against the README setups 001 and 003–011) and keeps that look editable: Promptab's colour, radius, shadow, font, scale, widget size and background settings drive it, and nightTab's own values are options under Theme. 0.21.0 is live in Edge Add-ons.
+
 ## Release status — 0.21.0
 
 0.21.0 makes AI themes and custom CSS look good: the prompt says what each element really is and lists common mistakes, and a pitfall checker warns in the AI review (with feedback to copy back to the AI) and in the CSS editor. 0.20.0 was submitted to Edge Add-ons on 2026-11-18 and was still in review when 0.21.0 merged; 0.21.0 is published once that submission clears.

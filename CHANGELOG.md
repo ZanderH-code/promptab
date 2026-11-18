@@ -4,6 +4,24 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.22.0]
+
+### Added
+
+- Importing a nightTab backup reproduces its look: the layout width, padding and gutter, header items in order with their sizes, clock and date parts with accent separators, the search field, joined toolbar buttons (in the header or a corner), groups as headed sections with an "Open all" text button, website blocks with wide and tall tiles, their own colours, images, borders, alignment and rotation, the accent line, the hover lift and shadow, and the address strip. The README setups of nightTab 7 match side by side once the fonts and media files they use are added.
+- An imported look is a starting point, not a fixed copy. Colours, corner radius, shadow, fonts, Interface scale, each widget's size and the background settings keep working on it, and nightTab's own values (layout width, padding, gutter, plate opacity, accent line, hover zoom and hover shadow) appear as "nightTab" options under Theme.
+- Font Awesome icons in a nightTab backup are drawn from a bundled subset (Font Awesome Free 5.14.0, CC BY 4.0) instead of falling back to favicons.
+- Website editor: "Tile look" sets a tile's size (wide, tall, large), content position, own plate and accent colours, plate opacity, a tile image, border width, icon and name side by side or stacked, name first, hidden name or icon, icon and name size, the space between them, rotation and offset. Every value a nightTab import sets can be changed or reset here.
+- Websites can show as blocks, groups as headed sections with an "Open all" button, and the time can be spelled in words.
+- Toolbar: a "Buttons on a plate" look and a corner position. Search: options to name the engine in the box and to filter websites as you type.
+- Background: an accent tint over an image or video wallpaper; opacity and vignette for videos.
+
+### Changed
+
+- Widget size goes up to 5×.
+- The import notes name every Google font and remote image or video the backup uses, so they can be saved and added under Theme → Fonts, Background, or the website's Tile image.
+- Startup JavaScript is 449,176 bytes raw, under the unchanged 480,000-byte budget.
+
 ## [0.21.0]
 
 ### Fixed
