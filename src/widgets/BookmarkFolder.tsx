@@ -15,7 +15,7 @@ type Props = {
   group: Group
   name: string
   shortcuts: Shortcut[]
-  style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only'
+  style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only' | 'block'
   iconColor: 'per-site' | 'accent'
   openInNewTab: boolean
   liftOnHover: boolean

@@ -137,6 +137,8 @@ export function backgroundItems(ctx: Ctx): Item[] {
       imageRange('grayscale', 'settings.grayscale', image.grayscale, RANGES.grayscale, grayscale => setImage({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }, fallback?.image.grayscale),
       imageRange('image-scale', 'settings.imageScale', image.scale, RANGES.scale, scale => setImage({ scale }), { step: 0.05, unit: '×', hint: 'settings.hint.imageScale' }, fallback?.image.scale),
       imageRange('vignette', 'settings.vignette', image.vignette, RANGES.vignette, vignette => setImage({ vignette }), { unit: '%', hint: 'settings.hint.vignette' }, fallback?.image.vignette),
+      imageRange('image-opacity', 'settings.mediaOpacity', image.opacity ?? 100, { min: 0, max: 100 }, opacity => setImage({ opacity: opacity === 100 ? undefined : opacity }), { unit: '%' }, 100),
+      imageRange('image-tint', 'settings.wallpaperTint', bg.tint ?? 0, { min: 0, max: 100 }, tint => setBackground(b => ({ ...b, tint: tint || undefined })), { unit: '%', hint: 'settings.hint.wallpaperTint' }, 0),
       {
         id: 'focal', group: 'settings.imageGroup', keys: ['settings.focal', 'settings.focalX', 'settings.focalY', ...NAMED_POSITIONS.map(([, key]) => key)],
         node: (
@@ -166,6 +168,9 @@ export function backgroundItems(ctx: Ctx): Item[] {
     items.push(
       imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }, fallback?.video.blur),
       imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }, fallback?.video.grayscale),
+      imageRange('video-opacity', 'settings.mediaOpacity', video.opacity ?? 100, { min: 0, max: 100 }, opacity => setVideo({ opacity: opacity === 100 ? undefined : opacity }), { unit: '%' }, 100),
+      imageRange('video-vignette', 'settings.vignette', video.vignette ?? 0, RANGES.vignette, vignette => setVideo({ vignette: vignette || undefined }), { unit: '%', hint: 'settings.hint.vignette' }, 0),
+      imageRange('video-tint', 'settings.wallpaperTint', bg.tint ?? 0, { min: 0, max: 100 }, tint => setBackground(b => ({ ...b, tint: tint || undefined })), { unit: '%', hint: 'settings.hint.wallpaperTint' }, 0),
     )
   }
   return items

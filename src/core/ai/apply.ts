@@ -17,7 +17,7 @@ function portableWidget(widget: ProfileWidget): ProfileWidget | null {
   const allowed: Partial<Record<ProfileWidget['type'], string[]>> = {
     clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow'],
     date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'weekNumber', 'weekStart', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase'],
-    search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor', 'showUrl'],
+    search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor', 'showUrl', 'groupDisplay', 'openAll'],
     greeting: ['size', 'align', 'transitional'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
     weather: ['size', 'align', 'unit', 'showForecast'],
   }

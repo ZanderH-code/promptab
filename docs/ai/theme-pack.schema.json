@@ -647,6 +647,15 @@
                   },
                   "eyebrow": {
                     "type": "boolean"
+                  },
+                  "words": {
+                    "type": "boolean"
+                  },
+                  "meridiem": {
+                    "type": "boolean"
+                  },
+                  "separatorAccent": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": {}
@@ -767,6 +776,16 @@
                   },
                   "uppercase": {
                     "type": "boolean"
+                  },
+                  "dayStyle": {
+                    "type": "string",
+                    "enum": [
+                      "number",
+                      "word"
+                    ]
+                  },
+                  "separatorAccent": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": {}
@@ -877,7 +896,8 @@
                       "list",
                       "minimal",
                       "card",
-                      "icon-only"
+                      "icon-only",
+                      "block"
                     ]
                   },
                   "maxColumns": {
@@ -897,6 +917,16 @@
                     ]
                   },
                   "showUrl": {
+                    "type": "boolean"
+                  },
+                  "groupDisplay": {
+                    "type": "string",
+                    "enum": [
+                      "folders",
+                      "sections"
+                    ]
+                  },
+                  "openAll": {
                     "type": "boolean"
                   }
                 },
@@ -1109,16 +1139,26 @@
                     ]
                   },
                   "actions": {
-                    "maxItems": 3,
+                    "maxItems": 4,
                     "type": "array",
                     "items": {
                       "type": "string",
                       "enum": [
+                        "accent",
                         "add",
                         "edit",
                         "settings"
                       ]
                     }
+                  },
+                  "corner": {
+                    "type": "string",
+                    "enum": [
+                      "top-left",
+                      "top-right",
+                      "bottom-left",
+                      "bottom-right"
+                    ]
                   }
                 },
                 "additionalProperties": {}

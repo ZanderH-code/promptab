@@ -96,6 +96,10 @@ export function widgetsItems(ctx: Ctx): Item[] {
     clockRows.push({ id: 'clock-hour12', keys: ['settings.hour12'], node: <Toggle label={t('settings.hour12')} checked={p.hour12 ?? false} changed={!!defaults && (p.hour12 ?? false) !== defaults.clock.hour12} onReset={defaults ? () => patchClock({ hour12: defaults.clock.hour12 }) : undefined} resetLabel={resetLabel('settings.hour12')} onChange={hour12 => patchClock({ hour12 })} /> })
     clockRows.push({ id: 'clock-separator', keys: ['settings.clockSeparator'], node: <Row label={t('settings.clockSeparator')} changed={!!defaults && (p.separator ?? ':') !== defaults.clock.separator} onReset={defaults ? () => patchClock({ separator: defaults.clock.separator }) : undefined} resetLabel={resetLabel('settings.clockSeparator')}><DraftText className="sd-input" maxLength={8} value={p.separator ?? ':'} aria-label={t('settings.clockSeparator')} onCommit={separator => patchClock({ separator })} /></Row> })
     clockRows.push({ id: 'clock-spacing', keys: ['settings.clockSpacing'], node: <RangeField t={t} label={t('settings.clockSpacing')} value={p.separatorSpacing ?? 0} min={0} max={1} step={0.05} changed={!!defaults && (p.separatorSpacing ?? 0) !== defaults.clock.spacing} onReset={defaults ? () => patchClock({ separatorSpacing: defaults.clock.spacing }) : undefined} resetLabel={resetLabel('settings.clockSpacing')} onChange={separatorSpacing => patchClock({ separatorSpacing })} /> })
+    const simpleToggle = (rows: Item[], id: string, label: MessageKey, checked: boolean, onChange: (value: boolean) => void, disabled = false) => rows.push({ id, keys: [label], node: <Toggle label={t(label)} checked={checked} disabled={disabled} onChange={onChange} /> })
+    simpleToggle(clockRows, 'clock-words', 'settings.clockWords', !!p.words, words => patchClock({ words: words || undefined }))
+    simpleToggle(clockRows, 'clock-meridiem', 'settings.clockMeridiem', !!p.meridiem, meridiem => patchClock({ meridiem: meridiem || undefined }), !p.hour12)
+    simpleToggle(clockRows, 'clock-separator-accent', 'settings.separatorAccent', !!p.separatorAccent, separatorAccent => patchClock({ separatorAccent: separatorAccent || undefined }))
     clockRows.push({ id: 'clock-preview', keys: ['settings.widgets'], node: <WidgetFormatPreview type="clock" props={p} language={s.language} /> })
   }
   const dateRows: Item[] = []
@@ -114,6 +118,8 @@ export function widgetsItems(ctx: Ctx): Item[] {
     dateRows.push({ id: 'date-separator', keys: ['settings.dateSeparator'], node: <Row label={t('settings.dateSeparator')} changed={!!defaults && (p.separator ?? ' ') !== defaults.date.separator} onReset={defaults ? () => patchDate({ separator: defaults.date.separator, format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateSeparator')}><DraftText className="sd-input" maxLength={8} value={p.separator ?? ' '} aria-label={t('settings.dateSeparator')} onCommit={separator => patchDate({ separator, format: 'custom' })} /></Row> })
     const order = p.order ?? ['weekday', 'month', 'day', 'year']
     dateRows.push({ id: 'date-order', keys: ['settings.dateOrder'], node: <Row label={t('settings.dateOrder')} changed={!!defaults && order.join() !== defaults.date.order.join()} onReset={defaults ? () => patchDate({ order: [...defaults.date.order], format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateOrder')}><button className="sd-button" onClick={() => patchDate({ order: [...order.slice(1), order[0]], format: 'custom' })}>{order.map(part => t(({ weekday: 'settings.dateWeekday', day: 'settings.dateDay', month: 'settings.dateMonth', year: 'settings.dateYear', weekNumber: 'settings.dateWeekNumber' } as const)[part])).join(' → ')}</button></Row> })
+    dateRows.push({ id: 'date-day-words', keys: ['settings.dateDayWords'], node: <Toggle label={t('settings.dateDayWords')} checked={p.dayStyle === 'word'} onChange={word => patchDate({ dayStyle: word ? 'word' : undefined, format: 'custom' })} /> })
+    dateRows.push({ id: 'date-separator-accent', keys: ['settings.separatorAccent'], node: <Toggle label={t('settings.separatorAccent')} checked={!!p.separatorAccent} onChange={separatorAccent => patchDate({ separatorAccent: separatorAccent || undefined, format: 'custom' })} /> })
     dateRows.push({ id: 'date-preview', keys: ['settings.widgets'], node: <WidgetFormatPreview type="date" props={p} language={s.language} /> })
   }
   // A card opens by default only when one of its rows differs from the default profile.
@@ -131,6 +137,19 @@ export function widgetsItems(ctx: Ctx): Item[] {
   if (date) items.push(card('widget-date', t('settings.showDate'), !date.hidden, visible => setHidden(date.id, visible), dateChanged, ['settings.showDate', ...dateRows.flatMap(row => row.keys)], rows(dateRows)))
   items.push(card('showSearch', t('settings.showSearch'), s.showSearch, visible => patch({ showSearch: visible }), false, ['settings.showSearch'], null))
   if (shortcuts) items.push(card('widget-shortcuts', t('settings.shortcuts'), !shortcuts.hidden, visible => setHidden(shortcuts.id, visible), false, ['settings.shortcuts'], null))
+  for (const widget of ctx.profile.widgets) {
+    if (widget.type !== 'toolbar') continue
+    const patchToolbar = (updates: Record<string, unknown>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } } : item) as typeof profile.widgets }))
+    const actions = widget.props.actions ?? ['add', 'edit', 'settings']
+    const toggleAction = (action: 'accent' | 'add' | 'edit', on: boolean) => patchToolbar({ actions: (['accent', 'add', 'edit', 'settings'] as const).filter(item => item === action ? on : actions.includes(item)) })
+    const cornerOptions = [['', 'settings.toolbarInArea'], ['top-left', 'settings.posTopLeft'], ['top-right', 'settings.posTopRight'], ['bottom-left', 'settings.posBottomLeft'], ['bottom-right', 'settings.posBottomRight']] as const
+    items.push(card(`widget-toolbar-${widget.id}`, t('widgets.toolbar'), !widget.hidden, visible => setHidden(widget.id, visible), false, ['widgets.toolbar', 'settings.toolbarPlace', 'settings.toolbarAccent'], <>
+      <Row label={t('settings.toolbarPlace')}><Select ctx={ctx} label={t('settings.toolbarPlace')} value={widget.props.corner ?? ''} options={cornerOptions.map(([value, key]) => ({ value, label: t(key) }))} onChange={corner => patchToolbar({ corner: corner || undefined })} /></Row>
+      <Toggle label={t('settings.toolbarAccent')} checked={actions.includes('accent')} onChange={on => toggleAction('accent', on)} />
+      <Toggle label={t('shortcuts.add')} checked={actions.includes('add')} onChange={on => toggleAction('add', on)} />
+      <Toggle label={t('edit.enter')} checked={actions.includes('edit')} onChange={on => toggleAction('edit', on)} />
+    </>))
+  }
   const productTypes: ProductivityWidgetType[] = ['todo', 'note', 'countdown', 'weather']
   const firstArea = (profile: typeof ctx.profile) => profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).find(name => name !== '.') ?? 'overview'
   /** Adds a widget at the end of the first area, then brings its settings card into view so the next step is obvious. */

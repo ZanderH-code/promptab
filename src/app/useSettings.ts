@@ -50,7 +50,7 @@ async function dataUrl(blob: Blob): Promise<string> {
 export function projectPaint(profile: ProfileV2): Settings {
   const widget = (type: string) => profile.widgets.find(item => item.type === type)
   const clock = widget('clock'), date = widget('date'), search = widget('search'), bookmarks = widget('bookmarks')
-  const shortcuts = profile.bookmarks.groups.flatMap(group => group.items).map(({ image: _image, ...item }) => item)
+  const shortcuts = profile.bookmarks.groups.flatMap(group => group.items).map(({ image: _image, ...item }) => item.tile?.image ? { ...item, tile: withoutImage(item.tile) } : item)
   const engine = profile.search.engines.find(item => item.id === profile.search.defaultEngineId)
   const language = profile.prefs.language === 'system' ? systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]) : profile.prefs.language
   const theme = profile.theme.mode === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : profile.theme.mode
@@ -73,12 +73,23 @@ export function projectPaint(profile: ProfileV2): Settings {
   }
 }
 
+function withoutImage<T extends { image?: string }>(value: T): Omit<T, 'image'> {
+  const { image: _image, ...rest } = value
+  return rest
+}
+
 async function project(profile: ProfileV2): Promise<Settings> {
-  const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async item => {
+  const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async (stored): Promise<Shortcut> => {
+    let item: Shortcut = stored
+    if (item.tile?.image) {
+      const blob = await assets.get(item.tile.image)
+      // A missing tile image leaves the tile colour, like a missing icon image leaves the automatic icon.
+      item = { ...item, tile: blob ? { ...item.tile, image: await dataUrl(blob) } : withoutImage(item.tile) }
+    }
     if (!item.image) return item
     const blob = await assets.get(item.image)
     // A missing asset degrades to the text/automatic icon instead of blocking the page.
-    if (!blob) { const { image: _missing, ...rest } = item; return rest }
+    if (!blob) return withoutImage(item)
     return { ...item, image: await dataUrl(blob) }
   }))
   return { ...projectPaint(profile), shortcuts }
@@ -132,17 +143,22 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targ
     const originals = new Map(groups.flatMap((group, index) => group.items.map(item => [item.id, { item, index }] as const)))
     const converted = await Promise.all(changes.shortcuts.map(async (item: Shortcut) => {
       const original = originals.get(item.id)
-      let image: string | undefined
-      if (item.image) {
-        if (original?.item.image) {
-          const blob = await assets.get(original.item.image)
+      // Data URLs from the page become assets; an unchanged image keeps its stored reference.
+      const stored = async (value: string | undefined, previous: string | undefined) => {
+        if (!value) return undefined
+        if (value.startsWith('mnt-asset:')) return value
+        if (previous) {
+          const blob = await assets.get(previous)
           if (!blob) throw new Error('Missing bookmark image')
-          if (await dataUrl(blob) === item.image) image = original.item.image
+          if (await dataUrl(blob) === value) return previous
         }
-        if (!image) image = await assets.add(await (await fetch(item.image)).blob())
+        return assets.add(await (await fetch(value)).blob())
       }
+      const image = await stored(item.image, original?.item.image)
+      const tileImage = await stored(item.tile?.image, original?.item.tile?.image)
+      const tile = item.tile ? { ...withoutImage(item.tile), ...(tileImage ? { image: tileImage } : {}) } : undefined
       const targetIndex = targetGroupId ? groups.findIndex(group => group.id === targetGroupId) : 0
-      return { index: original?.index ?? Math.max(0, targetIndex), item: { ...item, ...(image ? { image } : {}) } }
+      return { index: original?.index ?? Math.max(0, targetIndex), item: { ...item, ...(image ? { image } : {}), ...(tile ? { tile } : {}) } }
     }))
     const existing = converted.filter(entry => originals.has(entry.item.id))
     if (existing.some((entry, i) => i > 0 && entry.index < existing[i - 1].index)) throw new Error('Cannot reorder bookmarks across groups')

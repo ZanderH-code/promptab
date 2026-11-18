@@ -39,3 +39,28 @@ describe('clock and date formatting', () => {
     expect(formatDate(date, 'en', {})).toContain('2026')
   })
 })
+
+describe('clock and date tokens', () => {
+  it('spells numbers and ordinals in English words', async () => {
+    const { numberWords, ordinalWords } = await import('./formats')
+    expect([0, 7, 13, 20, 21, 53, 59].map(numberWords)).toEqual(['Zero', 'Seven', 'Thirteen', 'Twenty', 'Twenty-One', 'Fifty-Three', 'Fifty-Nine'])
+    expect([1, 2, 3, 5, 8, 9, 10, 12, 20, 21, 22, 30, 31].map(ordinalWords)).toEqual(['First', 'Second', 'Third', 'Fifth', 'Eighth', 'Ninth', 'Tenth', 'Twelfth', 'Twentieth', 'Twenty-First', 'Twenty-Second', 'Thirtieth', 'Thirty-First'])
+  })
+
+  it('writes a word clock with separators as their own tokens', async () => {
+    const { clockTokens } = await import('./formats')
+    const evening = new Date(2021, 7, 10, 18, 53)
+    expect(formatClock(evening, 'en', { words: true, hour12: true, separator: ':', separatorSpacing: 0.25 })).toBe('Six : Fifty-Three')
+    expect(formatClock(new Date(2021, 7, 10, 7, 5), 'en', { words: true })).toBe('Zero Seven:Zero Five')
+    expect(clockTokens(evening, 'en', { hour12: true, pad: false, meridiem: true, separator: ':' }).map(token => [token.kind, token.text])).toEqual([['part', '6'], ['separator', ':'], ['part', '53'], ['part', ' PM']])
+    expect(formatClock(evening, 'en', { separator: '' })).toBe('1853')
+  })
+
+  it('writes the day of the month as a word or a word ordinal', async () => {
+    const { dateTokens } = await import('./formats')
+    const date = new Date(2021, 7, 10, 12)
+    expect(formatDate(date, 'en', { format: 'custom', order: ['weekday', 'day', 'month'], dayStyle: 'word', ordinal: true, separator: '/', separatorSpacing: 0.25 })).toBe('Tuesday / Tenth / August')
+    expect(formatDate(date, 'en', { format: 'custom', order: ['day', 'month'], dayStyle: 'word', monthStyle: 'short', separator: '/' })).toBe('Ten/Aug')
+    expect(dateTokens(date, 'en', { format: 'custom', order: ['day', 'month'], separator: '/' }).map(token => token.kind)).toEqual(['part', 'separator', 'part'])
+  })
+})

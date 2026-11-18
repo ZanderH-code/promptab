@@ -23,4 +23,64 @@
   .mnt-bookmark-list .add-shortcut span { width: 40px; height: 40px; border-radius: var(--mnt-icon-radius); }
   .mnt-bookmark-minimal .add-shortcut { flex-direction: row; justify-content: flex-start; width: fit-content; padding: 8px 0; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
   .mnt-bookmark-minimal .add-shortcut span { display: none; }
+
+  /* Per-website tile look: a plate behind the website (colour, opacity, image), accent, alignment and spans. */
+  .mnt-link[data-tile-backdrop] { position: relative; isolation: isolate; border-radius: var(--mnt-radius); }
+  .mnt-link-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-surface)) calc(var(--mnt-tile-opacity, 1) * 100%), transparent); }
+  .mnt-link-backdrop-image { position: absolute; inset: 0; background-position: center; background-size: cover; background-repeat: no-repeat; }
+  .mnt-link[style*="--mnt-tile-border"] { border: var(--mnt-tile-border) solid var(--mnt-accent); }
+  .mnt-link[data-tile-hide-name] .mnt-link-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mnt-link[data-tile-name-first] { flex-direction: column-reverse; }
+  .mnt-link[data-tile-direction="horizontal"] { flex-direction: row; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-name-first] { flex-direction: row-reverse; }
+  .mnt-link:is([style*="--mnt-tile-rotate"], [style*="--mnt-tile-x"], [style*="--mnt-tile-y"]) > :not(.mnt-link-backdrop) { translate: var(--mnt-tile-x, 0) var(--mnt-tile-y, 0); rotate: var(--mnt-tile-rotate, 0deg); }
+  /* Nine-way alignment: the main axis follows the direction, so vertical tiles justify on the vertical part. */
+  .mnt-link[data-tile-align^="top"] { justify-content: flex-start; }
+  .mnt-link[data-tile-align^="center"] { justify-content: center; }
+  .mnt-link[data-tile-align^="bottom"] { justify-content: flex-end; }
+  .mnt-link[data-tile-align$="left"] { align-items: flex-start; text-align: left; }
+  .mnt-link[data-tile-align$="center"] { align-items: center; text-align: center; }
+  .mnt-link[data-tile-align$="right"] { align-items: flex-end; text-align: right; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-align$="left"] { justify-content: flex-start; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-align$="center"] { justify-content: center; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-align$="right"] { justify-content: flex-end; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-align^="top"] { align-items: flex-start; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-align^="center"] { align-items: center; }
+  .mnt-link[data-tile-direction="horizontal"][data-tile-align^="bottom"] { align-items: flex-end; }
+  .mnt-link[data-tile-name-first][data-tile-align^="top"]:not([data-tile-direction="horizontal"]) { justify-content: flex-end; }
+  .mnt-link[data-tile-name-first][data-tile-align^="bottom"]:not([data-tile-direction="horizontal"]) { justify-content: flex-start; }
+  .mnt-link[data-tile-name-first][data-tile-direction="horizontal"][data-tile-align$="left"] { justify-content: flex-end; }
+  .mnt-link[data-tile-name-first][data-tile-direction="horizontal"][data-tile-align$="right"] { justify-content: flex-start; }
+  /* Wide and tall websites take two cells once the page is wide enough for a multi-column grid. */
+  @media (min-width: 900px) {
+    .grid > :has(> .mnt-link:is([data-tile-span="wide"], [data-tile-span="large"])) { grid-column: span 2; }
+    .grid > :has(> .mnt-link:is([data-tile-span="tall"], [data-tile-span="large"])) { grid-row: span 2; }
+  }
+
+  /* Blocks: equal plates that fill the row, with fixed-height rows packed densely so wide and tall tiles fit. */
+  .mnt-bookmark-block .grid {
+    width: 100%; margin: 0; font-size: calc(16px * var(--mnt-block-size, 1));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--mnt-block-min, 11em)), 1fr)); grid-auto-rows: var(--mnt-block-row, 10em); grid-auto-flow: dense;
+    gap: var(--mnt-block-gap, 1em); justify-content: stretch; justify-items: stretch;
+  }
+  .mnt-bookmark-block .shortcut-wrap { height: 100%; min-height: 0; }
+  .mnt-bookmark-block .shortcut {
+    position: relative; isolation: isolate; box-sizing: border-box; width: 100%; height: 100%; padding: 1em; gap: .625em; overflow: hidden;
+    justify-content: center; font-size: 1em; border-radius: var(--mnt-radius);
+    background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-block-plate, var(--mnt-surface))) calc(var(--mnt-tile-opacity, var(--mnt-block-opacity, 1)) * 100%), transparent);
+    transition: background-color var(--mnt-dur-fast, .15s), transform .2s ease-in-out, box-shadow .2s ease-in-out;
+  }
+  .mnt-bookmark-block .shortcut:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-block-plate-hover, var(--mnt-surface-hover))) calc(var(--mnt-tile-opacity, var(--mnt-block-opacity, 1)) * 100%), transparent); }
+  .mnt-bookmark-block .mnt-link-backdrop { background: none; }
+  .mnt-bookmark-block .shortcut-icon { width: auto; height: auto; border-radius: 0; background: none; color: var(--mnt-accent); font-family: var(--mnt-font-display); font-size: calc(2.5em * var(--mnt-tile-icon-scale, 1)); line-height: 1; transform: none; }
+  .mnt-bookmark-block .shortcut-icon :is(svg, img) { width: 1em; height: 1em; }
+  .mnt-bookmark-block .shortcut:hover .shortcut-icon { transform: none; }
+  .mnt-bookmark-block .shortcut > .mnt-link-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(.7em * var(--mnt-tile-name-scale, 1)); }
+  .mnt-bookmark-block .add-shortcut { height: 100%; justify-content: center; border-radius: var(--mnt-radius); }
+  /* The address strip slides up inside the bottom of a block instead of floating under it. */
+  [data-show-url] .mnt-bookmark-block .mnt-link::after {
+    content: attr(data-link-url); top: auto; right: 0; bottom: 0; left: 0; display: block; height: 3em; padding: 0 1.333em; border-radius: 0; font-size: .75em; line-height: 3em;
+    overflow: hidden; text-overflow: ellipsis; text-align: inherit; opacity: 1; translate: 0 100%; transition: translate .4s cubic-bezier(.8, .8, .4, 1.4);
+  }
+  [data-show-url] .mnt-bookmark-block .mnt-link:is(:hover, :focus-visible)::after { translate: 0 0; }
 }

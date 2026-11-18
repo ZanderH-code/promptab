@@ -30,6 +30,15 @@ export const variableDeclSchema = z.discriminatedUnion('type', [
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
   image: asset.optional(), iconMode: z.enum(['auto', 'text', 'brand', 'lucide', 'emoji']).optional(), iconName: z.string().max(100).optional(), iconColorMode: z.enum(['brand', 'accent', 'custom']).optional(), brand: z.object({ slug: nonempty.max(100), title: nonempty.max(100), path: z.string().min(1).max(8192).regex(/^[MmZzLlHhVvCcSsQqTtAa0-9eE+.,\s-]+$/, { error: 'SVG path data' }), hex: z.string().regex(/^[\da-f]{6}$/i, { error: 'six-digit hex color' }) }).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
+  /** Tile look for one website: grid span, and a colour or image behind the icon at an opacity. */
+  tile: z.object({
+    span: z.enum(['wide', 'tall', 'large']).optional(), background: color.optional(), image: asset.optional(), opacity: ranged({ min: 0, max: 100 }).optional(),
+    imageOpacity: ranged({ min: 0, max: 100 }).optional(), accent: color.optional(), border: ranged({ min: 0, max: 16 }).optional(),
+    align: z.enum(['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right']).optional(),
+    direction: z.enum(['vertical', 'horizontal']).optional(), nameFirst: z.boolean().optional(), hideName: z.boolean().optional(),
+    iconScale: ranged({ min: 0.25, max: 8 }).optional(), nameScale: ranged({ min: 0.25, max: 4 }).optional(), rotate: ranged({ min: -360, max: 360 }).optional(),
+    offsetX: ranged({ min: -20, max: 20 }).optional(), offsetY: ranged({ min: -20, max: 20 }).optional(),
+  }).optional(),
 })
 
 // Known props are typed; unknown props are tolerated so newer or AI-written packs still load.
@@ -50,6 +59,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
     props: z.looseObject({
       ...common, hour12: z.boolean().optional(), seconds: z.boolean().optional(), hours: z.boolean().optional(), minutes: z.boolean().optional(),
       pad: z.boolean().optional(), separator: separator.optional(), separatorSpacing: separatorSpacing.optional(), eyebrow: z.boolean().optional(),
+      words: z.boolean().optional(), meridiem: z.boolean().optional(), separatorAccent: z.boolean().optional(),
     }),
   }),
   z.object({
@@ -58,17 +68,18 @@ export const widgetSchema = z.discriminatedUnion('type', [
       ...common, format: z.enum(['full', 'custom']).optional(), weekday: z.boolean().optional(), day: z.boolean().optional(), month: z.boolean().optional(), year: z.boolean().optional(),
       order: z.array(z.enum(DATE_PARTS)).max(5).optional(), weekNumber: z.boolean().optional(), weekStart: z.enum(['monday', 'sunday', 'saturday']).optional(), separator: separator.optional(), separatorSpacing: separatorSpacing.optional(),
       weekdayStyle: z.enum(['long', 'short']).optional(), monthStyle: z.enum(['long', 'short', 'numeric']).optional(), ordinal: z.boolean().optional(), uppercase: z.boolean().optional(),
+      dayStyle: z.enum(['number', 'word']).optional(), separatorAccent: z.boolean().optional(),
     }),
   }),
   z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
-    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional(), iconColor: z.enum(['per-site', 'accent']).optional(), showUrl: z.boolean().optional() }),
+    props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only', 'block']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional(), iconColor: z.enum(['per-site', 'accent']).optional(), showUrl: z.boolean().optional(), groupDisplay: z.enum(['folders', 'sections']).optional(), openAll: z.boolean().optional() }),
   }),
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional(), transitional: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('spacer'), props: z.looseObject({ ...common, height: ranged({ min: 8, max: 400 }).optional() }) }),
-  z.object({ ...widgetBase, type: z.literal('toolbar'), props: z.looseObject({ ...common, actions: z.array(z.enum(['add', 'edit', 'settings'])).max(3).optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('toolbar'), props: z.looseObject({ ...common, actions: z.array(z.enum(['accent', 'add', 'edit', 'settings'])).max(4).optional(), corner: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('todo'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), items: z.array(z.object({ id: nonempty, text: z.string().max(500), done: z.boolean() })).max(100), hideCompleted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('note'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), content: z.string().max(10000) }) }),
   z.object({ ...widgetBase, type: z.literal('countdown'), props: z.looseObject({ ...common, title: z.string().max(120), targetDate: isoDate, format: z.enum(['days', 'detailed']).optional() }) }),
@@ -122,10 +133,13 @@ export const areaStyleSchema = z.object({
   border: z.object({ top: sideWidth.optional(), right: sideWidth.optional(), bottom: sideWidth.optional(), left: sideWidth.optional() }).optional(),
 })
 export type AreaStyle = z.infer<typeof areaStyleSchema>
+const percent = ranged({ min: 0, max: 100 })
 const backgroundImage = z.object({
   asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale), scale: ranged(RANGES.scale), vignette: ranged(RANGES.vignette), position: nonempty,
+  /** How much of the image shows over the page colour (100 = fully). */
+  opacity: percent.optional(),
 })
-const backgroundVideo = z.object({ asset, poster: asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale) })
+const backgroundVideo = z.object({ asset, poster: asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale), opacity: percent.optional(), vignette: ranged(RANGES.vignette).optional() })
 const wallpaperRotation = z.object({ images: z.array(asset).min(2).max(20), interval: z.enum(['open', 'hour', 'day']) }).superRefine((rotation, ctx) => {
   if (new Set(rotation.images).size !== rotation.images.length) ctx.addIssue({ code: 'custom', path: ['images'], message: 'unique wallpaper assets' })
 })
@@ -142,7 +156,9 @@ export const profileV2Schema = z.object({
   background: z.object({
     type: z.enum(['theme', 'color', 'gradient', 'image', 'video', 'accent']), color: color.optional(), gradient: z.object({ angle: z.number(), stops: z.array(color).min(2).max(3) }).optional(),
     /** Wallpaper shade 0-80, independent of whether an image is set. */
-    dim: ranged(RANGES.dim).default(DEFAULT_DIM), image: backgroundImage.optional(), video: backgroundVideo.optional(), rotation: wallpaperRotation.optional(),
+    dim: ranged(RANGES.dim).default(DEFAULT_DIM), image: backgroundImage.optional(),
+    /** Accent colour laid over an image or video wallpaper, 0-100 %. */
+    tint: percent.optional(), video: backgroundVideo.optional(), rotation: wallpaperRotation.optional(),
   }),
   layout: grid.extend({
     contentWidth: ranged(RANGES.contentWidth),
@@ -151,7 +167,7 @@ export const profileV2Schema = z.object({
     areaStyles: z.record(nonempty, areaStyleSchema).optional(),
   }),
   widgets: z.array(widgetSchema),
-  bookmarks: z.object({ groups: z.array(z.object({ id: nonempty, name: nonempty, builtinName: z.literal('quick-links').optional(), collapsed: z.boolean(), items: z.array(linkSchema.extend({ builtinGroup: z.literal('quick-links').optional() })) })) }),
+  bookmarks: z.object({ groups: z.array(z.object({ id: nonempty, name: nonempty, builtinName: z.literal('quick-links').optional(), collapsed: z.boolean(), showName: z.boolean().optional(), openAll: z.boolean().optional(), items: z.array(linkSchema.extend({ builtinGroup: z.literal('quick-links').optional() })) })) }),
   search: z.object({ engines: z.array(z.object({ id: nonempty, name: nonempty, builtinName: z.literal('custom-search').optional(), template })), defaultEngineId: nonempty }),
   custom: z.object({ css: z.string(), cssEnabled: z.boolean(), variables: z.array(variableDeclSchema), values: z.record(z.string(), z.union([z.string(), z.number()])), sourcePack: z.object({ name: nonempty, importedAt: date }).optional() }),
 }).superRefine((profile, ctx) => {

@@ -3,20 +3,22 @@ import { lazy, Suspense, useState, type CSSProperties, type SyntheticEvent } fro
 import type { ProfileV2 } from '../core/schema/profile'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
-import { GroupMenuTrigger, ShortcutLink, type ContextMenuEvent } from './ShortcutGridContent'
+import { GroupMenuTrigger, OpenAllButton, ShortcutLink, headingParts, type ContextMenuEvent } from './ShortcutGridContent'
 import { BookmarkFolder } from './lazyWidgets'
 import { OnboardingCard, type OnboardingAction } from './OnboardingCard'
 
 export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
   groups: Group[]; shortcuts: Shortcut[]; editing: boolean; onManageDone: () => void; t: Translate; language: 'en' | 'zh-CN'
-  style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only'; source: string; showGroupTitles: boolean; maxColumns: number; showAdd: boolean; iconColor: 'per-site' | 'accent'; openInNewTab: boolean; liftOnHover: boolean
+  style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only' | 'block'; source: string; showGroupTitles: boolean; maxColumns: number; showAdd: boolean; iconColor: 'per-site' | 'accent'; openInNewTab: boolean; liftOnHover: boolean
   reduceMotion?: 'system' | 'on' | 'off'; reduceTransparency?: 'system' | 'on' | 'off'
   onGroups: (update: (groups: Group[]) => Group[]) => void
   onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void
   onContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void
   onGroupContextMenu: (event: ContextMenuEvent, group: Group) => void
   onboarding: boolean; onOnboardingAction: (action: OnboardingAction) => void
+  /** Folders (default) keep extra groups behind a folder tile; sections show every group under its heading. */
+  groupDisplay?: 'folders' | 'sections'; openAll?: boolean; onOpenAll?: (group: Group) => void
 }
 const EditingShortcutGrid = lazy(() => import('./EditingShortcutGrid').then(module => ({ default: module.EditingShortcutGrid })))
 const DisplayDragGrid = lazy(() => import('./DisplayDragGrid').then(module => ({ default: module.DisplayDragGrid })))
@@ -41,9 +43,9 @@ export function ShortcutGrid(props: ShortcutGridProps) {
     : display
 }
 
-function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', onDragIntent }: ShortcutGridProps & { onDragIntent?: (mode: 0 | 1 | 2 | 3 | 4) => void }) {
+function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, t, onGroups, onEdit, onMove, onRemove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', groupDisplay, openAll, onOpenAll, onDragIntent }: ShortcutGridProps & { onDragIntent?: (mode: 0 | 1 | 2 | 3 | 4) => void }) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
-  const folderMode = !editing && source === 'all' && visibleGroups.length >= 2
+  const folderMode = !editing && source === 'all' && visibleGroups.length >= 2 && groupDisplay !== 'sections'
   const names = new Map(shortcuts.map(item => [item.id, item]))
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
   const hasItems = visibleGroups.some(group => group.items.length > 0)
@@ -57,10 +59,10 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
   })
   return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} aria-busy={editing || undefined} onPointerOver={intent(1)} onPointerDown={intent(4)} onTouchStart={intent(2)} onTouchEnd={intent(3)} onTouchCancel={intent(3)} onFocus={intent(0)}>
     {onboarding && !hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
-    {(folderMode ? visibleGroups.slice(0, 1) : visibleGroups).map(group => <div key={group.id} data-drop-group={group.id}>
-      {(showGroupTitles || editing) && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
+    {(folderMode ? visibleGroups.slice(0, 1) : visibleGroups).map(group => { const parts = headingParts(group, openAll, !!onOpenAll); return <div key={group.id} className="mnt-group-section" data-drop-group={group.id}>
+      {(showGroupTitles || editing) && (parts.any || editing) && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
         {!folderMode && (editing || group.collapsed || groups.length > 1) ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => onGroups(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
-        <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>        {editing && <div className="group-actions"><button type="button" aria-label={t('groups.rename')} disabled><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} disabled><X size={15} aria-hidden="true" /></button></div>}
+        {(parts.name || editing) && <span className="mnt-group-name">{groupName(group)}</span>}{!editing && parts.open && onOpenAll && <OpenAllButton group={group} label={t('groups.openAllNamed', { name: groupName(group) })} onOpenAll={onOpenAll} />}<span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>        {editing && <div className="group-actions"><button type="button" aria-label={t('groups.rename')} disabled><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} disabled><X size={15} aria-hidden="true" /></button></div>}
       </GroupMenuTrigger>}
       {(folderMode || !group.collapsed) && <div className="grid" style={{ '--mnt-item-count': group.items.length + (folderMode ? visibleGroups.length - 1 : 0) + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
         {group.items.map(stored => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name
@@ -74,7 +76,7 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
         {folderMode && <Suspense fallback={null}>{visibleGroups.slice(1).map(folder => <BookmarkFolder key={folder.id} group={folder} name={groupName(folder)} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} t={t} onContextMenu={onGroupContextMenu} onShortcutContextMenu={onContextMenu} />)}</Suspense>}
         {(editing || (showAdd && group === visibleGroups[0])) && !(onboarding && group.items.length === 0) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
       </div>}
-    </div>)}
+    </div> })}
     {!groups.length && !onboarding && (editing || showAdd) && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
     {/* With starter websites the card goes below them, so the websites stay above the fold. */}
     {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} hasWebsites />}

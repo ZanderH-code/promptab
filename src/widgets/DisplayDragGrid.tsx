@@ -7,7 +7,7 @@ import { CSS as DndCSS } from '@dnd-kit/utilities'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
 import type { Group, ShortcutGridProps } from './ShortcutGrid'
-import { GroupMenuTrigger, ShortcutLink } from './ShortcutGridContent'
+import { GroupMenuTrigger, OpenAllButton, ShortcutLink, headingParts } from './ShortcutGridContent'
 import { OnboardingCard } from './OnboardingCard'
 import { moveBookmarks } from './bookmarkGroups'
 
@@ -128,10 +128,10 @@ function DroppableFolder({ folder, name, shortcuts, style, iconColor, openInNewT
     renderItems={(items, close) => <DialogItemList group={folder} items={items} close={close} reduceMotion={reducedMotion} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onShortcutContextMenu} />} />
 }
 
-export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system' }: Props) {
+export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', groupDisplay, openAll, onOpenAll }: Props) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const hasItems = visibleGroups.some(group => group.items.length > 0)
-  const folderMode = source === 'all' && visibleGroups.length >= 2
+  const folderMode = source === 'all' && visibleGroups.length >= 2 && groupDisplay !== 'sections'
   const renderedGroups = folderMode ? visibleGroups.slice(0, 1) : visibleGroups
   const desktopId = renderedGroups[0]?.id
   const names = new Map(shortcuts.map(item => [item.id, item]))
@@ -322,10 +322,10 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
       {/* Same place as the static grid it replaces on first hover, so nothing jumps under the pointer. */}
       {onboarding && !hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
       <SortableContext items={renderedGroups.flatMap(group => group.items.map(item => item.id))} strategy={rectSortingStrategy}>
-        {renderedGroups.map(group => <div key={group.id} data-drop-group={group.id}>
-          {showGroupTitles && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className="shortcuts-heading mnt-group-title" ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
+        {renderedGroups.map(group => { const parts = headingParts(group, openAll, !!onOpenAll); return <div key={group.id} className="mnt-group-section" data-drop-group={group.id}>
+          {showGroupTitles && parts.any && !(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className="shortcuts-heading mnt-group-title" ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
             {!folderMode && (group.collapsed || groups.length > 1) ? <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => onGroups(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button> : null}
-            <span>{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>
+            {parts.name && <span className="mnt-group-name">{groupName(group)}</span>}{parts.open && onOpenAll && <OpenAllButton group={group} label={t('groups.openAllNamed', { name: groupName(group) })} onOpenAll={onOpenAll} />}<span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>
           </GroupMenuTrigger>}
           {(folderMode || !group.collapsed) && <div className="grid" style={{ '--mnt-item-count': group.items.length + (folderMode ? visibleGroups.length - 1 : 0) + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
             {group.items.map(stored => { const item = names.get(stored.id) ?? stored
@@ -336,7 +336,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
             {folderMode && <Suspense fallback={null}>{visibleGroups.slice(1).map(folder => <DroppableFolder key={folder.id} folder={folder} name={groupName(folder)} shortcuts={shortcuts} style={style} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} reduceMotion={reduceMotion} reduceTransparency={reduceTransparency} t={t} onContextMenu={onGroupContextMenu} onShortcutContextMenu={onContextMenu} />)}</Suspense>}
             {showAdd && group === visibleGroups[0] && !(onboarding && group.items.length === 0) && <button className="add-shortcut" onClick={() => onAdd(group.id)}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
           </div>}
-        </div>)}
+        </div> })}
       </SortableContext>
       {!groups.length && !onboarding && showAdd && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} strokeWidth={1.5} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
       {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} hasWebsites />}
