@@ -77,6 +77,6 @@ function DisplayShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboard
     </div>)}
     {!groups.length && !onboarding && (editing || showAdd) && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
     {/* With starter websites the card goes below them, so the websites stay above the fold. */}
-    {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
+    {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} hasWebsites />}
   </div>
 }

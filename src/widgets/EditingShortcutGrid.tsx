@@ -7,6 +7,7 @@ import { SortableShortcut } from './SortableShortcut'
 import { GroupMenuTrigger, ShortcutLink } from './ShortcutGridContent'
 import { OnboardingCard } from './OnboardingCard'
 import { moveBookmarks } from './bookmarkGroups'
+import { FormDialog } from '../ui/FormDialog'
 
 type Props = ShortcutGridProps
 const groupAwareCollision: CollisionDetection = args => {
@@ -21,7 +22,7 @@ function DropGroup({ id, children }: { id: string; children: React.ReactNode }) 
 export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, t, onGroups, onEdit, onRemove, onMove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
-  const [dialog, setDialog] = useState<{ kind: 'name'; id?: string; value: string } | { kind: 'delete-group'; id: string } | { kind: 'delete-selected' } | null>(null)
+  const [dialog, setDialog] = useState<{ kind: 'name'; id?: string; value: string; invalid?: boolean } | { kind: 'delete-group'; id: string } | { kind: 'delete-selected' } | null>(null)
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
@@ -118,13 +119,26 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
       </DropGroup>)}
       </SortableContext>
     </DndContext>
-    {dialog && <div role="dialog" aria-modal="true" aria-label={dialog.kind === 'name' ? t('groups.name') : t(dialog.kind === 'delete-group' ? 'groups.confirmDelete' : 'groups.confirmSelected')} className="modal-backdrop">
-      <form className="modal" onSubmit={event => { event.preventDefault(); if (dialog.kind === 'name') { const name = dialog.value.trim(); if (!name) return; if (dialog.id) update(current => current.map(g => { if (g.id !== dialog.id) return g; const { builtinName: _builtinName, ...rest } = g; return { ...rest, name } })); else update(current => [...current, { id: crypto.randomUUID(), name, collapsed: false, items: [] }]) } else if (dialog.kind === 'delete-group') { update(current => current.filter(g => g.id !== dialog.id)); setSelected([]) } else { update(current => current.map(g => ({ ...g, items: g.items.filter(item => !selected.includes(item.id)) }))); setSelected([]) } setDialog(null) }}>
-        {dialog.kind === 'name' ? <label>{t('groups.name')}<input autoFocus value={dialog.value} onChange={event => setDialog({ ...dialog, value: event.target.value })} /></label> : <p>{t(dialog.kind === 'delete-group' ? 'groups.confirmDelete' : 'groups.confirmSelected')}</p>}
-        <button type="button" onClick={() => setDialog(null)}>{t('common.cancel')}</button><button type="submit">{t(dialog.kind === 'name' ? 'groups.save' : 'groups.confirm')}</button>
-      </form>
-    </div>}
+    {dialog && <FormDialog
+      title={dialog.kind === 'name' ? t(dialog.id ? 'groups.rename' : 'groups.add') : t(dialog.kind === 'delete-group' ? 'groups.delete' : 'groups.deleteSelected')}
+      cancelLabel={t('common.cancel')} submitLabel={t(dialog.kind === 'name' ? 'groups.save' : 'groups.confirm')} danger={dialog.kind !== 'name'} focusSubmit={dialog.kind !== 'name'}
+      onCancel={() => setDialog(null)}
+      onSubmit={() => {
+        if (dialog.kind === 'name') {
+          const name = dialog.value.trim()
+          if (!name) { setDialog({ ...dialog, invalid: true }); return }
+          if (dialog.id) update(current => current.map(g => { if (g.id !== dialog.id) return g; const { builtinName: _builtinName, ...rest } = g; return { ...rest, name } }))
+          else update(current => [...current, { id: crypto.randomUUID(), name, collapsed: false, items: [] }])
+        } else if (dialog.kind === 'delete-group') { update(current => current.filter(g => g.id !== dialog.id)); setSelected([]) }
+        else { update(current => current.map(g => ({ ...g, items: g.items.filter(item => !selected.includes(item.id)) }))); setSelected([]) }
+        setDialog(null)
+      }}>
+      {dialog.kind === 'name'
+        ? <><label className="stack">{t('groups.name')}<input autoFocus maxLength={60} value={dialog.value} aria-invalid={dialog.invalid || undefined} aria-describedby={dialog.invalid ? 'group-name-error' : undefined} onChange={event => setDialog({ ...dialog, value: event.target.value, invalid: false })} /></label>
+        {dialog.invalid && <small id="group-name-error" role="alert" className="mnt-form-error">{t('groups.nameRequired')}</small>}</>
+        : <p>{t(dialog.kind === 'delete-group' ? 'groups.confirmDelete' : 'groups.confirmSelected')}</p>}
+    </FormDialog>}
     {!groups.length && !onboarding && (editing || showAdd) && <button className="add-shortcut" onClick={() => onAdd()}><span><Plus size={24} aria-hidden="true" /></span>{t('shortcuts.add')}</button>}
-    {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
+    {onboarding && hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} hasWebsites />}
   </div>
 }

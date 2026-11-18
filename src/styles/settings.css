@@ -341,3 +341,6 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd .sd-weather-allow { width: 100%; padding: 10px; border: 0; border-radius: 8px; background: transparent; color: var(--mnt-accent); font: inherit; font-size: var(--mnt-text-sm); text-align: left; cursor: pointer; }
 .sd .sd-weather-allow:hover, .sd .sd-weather-allow:focus-visible { background: var(--mnt-surface-hover); }
 .sd .sd-weather-status { margin: 8px 0 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
+
+/* The panel itself takes focus when empty space in it is clicked, so Esc still closes it; that needs no ring. */
+.sd.drawer:focus { outline: none; }

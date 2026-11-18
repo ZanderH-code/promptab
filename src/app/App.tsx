@@ -6,6 +6,7 @@ import { defaults, type Settings, type Shortcut } from '../core/model'
 import { finishShortcut } from '../core/shortcut'
 import { systemLanguage, translate, type MessageKey, type MessageParams } from '../i18n'
 import type { ContextMenuItem } from '../ui/ContextMenu'
+import type { OnboardingAction } from '../widgets/OnboardingCard'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
 import type { ContextMenuEvent } from '../widgets/ShortcutGridContent'
 import { extensionApi } from '../platform/extension'
@@ -18,6 +19,7 @@ import { useAssetFonts } from './useAssetFonts'
 import { useUserCss } from './useUserCss'
 import { useWallpaper } from './useWallpaper'
 const ContextMenu = lazy(() => import('../ui/ContextMenu').then(m => ({ default: m.ContextMenu })))
+const FormDialog = lazy(() => import('../ui/FormDialog').then(m => ({ default: m.FormDialog })))
 const KeyboardHelp = lazy(() => import('./KeyboardHelp').then(m => ({ default: m.KeyboardHelp })))
 
 const SyncApp = lazy(() => import('./syncRuntime').then(m => ({ default: m.SyncApp })))
@@ -28,7 +30,8 @@ const WallpaperVideo = lazy(() => import('../features/wallpaper/WallpaperVideo')
 
 type MenuTarget = 'background' | 'clock' | 'search' | 'shortcut' | 'group'
 type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut; group?: ProfileV2['bookmarks']['groups'][number]; focusTarget?: HTMLElement }
-type MoveState = { shortcut: Shortcut; groupId: string }
+/** `groupId` is empty when the website goes into a new group named `name`. */
+type MoveState = { shortcut: Shortcut; groupId: string; name: string; invalid?: boolean }
 
 const MENU_MARGIN = 180
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
@@ -68,6 +71,8 @@ export default function App() {
         undo()
         return
       }
+      // Settings or a dialog is in front: single-letter keys belong to it, not to the page behind.
+      if (document.querySelector('.drawer.sd, .modal-backdrop')) return
       if (!profile?.prefs.keyboardShortcuts || typing || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.shiftKey && event.key !== '?')) return
       const key = event.key.toLowerCase()
       if (key === '/') { event.preventDefault(); document.querySelector<HTMLInputElement>('#search')?.focus() }
@@ -94,6 +99,8 @@ export default function App() {
   const [drawerSection, setDrawerSection] = useState<string | undefined>()
   const [editing, setEditing] = useState<Shortcut | null>(null)
   const addGroupId = useRef<string | undefined>(undefined)
+  /** The onboarding step the person opened, so the card can stay until that step is actually done. */
+  const onboardingStep = useRef<OnboardingAction | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [moving, setMoving] = useState<MoveState | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -188,6 +195,17 @@ export default function App() {
     setMenu({ x, y, target, shortcut: options.shortcut, group: options.group, focusTarget: event.focusTarget })
   }
 
+  const dismissOnboarding = () => {
+    onboardingStep.current = null
+    localStorage.setItem('mnt:onboarding:dismissed', 'true')
+    setOnboardingDismissed(true)
+  }
+  const closeDrawer = () => {
+    setDrawer(false)
+    if (onboardingStep.current === 'theme' || onboardingStep.current === 'ai') dismissOnboarding()
+    else onboardingStep.current = null
+  }
+
   const openSettings = (section?: string) => {
     setEditMode(false)
     setDrawerSection(section)
@@ -202,23 +220,26 @@ export default function App() {
   const newShortcut = (color: string): Shortcut => ({ id: crypto.randomUUID(), name: '', url: 'https://', color, icon: '' })
 
   const removeShortcut = (shortcut: Shortcut) => {
-    if (confirm(t('shortcuts.confirmDelete'))) patch({ shortcuts: s.shortcuts.filter(item => item.id !== shortcut.id) })
+    // No browser confirm box: the change is saved with an Undo button, like every other delete.
+    patch({ shortcuts: s.shortcuts.filter(item => item.id !== shortcut.id) })
   }
 
   const openMoveDialog = (shortcut: Shortcut) => {
     const current = profile?.bookmarks.groups.find(group => group.items.some(item => item.id === shortcut.id))
     const target = profile?.bookmarks.groups.find(group => group.id !== current?.id)
-    if (target) setMoving({ shortcut, groupId: target.id })
+    // With a single group there is nowhere to move to yet; offer a new group instead of doing nothing.
+    setMoving({ shortcut, groupId: target?.id ?? '', name: '' })
   }
 
-  const moveShortcut = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  const moveShortcut = () => {
     if (!moving) return
-    run((st, id) => st.getState().updateProfile(id, p => ({
-      ...p,
-      meta: { ...p.meta, updatedAt: new Date().toISOString() },
-      bookmarks: { ...p.bookmarks, groups: moveBookmarks(p.bookmarks.groups, [moving.shortcut.id], moving.groupId) },
-    })))
+    const name = moving.name.trim()
+    if (!moving.groupId && !name) { setMoving({ ...moving, invalid: true }); return }
+    const groupId = moving.groupId || crypto.randomUUID()
+    run((st, id) => st.getState().updateProfile(id, p => {
+      const groups = moving.groupId ? p.bookmarks.groups : [...p.bookmarks.groups, { id: groupId, name, collapsed: false, items: [] }]
+      return { ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: moveBookmarks(groups, [moving.shortcut.id], groupId) } }
+    }))
     setMoving(null)
   }
 
@@ -230,6 +251,7 @@ export default function App() {
     const exists = s.shortcuts.some(item => item.id === editing.id)
     patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] }, !exists ? addGroupId.current : undefined)
     addGroupId.current = undefined
+    if (onboardingStep.current === 'add') dismissOnboarding()
     setEditing(null)
   }
 
@@ -318,9 +340,10 @@ export default function App() {
         editing={editMode}
         onboarding={!!profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && (onboardingEligible || profile.bookmarks.groups.every(group => group.items.length === 0))}
         onOnboardingAction={action => {
-          localStorage.setItem('mnt:onboarding:dismissed', 'true')
-          setOnboardingDismissed(true)
-          if (action === 'dismiss') return
+          // The card goes away once a step is done (a website saved, a theme or AI visited), not when one is
+          // merely opened: backing out of the add dialog should leave the way back in.
+          if (action === 'dismiss') { dismissOnboarding(); return }
+          onboardingStep.current = action
           if (action === 'add') setEditing(newShortcut('#b0a092'))
           else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
         }}
@@ -337,21 +360,21 @@ export default function App() {
         onBookmarkContextMenu={(event: ContextMenuEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
         onOpenSettings={section => openSettings(section)}
         onEnterEditMode={() => setEditMode(true)}
-        onWidgetChange={widget => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widget.id ? widget : item) })))}
+        onWidgetChange={(widgetId, update) => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widgetId ? update(item as never) : item) })))}
       />}
 
       <Suspense fallback={null}>
         {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu)} onClose={closeMenu} returnFocus={menu.focusTarget} />}
         {keyboardHelpOpen && <KeyboardHelp t={t} onClose={() => setKeyboardHelpOpen(false)} />}
       </Suspense>
-      {moving && profile && <div className="modal-backdrop" role="presentation">
-        <form className="modal" role="dialog" aria-modal="true" aria-labelledby="move-bookmark-title" onSubmit={moveShortcut} onKeyDown={event => { if (event.key === 'Escape') setMoving(null) }}>
-          <h2 id="move-bookmark-title">{t('shortcuts.moveDialog')}</h2>
-          <label>{t('groups.moveTo')}<select aria-label={t('groups.moveTo')} value={moving.groupId} onChange={event => setMoving({ ...moving, groupId: event.target.value })}>{profile.bookmarks.groups.filter(group => !group.items.some(item => item.id === moving.shortcut.id)).map(group => <option key={group.id} value={group.id}>{group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name}</option>)}</select></label>
-          <button type="button" onClick={() => setMoving(null)}>{t('common.cancel')}</button>
-          <button type="submit">{t('shortcuts.moveConfirm')}</button>
-        </form>
-      </div>}
+      {moving && profile && <Suspense fallback={null}><FormDialog title={t('shortcuts.moveDialog')} cancelLabel={t('common.cancel')} submitLabel={t('shortcuts.moveConfirm')} onCancel={() => setMoving(null)} onSubmit={moveShortcut}>
+        <label className="stack">{t('groups.moveTo')}<select autoFocus={!!moving.groupId} value={moving.groupId} onChange={event => setMoving({ ...moving, groupId: event.target.value, invalid: false })}>
+          {profile.bookmarks.groups.filter(group => !group.items.some(item => item.id === moving.shortcut.id)).map(group => <option key={group.id} value={group.id}>{group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name}</option>)}
+          <option value="">{t('groups.newGroupOption')}</option>
+        </select></label>
+        {!moving.groupId && <label className="stack">{t('groups.newGroupName')}<input autoFocus maxLength={60} value={moving.name} aria-invalid={moving.invalid || undefined} onChange={event => setMoving({ ...moving, name: event.target.value, invalid: false })} /></label>}
+        {!moving.groupId && moving.invalid && <small role="alert" className="mnt-form-error">{t('groups.nameRequired')}</small>}
+      </FormDialog></Suspense>}
       {undoNotice && <div className="undo-toast" role="status"><span>{t('undo.saved')}</span><button type="button" onClick={undo}>{t('undo.action')}</button></div>}
       {error && <div className="error" role="alert">{t(error.key, error.params)}<button aria-label={t('common.close')} onClick={() => setError(null)}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button></div>}
       <Suspense fallback={null}>{drawer && store && (
@@ -366,7 +389,7 @@ export default function App() {
           onProfileChange={(update, kind) => run((store, id) => store.getState().updateProfile(id, p => ({ ...update(p), meta: { ...p.meta, updatedAt: new Date().toISOString() } }), kind))}
           t={t}
           onPatch={patch}
-          onClose={() => setDrawer(false)}
+          onClose={closeDrawer}
           onWallpaperFile={file => void wallpaper.choose(file ? [file] : [])}
           onWallpaperFiles={files => void wallpaper.choose(files)}
           onWallpaperVideoFile={file => void wallpaper.chooseVideo(file)}
@@ -376,7 +399,7 @@ export default function App() {
           wallpaperUrl={wallpaper.url}
         />
       )}
-      {editing && <ShortcutEditor key={editing.id} shortcut={editing} isNew={!s.shortcuts.some(item => item.id === editing.id)} t={t} onChange={setEditing} onClose={() => setEditing(null)} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
+      {editing && <ShortcutEditor key={editing.id} shortcut={editing} isNew={!s.shortcuts.some(item => item.id === editing.id)} t={t} onChange={setEditing} onClose={() => { if (onboardingStep.current === 'add') onboardingStep.current = null; setEditing(null) }} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
     </main>
     </>
   )

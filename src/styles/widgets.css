@@ -31,19 +31,55 @@
   .bookmark-edit-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
   /* Areas and widgets get a dashed outline only; the raw internal names (overview, search…) overlapped and meant nothing to people. */
   .mnt-layout[data-edit-mode] .mnt-widget-frame { outline: 1px dashed var(--mnt-border-strong); outline-offset: -1px; }
-  .mnt-productivity { width: min(100%, 420px); padding: var(--mnt-space-4); border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: color-mix(in oklch, var(--mnt-surface) 72%, transparent); color: var(--mnt-text); text-align: left; }
-  .mnt-productivity h2 { margin: 0 0 var(--mnt-space-3); color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); font-weight: 500; }
+  /* Cards sit in the middle like the weather card unless the widget's own alignment says otherwise. */
+  .mnt-productivity { width: min(100%, 420px); margin-inline: auto; padding: var(--mnt-space-4); border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius); background: color-mix(in oklch, var(--mnt-surface) 72%, transparent); color: var(--mnt-text); text-align: left; }
+  .mnt-widget-frame[data-align="left"] :is(.mnt-productivity, .mnt-weather) { margin-inline: 0 auto; }
+  .mnt-widget-frame[data-align="right"] :is(.mnt-productivity, .mnt-weather) { margin-inline: auto 0; }
+  .mnt-productivity h2 { margin: 0 0 var(--mnt-space-3); color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); font-weight: 500; overflow-wrap: anywhere; }
+  .mnt-productivity-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--mnt-space-3); }
+  .mnt-todo-count { color: var(--mnt-text-muted); font-size: var(--mnt-text-xs); font-variant-numeric: tabular-nums; }
   .mnt-productivity-empty { margin: 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
-  .mnt-todo-list { display: grid; gap: var(--mnt-space-2); margin: 0; padding: 0; list-style: none; }
-  .mnt-todo-list label { display: flex; align-items: center; gap: var(--mnt-space-3); min-height: 32px; cursor: pointer; }
-  .mnt-todo-list input { width: 18px; height: 18px; accent-color: var(--mnt-accent); }
+  .mnt-todo-list { display: grid; gap: var(--mnt-space-1); margin: 0 0 var(--mnt-space-2); padding: 0; list-style: none; }
+  .mnt-todo-list li { display: flex; align-items: center; gap: var(--mnt-space-2); border-radius: 6px; }
+  .mnt-todo-list label { display: flex; flex: 1; min-width: 0; align-items: center; gap: var(--mnt-space-3); min-height: 32px; cursor: pointer; }
+  .mnt-todo-list label span { overflow-wrap: anywhere; }
+  /* A round tick, not the settings-style switch every other checkbox gets: these are tasks, not options. */
+  .mnt-todo-list input[type=checkbox] { flex: none; width: 20px; height: 20px; border-width: 1.5px; border-radius: 50%; background: transparent; }
+  .mnt-todo-list input[type=checkbox]::after { top: 3px; left: 6px; width: 5px; height: 9px; border: solid var(--mnt-on-accent); border-width: 0 2px 2px 0; border-radius: 0; background: none; transform: rotate(45deg); opacity: 0; }
+  .mnt-todo-list input[type=checkbox]:checked { background: var(--mnt-accent); }
+  .mnt-todo-list input[type=checkbox]:checked::after { transform: rotate(45deg); background: none; opacity: 1; }
   .mnt-todo-list .is-done span { color: var(--mnt-text-muted); text-decoration: line-through; }
+  /* The delete button stays reachable by keyboard and on touch screens, and only fades on hover-capable pointers. */
+  .mnt-todo-remove { display: grid; flex: none; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--mnt-text-muted); cursor: pointer; }
+  .mnt-todo-remove:hover, .mnt-todo-remove:focus-visible { background: color-mix(in oklch, var(--mnt-text) 10%, transparent); color: var(--mnt-text); }
+  @media (hover: hover) {
+    .mnt-todo-list li .mnt-todo-remove { opacity: 0; }
+    .mnt-todo-list li:hover .mnt-todo-remove, .mnt-todo-list li:focus-within .mnt-todo-remove { opacity: 1; }
+  }
+  .mnt-todo-add input { width: 100%; min-height: 36px; padding: 0 var(--mnt-space-3); border: 1px dashed var(--mnt-border); border-radius: 8px; background: transparent; color: var(--mnt-text); font: inherit; font-size: var(--mnt-text-sm); }
+  .mnt-todo-add input::placeholder { color: var(--mnt-text-muted); }
+  .mnt-todo-add input:focus-visible { border-style: solid; border-color: var(--mnt-accent); outline: 0; }
+  .mnt-todo-clear { margin-top: var(--mnt-space-2); padding: 0; border: 0; background: none; color: var(--mnt-text-muted); font: inherit; font-size: var(--mnt-text-sm); cursor: pointer; }
+  .mnt-todo-clear:hover, .mnt-todo-clear:focus-visible { color: var(--mnt-text); text-decoration: underline; }
   .mnt-note-content { display: block; width: 100%; min-height: 96px; resize: vertical; border: 0; outline: 0; background: transparent; color: var(--mnt-text); font: inherit; line-height: 1.6; }
+  .mnt-note-content::placeholder { color: var(--mnt-text-muted); }
   .mnt-note-content:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 3px; border-radius: 4px; }
   .mnt-countdown { display: grid; gap: var(--mnt-space-2); }
   .mnt-countdown h2 { margin-bottom: 0; }
   .mnt-countdown strong { font-size: var(--mnt-text-lg); font-weight: 500; }
   .mnt-countdown time { color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
+  /* Small dialogs (group name, move website, confirm delete) share the website editor's look. */
+  .mnt-form-dialog { width: min(400px, 100%); }
+  .mnt-form-dialog h2 { margin: 0 0 4px; font-size: 18px; font-weight: 500; }
+  .mnt-form-dialog p { margin: 12px 0 0; color: var(--mnt-text-muted); line-height: 1.5; }
+  .mnt-form-dialog label.stack { gap: 8px; margin-bottom: 0; }
+  .mnt-form-dialog select { padding: 10px; border: 1px solid var(--mnt-border-strong); border-radius: 6px; background: var(--mnt-surface-hover); color: var(--mnt-text); font: inherit; }
+  .mnt-form-dialog .editor-actions { margin-top: 24px; }
+  .mnt-form-dialog .primary.is-danger { background: var(--mnt-danger); color: var(--mnt-text); }
+  .mnt-form-error { display: block; margin-top: 6px; color: var(--mnt-danger); font-size: 12px; }
+  /* A card never touches the widget above it; the weather card uses the same gap (layout.css). */
+  .mnt-widget-frame + .mnt-widget-frame > .mnt-productivity { margin-top: var(--mnt-space-5); }
+  .mnt-widget-frame:has(> :is(.mnt-productivity, .mnt-weather)) + .mnt-widget-frame:not(:has(> :is(.mnt-productivity, .mnt-weather))) { margin-top: var(--mnt-space-3); }
   .app {
     min-height: 100vh;
     color: var(--mnt-text);

@@ -5,6 +5,7 @@ import { defaultWeekStart, formatClock, formatDate } from '../../../core/layout/
 import type { MessageKey } from '../../../i18n'
 import { areaNames } from '../../../core/layout/grid'
 import { createProductivityWidget, type ProductivityWidgetType } from '../../../core/widgets/defaults'
+import { DraftText } from '../../../ui/DraftText'
 import { RangeField, Row, Toggle } from '../controls'
 import { widgetDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
@@ -52,6 +53,18 @@ function WidgetCard({ id, title, checked, onChange, defaultOpen, ctx, children }
 }
 
 
+type ProfileWidget = Ctx['profile']['widgets'][number]
+type EditableWidget = Extract<ProfileWidget, { type: 'greeting' | 'text' | 'spacer' | 'todo' | 'note' | 'countdown' | 'weather' }>
+
+/** Waits for a just-added widget's settings card to render, then scrolls to it and opens it. */
+function revealCard(id: string, tries = 20) {
+  const card = document.querySelector<HTMLElement>(`[data-widget-card="${CSS.escape(id)}"]`)
+  if (!card) { if (tries > 0) requestAnimationFrame(() => revealCard(id, tries - 1)); return }
+  card.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+  const field = card.querySelector<HTMLElement>('.sd-widget-card-body :is(input:not([type="checkbox"]), textarea)') ?? card.querySelector<HTMLElement>('summary')
+  field?.focus({ preventScroll: true })
+}
+
 export function widgetsItems(ctx: Ctx): Item[] {
   const { t, s, patch, change } = ctx
   const defaults = ctx.defaults ? widgetDefaults(ctx.defaults, s.language) : null
@@ -59,6 +72,16 @@ export function widgetsItems(ctx: Ctx): Item[] {
   const clock = ctx.profile.widgets.find(widget => widget.type === 'clock')
   const date = ctx.profile.widgets.find(widget => widget.type === 'date')
   const shortcuts = ctx.profile.widgets.find(widget => widget.type === 'bookmarks')
+  const moveWidget = (id: string, direction: -1 | 1) => change(profile => {
+    const widget = profile.widgets.find(item => item.id === id)
+    if (!widget) return profile
+    const siblings = profile.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order)
+    const from = siblings.findIndex(item => item.id === id), to = from + direction
+    if (to < 0 || to >= siblings.length) return profile
+    ;[siblings[from], siblings[to]] = [siblings[to], siblings[from]]
+    const order = new Map(siblings.map((item, index) => [item.id, index]))
+    return touch({ ...profile, widgets: profile.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })
+  })
   const setHidden = (id: string, visible: boolean) => change(profile => touch({ ...profile, widgets: profile.widgets.map(widget => widget.id === id ? { ...widget, hidden: !visible } : widget) }))
   const clockRows: Item[] = []
   if (clock) {
@@ -70,7 +93,7 @@ export function widgetsItems(ctx: Ctx): Item[] {
       clockRows.push({ id: `clock-${key}`, keys: [label], node: <Toggle label={t(label)} checked={current} changed={fallback !== undefined && current !== fallback} onReset={fallback !== undefined ? () => patchClock({ [key]: fallback }) : undefined} resetLabel={resetLabel(label)} onChange={value => patchClock({ [key]: value })} /> })
     }
     clockRows.push({ id: 'clock-hour12', keys: ['settings.hour12'], node: <Toggle label={t('settings.hour12')} checked={p.hour12 ?? false} changed={!!defaults && (p.hour12 ?? false) !== defaults.clock.hour12} onReset={defaults ? () => patchClock({ hour12: defaults.clock.hour12 }) : undefined} resetLabel={resetLabel('settings.hour12')} onChange={hour12 => patchClock({ hour12 })} /> })
-    clockRows.push({ id: 'clock-separator', keys: ['settings.clockSeparator'], node: <Row label={t('settings.clockSeparator')} changed={!!defaults && (p.separator ?? ':') !== defaults.clock.separator} onReset={defaults ? () => patchClock({ separator: defaults.clock.separator }) : undefined} resetLabel={resetLabel('settings.clockSeparator')}><input className="sd-input" maxLength={8} value={p.separator ?? ':'} aria-label={t('settings.clockSeparator')} onChange={event => patchClock({ separator: event.target.value })} /></Row> })
+    clockRows.push({ id: 'clock-separator', keys: ['settings.clockSeparator'], node: <Row label={t('settings.clockSeparator')} changed={!!defaults && (p.separator ?? ':') !== defaults.clock.separator} onReset={defaults ? () => patchClock({ separator: defaults.clock.separator }) : undefined} resetLabel={resetLabel('settings.clockSeparator')}><DraftText className="sd-input" maxLength={8} value={p.separator ?? ':'} aria-label={t('settings.clockSeparator')} onCommit={separator => patchClock({ separator })} /></Row> })
     clockRows.push({ id: 'clock-spacing', keys: ['settings.clockSpacing'], node: <RangeField t={t} label={t('settings.clockSpacing')} value={p.separatorSpacing ?? 0} min={0} max={1} step={0.05} changed={!!defaults && (p.separatorSpacing ?? 0) !== defaults.clock.spacing} onReset={defaults ? () => patchClock({ separatorSpacing: defaults.clock.spacing }) : undefined} resetLabel={resetLabel('settings.clockSpacing')} onChange={separatorSpacing => patchClock({ separatorSpacing })} /> })
     clockRows.push({ id: 'clock-preview', keys: ['settings.widgets'], node: <WidgetFormatPreview type="clock" props={p} language={s.language} /> })
   }
@@ -87,7 +110,7 @@ export function widgetsItems(ctx: Ctx): Item[] {
     dateRows.push({ id: 'date-week-start', keys: ['settings.weekStart'], node: <Row label={t('settings.weekStart')} changed={!!defaults && (p.weekStart ?? defaultWeekStart(s.language)) !== defaults.date.weekStart} onReset={defaults ? () => patchDate({ weekStart: defaults.date.weekStart }) : undefined} resetLabel={resetLabel('settings.weekStart')}><Select ctx={ctx} label={t('settings.weekStart')} value={p.weekStart ?? defaultWeekStart(s.language)} options={[['monday', 'settings.weekMonday'], ['sunday', 'settings.weekSunday'], ['saturday', 'settings.weekSaturday']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={weekStart => patchDate({ weekStart })} /></Row> })
     dateRows.push({ id: 'date-weekday-style', keys: ['settings.dateWeekday'], node: <Row label={t('settings.dateWeekday')} changed={!!defaults && (p.weekdayStyle ?? 'long') !== defaults.date.weekdayStyle} onReset={defaults ? () => patchDate({ weekdayStyle: defaults.date.weekdayStyle, format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateWeekday')}><Select ctx={ctx} label={t('settings.dateWeekday')} value={p.weekdayStyle ?? 'long'} options={['long','short'].map(value => ({ value, label: t(value === 'long' ? 'settings.dateStyleLong' : 'settings.dateStyleShort') }))} onChange={weekdayStyle => patchDate({ weekdayStyle, format: 'custom' })} /></Row> })
     dateRows.push({ id: 'date-month-style', keys: ['settings.dateMonth'], node: <Row label={t('settings.dateMonth')} changed={!!defaults && (p.monthStyle ?? 'long') !== defaults.date.monthStyle} onReset={defaults ? () => patchDate({ monthStyle: defaults.date.monthStyle, format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateMonth')}><Select ctx={ctx} label={t('settings.dateMonth')} value={p.monthStyle ?? 'long'} options={['long','short','numeric'].map(value => ({ value, label: t(value === 'long' ? 'settings.dateStyleLong' : value === 'short' ? 'settings.dateStyleShort' : 'settings.dateStyleNumeric') }))} onChange={monthStyle => patchDate({ monthStyle, format: 'custom' })} /></Row> })
-    dateRows.push({ id: 'date-separator', keys: ['settings.dateSeparator'], node: <Row label={t('settings.dateSeparator')} changed={!!defaults && (p.separator ?? ' ') !== defaults.date.separator} onReset={defaults ? () => patchDate({ separator: defaults.date.separator, format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateSeparator')}><input className="sd-input" maxLength={8} value={p.separator ?? ' '} aria-label={t('settings.dateSeparator')} onChange={event => patchDate({ separator: event.target.value, format: 'custom' })} /></Row> })
+    dateRows.push({ id: 'date-separator', keys: ['settings.dateSeparator'], node: <Row label={t('settings.dateSeparator')} changed={!!defaults && (p.separator ?? ' ') !== defaults.date.separator} onReset={defaults ? () => patchDate({ separator: defaults.date.separator, format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateSeparator')}><DraftText className="sd-input" maxLength={8} value={p.separator ?? ' '} aria-label={t('settings.dateSeparator')} onCommit={separator => patchDate({ separator, format: 'custom' })} /></Row> })
     const order = p.order ?? ['weekday', 'month', 'day', 'year']
     dateRows.push({ id: 'date-order', keys: ['settings.dateOrder'], node: <Row label={t('settings.dateOrder')} changed={!!defaults && order.join() !== defaults.date.order.join()} onReset={defaults ? () => patchDate({ order: [...defaults.date.order], format: 'custom' }) : undefined} resetLabel={resetLabel('settings.dateOrder')}><button className="sd-button" onClick={() => patchDate({ order: [...order.slice(1), order[0]], format: 'custom' })}>{order.map(part => t(({ weekday: 'settings.dateWeekday', day: 'settings.dateDay', month: 'settings.dateMonth', year: 'settings.dateYear', weekNumber: 'settings.dateWeekNumber' } as const)[part])).join(' → ')}</button></Row> })
     dateRows.push({ id: 'date-preview', keys: ['settings.widgets'], node: <WidgetFormatPreview type="date" props={p} language={s.language} /> })
@@ -108,38 +131,65 @@ export function widgetsItems(ctx: Ctx): Item[] {
   items.push(card('showSearch', t('settings.showSearch'), s.showSearch, visible => patch({ showSearch: visible }), false, ['settings.showSearch'], null))
   if (shortcuts) items.push(card('widget-shortcuts', t('settings.shortcuts'), !shortcuts.hidden, visible => setHidden(shortcuts.id, visible), false, ['settings.shortcuts'], null))
   const productTypes: ProductivityWidgetType[] = ['todo', 'note', 'countdown', 'weather']
-  const addGreeting = () => change(profile => {
-    const area = profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).find(name => name !== '.') ?? 'overview'
-    const order = Math.max(-1, ...profile.widgets.filter(widget => widget.area === area).map(widget => widget.order)) + 1
-    return touch({ ...profile, widgets: [...profile.widgets, { id: crypto.randomUUID(), type: 'greeting', area, order, props: {} }] })
-  })
+  const firstArea = (profile: typeof ctx.profile) => profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).find(name => name !== '.') ?? 'overview'
+  /** Adds a widget at the end of the first area, then brings its settings card into view so the next step is obvious. */
+  const addWidget = (make: (area: string, id: string) => ProfileWidget) => {
+    const id = crypto.randomUUID()
+    change(profile => {
+      const area = firstArea(profile)
+      const order = Math.max(-1, ...profile.widgets.filter(widget => widget.area === area).map(widget => widget.order)) + 1
+      return touch({ ...profile, widgets: [...profile.widgets, { ...make(area, id), order }] })
+    })
+    revealCard(`productivity-${id}`)
+  }
+  const hasGreeting = ctx.profile.widgets.some(widget => widget.type === 'greeting')
   const productLabel: Record<Exclude<ProductivityWidgetType, 'weather'>, MessageKey> = { todo: 'widgets.todo', note: 'widgets.note', countdown: 'widgets.countdown' }
   const productTitle = (type: ProductivityWidgetType) => type === 'weather' ? weatherText(s.language, 'title') : t(productLabel[type])
-  const addProductivityWidget = (type: ProductivityWidgetType) => change(profile => {
-    const area = profile.layout.areas.flatMap(row => row.trim().split(/\s+/)).find(name => name !== '.') ?? 'overview'
-    const order = Math.max(-1, ...profile.widgets.filter(widget => widget.area === area).map(widget => widget.order)) + 1
-    const widget = createProductivityWidget(type, area, crypto.randomUUID())
-    return touch({ ...profile, widgets: [...profile.widgets, { ...widget, order }] })
-  })
-  items.push({ id: 'productivity-add', keys: ['settings.addProductivityWidget', 'settings.addGreeting'], node: <div className="sd-note"><strong>{t('settings.addProductivityWidget')}</strong><div className="sd-widget-actions"><button className="sd-button" type="button" onClick={addGreeting}>{t('settings.addGreeting')}</button>{productTypes.map(type => <button className="sd-button" type="button" key={type} onClick={() => addProductivityWidget(type)}>{productTitle(type)}</button>)}</div></div> })
-  for (const widget of ctx.profile.widgets.filter(widget => widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown' || widget.type === 'weather')) {
+  items.push({ id: 'productivity-add', keys: ['settings.addProductivityWidget', 'settings.addGreeting'], node: <div className="sd-note"><strong>{t('settings.addProductivityWidget')}</strong><div className="sd-widget-actions">
+    {!hasGreeting && <button className="sd-button" type="button" onClick={() => addWidget((area, id) => ({ id, type: 'greeting', area, order: 0, props: {} }))}>{t('settings.addGreeting')}</button>}
+    {productTypes.map(type => <button className="sd-button" type="button" key={type} onClick={() => addWidget((area, id) => createProductivityWidget(type, area, id))}>{productTitle(type)}</button>)}
+  </div></div> })
+  const editable = ctx.profile.widgets.filter((widget): widget is EditableWidget => ['greeting', 'text', 'spacer', 'todo', 'note', 'countdown', 'weather'].includes(widget.type))
+  for (const widget of editable) {
     const patchWidget = (updates: Record<string, unknown>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...updates } as typeof item.props } : item) as typeof profile.widgets }))
-    const title = widget.type === 'countdown' ? widget.props.title : widget.type === 'weather' ? '' : widget.props.title ?? ''
-    const controls = widget.type === 'weather' ? <WeatherSettings ctx={ctx} widget={widget} patch={patchWidget} /> : widget.type === 'todo' ? <>
-      <Toggle label={t('settings.todoHideCompleted')} checked={widget.props.hideCompleted === true} onChange={hideCompleted => patchWidget({ hideCompleted })} />
-      {widget.props.items.map(item => <Row key={item.id} label={t('settings.todoItem')}><input className="sd-input" maxLength={500} value={item.text} aria-label={t('settings.todoItem')} onChange={event => patchWidget({ items: widget.props.items.map(current => current.id === item.id ? { ...current, text: event.target.value } : current) })} /><button className="sd-button" type="button" aria-label={t('settings.removeWidget')} onClick={() => patchWidget({ items: widget.props.items.filter(current => current.id !== item.id) })}>−</button></Row>)}
-      <button className="sd-button" type="button" onClick={() => patchWidget({ items: [...widget.props.items, { id: crypto.randomUUID(), text: '', done: false }] })}>{t('settings.todoAddItem')}</button>
-    </> : widget.type === 'note' ? <Row label={t('settings.noteContent')} stack><textarea className="sd-input" rows={4} maxLength={10000} value={widget.props.content} aria-label={t('settings.noteContent')} onChange={event => patchWidget({ content: event.target.value })} /></Row> : <>
-      <Row label={t('settings.countdownDate')}><input className="sd-input" type="date" value={widget.props.targetDate} aria-label={t('settings.countdownDate')} onChange={event => patchWidget({ targetDate: event.target.value })} /></Row>
-      <Row label={t('settings.countdownFormat')}><Select ctx={ctx} label={t('settings.countdownFormat')} value={widget.props.format ?? 'days'} options={[{ value: 'days', label: t('settings.countdownDays') }, { value: 'detailed', label: t('settings.countdownDetailed') }]} onChange={format => patchWidget({ format })} /></Row>
-    </>
-    items.push(card(`productivity-${widget.id}`, productTitle(widget.type), !widget.hidden, visible => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, hidden: !visible } : item) })), true, [widget.type === 'weather' ? 'settings.widgets' : productLabel[widget.type], 'settings.widgetTitle', 'settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.removeWidget'], <>
-      {widget.type !== 'weather' && <Row label={t('settings.widgetTitle')}><input className="sd-input" maxLength={120} value={title} aria-label={t('settings.widgetTitle')} onChange={event => patchWidget({ title: event.target.value })} /></Row>}
+    const label = widget.type === 'greeting' ? t('settings.widgetGreeting') : widget.type === 'text' ? t('settings.widgetText') : widget.type === 'spacer' ? t('settings.widgetSpacer') : productTitle(widget.type)
+    // Name same-type cards by their title so two todo lists can be told apart.
+    const named = (widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown') && widget.props.title ? `${label} · ${widget.props.title}` : widget.type === 'weather' && widget.props.city ? `${label} · ${widget.props.city}` : label
+    let controls: ReactNode = null
+    switch (widget.type) {
+      case 'weather': controls = <WeatherSettings ctx={ctx} widget={widget} patch={patchWidget} />; break
+      case 'greeting': controls = <>
+        <Row label={t('settings.greetingName')} hint={t('settings.greetingNameHint')}><DraftText className="sd-input" maxLength={60} value={widget.props.name ?? ''} aria-label={t('settings.greetingName')} onCommit={name => patchWidget({ name: name.trim() || undefined })} /></Row>
+        <Toggle label={t('settings.greetingTransition')} checked={widget.props.transitional === true} onChange={transitional => patchWidget({ transitional })} />
+      </>; break
+      case 'text': controls = <Row label={t('settings.widgetText')} stack><DraftText multiline className="sd-input" rows={3} maxLength={500} value={widget.props.text ?? ''} aria-label={t('settings.widgetText')} onCommit={text => patchWidget({ text })} /></Row>; break
+      case 'spacer': controls = <RangeField t={t} label={t('settings.spacerHeight')} value={widget.props.height ?? 40} min={8} max={400} step={4} unit="px" onChange={height => patchWidget({ height })} />; break
+      case 'todo': controls = <>
+        <Toggle label={t('settings.todoHideCompleted')} checked={widget.props.hideCompleted === true} onChange={hideCompleted => patchWidget({ hideCompleted })} />
+        {widget.props.items.map(item => <Row key={item.id} label={t('settings.todoItem')}>
+          <DraftText className="sd-input" maxLength={500} value={item.text} aria-label={t('settings.todoItem')} onCommit={text => change(profile => touch({ ...profile, widgets: profile.widgets.map(current => current.id === widget.id && current.type === 'todo' ? { ...current, props: { ...current.props, items: current.props.items.map(entry => entry.id === item.id ? { ...entry, text } : entry) } } : current) }))} />
+          <button className="sd-button" type="button" aria-label={t('widgets.todoRemove', { item: item.text || t('settings.todoItem') })} title={t('widgets.todoRemove', { item: item.text || t('settings.todoItem') })} onClick={() => patchWidget({ items: widget.props.items.filter(current => current.id !== item.id) })}>−</button>
+        </Row>)}
+        <button className="sd-button" type="button" onClick={() => patchWidget({ items: [...widget.props.items, { id: crypto.randomUUID(), text: '', done: false }] })}>{t('settings.todoAddItem')}</button>
+      </>; break
+      case 'note': controls = <Row label={t('settings.noteContent')} stack><DraftText multiline className="sd-input" rows={4} maxLength={10000} value={widget.props.content} aria-label={t('settings.noteContent')} onCommit={content => patchWidget({ content })} /></Row>; break
+      case 'countdown': controls = <>
+        <Row label={t('settings.countdownDate')}><input className="sd-input" type="date" value={widget.props.targetDate} aria-label={t('settings.countdownDate')} onChange={event => { if (event.target.value) patchWidget({ targetDate: event.target.value }) }} /></Row>
+        <Row label={t('settings.countdownFormat')}><Select ctx={ctx} label={t('settings.countdownFormat')} value={widget.props.format ?? 'days'} options={[{ value: 'days', label: t('settings.countdownDays') }, { value: 'detailed', label: t('settings.countdownDetailed') }]} onChange={format => patchWidget({ format })} /></Row>
+      </>; break
+    }
+    const titled = widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown'
+    const keys: MessageKey[] = [widget.type === 'greeting' ? 'settings.widgetGreeting' : widget.type === 'text' ? 'settings.widgetText' : widget.type === 'spacer' ? 'settings.widgetSpacer' : widget.type === 'weather' ? 'settings.widgets' : productLabel[widget.type], 'settings.widgetTitle', 'settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.removeWidget']
+    items.push(card(`productivity-${widget.id}`, named, !widget.hidden, visible => setHidden(widget.id, visible), true, keys, <>
+      {titled && <Row label={t('settings.widgetTitle')}><DraftText className="sd-input" maxLength={120} value={widget.props.title ?? ''} placeholder={label} aria-label={t('settings.widgetTitle')} onCommit={title => patchWidget({ title })} /></Row>}
       {controls}
       <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areaNames(ctx.profile.layout.areas).map(area => ({ value: area, label: area === 'overview' ? t('settings.areaOverview') : area }))} onChange={area => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, area, order: Math.max(-1, ...profile.widgets.filter(other => other.area === area).map(other => other.order)) + 1 } : item) }))} /></Row>
-      <Row label={t('settings.widgetOrder')}><button className="sd-button" type="button" aria-label={t('settings.widgetOrder')} onClick={() => { const siblings = ctx.profile.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order); const index = siblings.findIndex(item => item.id === widget.id); if (index > 0) { [siblings[index - 1], siblings[index]] = [siblings[index], siblings[index - 1]]; const order = new Map(siblings.map((item, i) => [item.id, i])); change(profile => touch({ ...profile, widgets: profile.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })) } }}>↑</button><button className="sd-button" type="button" onClick={() => { const siblings = ctx.profile.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order); const index = siblings.findIndex(item => item.id === widget.id); if (index < siblings.length - 1) { [siblings[index + 1], siblings[index]] = [siblings[index], siblings[index + 1]]; const order = new Map(siblings.map((item, i) => [item.id, i])); change(profile => touch({ ...profile, widgets: profile.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })) } }}>↓</button></Row>
-      <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} onChange={size => patchWidget({ size })} />
-      <Row label={t('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget({ align })} /></Row>
+      <Row label={t('settings.widgetOrder')}>
+        <button className="sd-button" type="button" aria-label={t('settings.widgetMoveUp')} title={t('settings.widgetMoveUp')} onClick={() => moveWidget(widget.id, -1)}>↑</button>
+        <button className="sd-button" type="button" aria-label={t('settings.widgetMoveDown')} title={t('settings.widgetMoveDown')} onClick={() => moveWidget(widget.id, 1)}>↓</button>
+      </Row>
+      {widget.type !== 'spacer' && <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} onChange={size => patchWidget({ size })} />}
+      {widget.type !== 'spacer' && <Row label={t('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget({ align })} /></Row>}
       <button className="sd-button" type="button" onClick={() => change(profile => touch({ ...profile, widgets: profile.widgets.filter(item => item.id !== widget.id) }))}>{t('settings.removeWidget')}</button>
     </>))
   }

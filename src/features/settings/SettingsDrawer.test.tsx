@@ -44,10 +44,13 @@ const lastUpdate = (props: ReturnType<typeof setup>) => {
 describe('SettingsDrawer tabs', () => {
   it('sets and clears the tab title in About', () => {
     const props = setup({ initialSection: 'about' })
+    // Text fields save when typing pauses or the field loses focus.
     fireEvent.change(screen.getByRole('textbox', { name: 'Tab title' }), { target: { value: 'Studio' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Tab title' }))
     expect(lastUpdate(props).next.prefs.pageTitle).toBe('Studio')
     props.rerender({ ...base, prefs: { ...base.prefs, pageTitle: 'Studio' } })
     fireEvent.change(screen.getByRole('textbox', { name: 'Tab title' }), { target: { value: '' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Tab title' }))
     expect('pageTitle' in lastUpdate(props).next.prefs).toBe(false)
   })
 
@@ -341,12 +344,16 @@ describe('SettingsDrawer background', () => {
     const props = setup({ profile: withRotation, initialSection: 'background' })
     fireEvent.click(screen.getByRole('radio', { name: 'Every hour' }))
     expect(lastUpdate(props).next.background.rotation?.interval).toBe('hour')
-    fireEvent.click(screen.getByRole('radio', { name: 'Video' }))
-    expect(lastUpdate(props).next.background.type).toBe('video')
+    // Each background type offers only its own upload.
     const images = screen.getByRole('button', { name: 'Upload images (PNG, JPEG, WebP, up to 5 MB each)' }).closest('.sd-file')!.querySelector('input[type=file]') as HTMLInputElement
     expect(images.multiple).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: 'Video' }))
+    expect(lastUpdate(props).next.background.type).toBe('video')
+    props.rerender({ ...withRotation, background: lastUpdate(props).next.background })
     const video = screen.getByRole('button', { name: 'Upload a video (MP4 or WebM, up to 30 MB)' }).closest('.sd-file')!.querySelector('input[type=file]') as HTMLInputElement
     expect(video.accept).toBe('video/mp4,video/webm')
+    expect(screen.queryByRole('button', { name: 'Upload images (PNG, JPEG, WebP, up to 5 MB each)' })).not.toBeInTheDocument()
   })
 
   it('edits gradient stops between two and three', () => {

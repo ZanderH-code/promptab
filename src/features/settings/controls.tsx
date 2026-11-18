@@ -2,6 +2,7 @@ import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type 
 import { RotateCcw } from 'lucide-react'
 import type { Translate } from '../../i18n'
 import { Select } from './rows/shared'
+import { DraftText } from '../../ui/DraftText'
 import { Highlighted } from './searchHighlight'
 
 const HEX = /^#[\da-f]{6}$/i
@@ -29,7 +30,7 @@ function associate(children: ReactNode, id: string): { node: ReactNode; linked: 
     if (linked) return node
     if (Array.isArray(node)) return node.map(visit)
     if (!isValidElement<{ id?: string }>(node)) return node
-    if (node.type === 'input' || node.type === 'textarea' || node.type === Select) {
+    if (node.type === 'input' || node.type === 'textarea' || node.type === Select || node.type === DraftText) {
       linked = true
       return cloneElement(node, { id })
     }
