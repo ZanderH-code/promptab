@@ -27,6 +27,7 @@
     --mnt-overlay: color-mix(in oklch, var(--mnt-black) 60%, transparent);
     --mnt-wallpaper-shade: color-mix(in oklch, var(--mnt-black) var(--mnt-wallpaper-overlay, 25%), transparent);
     --mnt-shadow-color: color-mix(in oklch, var(--mnt-black) 40%, transparent);
+    --mnt-shadow-strength: 40;
     --mnt-elev-1: 0 4px 16px var(--mnt-shadow-color);
     --mnt-elev-2: 0 12px 35px var(--mnt-shadow-color);
     --mnt-elev-3: 0 28px 90px var(--mnt-shadow-color);

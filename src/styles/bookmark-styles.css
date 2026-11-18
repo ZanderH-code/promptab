@@ -26,11 +26,15 @@
 
   /* Per-website tile look: a plate behind the website (colour, opacity, image), accent, alignment and spans. */
   .mnt-link[data-tile-backdrop] { position: relative; isolation: isolate; border-radius: var(--mnt-radius); }
-  .mnt-link-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-surface)) calc(var(--mnt-tile-opacity, 1) * 100%), transparent); }
+  .mnt-link-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; border-radius: inherit; pointer-events: none; }
+  .mnt-link:not([data-tile-backdrop]) > .mnt-link-backdrop { display: none; }
+  .mnt-link[data-tile-backdrop] > .mnt-link-backdrop { background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-surface)) calc(var(--mnt-tile-opacity, 1) * 100%), transparent); }
   .mnt-link-backdrop-image { position: absolute; inset: 0; background-position: center; background-size: cover; background-repeat: no-repeat; }
   .mnt-link[style*="--mnt-tile-border"] { border: var(--mnt-tile-border) solid var(--mnt-accent); }
   .mnt-link[data-tile-hide-name] .mnt-link-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .mnt-link[data-tile-name-first] { flex-direction: column-reverse; }
+  .mnt-link[style*="--mnt-tile-gap"] { gap: var(--mnt-tile-gap); }
+  .mnt-link[data-tile-hide-icon] .shortcut-icon { display: none; }
   .mnt-link[data-tile-direction="horizontal"] { flex-direction: row; }
   .mnt-link[data-tile-direction="horizontal"][data-tile-name-first] { flex-direction: row-reverse; }
   .mnt-link:is([style*="--mnt-tile-rotate"], [style*="--mnt-tile-x"], [style*="--mnt-tile-y"]) > :not(.mnt-link-backdrop) { translate: var(--mnt-tile-x, 0) var(--mnt-tile-y, 0); rotate: var(--mnt-tile-rotate, 0deg); }
@@ -66,10 +70,12 @@
   .mnt-bookmark-block .shortcut-wrap { height: 100%; min-height: 0; }
   .mnt-bookmark-block .shortcut {
     position: relative; isolation: isolate; box-sizing: border-box; width: 100%; height: 100%; padding: 1em; gap: .625em; overflow: hidden;
-    justify-content: center; font-size: 1em; border-radius: var(--mnt-radius);
+    font-size: 1em; border-radius: var(--mnt-radius);
     background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-block-plate, var(--mnt-surface))) calc(var(--mnt-tile-opacity, var(--mnt-block-opacity, 1)) * 100%), transparent);
     transition: background-color var(--mnt-dur-fast, .15s), transform .2s ease-in-out, box-shadow .2s ease-in-out;
   }
+  /* Kept weaker than a website's own content position. */
+  .mnt-bookmark-block :where(.shortcut) { justify-content: center; }
   .mnt-bookmark-block .shortcut:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-block-plate-hover, var(--mnt-surface-hover))) calc(var(--mnt-tile-opacity, var(--mnt-block-opacity, 1)) * 100%), transparent); }
   .mnt-bookmark-block .mnt-link-backdrop { background: none; }
   .mnt-bookmark-block .shortcut-icon { width: auto; height: auto; border-radius: 0; background: none; color: var(--mnt-accent); font-family: var(--mnt-font-display); font-size: calc(2.5em * var(--mnt-tile-icon-scale, 1)); line-height: 1; transform: none; }

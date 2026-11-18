@@ -6,11 +6,13 @@ export const CSS_API_VERSION = 1
 
 export const CSS_API_CLASSES = [
   'mnt-root', 'mnt-header', 'mnt-settings-entry', 'mnt-layout', 'mnt-area', 'mnt-widget', 'mnt-widget-frame', 'mnt-widget-toolbar',
-  'mnt-bookmark-tile', 'mnt-bookmark-list', 'mnt-bookmark-minimal', 'mnt-bookmark-card', 'mnt-bookmark-icon-only',
-  'mnt-clock', 'mnt-date',
+  'mnt-bookmark-tile', 'mnt-bookmark-list', 'mnt-bookmark-minimal', 'mnt-bookmark-card', 'mnt-bookmark-icon-only', 'mnt-bookmark-block',
+  'mnt-clock', 'mnt-date', 'mnt-clock-part', 'mnt-clock-separator', 'mnt-date-part', 'mnt-date-separator',
   'mnt-search', 'mnt-search-input',
   'mnt-group', 'mnt-group-title', 'mnt-group-title-hidden', 'mnt-link', 'mnt-link-icon', 'mnt-link-name',
   'mnt-folder', 'mnt-folder-preview', 'mnt-folder-name', 'mnt-folder-dialog', 'mnt-folder-backdrop',
+  'mnt-group-section', 'mnt-group-name', 'mnt-group-open-all', 'mnt-group-open-all-text', 'mnt-group-toggle', 'mnt-link-backdrop', 'mnt-link-backdrop-image',
+  'mnt-corner-toolbar', 'mnt-toolbar-accent', 'mnt-accent-dot',
 ] as const
 
 /** Attribute selectors, as written in CSS. `github.com` is an example value of `data-link-host`. */
@@ -20,6 +22,9 @@ export const CSS_API_ATTRIBUTES = [
   '[data-breakpoint="wide"]', '[data-breakpoint="medium"]', '[data-breakpoint="narrow"]', '[data-edit-mode]', '[data-widget-id="clock"]',
   '[data-widget="clock"]', '[data-widget="date"]', '[data-widget="search"]', '[data-widget="bookmarks"]', '[data-widget="greeting"]', '[data-widget="text"]', '[data-widget="spacer"]', '[data-widget="toolbar"]',
   '[data-link-host="github.com"]', '[data-folder]', '[data-theme-mode="dark"]', '[data-theme-mode="light"]',
+  '[data-link-id]', '[data-link-url]', '[data-tile-span="wide"]', '[data-tile-span="tall"]', '[data-tile-span="large"]', '[data-tile-backdrop]', '[data-tile-faint]', '[data-tile-hide-icon]',
+  '[data-part="hour"]', '[data-part="minute"]', '[data-part="second"]', '[data-part="meridiem"]', '[data-separator-accent]',
+  '[data-corner="top-left"]', '[data-corner="top-right"]', '[data-corner="bottom-left"]', '[data-corner="bottom-right"]',
 ] as const
 
 /** Custom properties meant for reading in custom CSS (`var(--mnt-accent)`); colours are set through the theme, not here. */
@@ -34,5 +39,7 @@ export const CSS_API_VARIABLES = [
   '--mnt-space-1', '--mnt-space-2', '--mnt-space-3', '--mnt-space-4', '--mnt-space-5', '--mnt-space-6', '--mnt-space-7', '--mnt-space-8', '--mnt-space-9',
   '--mnt-elev-1', '--mnt-elev-2', '--mnt-elev-3',
   '--mnt-dur-fast', '--mnt-dur-base', '--mnt-dur-slow', '--mnt-ease',
-  '--mnt-icon-size', '--mnt-icon-radius', '--mnt-columns', '--mnt-content-width',
+  '--mnt-icon-size', '--mnt-icon-radius', '--mnt-columns', '--mnt-content-width', '--mnt-shadow-strength', '--mnt-widget-size',
+  '--mnt-block-size', '--mnt-block-min', '--mnt-block-row', '--mnt-block-gap', '--mnt-block-plate', '--mnt-block-plate-hover', '--mnt-block-opacity',
+  '--mnt-tile-bg', '--mnt-tile-opacity', '--mnt-tile-border', '--mnt-tile-gap',
 ] as const

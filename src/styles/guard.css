@@ -70,6 +70,9 @@
     overflow: visible !important;
   }
 
+  /* Button-style toolbars draw the settings icon in the text colour on its own plate, like the buttons beside it. */
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > .mnt-settings-entry { color: var(--mnt-text) !important; min-height: clamp(32px, var(--mnt-toolbar-button-height, 2.5rem), 64px) !important; }
+
   .mnt-settings-entry.mnt-banner-settings { color: var(--mnt-accent) !important; font-size: 20px !important; }
   .mnt-layout[data-layout-template="icon-split"] .mnt-widget-toolbar .mnt-settings-entry { width: 32px !important; height: 32px !important; padding: 0 !important; color: var(--mnt-accent) !important; font-size: 20px !important; }
 

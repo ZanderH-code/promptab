@@ -51,6 +51,22 @@
   .mnt-corner-toolbar[data-corner$="left"] { left: 16px; }
   .mnt-corner-toolbar[data-corner$="right"] { right: 16px; }
   .mnt-corner-toolbar[data-corner$="left"] .mnt-widget-toolbar { flex-direction: row-reverse; }
+  /* Joined buttons: one plate per action, square inside and rounded at the two ends, icons in the text colour. */
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] { gap: 0; }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > :is(button, .mnt-toolbar-accent) {
+    box-sizing: border-box; width: 4rem; height: 2.5rem; min-height: 2.5rem; padding: .5rem 1.25rem; border-radius: 0;
+    background: var(--mnt-toolbar-plate, var(--mnt-surface)); color: var(--mnt-text); font-size: 1.5rem; line-height: 1;
+    transition: background-color var(--mnt-dur-fast, .15s);
+  }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > :is(button, .mnt-toolbar-accent):is(:hover, :focus-visible) { background: var(--mnt-toolbar-plate-hover, var(--mnt-surface-hover)); }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > :first-child { border-start-start-radius: var(--mnt-radius); border-end-start-radius: var(--mnt-radius); }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > :last-child { border-start-end-radius: var(--mnt-radius); border-end-end-radius: var(--mnt-radius); }
+  .mnt-corner-toolbar[data-corner$="left"] .mnt-widget-toolbar[data-toolbar-style="buttons"] > :first-child { border-radius: 0 var(--mnt-radius) var(--mnt-radius) 0; }
+  .mnt-corner-toolbar[data-corner$="left"] .mnt-widget-toolbar[data-toolbar-style="buttons"] > :last-child { border-radius: var(--mnt-radius) 0 0 var(--mnt-radius); }
+  .mnt-corner-toolbar[data-corner$="left"] .mnt-widget-toolbar[data-toolbar-style="buttons"] > :only-child, .mnt-widget-toolbar[data-toolbar-style="buttons"] > :only-child { border-radius: var(--mnt-radius); }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > button:first-child::before { content: none; }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] > button > span { display: inline-flex; margin: 0; }
+  .mnt-widget-toolbar[data-toolbar-style="buttons"] svg { width: 1.5rem; height: 1.5rem; }
   .mnt-toolbar-accent { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; }
   .mnt-toolbar-accent:focus-within { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
   .mnt-accent-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--mnt-accent); box-shadow: 0 0 0 3px var(--mnt-text); }

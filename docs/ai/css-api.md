@@ -28,8 +28,13 @@ The `mnt` prefix is historical and will remain stable long-term. Removing or ren
 | `.mnt-bookmark-minimal` | The whole websites widget when it uses the minimal style, not one website (that is `.mnt-link` / `.mnt-link-icon`). Transparent by default: a border, background or shadow here draws one big box around every website. |
 | `.mnt-bookmark-card` | The whole websites widget when it uses the card style, not one website (that is `.mnt-link` / `.mnt-link-icon`). Transparent by default: a border, background or shadow here draws one big box around every website. |
 | `.mnt-bookmark-icon-only` | The whole websites widget when it uses the icon-only style, not one website (that is `.mnt-link` / `.mnt-link-icon`). Transparent by default: a border, background or shadow here draws one big box around every website. |
+| `.mnt-bookmark-block` | The whole websites widget when it uses the block style, not one website (that is `.mnt-link` / `.mnt-link-icon`). Transparent by default: a border, background or shadow here draws one big box around every website. |
 | `.mnt-clock` | The large time text, set in `theme.font.display`. |
 | `.mnt-date` | The date line under the clock, written in the interface language (Chinese text in a Chinese interface), so wide letter-spacing and uppercase do not suit it. |
+| `.mnt-clock-part` | One number or word of the clock (hour, minute, second or AM/PM); `data-part` names which. |
+| `.mnt-clock-separator` | The separator between clock parts, such as the colon. Uses the accent colour when the clock carries `data-separator-accent`. |
+| `.mnt-date-part` | One piece of the date (weekday, day, month or year); `data-part` names which. |
+| `.mnt-date-separator` | The separator between date pieces. Uses the accent colour when the date carries `data-separator-accent`. |
 | `.mnt-search` | The search bar: a wide rounded pill with a hairline border, a surface background, a search icon, a `/` key hint and a submit arrow. Style the bar’s border, background, radius and shadow here; use `:focus-within` for its focused look. |
 | `.mnt-search-input` | The bare text field inside the search bar, transparent and borderless on purpose. Change only font, colour or caret-color here: a border, background or shadow draws a second box inside the bar. |
 | `.mnt-group` | The same element as `.mnt-bookmark-<style>`: the whole websites widget with all of its groups, not one group. |
@@ -43,6 +48,16 @@ The `mnt` prefix is historical and will remain stable long-term. Removing or ren
 | `.mnt-folder-name` | The folder entry’s name. |
 | `.mnt-folder-dialog` | The open folder dialog containing its websites. |
 | `.mnt-folder-backdrop` | The full-viewport overlay behind an open folder dialog. |
+| `.mnt-group-section` | One group of websites: its optional heading and its grid. Transparent by default. |
+| `.mnt-group-name` | The group name text inside a group heading. |
+| `.mnt-group-open-all` | The small button beside a group name that opens every website of the group. |
+| `.mnt-group-open-all-text` | The short “Open all” text inside the open-all button. Hidden by default; show it (and hide the icon) for a text button. |
+| `.mnt-group-toggle` | The fold button before a group name, shown when a page has several groups. `aria-expanded` tells whether the group is open. |
+| `.mnt-link-backdrop` | A website’s own background plate, present only when the website sets a tile colour, image or opacity in its editor. |
+| `.mnt-link-backdrop-image` | The background image inside a website’s backdrop. |
+| `.mnt-corner-toolbar` | A toolbar pinned to a corner of the window, outside the layout. `data-corner` names the corner. |
+| `.mnt-toolbar-accent` | The toolbar button that opens the accent colour picker. |
+| `.mnt-accent-dot` | The round accent-coloured dot inside the accent button. |
 
 ## Attribute selectors
 
@@ -82,10 +97,27 @@ The `mnt` prefix is historical and will remain stable long-term. Removing or ren
 | `[data-folder]` | A folder entry or dialog; its value is the bookmark group ID. |
 | `[data-theme-mode="dark"]` | The page while the dark palette is in use. |
 | `[data-theme-mode="light"]` | The page while the light palette is in use. |
+| `[data-link-id]` | A website link; its value is the website ID. |
+| `[data-link-url]` | A website link; its value is the address without scheme or `www.`. |
+| `[data-tile-span="wide"]` | A website set to span two columns in its editor. |
+| `[data-tile-span="tall"]` | A website set to span two rows in its editor. |
+| `[data-tile-span="large"]` | A website set to span two columns and two rows. |
+| `[data-tile-backdrop]` | A website with its own background colour, image or opacity. |
+| `[data-tile-faint]` | A website whose own background plate is below 40% opacity. |
+| `[data-tile-hide-icon]` | A website set to hide its icon in its editor. |
+| `[data-part="hour"]` | The hour part of the clock. |
+| `[data-part="minute"]` | The minute part of the clock. |
+| `[data-part="second"]` | The second part of the clock. |
+| `[data-part="meridiem"]` | The AM/PM part of a 12-hour clock. |
+| `[data-separator-accent]` | On the clock or date when its separators use the accent colour. |
+| `[data-corner="top-left"]` | A toolbar pinned to the top-left corner. |
+| `[data-corner="top-right"]` | A toolbar pinned to the top-right corner. |
+| `[data-corner="bottom-left"]` | A toolbar pinned to the bottom-left corner. |
+| `[data-corner="bottom-right"]` | A toolbar pinned to the bottom-right corner. |
 
 ## Variables you may read
 
-`--mnt-bg`, `--mnt-bg-elevated`, `--mnt-surface`, `--mnt-surface-hover`, `--mnt-surface-active`, `--mnt-text`, `--mnt-text-muted`, `--mnt-text-faint`, `--mnt-accent`, `--mnt-accent-soft`, `--mnt-accent-strong`, `--mnt-accent-text`, `--mnt-on-accent`, `--mnt-border`, `--mnt-border-strong`, `--mnt-danger`, `--mnt-radius`, `--mnt-glass`, `--mnt-scale`, `--mnt-density`, `--mnt-font-display`, `--mnt-font-ui`, `--mnt-font-mono`, `--mnt-text-xs`, `--mnt-text-sm`, `--mnt-text-md`, `--mnt-text-lg`, `--mnt-text-xl`, `--mnt-text-clock`, `--mnt-space-1`, `--mnt-space-2`, `--mnt-space-3`, `--mnt-space-4`, `--mnt-space-5`, `--mnt-space-6`, `--mnt-space-7`, `--mnt-space-8`, `--mnt-space-9`, `--mnt-elev-1`, `--mnt-elev-2`, `--mnt-elev-3`, `--mnt-dur-fast`, `--mnt-dur-base`, `--mnt-dur-slow`, `--mnt-ease`, `--mnt-icon-size`, `--mnt-icon-radius`, `--mnt-columns`, `--mnt-content-width`
+`--mnt-bg`, `--mnt-bg-elevated`, `--mnt-surface`, `--mnt-surface-hover`, `--mnt-surface-active`, `--mnt-text`, `--mnt-text-muted`, `--mnt-text-faint`, `--mnt-accent`, `--mnt-accent-soft`, `--mnt-accent-strong`, `--mnt-accent-text`, `--mnt-on-accent`, `--mnt-border`, `--mnt-border-strong`, `--mnt-danger`, `--mnt-radius`, `--mnt-glass`, `--mnt-scale`, `--mnt-density`, `--mnt-font-display`, `--mnt-font-ui`, `--mnt-font-mono`, `--mnt-text-xs`, `--mnt-text-sm`, `--mnt-text-md`, `--mnt-text-lg`, `--mnt-text-xl`, `--mnt-text-clock`, `--mnt-space-1`, `--mnt-space-2`, `--mnt-space-3`, `--mnt-space-4`, `--mnt-space-5`, `--mnt-space-6`, `--mnt-space-7`, `--mnt-space-8`, `--mnt-space-9`, `--mnt-elev-1`, `--mnt-elev-2`, `--mnt-elev-3`, `--mnt-dur-fast`, `--mnt-dur-base`, `--mnt-dur-slow`, `--mnt-ease`, `--mnt-icon-size`, `--mnt-icon-radius`, `--mnt-columns`, `--mnt-content-width`, `--mnt-shadow-strength`, `--mnt-widget-size`, `--mnt-block-size`, `--mnt-block-min`, `--mnt-block-row`, `--mnt-block-gap`, `--mnt-block-plate`, `--mnt-block-plate-hover`, `--mnt-block-opacity`, `--mnt-tile-bg`, `--mnt-tile-opacity`, `--mnt-tile-border`, `--mnt-tile-gap`
 
 ## Example
 

@@ -15,6 +15,9 @@ export const en: Record<BaseMessageKey, string> = {
 
   'search.label': 'Search',
   'search.placeholder': 'Search the web',
+  'search.placeholderEngine': 'Search {engine}',
+  'search.placeholderFind': 'Find bookmarks or search the web',
+  'search.placeholderFindEngine': 'Find bookmarks or search {engine}',
   'search.submit': 'Submit search',
 
   'edit.enter': 'Edit desktop',

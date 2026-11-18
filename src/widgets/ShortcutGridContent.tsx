@@ -67,9 +67,9 @@ export function GroupMenuTrigger({ group, ariaLabel, className, children, onGrou
 }
 
 /** Opens every website of a group; shown beside the group name when the websites widget enables it. */
-export function OpenAllButton({ group, label, onOpenAll }: { group: ProfileV2['bookmarks']['groups'][number]; label: string; onOpenAll: (group: ProfileV2['bookmarks']['groups'][number]) => void }) {
-  // Material Design "open in browser" glyph (Apache-2.0).
-  return <button type="button" className="mnt-group-open-all" aria-label={label} title={label} onClick={event => { event.stopPropagation(); onOpenAll(group) }}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h4v-2H5V8h14v10h-4v2h4c1.1 0 2-.9 2-2V6c0-1.1-.89-2-2-2zm-7 6l-4 4h3v6h2v-6h3l-4-4z" /></svg></button>
+export function OpenAllButton({ group, label, text, onOpenAll }: { group: ProfileV2['bookmarks']['groups'][number]; label: string; text: string; onOpenAll: (group: ProfileV2['bookmarks']['groups'][number]) => void }) {
+  // Material Design "open in browser" glyph (Apache-2.0). The short text is hidden unless a look shows it instead.
+  return <button type="button" className="mnt-group-open-all" aria-label={label} title={label} onClick={event => { event.stopPropagation(); onOpenAll(group) }}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h4v-2H5V8h14v10h-4v2h4c1.1 0 2-.9 2-2V6c0-1.1-.89-2-2-2zm-7 6l-4 4h3v6h2v-6h3l-4-4z" /></svg><span className="mnt-group-open-all-text" aria-hidden="true">{text}</span></button>
 }
 
 /** Whether a group heading shows its name and its open-all button in display mode. */
@@ -99,13 +99,16 @@ export function tileProps(tile: TileLook | undefined) {
   if (tile.rotate) style['--mnt-tile-rotate'] = `${tile.rotate}deg`
   if (tile.offsetX) style['--mnt-tile-x'] = `${tile.offsetX}em`
   if (tile.offsetY) style['--mnt-tile-y'] = `${tile.offsetY}em`
+  if (tile.gap !== undefined) style['--mnt-tile-gap'] = `${tile.gap}em`
   const data: Record<string, string> = {}
   if (tile.span) data['data-tile-span'] = tile.span
   if (tile.align) data['data-tile-align'] = tile.align
   if (tile.direction) data['data-tile-direction'] = tile.direction
   if (tile.nameFirst) data['data-tile-name-first'] = ''
   if (tile.hideName) data['data-tile-hide-name'] = ''
+  if (tile.hideIcon) data['data-tile-hide-icon'] = ''
   if (tile.background || tile.image || tile.opacity !== undefined) data['data-tile-backdrop'] = ''
+  if (tile.opacity !== undefined && tile.opacity < 40) data['data-tile-faint'] = ''
   return { style: style as CSSProperties, data }
 }
 
@@ -182,5 +185,5 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
     onContextMenu({ clientX: rect.left, clientY: rect.bottom, focusTarget: event.currentTarget, preventDefault() {}, stopPropagation() {} }, item)
   }
   const look = tileProps(item.tile)
-  return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} data-link-id={item.id} data-link-url={displayUrl(item.url)} {...look.data} style={look.style} title={name} href={item.url} draggable={false} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPress} onPointerCancel={endPress} onClick={onClick}>{look.data['data-tile-backdrop'] !== undefined && <span className="mnt-link-backdrop" aria-hidden="true">{item.tile?.image && <span className="mnt-link-backdrop-image" style={{ backgroundImage: `url("${item.tile.image}")`, opacity: (item.tile.imageOpacity ?? 100) / 100 }} />}</span>}<span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
+  return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} data-link-id={item.id} data-link-url={displayUrl(item.url)} {...look.data} style={look.style} title={name} href={item.url} draggable={false} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPress} onPointerCancel={endPress} onClick={onClick}><span className="mnt-link-backdrop" aria-hidden="true">{item.tile?.image && <span className="mnt-link-backdrop-image" style={{ backgroundImage: `url("${item.tile.image}")`, opacity: (item.tile.imageOpacity ?? 100) / 100 }} />}</span><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
 }

@@ -29,13 +29,15 @@ export const variableDeclSchema = z.discriminatedUnion('type', [
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
-  image: asset.optional(), iconMode: z.enum(['auto', 'text', 'brand', 'lucide', 'emoji']).optional(), iconName: z.string().max(100).optional(), iconColorMode: z.enum(['brand', 'accent', 'custom']).optional(), brand: z.object({ slug: nonempty.max(100), title: nonempty.max(100), path: z.string().min(1).max(8192).regex(/^[MmZzLlHhVvCcSsQqTtAa0-9eE+.,\s-]+$/, { error: 'SVG path data' }), hex: z.string().regex(/^[\da-f]{6}$/i, { error: 'six-digit hex color' }) }).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
+  image: asset.optional(), iconMode: z.enum(['auto', 'text', 'brand', 'lucide', 'emoji']).optional(), iconName: z.string().max(100).optional(), iconColorMode: z.enum(['brand', 'accent', 'custom']).optional(), brand: z.object({ slug: nonempty.max(100), title: nonempty.max(100), path: z.string().min(1).max(8192).regex(/^[MmZzLlHhVvCcSsQqTtAa0-9eE+.,\s-]+$/, { error: 'SVG path data' }), hex: z.string().regex(/^[\da-f]{6}$/i, { error: 'six-digit hex color' }), viewBox: z.string().regex(/^0 0 \d{1,4} \d{1,4}$/, { error: 'SVG view box' }).optional() }).optional(), builtinName: z.literal('sample-website').optional(), builtinIcon: z.literal('sample-website').optional(),
   /** Tile look for one website: grid span, and a colour or image behind the icon at an opacity. */
   tile: z.object({
     span: z.enum(['wide', 'tall', 'large']).optional(), background: color.optional(), image: asset.optional(), opacity: ranged({ min: 0, max: 100 }).optional(),
     imageOpacity: ranged({ min: 0, max: 100 }).optional(), accent: color.optional(), border: ranged({ min: 0, max: 16 }).optional(),
     align: z.enum(['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right']).optional(),
-    direction: z.enum(['vertical', 'horizontal']).optional(), nameFirst: z.boolean().optional(), hideName: z.boolean().optional(),
+    direction: z.enum(['vertical', 'horizontal']).optional(), nameFirst: z.boolean().optional(), hideName: z.boolean().optional(), hideIcon: z.boolean().optional(),
+    /** Space between icon and name, in the tile's em. */
+    gap: ranged({ min: 0, max: 5 }).optional(),
     iconScale: ranged({ min: 0.25, max: 8 }).optional(), nameScale: ranged({ min: 0.25, max: 4 }).optional(), rotate: ranged({ min: -360, max: 360 }).optional(),
     offsetX: ranged({ min: -20, max: 20 }).optional(), offsetY: ranged({ min: -20, max: 20 }).optional(),
   }).optional(),
@@ -45,7 +47,7 @@ export const linkSchema = z.object({
 const widgetBase = { id: nonempty, area: nonempty, order: z.number().int().nonnegative(), hidden: z.boolean().optional() }
 const textAlign = z.enum(['left', 'center', 'right'])
 /** Props every widget accepts: scale and text alignment (inherited from the area when absent). */
-const common = { size: ranged({ min: 0.5, max: 3 }).optional(), align: textAlign.optional() }
+const common = { size: ranged(RANGES.widgetSize).optional(), align: textAlign.optional() }
 const separator = z.string().max(8)
 const separatorSpacing = ranged({ min: 0, max: 1 })
 export const DATE_PARTS = ['weekday', 'day', 'month', 'year', 'weekNumber'] as const
@@ -71,7 +73,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
       dayStyle: z.enum(['number', 'word']).optional(), separatorAccent: z.boolean().optional(),
     }),
   }),
-  z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('search'), props: z.looseObject({ ...common, engine: nonempty.optional(), namePlaceholder: z.boolean().optional(), findBookmarks: z.boolean().optional() }) }),
   z.object({
     ...widgetBase, type: z.literal('bookmarks'),
     props: z.looseObject({ ...common, source: nonempty.optional(), style: z.enum(['tile', 'list', 'minimal', 'card', 'icon-only', 'block']).optional(), maxColumns: ranged({ min: 2, max: 10 }, true).optional(), showGroupTitles: z.boolean().optional(), showAdd: z.boolean().optional(), iconColor: z.enum(['per-site', 'accent']).optional(), showUrl: z.boolean().optional(), groupDisplay: z.enum(['folders', 'sections']).optional(), openAll: z.boolean().optional() }),
@@ -79,7 +81,7 @@ export const widgetSchema = z.discriminatedUnion('type', [
   z.object({ ...widgetBase, type: z.literal('greeting'), props: z.looseObject({ ...common, name: z.string().max(60).optional(), transitional: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('text'), props: z.looseObject({ ...common, text: z.string().max(500).optional(), muted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('spacer'), props: z.looseObject({ ...common, height: ranged({ min: 8, max: 400 }).optional() }) }),
-  z.object({ ...widgetBase, type: z.literal('toolbar'), props: z.looseObject({ ...common, actions: z.array(z.enum(['accent', 'add', 'edit', 'settings'])).max(4).optional(), corner: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional() }) }),
+  z.object({ ...widgetBase, type: z.literal('toolbar'), props: z.looseObject({ ...common, actions: z.array(z.enum(['accent', 'add', 'edit', 'settings'])).max(4).optional(), style: z.enum(['icons', 'buttons']).optional(), corner: z.enum(['top-left', 'top-right', 'bottom-left', 'bottom-right']).optional() }) }),
   z.object({ ...widgetBase, type: z.literal('todo'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), items: z.array(z.object({ id: nonempty, text: z.string().max(500), done: z.boolean() })).max(100), hideCompleted: z.boolean().optional() }) }),
   z.object({ ...widgetBase, type: z.literal('note'), props: z.looseObject({ ...common, title: z.string().max(120).optional(), content: z.string().max(10000) }) }),
   z.object({ ...widgetBase, type: z.literal('countdown'), props: z.looseObject({ ...common, title: z.string().max(120), targetDate: isoDate, format: z.enum(['days', 'detailed']).optional() }) }),
@@ -159,6 +161,8 @@ export const profileV2Schema = z.object({
     dim: ranged(RANGES.dim).default(DEFAULT_DIM), image: backgroundImage.optional(),
     /** Accent colour laid over an image or video wallpaper, 0-100 %. */
     tint: percent.optional(), video: backgroundVideo.optional(), rotation: wallpaperRotation.optional(),
+    /** Opacity, blur, grayscale, zoom and vignette for the next image or video chosen (an import sets it before the file exists). */
+    nextLook: z.object({ opacity: percent, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale), scale: ranged(RANGES.scale), vignette: ranged(RANGES.vignette) }).partial().optional(),
   }),
   layout: grid.extend({
     contentWidth: ranged(RANGES.contentWidth),

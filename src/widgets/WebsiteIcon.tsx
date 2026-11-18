@@ -91,7 +91,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   const textFallback = shortcut.icon || letter
   if (automatic || (shortcut.iconMode === 'brand' && !source)) {
     const brand = (automatic ? undefined : shortcut.brand) ?? currentAutoState.brand
-    if (brand) return <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ color: color(brand.hex, automatic) }} aria-hidden="true"><path d={brand.path} /></svg>
+    if (brand) return <svg viewBox={('viewBox' in brand && brand.viewBox) || '0 0 24 24'} width="24" height="24" fill="currentColor" style={{ color: color(brand.hex, automatic) }} aria-hidden="true"><path d={brand.path} /></svg>
     if (!automatic) return letter
     const visibleFallback = !source && autoFinished
     return <>{source && <img ref={imageRef} src={source} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" style={{ visibility: imageLoaded ? 'visible' : 'hidden' }} onLoad={() => setLoadedSrc(source)} onError={() => {

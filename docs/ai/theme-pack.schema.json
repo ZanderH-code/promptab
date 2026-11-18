@@ -837,6 +837,12 @@
                   },
                   "engine": {
                     "type": "string"
+                  },
+                  "namePlaceholder": {
+                    "type": "boolean"
+                  },
+                  "findBookmarks": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": {}
@@ -1150,6 +1156,13 @@
                         "settings"
                       ]
                     }
+                  },
+                  "style": {
+                    "type": "string",
+                    "enum": [
+                      "icons",
+                      "buttons"
+                    ]
                   },
                   "corner": {
                     "type": "string",

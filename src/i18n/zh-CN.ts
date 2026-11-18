@@ -16,6 +16,9 @@ export const zhCN = {
 
   'search.label': '搜索',
   'search.placeholder': '搜索你想知道的',
+  'search.placeholderEngine': '用 {engine} 搜索',
+  'search.placeholderFind': '查找书签，或搜索网络',
+  'search.placeholderFindEngine': '查找书签，或用 {engine} 搜索',
   'search.submit': '提交搜索',
 
   'edit.enter': '编辑桌面',
