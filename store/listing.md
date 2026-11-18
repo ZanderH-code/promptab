@@ -15,7 +15,7 @@ A customizable new tab for themes, bookmarks, search, and daily tools.
 - Browse the public theme gallery, preview themes, and try them in the hosted web app. Install the web app as a PWA.
 - Customize colors, fonts, shapes, and CSS; export theme packs or save themes locally.
 - Use local image and video wallpapers, and rotate selected wallpapers.
-- Add Todo, Note, Countdown, and optional weather widgets. Weather access is requested only when you use a weather feature.
+- Add Todo, Note, Countdown, and optional weather widgets. Weather access is requested the first time you choose a city; the forecast then loads on each new tab.
 - Choose where links open, use keyboard shortcuts, and set an accent color on open or cycle through the accent palette.
 - Keep separate profiles, undo changes, and restore selected backup sections with one undo action.
 - Optionally sync profile preferences, themes, layouts, and shortcuts using your browser's sync service. Wallpapers, videos, fonts, uploaded shortcut images, and saved themes remain on the device and are not synced.
@@ -34,7 +34,7 @@ Promptab stores data in browser-managed extension storage. It has no Promptab ac
 - **Favicon (Chromium only):** Obtain browser-provided website icons; site-origin icon paths are also tried.
 - **Bookmarks (optional):** Requested when you start browser bookmark import; only selected folders are copied.
 - **AI provider hosts (optional):** Requested when you send a direct request to the selected Anthropic or OpenAI provider.
-- **Open-Meteo hosts (optional):** Requested when you search for a city or load a weather forecast.
+- **Open-Meteo hosts (optional):** Requested the first time you search for a weather city or use your location; afterwards the chosen place's forecast loads when a new tab opens.
 
 ### Firefox Add-ons (AMO)
 

@@ -15,7 +15,7 @@ import type { ContextMenuEvent } from './ShortcutGridContent'
 const WeatherWidget = lazy(() => import('./WeatherWidget').then(module => ({ default: module.WeatherWidget })))
 const ProductivityWidgetView = lazy(() => import('./ProductivityWidgets').then(module => ({ default: module.ProductivityWidgetView })))
 
-type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: OnboardingAction) => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: ContextMenuEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void; onOpenSettings: () => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' | 'weather' }>) => void }
+type Props = { profile: ProfileV2; language: Settings['language']; shortcuts: Settings['shortcuts']; editing: boolean; onboarding: boolean; onOnboardingAction: (action: OnboardingAction) => void; onManageDone: () => void; t: Translate; onError: (error: MessageRef) => void; onContextMenu: (event: ContextMenuEvent) => void; onGroups: (update: (groups: ProfileV2['bookmarks']['groups']) => ProfileV2['bookmarks']['groups']) => void; onGroupContextMenu: (event: ContextMenuEvent, group: ProfileV2['bookmarks']['groups'][number]) => void; onEdit: (shortcut: Shortcut) => void; onRemove: (shortcut: Shortcut) => void; onMove: (shortcut: Shortcut) => void; onAdd: (groupId?: string) => void; onBookmarkContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void; onOpenSettings: (section?: string) => void; onEnterEditMode: () => void; onWidgetChange: (widget: Extract<Widget, { type: 'todo' | 'note' | 'countdown' | 'weather' }>) => void }
 
 function useBreakpoint() {
   const [breakpoint, setBreakpoint] = useState(() => {
@@ -118,13 +118,13 @@ export function ProfileWidgets(props: Props) {
           case 'text': return frame(<div>{widget.props.text}</div>)
           case 'spacer': return frame(<div aria-hidden="true" style={{ height: widget.props.height ?? 40 }} />)
           case 'todo': case 'note': case 'countdown': return frame(<Suspense fallback={null}><ProductivityWidgetView widget={widget} language={language} t={t} onChange={props.onWidgetChange} /></Suspense>)
-          case 'weather': return frame(<Suspense fallback={null}><WeatherWidget widget={widget} language={language} /></Suspense>)
+          case 'weather': return frame(<Suspense fallback={null}><WeatherWidget widget={widget} language={language} onChooseCity={() => props.onOpenSettings('widgets')} /></Suspense>)
           case 'toolbar': return frame(<div className="mnt-widget-toolbar" role="toolbar" aria-label={t('widgets.toolbar')}>
             {(widget.props.actions ?? ['add', 'edit', 'settings']).map(action => action === 'add'
               ? <button type="button" key={action} aria-label={t('shortcuts.add')} onClick={() => props.onAdd()}><span aria-hidden="true">＋</span></button>
               : action === 'edit'
                 ? <button type="button" key={action} aria-label={t('edit.enter')} onClick={props.onEnterEditMode}><span aria-hidden="true">✎</span></button>
-                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : 'mnt-settings-entry'} aria-label={t('settings.open')} onClick={props.onOpenSettings}><span aria-hidden="true"><SettingsIcon size={20} strokeWidth={1.5} /></span></button>)}
+                : <button type="button" key={action} className={detectTemplate(profile) === 'banner' ? 'mnt-settings-entry mnt-banner-settings' : 'mnt-settings-entry'} aria-label={t('settings.open')} onClick={() => props.onOpenSettings()}><span aria-hidden="true"><SettingsIcon size={20} strokeWidth={1.5} /></span></button>)}
           </div>)
         }
       })}

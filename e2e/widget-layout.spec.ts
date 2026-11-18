@@ -23,8 +23,7 @@ for (const preset of ['Paper', 'Tide'] as const) {
     }
     await page.getByRole('button', { name: 'Weather', exact: true }).click()
     await moveLast('date')
-    await page.getByRole('textbox', { name: 'City', exact: true }).fill('Portland')
-    await page.getByRole('button', { name: 'Search cities', exact: true }).click()
+    await page.getByRole('combobox', { name: 'City', exact: true }).fill('Portland')
     await page.getByRole('option', { name: 'Portland, United States' }).click()
     await page.getByRole('button', { name: 'Note', exact: true }).click()
     await page.getByRole('textbox', { name: 'Note content', exact: true }).fill('Make room for the things that matter.')
@@ -35,7 +34,7 @@ for (const preset of ['Paper', 'Tide'] as const) {
     await moveLast('links')
     await page.getByRole('button', { name: 'Close settings' }).click()
     const weather = page.locator('[data-widget="weather"]')
-    await weather.getByRole('button', { name: 'Update weather' }).click()
+    // The forecast loads by itself once a city is chosen.
     await expect(weather.getByText('22°C')).toBeVisible()
     const clock = await page.locator('[data-widget="clock"]').boundingBox()
     const date = await page.locator('[data-widget="date"]').boundingBox()

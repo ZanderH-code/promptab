@@ -335,7 +335,7 @@ export default function App() {
         onMove={openMoveDialog}
         onAdd={groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) }}
         onBookmarkContextMenu={(event: ContextMenuEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
-        onOpenSettings={() => openSettings()}
+        onOpenSettings={section => openSettings(section)}
         onEnterEditMode={() => setEditMode(true)}
         onWidgetChange={widget => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widget.id ? widget : item) })))}
       />}

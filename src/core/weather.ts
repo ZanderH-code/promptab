@@ -24,16 +24,50 @@ const CACHE_TTL = 30 * 60_000
 const FORECAST_ORIGIN = 'https://api.open-meteo.com/v1/forecast'
 const GEOCODING_ORIGIN = 'https://geocoding-api.open-meteo.com/v1/search'
 
-export type WeatherCity = { id: number; name: string; country: string; latitude: number; longitude: number }
+export type WeatherCity = { id: number; name: string; region: string; country: string; latitude: number; longitude: number }
 
-export async function requestWeatherPermission(service: 'forecast' | 'geocoding') {
-  const origin = service === 'forecast' ? 'https://api.open-meteo.com' : 'https://geocoding-api.open-meteo.com'
+const ORIGINS = { forecast: 'https://api.open-meteo.com/*', geocoding: 'https://geocoding-api.open-meteo.com/*' } as const
+
+/**
+ * Asks for network access to Open-Meteo. Must run inside a click handler. Asking for both services at once means
+ * choosing a city also allows the forecast, so the widget can load by itself afterwards without a second prompt.
+ */
+export async function requestWeatherPermission(service: 'forecast' | 'geocoding' | 'all') {
   if (!isExtensionEnvironment()) return true
   const permissions = extensionApi()?.permissions
   if (!permissions) return false
-  const permissionRequest = { origins: [`${origin}/*`] }
+  const permissionRequest = { origins: service === 'all' ? [ORIGINS.forecast, ORIGINS.geocoding] : [ORIGINS[service]] }
   if (isFirefoxExtension()) Object.assign(permissionRequest, { data_collection: ['locationInfo'] })
   return permissions.request(permissionRequest)
+}
+
+/** Checks, without prompting, whether the forecast may be loaded automatically when a new tab opens. */
+export async function hasWeatherPermission() {
+  if (!isExtensionEnvironment()) return true
+  const permissions = extensionApi()?.permissions
+  if (!permissions?.contains) return false
+  try { return await permissions.contains({ origins: [ORIGINS.forecast] }) } catch { return false }
+}
+
+/**
+ * City label that tells same-named places apart ("北京, 中国" vs "北京, 重庆市, 中国"). A region that merely repeats
+ * the city name ("北京市" for 北京) or the country is left out.
+ */
+export function weatherCityLabel(city: Pick<WeatherCity, 'name' | 'region' | 'country'>) {
+  return [city.name, weatherCityDetail(city)].filter(Boolean).join(', ')
+}
+
+/** The region and country part of a city label, shown under the city name in search results. */
+export function weatherCityDetail(city: Pick<WeatherCity, 'name' | 'region' | 'country'>) {
+  const region = city.region && !city.region.startsWith(city.name) && city.region !== city.country ? city.region : ''
+  return [region, city.country].filter(Boolean).join(', ')
+}
+
+export type LocationProblem = 'locationDenied' | 'locationUnavailable' | 'locationTimeout'
+
+/** Maps a GeolocationPositionError code to a message that says what the person can do about it. */
+export function locationProblem(code: number): LocationProblem {
+  return code === 1 ? 'locationDenied' : code === 3 ? 'locationTimeout' : 'locationUnavailable'
 }
 
 export async function searchWeatherCities(query: string, options: { fetcher?: typeof fetch; language?: string } = {}): Promise<WeatherCity[]> {
@@ -49,7 +83,8 @@ export async function searchWeatherCities(query: string, options: { fetcher?: ty
     if (!item || typeof item !== 'object') return []
     const city = item as Record<string, unknown>
     if (!isNumber(city.id) || typeof city.name !== 'string' || !isNumber(city.latitude) || !isNumber(city.longitude)) return []
-    return [{ id: city.id, name: city.name.slice(0, 100), country: typeof city.country === 'string' ? city.country.slice(0, 100) : '', latitude: city.latitude, longitude: city.longitude }]
+    const text = (value: unknown) => typeof value === 'string' ? value.slice(0, 100) : ''
+    return [{ id: city.id, name: city.name.slice(0, 100), region: text(city.admin1), country: text(city.country), latitude: city.latitude, longitude: city.longitude }]
   })
 }
 
@@ -94,6 +129,16 @@ export function weatherCacheKey(latitude: number, longitude: number, unit: Weath
   return `weather:${latitude.toFixed(5)}:${longitude.toFixed(5)}:${unit}`
 }
 
+/** The last saved forecast for a place, however old, so a new tab can show it before the network answers. */
+export function readCachedForecast(latitude: number, longitude: number, unit: WeatherUnit, cache: WeatherCache = localStorage) {
+  if (!isNumber(latitude) || !isNumber(longitude)) return null
+  try { return readCached(cache, weatherCacheKey(latitude, longitude, unit)) } catch { return null }
+}
+
+export function isForecastFresh(forecast: WeatherForecast, now = Date.now()) {
+  return now - forecast.updatedAt >= 0 && now - forecast.updatedAt < CACHE_TTL
+}
+
 function readCached(cache: WeatherCache, key: string): WeatherForecast | null {
   try {
     const value = cache.getItem(key)
@@ -111,7 +156,7 @@ export async function fetchWeatherForecast(
   latitude: number,
   longitude: number,
   unit: WeatherUnit,
-  options: { cache?: WeatherCache; fetcher?: typeof fetch; now?: () => number } = {},
+  options: { cache?: WeatherCache; fetcher?: typeof fetch; now?: () => number; /** Skip a fresh cached forecast (the refresh button). */ force?: boolean } = {},
 ): Promise<WeatherResult> {
   if (!isNumber(latitude) || !isNumber(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) throw new Error('location')
   const cache = options.cache ?? localStorage
@@ -120,7 +165,7 @@ export async function fetchWeatherForecast(
   const key = weatherCacheKey(latitude, longitude, unit)
   const cached = readCached(cache, key)
   const currentTime = now()
-  if (cached && currentTime - cached.updatedAt >= 0 && currentTime - cached.updatedAt < CACHE_TTL) {
+  if (cached && !options.force && isForecastFresh(cached, currentTime)) {
     return { forecast: cached, offline: false, cached: true }
   }
 
