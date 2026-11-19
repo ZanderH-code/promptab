@@ -3,7 +3,8 @@ import { MessageError } from '../../i18n'
 import type { Language } from '../../i18n'
 import { localizeIssue } from './issueMessages'
 import type { ProfileIssue } from './profile'
-import { describeIssue, packFontRefSchema, profileV2Schema } from './profile'
+import { describeIssue, profileV2Schema } from './profile'
+import { packFontRefSchema } from './packFields'
 
 /**
  * Internal partial theme pack: the slice of a profile that a preset (or a future imported theme) may set.

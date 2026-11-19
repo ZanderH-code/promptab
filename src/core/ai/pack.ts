@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { RANGES } from '../schema/defaults'
-import { baseColorsSchema, packFontRefSchema, packVariableDeclSchema, profileV2Schema, widgetSchema } from '../schema/profile'
+import { baseColorsSchema, profileV2Schema, widgetSchema } from '../schema/profile'
+import { packFontRefSchema, packVariableDeclSchema } from '../schema/packFields'
 import { areaGridProblem, areaNames } from '../layout/grid'
 
 /**
