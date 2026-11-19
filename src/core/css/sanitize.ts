@@ -1,4 +1,8 @@
-import { generate, parse, tokenTypes, tokenize, walk, type CssNode, type WalkOptionsNoVisit } from 'css-tree'
+import type { CssNode, WalkOptionsNoVisit } from 'css-tree'
+import generate from 'css-tree/generator'
+import parse from 'css-tree/parser'
+import { tokenTypes, tokenize } from 'css-tree/tokenizer'
+import walk from 'css-tree/walker'
 
 export const CSS_SANITIZER_POLICY = {
   maxBytes: 64 * 1024,
