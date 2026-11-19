@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { defaults, type Settings, type Shortcut } from '../core/model'
-import { migrateV1 } from '../core/migrate/v1'
 import { DEFAULT_LIGHT, darkSurface, lightSurface } from '../core/schema/defaults'
 import type { ProfileV2 } from '../core/schema/profile'
-import { systemLanguage, toMessageRef, type MessageRef } from '../i18n'
+import { MessageError, systemLanguage, toMessageRef, type MessageRef } from '../i18n'
 import { bootstrap } from '../storage/bootstrap'
 import { createAssetLibrary } from '../storage/assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, PROFILE_INDEX_KEY } from '../storage/profiles'
 import { extensionApi } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
 import { readPaintCache, writePaintCache } from './paintCache'
+import { cachedImageReference, cachedImageUrl, rememberImageUrl } from './imageUrls'
 import type { SavedTheme } from '../core/themes/library'
 
 export const assets = createAssetLibrary()
@@ -46,13 +46,17 @@ async function dataUrl(blob: Blob): Promise<string> {
   })
 }
 
+function resolvedLanguage(profile: ProfileV2): Settings['language'] {
+  return profile.prefs.language === 'system' ? systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]) : profile.prefs.language
+}
+
 /** Synchronous paint projection; skips asset reads, so image shortcuts use the automatic icon. */
 export function projectPaint(profile: ProfileV2): Settings {
   const widget = (type: string) => profile.widgets.find(item => item.type === type)
   const clock = widget('clock'), date = widget('date'), search = widget('search'), bookmarks = widget('bookmarks')
   const shortcuts = profile.bookmarks.groups.flatMap(group => group.items).map(({ image: _image, ...item }) => item.tile?.image ? { ...item, tile: withoutImage(item.tile) } : item)
   const engine = profile.search.engines.find(item => item.id === profile.search.defaultEngineId)
-  const language = profile.prefs.language === 'system' ? systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language]) : profile.prefs.language
+  const language = resolvedLanguage(profile)
   const theme = profile.theme.mode === 'system' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : profile.theme.mode
   const areas = profile.layout.areas
   const split = areas.some(row => row.includes('overview') && row.includes('bookmarks'))
@@ -78,25 +82,66 @@ function withoutImage<T extends { image?: string }>(value: T): Omit<T, 'image'> 
   return rest
 }
 
+/** Replaces image references with data URLs; returns null when an image has not been read yet. */
+function projectCached(profile: ProfileV2): Settings | null {
+  const shortcuts: Shortcut[] = []
+  for (const stored of profile.bookmarks.groups.flatMap(group => group.items)) {
+    // '' means there is no image to look up; undefined means it has not been read.
+    const lookup = (reference: string | undefined) => reference ? cachedImageUrl(reference) : ''
+    const image = lookup(stored.image), tileImage = lookup(stored.tile?.image)
+    if (image === undefined || tileImage === undefined) return null
+    shortcuts.push({ ...stored, ...(image ? { image } : {}), ...(tileImage ? { tile: { ...stored.tile, image: tileImage } } : {}) })
+  }
+  return { ...projectPaint(profile), shortcuts }
+}
+
+async function imageUrl(reference: string): Promise<string | undefined> {
+  const cached = cachedImageUrl(reference)
+  if (cached !== undefined) return cached
+  const blob = await assets.get(reference)
+  if (!blob) return undefined
+  const url = await dataUrl(blob)
+  rememberImageUrl(reference, url)
+  return url
+}
+
 async function project(profile: ProfileV2): Promise<Settings> {
   const shortcuts = await Promise.all(profile.bookmarks.groups.flatMap(group => group.items).map(async (stored): Promise<Shortcut> => {
     let item: Shortcut = stored
     if (item.tile?.image) {
-      const blob = await assets.get(item.tile.image)
+      const url = await imageUrl(item.tile.image)
       // A missing tile image leaves the tile colour, like a missing icon image leaves the automatic icon.
-      item = { ...item, tile: blob ? { ...item.tile, image: await dataUrl(blob) } : withoutImage(item.tile) }
+      item = { ...item, tile: url ? { ...item.tile, image: url } : withoutImage(item.tile) }
     }
     if (!item.image) return item
-    const blob = await assets.get(item.image)
+    const url = await imageUrl(item.image)
     // A missing asset degrades to the text/automatic icon instead of blocking the page.
-    if (!blob) return withoutImage(item)
-    return { ...item, image: await dataUrl(blob) }
+    if (!url) return withoutImage(item)
+    return { ...item, image: url }
   }))
   return { ...projectPaint(profile), shortcuts }
 }
 
-async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targetGroupId?: string): Promise<ProfileV2> {
-  const p = structuredClone(profile)
+/**
+ * Stores the page's image values (data URLs) as assets before a change is applied. Asset IDs are content
+ * hashes, so an image this page loaded maps straight back to its reference without reading the asset.
+ */
+async function storeImages(shortcuts: Shortcut[] | undefined): Promise<Map<string, string>> {
+  const references = new Map<string, string>()
+  const values = new Set((shortcuts ?? []).flatMap(item => [item.image, item.tile?.image]).filter((value): value is string => !!value && !value.startsWith('mnt-asset:')))
+  await Promise.all([...values].map(async value => {
+    let reference = cachedImageReference(value)
+    if (!reference) {
+      reference = await assets.add(await (await fetch(value)).blob())
+      if (value.startsWith('data:')) rememberImageUrl(reference, value)
+    }
+    references.set(value, reference)
+  }))
+  return references
+}
+
+/** Applies `changes` to `p` in place; `images` comes from storeImages for the same shortcuts. */
+function applyChanges(p: ProfileV2, changes: Partial<Settings>, images: Map<string, string>, targetGroupId?: string): ProfileV2 {
   p.meta.updatedAt = new Date().toISOString()
   if (changes.language !== undefined) p.prefs.language = changes.language
   if (changes.theme !== undefined) p.theme.mode = changes.theme
@@ -120,7 +165,7 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targ
   if (changes.hour12 !== undefined) widget('clock').props.hour12 = changes.hour12
   if (changes.columns !== undefined) widget('bookmarks').props.maxColumns = changes.columns
   if (changes.layout !== undefined || changes.reverse !== undefined) {
-    const current = await project(profile)
+    const current = projectPaint(p)
     const layout = changes.layout ?? current.layout, reverse = changes.reverse ?? current.reverse
     const stacked = reverse ? ['bookmarks', 'overview'] : ['overview', 'bookmarks']
     p.layout.areas = layout === 'split' ? [reverse ? 'overview bookmarks' : 'bookmarks overview'] : stacked
@@ -141,25 +186,21 @@ async function applyChanges(profile: ProfileV2, changes: Partial<Settings>, targ
     const groups = p.bookmarks.groups
     if (!groups.length) groups.push({ id: crypto.randomUUID(), name: 'Bookmarks', collapsed: false, items: [] })
     const originals = new Map(groups.flatMap((group, index) => group.items.map(item => [item.id, { item, index }] as const)))
-    const converted = await Promise.all(changes.shortcuts.map(async (item: Shortcut) => {
+    const converted = changes.shortcuts.map((item: Shortcut) => {
       const original = originals.get(item.id)
-      // Data URLs from the page become assets; an unchanged image keeps its stored reference.
-      const stored = async (value: string | undefined, previous: string | undefined) => {
-        if (!value) return undefined
-        if (value.startsWith('mnt-asset:')) return value
-        if (previous) {
-          const blob = await assets.get(previous)
-          if (!blob) throw new Error('Missing bookmark image')
-          if (await dataUrl(blob) === value) return previous
-        }
-        return assets.add(await (await fetch(value)).blob())
+      // Page images become their asset references.
+      const stored = (value: string | undefined) => {
+        if (!value || value.startsWith('mnt-asset:')) return value || undefined
+        const reference = images.get(value)
+        if (!reference) throw new Error('Unstored bookmark image')
+        return reference
       }
-      const image = await stored(item.image, original?.item.image)
-      const tileImage = await stored(item.tile?.image, original?.item.tile?.image)
+      const image = stored(item.image)
+      const tileImage = stored(item.tile?.image)
       const tile = item.tile ? { ...withoutImage(item.tile), ...(tileImage ? { image: tileImage } : {}) } : undefined
       const targetIndex = targetGroupId ? groups.findIndex(group => group.id === targetGroupId) : 0
       return { index: original?.index ?? Math.max(0, targetIndex), item: { ...item, ...(image ? { image } : {}), ...(tile ? { tile } : {}) } }
-    }))
+    })
     const existing = converted.filter(entry => originals.has(entry.item.id))
     if (existing.some((entry, i) => i > 0 && entry.index < existing[i - 1].index)) throw new Error('Cannot reorder bookmarks across groups')
     groups.forEach((group, index) => { group.items = converted.filter(entry => entry.index === index).map(entry => entry.item) })
@@ -182,6 +223,8 @@ export function useSettings() {
   const [error, setError] = useState<MessageRef | null>(null)
   const [undoNotice, setUndoNotice] = useState(false)
   const queue = useRef<Promise<void>>(Promise.resolve())
+  /** The live (non-preview) profile each shown profile and its settings came from: a shortcut list is based on it. */
+  const liveBase = useRef(new WeakMap<object, ProfileV2>())
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => {
     let alive = true
@@ -195,13 +238,18 @@ export function useSettings() {
       .catch(error => console.warn('Asset session unavailable', error))
       .then(() => bootstrap({ backend, profiles: persistence, assets, defaultSettings: __WEB_BUILD__ ? { ...defaults, language: 'en' } : defaults })).then(async snapshot => {
       const initial = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
-      const next = createProfileStore({ persistence, initialProfile: initial, onCommit: writePaintCache, onExternalRefresh: () => setUndoNotice(false) })
+      // Bootstrap already validated the published generation; the store adopts it without reading it again.
+      const validated = { revision: snapshot.revision, activeProfileId: snapshot.profiles.activeProfileId, profiles: snapshot.profiles.profiles, history: snapshot.history, archived: snapshot.profiles.archived ?? {} }
+      const next = createProfileStore({ persistence, initialProfile: initial, validated, onCommit: writePaintCache, onExternalRefresh: () => setUndoNotice(false) })
       await next.getState().initialize()
       if (!alive) return
       const sync = () => {
         const state = next.getState()
         const preview = state.preview?.profileId === state.activeProfileId && !state.preview.showingOriginal ? state.preview.profile : undefined
-        setProfile(preview ?? state.profiles[state.activeProfileId])
+        const live = state.profiles[state.activeProfileId]
+        const shown = preview ?? live
+        if (shown && live) liveBase.current.set(shown, live)
+        setProfile(shown)
       }
       unsubscribe = next.subscribe(sync); sync(); setStore(next)
       const refresh = () => { void next.getState().refresh().catch(error => console.warn('Profile refresh failed', error)) }
@@ -231,8 +279,13 @@ export function useSettings() {
   }, [followSystem])
   useEffect(() => {
     if (!profile) return
+    // Most edits leave the images alone; their URLs are cached, so no asset is read again.
+    const live = liveBase.current.get(profile)
+    const show = (value: Settings) => { if (live) liveBase.current.set(value, live); setSettings(value) }
+    const cached = projectCached(profile)
+    if (cached) { show(cached); return }
     let alive = true
-    project(profile).then(value => { if (alive) setSettings(value) }).catch(e => { if (alive) { setSettings(current => current ?? null); setError(toMessageRef(e, 'error.loadSettings')) } })
+    project(profile).then(value => { if (alive) show(value) }).catch(e => { if (alive) setError(toMessageRef(e, 'error.loadSettings')) })
     return () => { alive = false }
   }, [profile, scheme])
   const run = useCallback((operation: (store: AppProfileStore, id: string) => Promise<void>, notice = true) => {
@@ -243,16 +296,25 @@ export function useSettings() {
     }).catch(e => { console.error(e); setError(toMessageRef(e, 'error.saveSettings')) })
     queue.current = task
   }, [store])
-  const patch = useCallback((changes: Partial<Settings>, targetGroupId?: string) => run(async (s, id) => {
-    const p = await applyChanges(s.getState().profiles[id], changes, targetGroupId)
-    await s.getState().updateProfile(id, () => p)
-  }), [run])
+  const patch = useCallback((changes: Partial<Settings>, targetGroupId?: string) => {
+    // A shortcut list replaces the bookmarks the caller saw (the ones these settings show); anything else
+    // applies to the latest profile.
+    const base = changes.shortcuts && settings ? liveBase.current.get(settings) : undefined
+    const seen = base ? JSON.stringify(base.bookmarks) : undefined
+    run(async (s, id) => {
+      const images = await storeImages(changes.shortcuts)
+      await s.getState().updateProfile(id, current => {
+        // Another tab's bookmark change, adopted meanwhile, would be silently dropped by the stale list.
+        if (seen !== undefined && JSON.stringify(current.bookmarks) !== seen) throw new MessageError('error.changedInAnotherTab')
+        return applyChanges(current, changes, images, targetGroupId)
+      })
+    })
+  }, [run, settings])
   const reset = useCallback(() => run(async (s, id) => {
-    const old = s.getState().profiles[id]
-    const now = new Date().toISOString()
-    const fresh = await migrateV1(defaults, { id: () => id, now: () => now, add: blob => assets.add(blob) })
-    fresh.meta = { ...old.meta, updatedAt: now }
-    await s.getState().resetProfile(id, fresh)
+    const { defaultProfile } = await import('../features/settings/sectionDefaults')
+    const fresh = await defaultProfile(resolvedLanguage(s.getState().profiles[id]))
+    // The fresh profile keeps this profile's identity and the language the person chose (including "system").
+    await s.getState().updateProfile(id, current => ({ ...structuredClone(fresh), meta: { ...current.meta, updatedAt: new Date().toISOString() }, prefs: { ...structuredClone(fresh.prefs), language: current.prefs.language } }), 'reset')
   }), [run])
   const undo = useCallback(() => { setUndoNotice(false); run((s, id) => s.getState().undo(id), false) }, [run])
   return { settings, profile, store, error, setError, patch, reset, undo, undoNotice, run }

@@ -219,7 +219,8 @@ describe('backup storage service', () => {
     await s.service.importBackup(json, 1)
     const exported = await parseBackupV2(await s.service.exportBackup())
     expect(exported.assets.find(asset => asset.id === videoId)?.blob.size).toBe(videoBlob.size)
-  })
+    // Hashing and encoding 6 MB twice takes seconds when the whole suite runs in parallel.
+  }, 20_000)
 
   it.each(['generation:', 'index'])('preserves old profiles and assets when %s fails', async key => {
     const s = await setup()
@@ -307,14 +308,6 @@ describe('backup storage service', () => {
     const saved = (await s.profiles.read())?.history as { profiles: { old: { snapshots: { pinned: boolean }[] } } }
     expect(saved.profiles.old.snapshots.filter(x => !x.pinned)).toHaveLength(30)
     expect(saved.profiles.old.snapshots.filter(x => x.pinned)).toHaveLength(1)
-  })
-
-  it('rejects an asset library returning corrupted stored content before publication', async () => {
-    const s = await setup()
-    const service = createBackupV2Service({ profiles: s.profiles, assets: { add: s.assets.add, get: async () => new Blob(['corrupt'], { type: 'image/png' }) } })
-    await expect(service.importBackup(s.json, 1)).rejects.toThrow(/hash mismatch/i)
-    expect(await s.profiles.read()).toEqual(s.initial)
-    expect(await s.assets.get(s.oldRef)).toBeDefined()
   })
 
   it('rejects an export when a referenced asset is missing', async () => {

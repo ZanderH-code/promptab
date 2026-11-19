@@ -1,5 +1,5 @@
 import { variableValue } from '../core/ai/variable'
-import { useLayoutEffect, type CSSProperties } from 'react'
+import { useLayoutEffect, useMemo, type CSSProperties } from 'react'
 import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/derive'
 import { assetFontFamily, isAssetFont } from '../core/font'
 import { mixOklch } from '../core/tokens/oklch'
@@ -62,7 +62,10 @@ function themeProperties(profile: ProfileV2, mode: ThemeMode, accent = selectedA
 }
 
 /** Writes the resolved theme tokens onto <html>. */
-export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | undefined, cache = true) {
+export function useThemeTokens(latest: ProfileV2 | null, mode: ThemeMode | undefined, cache = true) {
+  // The effect reads only these parts, so edits elsewhere (bookmarks, widgets, CSS) keep the profile it last saw.
+  const inputs = latest ? JSON.stringify([latest.theme, latest.background, latest.custom.variables, latest.custom.values, latest.prefs.accentOnOpen]) : ''
+  const profile = useMemo(() => latest, [inputs])
   useLayoutEffect(() => {
     if (!profile || !mode) return
     const root = document.documentElement
@@ -79,8 +82,10 @@ export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | unde
     root.dataset.reduceMotion = profile.prefs.reduceMotion
     for (const [name, value] of Object.entries(properties)) root.style.setProperty(name, value)
     try {
-      if (cache) localStorage.setItem('mnt:theme-cache:v1', JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, accentMode: profile.prefs.accentOnOpen, accentVariants, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) }))
-      else localStorage.removeItem('mnt:theme-cache:v1')
+      if (cache) {
+        const json = JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, accentMode: profile.prefs.accentOnOpen, accentVariants, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) })
+        if (localStorage.getItem('mnt:theme-cache:v1') !== json) localStorage.setItem('mnt:theme-cache:v1', json)
+      } else localStorage.removeItem('mnt:theme-cache:v1')
     } catch { /* Storage can be unavailable. */ }
     return () => { for (const name of Object.keys(properties)) root.style.removeProperty(name) }
   }, [profile, mode, cache])

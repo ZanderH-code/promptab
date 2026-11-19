@@ -107,14 +107,6 @@ export function decideSyncChanges(base: { local: string; cloud: string } | null,
   return 'conflict'
 }
 
-export type SyncConflictDecision = 'keep-local' | 'pull-cloud'
-
-export function decideSyncConflict(localUpdatedAt: string, cloudUpdatedAt: string): SyncConflictDecision {
-  const localTime = Date.parse(localUpdatedAt)
-  const cloudTime = Date.parse(cloudUpdatedAt)
-  return Number.isFinite(localTime) && Number.isFinite(cloudTime) && cloudTime > localTime ? 'pull-cloud' : 'keep-local'
-}
-
 /** Split UTF-8 text without breaking code points and reject payloads beyond the conservative quota. */
 export function chunkSyncPayload(payload: string): string[] {
   const encoder = new TextEncoder()

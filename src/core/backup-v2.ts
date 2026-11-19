@@ -104,8 +104,13 @@ export async function parseBackupV2(json: string): Promise<ParsedBackupV2> {
   if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new MessageError('error.settingsInvalid')
   let value: unknown
   try { value = JSON.parse(json) } catch { throw new MessageError('error.backupFile') }
+  return parseBackupV2Data(value)
+}
+
+/** Validates an already parsed v2 backup file. */
+export async function parseBackupV2Data(value: unknown): Promise<ParsedBackupV2> {
   try {
-  return await parseBackupV2Value(value)
+    return await parseBackupV2Value(value)
   } catch {
     throw new MessageError('error.settingsInvalid')
   }
@@ -150,15 +155,18 @@ export async function serializeBackupV2(input: BackupV2Input): Promise<string> {
   if (!Array.isArray(input.assets)) throw new Error('Invalid assets')
   let total = 0
   const assets: EncodedAsset[] = []
+  const assetMimes = new Map<string, string>()
   for (const item of input.assets) {
-    if (!item || typeof item.id !== 'string' || !assetId.test(item.id) || !(item.blob instanceof Blob) || !mimeTypes.has(item.blob.type) || !item.blob.size || item.blob.size > maxBytesForMime(item.blob.type)) throw new Error('Invalid asset')
+    if (!item || typeof item.id !== 'string' || !assetId.test(item.id) || assetMimes.has(item.id) || !(item.blob instanceof Blob) || !mimeTypes.has(item.blob.type) || !item.blob.size || item.blob.size > maxBytesForMime(item.blob.type)) throw new Error('Invalid asset')
     total += item.blob.size
     if (total > MAX_BACKUP_TOTAL_ASSET_BYTES) throw new Error('Assets exceed total size limit')
     const bytes = new Uint8Array(await item.blob.arrayBuffer())
+    if (await hash(bytes) !== item.id) throw new Error('Invalid asset hash')
+    assetMimes.set(item.id, item.blob.type)
     assets.push({ id: item.id, mime: item.blob.type, base64: encode(bytes) })
   }
+  // The same checks import makes, run on the input instead of re-parsing the encoded output.
+  checkReferences(profiles, assetMimes)
   const themes = parseSavedThemes(input.themes ?? [])
-  const json = JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: new Date().toISOString(), activeProfileId: input.activeProfileId, profiles, assets, themes })
-  await parseBackupV2(json)
-  return json
+  return JSON.stringify({ kind: 'mnt.backup', backupVersion: 2, exportedAt: new Date().toISOString(), activeProfileId: input.activeProfileId, profiles, assets, themes })
 }

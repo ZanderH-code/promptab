@@ -120,29 +120,39 @@ export function createProfileStorage(backend: AsyncKeyValueBackend, options: { l
     try { await backend.remove(key); return true } catch { return false }
   }
 
-  async function readCurrent(): Promise<{ index: Index; snapshot: ProfileSnapshot } | null> {
+  /** The published index and the raw text of its generation (null when the generation is missing). */
+  async function locate(): Promise<{ index: Index; raw: string | null } | null> {
     let index = parseIndex(await backend.get(INDEX))
     for (let attempt = 1; index !== null; attempt++) {
       const raw = await backend.get(GENERATION + index.generation)
-      if (raw !== null) return { index, snapshot: parseGeneration(raw, index) }
+      if (raw !== null) return { index, raw }
       // A publication may have replaced and pruned this generation since the index was read.
       const latest = parseIndex(await backend.get(INDEX))
-      if (attempt >= READ_ATTEMPTS || latest === null || latest.generation === index.generation) return { index, snapshot: parseGeneration(raw, index) }
+      if (attempt >= READ_ATTEMPTS || latest === null || latest.generation === index.generation) return { index, raw }
       index = latest
     }
     return null
   }
 
+  async function readCurrent(): Promise<{ index: Index; snapshot: ProfileSnapshot } | null> {
+    const found = await locate()
+    return found && { index: found.index, snapshot: parseGeneration(found.raw, found.index) }
+  }
+
   async function publish(data: ProfileData, expectedRevision: number | null): Promise<ProfileSnapshot> {
-    const found = await readCurrent()
-    const current = found?.snapshot ?? null
-    if ((current?.revision ?? null) !== expectedRevision) throw new Error('Profile revision conflict')
-    const revision = (current?.revision ?? 0) + 1
+    const found = await locate()
+    if (found) {
+      if (found.raw === null) throw new Error('Missing profile generation')
+      // Generations are written as {"revision":N,...}; only another shape needs a full parse to check its revision.
+      if (!found.raw.startsWith(`{"revision":${found.index.revision},`)) parseGeneration(found.raw, found.index)
+    }
+    if ((found?.index.revision ?? null) !== expectedRevision) throw new Error('Profile revision conflict')
+    const revision = (found?.index.revision ?? 0) + 1
     if (!Number.isSafeInteger(revision)) throw new Error('Profile revision overflow')
     const snapshot: ProfileSnapshot = { revision, profiles: data.profiles, history: data.history }
     const serialized = JSON.stringify(snapshot)
     // Validate the serialized form before staging, including omitted undefined values.
-    parseGeneration(serialized, { revision, generation: 'pending' })
+    const staged = parseGeneration(serialized, { revision, generation: 'pending' })
     const id = crypto.randomUUID()
     await backend.set(GENERATION + id, serialized)
     const latest = parseIndex(await backend.get(INDEX))
@@ -152,7 +162,7 @@ export function createProfileStorage(backend: AsyncKeyValueBackend, options: { l
     }
     await backend.set(INDEX, JSON.stringify({ revision, generation: id }))
     if (found) await discard(GENERATION + found.index.generation)
-    return parseGeneration(serialized, { revision, generation: id })
+    return staged
   }
 
   /**

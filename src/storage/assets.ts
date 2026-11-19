@@ -40,11 +40,37 @@ export type AssetCollection =
   | { status: 'failed'; error: unknown }
 export type AssetSession = { collection: AssetCollection; close(): void }
 
+type AssetDb = Awaited<ReturnType<typeof openDB<AssetDatabase>>>
+let connection: Promise<AssetDb> | null = null
+
+/** One connection per page; it is dropped when another context upgrades the database or the browser closes it. */
+function database(): Promise<AssetDb> {
+  if (connection) return connection
+  const opened: Promise<AssetDb> = openDB<AssetDatabase>('assets', 1, {
+    upgrade(db) { db.createObjectStore('assets', { keyPath: 'id' }) },
+    // A newer version elsewhere waits for this connection; closing lets it upgrade and the next call reopens.
+    blocking() { if (connection === opened) connection = null; void opened.then(db => db.close()) },
+    terminated() { if (connection === opened) connection = null },
+  })
+  connection = opened
+  opened.catch(() => { if (connection === opened) connection = null })
+  return opened
+}
+
+async function begin(mode: 'readonly' | 'readwrite') {
+  const pending = database()
+  try { return (await pending).transaction('assets', mode) } catch (error) {
+    if (connection !== pending || !(error instanceof DOMException && error.name === 'InvalidStateError')) throw error
+    // The cached connection was closed without an event reaching this page; reopen once.
+    connection = null
+    return (await database()).transaction('assets', mode)
+  }
+}
+
 /** An independent database avoids upgrading the existing wallpaper database. */
 export const indexedDbAssetStore: AssetStore = {
   async transaction(mode, run) {
-    const db = await openDB<AssetDatabase>('assets', 1, { upgrade(database) { database.createObjectStore('assets', { keyPath: 'id' }) } })
-    const tx = db.transaction('assets', mode)
+    const tx = await begin(mode)
     try {
       const result = await run({
         get: id => tx.store.get(id),
@@ -58,10 +84,15 @@ export const indexedDbAssetStore: AssetStore = {
       try { tx.abort() } catch { /* The transaction may already have aborted. */ }
       await tx.done.catch(() => undefined)
       throw error
-    } finally {
-      db.close()
     }
   },
+}
+
+/** Test hook: closes and forgets the shared connection. */
+export async function closeAssetDatabase(): Promise<void> {
+  const current = connection
+  connection = null
+  if (current) (await current.catch(() => null))?.close()
 }
 
 function parseReference(reference: string): string {

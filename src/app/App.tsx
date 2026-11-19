@@ -1,5 +1,5 @@
 import { Check, Plus, Settings as SettingsIcon, X } from 'lucide-react'
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, type CSSProperties, type FormEvent } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
 import { backgroundStyle, useThemeTokens, wallpaperStyle } from './useTheme'
 import { defaults, type Settings, type Shortcut } from '../core/model'
@@ -33,6 +33,11 @@ type MenuState = { x: number; y: number; target: MenuTarget; shortcut?: Shortcut
 /** `groupId` is empty when the website goes into a new group named `name`. */
 type MoveState = { shortcut: Shortcut; groupId: string; name: string; invalid?: boolean }
 
+/** Widgets re-render only when their data changes, not whenever a menu, dialog or banner in App does. */
+const Widgets = memo(ProfileWidgets)
+const WIDGET_HANDLERS = ['onOnboardingAction', 'onContextMenu', 'onGroups', 'onGroupContextMenu', 'onOpenAll', 'onRemove', 'onMove', 'onAdd', 'onBookmarkContextMenu', 'onOpenSettings', 'onEnterEditMode', 'onAccent', 'onWidgetChange'] as const
+type WidgetHandlers = Required<Pick<ComponentProps<typeof ProfileWidgets>, typeof WIDGET_HANDLERS[number]>>
+
 const MENU_MARGIN = 180
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
@@ -63,6 +68,8 @@ export default function App() {
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false)
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // newShortcut and openSettings are declared after the loading return, so they do not exist until settings do.
+      if (!settings) return
       const target = event.target as HTMLElement | null
       const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
       if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog')) return
@@ -180,6 +187,10 @@ export default function App() {
   const settingsLanguage = settings?.language ?? 'en'
   // Stable per language: the CSS editor, settings sections and folder items key effects and memos on `t`.
   const t = useCallback((key: MessageKey, params?: MessageParams) => translate(settingsLanguage, key, params), [settingsLanguage])
+  const style = useMemo(() => settings ? appStyle(settings, profile) : undefined, [settings, profile])
+  // Stable callbacks that call this render's handlers, which are assigned after the loading return below.
+  const widgetHandlers = useRef<WidgetHandlers | null>(null)
+  const widgetCallbacks = useMemo(() => Object.fromEntries(WIDGET_HANDLERS.map(name => [name, (...args: unknown[]) => (widgetHandlers.current![name] as (...values: unknown[]) => unknown)(...args)])) as WidgetHandlers, [])
 
   if (!settings) {
     const language = __WEB_BUILD__ ? 'en' : systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
@@ -289,6 +300,29 @@ export default function App() {
 
   const rollbackTarget = store?.getState().history.profiles[store.getState().activeProfileId]?.snapshots[0]
 
+  widgetHandlers.current = {
+    onOnboardingAction: action => {
+      // The card goes away once a step is done (a website saved, a theme or AI visited), not when one is
+      // merely opened: backing out of the add dialog should leave the way back in.
+      if (action === 'dismiss') { dismissOnboarding(); return }
+      onboardingStep.current = action
+      if (action === 'add') setEditing(newShortcut('#b0a092'))
+      else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
+    },
+    onContextMenu: event => openMenu(event, 'clock'),
+    onGroups: update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } }), undefined, true)),
+    onGroupContextMenu: (event, group) => openMenu(event, 'group', { clamp: true, group }),
+    onOpenAll: openGroupLinks,
+    onRemove: removeShortcut,
+    onMove: openMoveDialog,
+    onAdd: groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) },
+    onBookmarkContextMenu: (event, shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut }),
+    onOpenSettings: section => openSettings(section),
+    onEnterEditMode: () => setEditMode(true),
+    onAccent: accent => patch({ accent }),
+    onWidgetChange: (widgetId, update) => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widgetId ? update(item as never) : item) }))),
+  }
+
   return (
     <>
     {(safe || previewLabel || syncMounted) && (
@@ -307,7 +341,7 @@ export default function App() {
     <main
       className={'app mnt-root ' + s.theme}
       data-theme-mode={s.theme}
-      style={appStyle(s, profile)}
+      style={style}
       onClick={closeMenu}
       onContextMenu={event => openMenu(event, 'background', { clamp: true })}
     >
@@ -342,35 +376,16 @@ export default function App() {
         <button type="button" onClick={() => openSettings('widgets')}><Plus size={18} aria-hidden="true" />{t('edit.addWidget')}</button>
         <button type="button" onClick={() => setEditMode(false)}><Check size={18} aria-hidden="true" />{t('groups.done')}</button>
       </nav>}
-      {profile && <ProfileWidgets
+      {profile && <Widgets
         profile={profile}
         language={s.language}
         shortcuts={s.shortcuts}
         editing={editMode}
         onboarding={!!profile && !onboardingDismissed && profile.meta.builtinName === 'default-profile' && (onboardingEligible || profile.bookmarks.groups.every(group => group.items.length === 0))}
-        onOnboardingAction={action => {
-          // The card goes away once a step is done (a website saved, a theme or AI visited), not when one is
-          // merely opened: backing out of the add dialog should leave the way back in.
-          if (action === 'dismiss') { dismissOnboarding(); return }
-          onboardingStep.current = action
-          if (action === 'add') setEditing(newShortcut('#b0a092'))
-          else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
-        }}
+        {...widgetCallbacks}
         t={t}
         onError={setError}
-        onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
-        onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } }), undefined, true))}
-        onGroupContextMenu={(event, group) => openMenu(event, 'group', { clamp: true, group })}
-        onOpenAll={openGroupLinks}
         onEdit={setEditing}
-        onRemove={removeShortcut}
-        onMove={openMoveDialog}
-        onAdd={groupId => { addGroupId.current = groupId; setEditing(newShortcut('#b0a092')) }}
-        onBookmarkContextMenu={(event: ContextMenuEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
-        onOpenSettings={section => openSettings(section)}
-        onEnterEditMode={() => setEditMode(true)}
-        onAccent={accent => patch({ accent })}
-        onWidgetChange={(widgetId, update) => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widgetId ? update(item as never) : item) })))}
       />}
 
       <Suspense fallback={null}>
