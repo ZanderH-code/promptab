@@ -29,6 +29,20 @@ describe('nightTab backup importer', () => {
     expect(result.warnings).toContain('Ignored unrecognized field: extensionField')
   })
 
+  it('ignores inherited keys in nightTab engine, icon and alignment names', async () => {
+    const backup = JSON.parse(fixture)
+    backup.bookmark[0].items[0].display.visual = { type: 'icon', icon: { name: 'constructor', prefix: 'fas' } }
+    backup.state.header = { item: { justify: 'constructor' }, search: { engine: { selected: 'constructor' } } }
+    backup.state.group = { area: { justify: '__proto__' } }
+    const result = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    const link = result.profile.bookmarks.groups.at(-1)!.items[0]
+    expect(link.iconMode).not.toBe('lucide')
+    expect(typeof link.iconName === 'string' || link.iconName === undefined).toBe(true)
+    expect(result.profile.search.engines.some(engine => engine.id === 'nighttab-constructor')).toBe(false)
+    expect(result.profile.custom.css).toContain('justify-content: flex-start')
+    expect(result.profile.custom.css).not.toMatch(/function|\[object/)
+  })
+
   it('warns without throwing for unrecognized structures', async () => {
     const result = parseNightTabBackup(JSON.stringify({ exportVersion: 1, mystery: true }), await baseProfile())
     expect(result.count).toBe(0)

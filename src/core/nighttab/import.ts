@@ -3,6 +3,7 @@ import { isHttpUrl } from '../model'
 import { SEARCH_ENGINES } from '../search/engines'
 import { RANGES } from '../schema/defaults'
 import { primaryRamp, rgbHex, type Ramp } from './palette'
+import { own } from '../own'
 import { nightTabLook } from './look'
 import { FONT_AWESOME } from './fontAwesome'
 
@@ -73,7 +74,7 @@ function displayVisual(item: AnyRecord): Visual | undefined {
     const name = text(icon.name).replace(/^fa-/, '')
     const glyph = FONT_AWESOME[`${text(icon.prefix) === 'fab' ? 'fab' : 'fas'} ${name}`]
     if (glyph) return { mode: 'fa', name, title: (text(icon.label) || name).slice(0, 100), width: glyph[0], path: glyph[1] }
-    const generic = text(icon.prefix) === 'fab' ? undefined : FONT_AWESOME_GENERIC[name]
+    const generic = text(icon.prefix) === 'fab' ? undefined : own(FONT_AWESOME_GENERIC, name)
     return generic ? { mode: 'lucide', iconName: generic } : { mode: 'auto' }
   }
   if (type === 'image') return { mode: 'auto', image: text(record(visual.image).url) }
@@ -217,7 +218,8 @@ function searchEngine(search: AnyRecord): { id: string; name: string; template: 
   const selected = text(engine.selected)
   const builtin = SEARCH_ENGINES.find(candidate => candidate.id === selected)
   if (builtin) return { id: builtin.id, name: builtin.name, template: builtin.template }
-  if (NIGHTTAB_ENGINES[selected]) return { id: `nighttab-${selected}`, ...NIGHTTAB_ENGINES[selected] }
+  const known = own(NIGHTTAB_ENGINES, selected)
+  if (known) return { id: `nighttab-${selected}`, ...known }
   if (selected !== 'custom') return undefined
   const custom = record(engine.custom)
   const url = text(custom.url), query = text(custom.queryName)

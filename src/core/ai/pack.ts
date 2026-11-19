@@ -153,6 +153,6 @@ export function unknownKeys(value: unknown, tree: KeyTree | null = PACK_KEYS, pa
   if (!tree || !value || typeof value !== 'object' || Array.isArray(value)) return []
   return Object.entries(value).flatMap(([key, child]) => {
     const here = path ? `${path}.${key}` : key
-    return key in tree ? unknownKeys(child, tree[key], here) : [here]
+    return Object.hasOwn(tree, key) ? unknownKeys(child, tree[key], here) : [here]
   })
 }

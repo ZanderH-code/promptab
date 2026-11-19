@@ -7,7 +7,7 @@ import { portableCss, sanitizeCss } from '../css/sanitize'
 import { applyTemplate } from '../layout/profile'
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
-import { aiPackSchema, partsOf } from './pack'
+import { aiPackSchema, partsOf, unknownKeys } from './pack'
 import { applyPack, exportThemePack } from './apply'
 import { EXAMPLES } from './examples'
 import { autoFix } from './fix'
@@ -56,6 +56,17 @@ describe('autoFix', () => {
     const { value, fixes } = autoFix({ theme: { color: { bg: '0e1116', text: '#FFF', accent: '#7ee0c3' }, Radius: '12px' } })
     expect(value).toMatchObject({ theme: { color: { bg: '#0e1116', text: '#ffffff' }, radius: 12 } })
     expect(fixes.map(f => f.kind).sort()).toEqual(['color', 'color', 'key', 'number'])
+  })
+})
+
+describe('inherited keys in packs', () => {
+  it('reports constructor and __proto__ as unknown and keeps them ordinary keys', () => {
+    const raw = JSON.parse('{"constructor":{"x":1},"__proto__":{"css":"a{}"},"theme":{"toString":1}}')
+    expect(unknownKeys(raw).sort()).toEqual(['__proto__', 'constructor', 'theme.toString'])
+    const { value } = autoFix(raw)
+    expect(Object.getPrototypeOf(value)).toBe(Object.prototype)
+    expect((value as { css?: unknown }).css).toBeUndefined()
+    expect(Object.keys(value as object).sort()).toEqual(['__proto__', 'constructor', 'theme'])
   })
 })
 

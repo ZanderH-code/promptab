@@ -1,4 +1,5 @@
 import { extensionApi } from '../platform/extension'
+import { own } from './own'
 import type { Shortcut } from './model'
 
 /** A bundled brand mark, the same shape as a shortcut brand. */
@@ -47,7 +48,7 @@ export function loadBrand(slug: string): Promise<KnownBrand | null> {
     shards.set(bucket, shard)
     void shard.catch(() => { if (shards.get(bucket) === shard) shards.delete(bucket) })
   }
-  return shard.then(brands => brands[slug] ?? null, () => null)
+  return shard.then(brands => own(brands, slug) ?? null, () => null)
 }
 
 /** Test helper: forget every cached shard. */
