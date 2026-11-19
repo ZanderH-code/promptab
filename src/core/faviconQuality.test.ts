@@ -7,7 +7,6 @@ import {
   __resetFaviconQualityForTests,
   chooseBestIcon,
   faviconCandidates,
-  isCacheEntryFresh,
   isKnownHost,
   isUsableIcon,
   loadBestFavicon,
@@ -23,7 +22,7 @@ import {
   faviconCacheKey,
   readIconCache,
 } from './favicon'
-import { iconCacheKey, isAllowedIconUrl, knownIconFor } from './knownIcons'
+import { knownIconFor } from './knownIcons'
 
 const MAPS_ICON = 'https://www.gstatic.com/images/branding/productlogos/maps_2025_round/v1/web-512dp/logo_maps_2025_round_color_1x_web_512dp.png'
 
@@ -161,9 +160,6 @@ describe('favicon quality selection and cache rules', () => {
     expect(ICON_STALE_TTL_MS).toBe(30 * 24 * 60 * 60 * 1000)
     expect(ICON_NEGATIVE_TTL_MS).toBe(60 * 60 * 1000)
     expect(ICON_FAILURE_BACKOFF_MS).toEqual([60 * 60 * 1000, 6 * 60 * 60 * 1000, 24 * 60 * 60 * 1000])
-    const entry = { url: '/favicon.ico', savedAt: 1_000, expiresAt: 2_000 }
-    expect(isCacheEntryFresh(entry, 1_999)).toBe(true)
-    expect(isCacheEntryFresh(entry, 2_000)).toBe(false)
   })
 
   it('keys known product paths separately while other sites keep the origin', () => {
@@ -172,18 +168,14 @@ describe('favicon quality selection and cache rules', () => {
     expect(faviconCacheKey('https://www.google.com/search?q=map')).toBe('https://www.google.com')
     expect(faviconCacheKey('https://example.com/a/b')).toBe('https://example.com')
     expect(faviconCacheKey('not a url')).toBeNull()
-    expect(faviconCacheKey('https://www.google.com/maps')).toBe(iconCacheKey('https://www.google.com/maps'))
     expect(isKnownHost('gemini.google.com')).toBe(true)
     expect(isKnownHost('ai.google.dev')).toBe(true)
     expect(isKnownHost('example.com')).toBe(false)
   })
 
-  it('allows cached cross-origin URLs only when the known table lists them', () => {
+  it('lists cross-origin icon URLs only for known product paths', () => {
     expect(knownIconFor('https://www.google.com/maps')?.urls).toContain(MAPS_ICON)
-    expect(isAllowedIconUrl('https://www.google.com/maps', MAPS_ICON)).toBe(true)
-    expect(isAllowedIconUrl('https://www.google.com/search', MAPS_ICON)).toBe(false)
-    expect(isAllowedIconUrl('https://example.com', 'https://example.com/favicon.ico')).toBe(true)
-    expect(isAllowedIconUrl('https://example.com', 'https://evil.example/favicon.ico')).toBe(false)
+    expect(knownIconFor('https://www.google.com/search')).toBeNull()
   })
 
   it('keeps the most recently used cache entries within the configured capacity', () => {

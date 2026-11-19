@@ -1,9 +1,9 @@
-import { exportThemePack } from '../ai/apply'
 import { aiPackSchema, type AiPack } from '../ai/pack'
 import type { ProfileV2 } from '../schema/profile'
 import type { AsyncKeyValueBackend } from '../../storage/profiles'
+import { MAX_SAVED_THEMES } from './limits'
 
-export const MAX_SAVED_THEMES = 50
+export { MAX_SAVED_THEMES }
 export const THEME_LIBRARY_KEY = 'themes:library:v1'
 export type SavedTheme = { id: string; name: string; savedAt: string; pack: AiPack }
 
@@ -40,6 +40,8 @@ export function createThemeLibrary(backend: Pick<AsyncKeyValueBackend, 'get' | '
       if (!trimmed || trimmed.length > 80) throw new Error('Invalid theme name')
       const themes = await read()
       if (themes.length >= MAX_SAVED_THEMES) throw new Error('Theme library is full')
+      // Exporting needs the CSS sanitizer (css-tree); load it only when a theme is actually saved.
+      const { exportThemePack } = await import('../ai/apply')
       const pack = exportThemePack(profile)
       pack.meta = { ...pack.meta, name: trimmed }
       const theme = { id: id(), name: trimmed, savedAt: now(), pack }

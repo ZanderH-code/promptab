@@ -62,10 +62,9 @@ describe('profile store', () => {
     expect(Date.parse(store.getState().profiles.a.meta.updatedAt)).toBeGreaterThan(Date.parse('2030-01-01T00:00:00.000Z'))
   })
 
-  it('keeps drafts and previews in memory only', async () => {
+  it('keeps previews in memory only', async () => {
     const { store, writes } = setup()
     await store.getState().initialize()
-    store.getState().setDraft('a', { ...profile(), name: 'ignored' } as ProfileV2)
     store.getState().setPreview('a', { ...profile(), custom: { ...profile().custom, css: 'preview' } })
     expect(writes).toHaveLength(0)
     await store.getState().updateProfile('a', p => ({ ...p, custom: { ...p.custom, css: 'saved' } }))
@@ -94,6 +93,24 @@ describe('profile store', () => {
     await store.getState().refresh()
     expect(store.getState()).toBe(state)
     expect(onExternalRefresh).not.toHaveBeenCalled()
+  })
+
+  it('refresh checks the index revision before reading the whole collection', async () => {
+    const { persistence, external } = setup()
+    const read = vi.fn(() => persistence.read())
+    let indexRevision: number | null = null
+    const store = createProfileStore({ persistence: { ...persistence, read, readIndexRevision: async () => indexRevision }, initialProfile: profile() })
+    await store.getState().initialize()
+    await store.getState().renameProfile('a', 'Alpha')
+    indexRevision = 1
+    read.mockClear()
+    await store.getState().refresh()
+    expect(read).not.toHaveBeenCalled()
+    external(value => ({ ...value, meta: { ...value.meta, name: 'Other tab' } }))
+    indexRevision = 2
+    await store.getState().refresh()
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(store.getState().profiles.a.meta.name).toBe('Other tab')
   })
 
   it('refresh adopts an externally changed revision and clears the undo stack', async () => {
@@ -219,31 +236,11 @@ describe('profile store', () => {
     await expect(second.getState().restoreArchivedProfile('b')).rejects.toThrow()
   })
 
-  it('imports a collection through the queue, archiving omitted profiles and snapshotting retained ones', async () => {
-    const { store, writes } = setup()
-    await store.getState().initialize()
-    await store.getState().createProfile(profile('b'))
-    store.getState().setDraft('a', profile())
-    const pending = store.getState().renameProfile('a', 'Alpha')
-    await store.getState().importCollection({ activeProfileId: 'c', profiles: [profile('a'), profile('c')] })
-    await pending
-    const state = store.getState()
-    expect(Object.keys(state.profiles).sort()).toEqual(['a', 'c'])
-    expect(state.activeProfileId).toBe('c')
-    expect(state.draft).toBeNull()
-    expect(state.history.profiles.a.snapshots.map(x => x.kind)).toEqual(['import', 'edit'])
-    expect(state.history.profiles.a.snapshots[0].profile.meta.name).toBe('Alpha')
-    expect(Object.keys(state.archived)).toEqual(['b'])
-    expect(state.archived.b.history.snapshots[0].kind).toBe('import')
-    await expect(state.undo('a')).rejects.toThrow('Nothing to undo')
-    expect(writes.at(-1).profiles.archived.b.profile.meta.id).toBe('b')
-  })
-
   it('rejects invalid imports without changing state', async () => {
     const { store } = setup()
     await store.getState().initialize()
-    await expect(store.getState().importCollection({ activeProfileId: 'x', profiles: [profile('a')] })).rejects.toThrow()
-    await expect(store.getState().importCollection({ activeProfileId: 'a', profiles: [profile('a'), profile('a')] })).rejects.toThrow()
+    await expect(store.getState().importBackupCollection({ activeProfileId: 'x', profiles: [profile('a')] }, undefined, null)).rejects.toThrow()
+    await expect(store.getState().importBackupCollection({ activeProfileId: 'a', profiles: [profile('a'), profile('a')] }, undefined, null)).rejects.toThrow()
     expect(Object.keys(store.getState().profiles)).toEqual(['a'])
     expect(store.getState().revision).toBeNull()
   })
@@ -272,9 +269,7 @@ describe('profile store', () => {
     await store.getState().importProfile('b', { ...profile('b'), meta: { ...profile('b').meta, name: 'imported' } })
     expectFresh()
     const count = calls.length
-    store.getState().setDraft('b', profile('b'))
     store.getState().setPreview('b', profile('b'))
-    store.getState().clearDraft()
     store.getState().clearPreview()
     expect(calls).toHaveLength(count)
     await store.getState().deleteProfile('b')

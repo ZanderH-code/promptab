@@ -1,12 +1,12 @@
 import {
-  browserFaviconUrl, faviconCacheKey, ICON_CACHE_KEY, ICON_STALE_TTL_MS, normalizeUrl, readIconCache,
+  browserFaviconUrl, faviconCacheKey, ICON_STALE_TTL_MS, normalizeUrl, readIconCache, writeIconCache,
   type IconCacheEntry,
 } from './favicon'
 import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
 import { brandCandidate } from './brandIndex'
 
 /** Re-exported so a brand shortcut that only stores a slug can use the lazy chunk it already needs. */
-export { loadBrand } from './brandShards'
+export { BRAND_SHARD_COUNT, loadBrand, loadBrandShard } from './brandShards'
 
 export const ICON_CACHE_TTL_MS = 6048e5
 export const ICON_NEGATIVE_TTL_MS = 36e5
@@ -44,9 +44,9 @@ const queue: Array<() => void> = []
 const KNOWN_HOSTS = /(^|\.)(google\.(com|dev)|ai\.google|chatgpt\.com|v0\.(app|dev)|deepseek\.com|grok\.com|outlook\.(live|office)\.com|reddit\.com|tradingview\.com|coinmarketcap\.com|interactivebrokers\.com|wealthsimple\.com)$/
 export function isKnownHost(hostname: string) { return KNOWN_HOSTS.test(hostname.toLowerCase()) }
 export function isUsableIcon(width: number, height: number, transparent = false, placeholder = false) { return width > 1 && height > 1 && !transparent && !placeholder }
-export function isCacheEntryFresh(entry: IconCacheEntry, now = Date.now()) { return entry.expiresAt > now }
 /** Least-recently-used first, so the tail can be dropped at the capacity limit. */
 export function trimCacheEntries(entries: Record<string, IconCacheEntry>, limit = ICON_CACHE_LIMIT) {
+  if (Object.keys(entries).length <= limit) return entries
   return Object.fromEntries(Object.entries(entries)
     .sort((a, b) => (b[1].usedAt ?? b[1].savedAt) - (a[1].usedAt ?? a[1].savedAt))
     .slice(0, limit))
@@ -124,7 +124,7 @@ export function loadImage(url: string) {
 function writeEntry(key: string, entry: IconCacheEntry) {
   const now = Date.now()
   const kept = Object.entries({ ...readIconCache(), [key]: entry }).filter(([, value]) => value.savedAt + ICON_STALE_TTL_MS > now)
-  try { localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(trimCacheEntries(Object.fromEntries(kept)))) } catch { /* Icon discovery remains available without persistent cache storage. */ }
+  try { writeIconCache(trimCacheEntries(Object.fromEntries(kept))) } catch { /* Icon discovery remains available without persistent cache storage. */ }
 }
 
 function cachedCandidate(entry: IconCacheEntry): FaviconCandidate | null {
@@ -269,11 +269,6 @@ export function loadBestFavicon(input: string, displaySize: number, listener: Li
   run.listeners.set(listener, Math.max(1, displaySize))
   if (run.best || run.complete) publish(run, run.best, run.complete)
   return () => { run?.listeners.delete(listener) }
-}
-
-export async function clearFaviconCache() {
-  try { for (const key of ['mnt.iconCache:v1', 'mnt.iconCache:v2', ICON_CACHE_KEY]) localStorage.removeItem(key) } catch { /* Clearing metadata must not affect profiles or bookmarks. */ }
-  try { await extensionApi()?.storage?.local?.remove?.(['mnt.iconCache:v2']) } catch { /* Icon discovery remains available without persistent cache storage. */ }
 }
 
 export function __resetFaviconQualityForTests() {

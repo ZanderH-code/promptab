@@ -4,6 +4,24 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.23.0]
+
+### Changed
+
+- The AI panel works in three steps: describe the look (with style ideas to start from), have an AI write it (copy the prompt into any AI chat, or generate with your own API key), then review, preview and apply it. After a reply you can ask the AI for changes or fixes without starting over.
+- The AI prompt now includes a short outline of your page (light or dark, background type, layout and widget types; no website names or addresses), and "Let the AI build on my current theme and CSS" is on by default. The chosen method, provider and model are remembered on this device; the API key is not.
+- Direct Anthropic requests default to `claude-opus-5-5` with server-side fallbacks, and a declined request gets its own message. The Anthropic SDK loads only when a request is sent.
+- Palettes that would be invisible in the current light or dark mode switch the mode.
+- Interface motion: overlays fade in, pressed tiles give a little, the settings drawer slides in, folded content fades in, and theme previews cross-fade. All of it follows the system reduce-motion setting and the profile's Reduce motion preference.
+- Brand icon data ships once, so the package is about 5 MB smaller. Startup JavaScript is 443,473 bytes raw, under the unchanged 480,000-byte budget.
+
+### Fixed
+
+- Every argument of URL-taking CSS functions is checked, and unsafe theme variable and font values are kept off the page.
+- Reduce motion changes apply at once; edit-mode selection counts only websites that still exist; emoji letter icons stay whole; a long press is cancelled when a tile goes away; hourly wallpaper rotation advances by one at month ends; only Google domains count as the Google search preset.
+- Settings writes queued together no longer overwrite each other, browser sync runs in one tab at a time and merges pulled profiles with edits made meanwhile, and the sync switch shows the chosen position at once.
+- First run loads the starter websites while the migration runs.
+
 ## [0.22.0]
 
 ### Added

@@ -17,6 +17,11 @@ describe('registrable domain handling', () => {
 })
 
 describe('brandSlugFor', () => {
+  it('ignores inherited keys such as constructor and __proto__', () => {
+    const data = index({ 'example.com': 'example' }, { 'example.com/docs': 'docs' }, { labels: { example: 'example' } })
+    for (const url of ['https://constructor.io', 'https://constructor', 'https://toString.dev', 'https://__proto__.dev', 'https://www.hasOwnProperty.com']) expect(brandSlugFor(data, url)).toBeNull()
+  })
+
   it('prefers the exact host, then parents', () => {
     const data = index({ 'google.com': 'google', 'mail.google.com': 'gmail' })
     expect(brandSlugFor(data, 'https://mail.google.com/mail/u/0/')).toBe('gmail')

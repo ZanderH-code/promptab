@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DARK, DEFAULT_LIGHT } from '../schema/defaults'
+import { DARK_COLORS, DEFAULT_LIGHT, darkSurface } from '../schema/defaults'
 import { deriveTokens, themeColorsFor } from './derive'
 import { contrastRatio } from './oklch'
+
+const DEFAULT_DARK = { ...DARK_COLORS, surface: darkSurface(DARK_COLORS.bg) }
 
 const palettes = {
   dark: [DEFAULT_DARK, { bg: '#16171a', surface: '#1f2024', text: '#e6e6e6', accent: '#8ab4f8' }, { bg: '#000000', surface: '#111111', text: '#ffffff', accent: '#ffd400' }, { bg: '#0b0f0b', surface: '#111811', text: '#c8f7c5', accent: '#1f5f3a' }],

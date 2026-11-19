@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { migrateV1 } from '../../core/migrate/v1'
@@ -10,6 +11,7 @@ import type { ProfileStore } from '../../store/profile'
 import { SettingsDrawer, initialTab, matches } from './SettingsDrawer'
 import { parsePosition } from './rows'
 import { STARTER_SITES } from '../../core/starter-sites'
+import { createProductivityWidget } from '../../core/widgets/defaults'
 
 vi.mock('./BackupSection', () => ({ BackupSection: () => <p>backup-stub</p> }))
 vi.mock('./ProfileSection', () => ({ ProfileSection: () => <p>profiles-stub</p> }))
@@ -34,12 +36,72 @@ function setup(options: { profile?: ProfileV2; settings?: Partial<Settings>; lan
     onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperFiles: vi.fn(), onWallpaperVideoFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(), onEnterEditMode: vi.fn(),
   }
   const view = render(<><button>opener</button><SettingsDrawer {...props} /></>)
-  return { ...props, rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>) }
+  return {
+    ...props,
+    rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>),
+    rerenderWith: (changes: Partial<ComponentProps<typeof SettingsDrawer>>) => view.rerender(<><button>opener</button><SettingsDrawer {...props} {...changes} /></>),
+  }
 }
 const lastUpdate = (props: ReturnType<typeof setup>) => {
   const call = props.onProfileChange.mock.calls.at(-1)!
   return { next: (call[0] as (p: ProfileV2) => ProfileV2)(structuredClone(props.profile)), kind: call[1] as string | undefined }
 }
+
+/** Saves are queued: every update must compose with the ones before it, like the store applies them. */
+const applyAll = (props: ReturnType<typeof setup>) => props.onProfileChange.mock.calls.reduce((profile, [update]) => (update as (p: ProfileV2) => ProfileV2)(profile), structuredClone(props.profile))
+
+describe('SettingsDrawer queued changes', () => {
+  it('rotates the date order once per click before the profile comes back', () => {
+    const props = setup({ initialSection: 'widgets' })
+    const date = props.profile.widgets.find(widget => widget.type === 'date')!
+    expect(date).toBeDefined()
+    const button = screen.getByRole('button', { name: 'Show weekday → Show month → Show day → Show year' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    const next = applyAll(props).widgets.find(widget => widget.id === date.id)!
+    expect(next.props).toMatchObject({ order: ['day', 'year', 'weekday', 'month'] })
+  })
+
+  it('adds one todo per click before the profile comes back', () => {
+    const profile = structuredClone(base)
+    profile.widgets = [...profile.widgets, createProductivityWidget('todo', profile.widgets[0].area, 'todo-1')]
+    const props = setup({ profile, initialSection: 'widgets' })
+    fireEvent.click(screen.getByRole('button', { name: 'Add todo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add todo' }))
+    const todo = applyAll(props).widgets.find(widget => widget.id === 'todo-1')!
+    expect(todo.type === 'todo' && todo.props.items).toHaveLength(2)
+  })
+
+  it('never removes a gradient below two stops from a stale copy', () => {
+    const gradient = structuredClone(base)
+    gradient.background = { ...gradient.background, type: 'gradient', gradient: { angle: 90, stops: ['#000000', '#888888', '#ffffff'] } }
+    const props = setup({ profile: gradient, initialSection: 'background' })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove stop 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove stop 2' }))
+    expect(applyAll(props).background.gradient?.stops).toEqual(['#888888', '#ffffff'])
+  })
+})
+
+describe('SettingsDrawer memoised rows', () => {
+  it('shows the focal preview once the wallpaper URL arrives, with the same t and profile', () => {
+    const withImage = structuredClone(base)
+    withImage.background = { ...withImage.background, type: 'image', image: { asset: `mnt-asset:${'a'.repeat(64)}`, blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' } }
+    const props = setup({ profile: withImage, initialSection: 'background' })
+    expect(document.querySelector('.sd-focal-preview')).toBeNull()
+    props.rerenderWith({ wallpaperUrl: 'blob:wallpaper' })
+    expect(document.querySelector('.sd-focal-preview')).not.toBeNull()
+  })
+
+  it('calls the latest callbacks from rows built before they changed', () => {
+    const props = setup({ initialSection: 'about' })
+    const later = vi.fn()
+    props.rerenderWith({ onProfileChange: later })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tab title' }), { target: { value: 'Studio' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Tab title' }))
+    expect(props.onProfileChange).not.toHaveBeenCalled()
+    expect(later).toHaveBeenCalled()
+  })
+})
 
 describe('SettingsDrawer tabs', () => {
   it('sets and clears the tab title in About', () => {

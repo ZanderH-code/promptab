@@ -1,5 +1,6 @@
 import type { ProfileV2 } from '../schema/profile'
 import { hexRgb, primaryRamp, type Ramp } from './palette'
+import { own } from '../own'
 
 type AnyRecord = Record<string, unknown>
 type Variable = ProfileV2['custom']['variables'][number]
@@ -123,7 +124,7 @@ export function nightTabLook(state: AnyRecord, profile: ProfileV2, parts: { head
   // The layout box: a share of the window (at most the content width), placed by the alignment. Interface scale
   // zooms the layout; the share of the window stays the same, as nightTab's size does not change it.
   const [vertical, across] = String(layout.alignment ?? 'center-center').split('-')
-  rule('.mnt-root', `justify-content: ${PLACE[vertical]?.[0] ?? 'center'}; align-items: ${PLACE[across]?.[1] ?? 'center'}`)
+  rule('.mnt-root', `justify-content: ${own(PLACE, vertical)?.[0] ?? 'center'}; align-items: ${own(PLACE, across)?.[1] ?? 'center'}`)
   rule('.mnt-layout', [
     'display: flex !important', `flex-direction: ${flow}`, 'flex-wrap: nowrap', 'width: min(calc(max(10, var(--nt-width)) * 1vw / var(--mnt-scale, 1)), var(--mnt-content-width, 100vw))', 'max-width: none', 'min-height: 0', 'margin: 0', 'padding: 0', 'gap: 0',
     'transform: none', 'grid-template: none', `font-family: var(--mnt-font-ui)`, `font-weight: ${uiWeight}`, `font-style: ${uiStyle}`, `color: var(--nt-text-010)`, 'align-self: auto',
@@ -158,7 +159,7 @@ export function nightTabLook(state: AnyRecord, profile: ProfileV2, parts: { head
   }
 
   // Header: one wrapping row of items, each at least 2.5em tall. Each item's size is its widget size (a zoom).
-  const justify = JUSTIFY[String(record(header.item).justify)] ?? 'flex-start'
+  const justify = own(JUSTIFY, String(record(header.item).justify)) ?? 'flex-start'
   rule('.mnt-layout > [data-area="header"]', `display: flex; flex-flow: row wrap; align-items: center; align-content: center; justify-content: ${justify}; gap: ${gutter()}`)
   rule('[data-area="header"] > .mnt-widget', `display: flex; align-items: center; justify-content: ${justify}; flex: none; box-sizing: border-box; min-width: 0; min-height: ${fixed(r(2.5))}; margin: 0; padding: 0; text-align: start`)
 
@@ -263,7 +264,7 @@ export function nightTabLook(state: AnyRecord, profile: ProfileV2, parts: { head
   // Groups: nightTab's name and open-all text button, when a group shows them.
   const nameSize = number(record(group.name).size, 100) / 100
   const openAllSize = number(record(group.openAll).size, 100) / 100
-  rule('.mnt-bookmark-block .mnt-group-title', `margin: 0 0 ${fixed(gutter())}; padding: 0; border: 0; gap: ${fixed(r(1))}; min-height: ${fixed(r(2.5 * openAllSize))}; justify-content: ${JUSTIFY[String(record(group.area).justify)] ?? 'flex-start'}`)
+  rule('.mnt-bookmark-block .mnt-group-title', `margin: 0 0 ${fixed(gutter())}; padding: 0; border: 0; gap: ${fixed(r(1))}; min-height: ${fixed(r(2.5 * openAllSize))}; justify-content: ${own(JUSTIFY, String(record(group.area).justify)) ?? 'flex-start'}`)
   rule('.mnt-bookmark-block .mnt-group-title :is(.line, .count)', 'display: none')
   rule('.mnt-bookmark-block .mnt-group-name', `font-family: var(--mnt-font-display); font-size: ${fixed(r(1.5 * nameSize))}; color: var(--nt-text-010); letter-spacing: normal; text-transform: none`)
   // nightTab groups cannot be folded away; an open group hides its fold button (a folded one keeps it, to reopen).

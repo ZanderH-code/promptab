@@ -250,7 +250,8 @@
                 "type": "number"
               },
               "unit": {
-                "type": "string"
+                "type": "string",
+                "pattern": "^[a-z%]{0,6}$"
               },
               "default": {
                 "type": "number"

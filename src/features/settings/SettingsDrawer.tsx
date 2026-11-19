@@ -200,10 +200,21 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
     wasPeeked.current = peeked
   }, [peeked])
 
+  // The rows are memoised below, so their callbacks read the latest props here instead of the ones from when they were built.
+  const handlers = useRef({ onPatch, onProfileChange, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, onApplyPreview, onEnterEditMode })
+  handlers.current = { onPatch, onProfileChange, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, onApplyPreview, onEnterEditMode }
   const ctx: Ctx = {
-    t, s, searching, wallpaperUrl, profile, mode: s.theme, store, patch: onPatch, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, safe: safeMode, onApplyPreview,
-    change: (update, kind) => onProfileChange(update, kind),
-    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets, widgetCards, onWidgetCardsChange: setWidgetCards, defaults: defaultsProfile, onEnterEditMode,
+    t, s, searching, wallpaperUrl, profile, mode: s.theme, store, safe: safeMode,
+    patch: changes => handlers.current.onPatch(changes),
+    onWallpaperFile: file => handlers.current.onWallpaperFile(file),
+    onWallpaperFiles: files => handlers.current.onWallpaperFiles(files),
+    onWallpaperVideoFile: file => handlers.current.onWallpaperVideoFile(file),
+    onWallpaperRemove: () => handlers.current.onWallpaperRemove(),
+    onReset: () => handlers.current.onReset(),
+    onError: error => handlers.current.onError(error),
+    onApplyPreview: () => handlers.current.onApplyPreview(),
+    change: (update, kind) => handlers.current.onProfileChange(update, kind),
+    layoutDrafts, onLayoutDraftsChange: setLayoutDrafts, onGridCommit: value => { ownGrid.current = gridSignature(value) }, movedWidgets, onMovedWidgets: setMovedWidgets, widgetCards, onWidgetCardsChange: setWidgetCards, defaults: defaultsProfile, onEnterEditMode: () => handlers.current.onEnterEditMode(),
   }
 
   const restore = async (target: ResettableTab) => {
@@ -221,9 +232,9 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
   const sections = useMemo(() => {
     const visible = searching ? TABS : [tab]
     return visible.map(id => ({ id, items: itemsFor(id, ctx) }))
-    // ctx is rebuilt each render from the props listed here.
+    // ctx is rebuilt each render: these are all of its values; its callbacks go through `handlers`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searching, tab, s, profile, t, store, layoutDrafts, movedWidgets, widgetCards, defaultsProfile])
+  }, [searching, tab, s, profile, t, store, wallpaperUrl, safeMode, layoutDrafts, movedWidgets, widgetCards, defaultsProfile])
 
   const results = searching
     ? sections.map(section => ({

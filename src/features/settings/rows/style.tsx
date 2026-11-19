@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import type { Ctx, Item } from './shared'
+import '../../../i18n/lazy'
 
 const CssEditor = lazy(() => import('../CssEditor').then(module => ({ default: module.CssEditor })))
 

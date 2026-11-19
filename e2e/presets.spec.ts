@@ -83,6 +83,8 @@ test('settings drawer fills a 400px viewport and supports keyboard navigation', 
   const opener = page.locator('.settings-button')
   await opener.click()
   const drawer = page.getByRole('dialog')
+  // The panel slides in; measure where it comes to rest.
+  await drawer.evaluate(element => Promise.all(element.getAnimations().map(animation => animation.finished)))
   const bounds = await drawer.boundingBox()
   expect(bounds).not.toBeNull()
   expect(bounds!.x).toBeGreaterThanOrEqual(0)

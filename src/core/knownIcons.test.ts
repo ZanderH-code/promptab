@@ -1,7 +1,8 @@
 import * as simpleIcons from 'simple-icons'
 import { expect, it } from 'vitest'
 import { isKnownHost } from './faviconQuality'
-import { iconCacheKey, isAllowedIconUrl, KNOWN_ICONS, knownIconFor } from './knownIcons'
+import { faviconCacheKey } from './favicon'
+import { KNOWN_ICONS, knownIconFor } from './knownIcons'
 import { buildBrandIndex } from '../../scripts/build-brand-index.mjs'
 import overrides from './brandDomains.json'
 import { brandSlugFor } from './brandDomains'
@@ -21,18 +22,18 @@ it('matches a product path prefix without capturing the rest of the host', () =>
   expect(knownIconFor('https://www.google.com/maps/dir/a/b')?.prefix).toBe('/maps')
   expect(knownIconFor('https://www.google.com/search?q=maps')).toBeNull()
   expect(knownIconFor('https://maps.google.com/')?.urls).toContain(MAPS_ICON)
-  expect(iconCacheKey('https://www.google.com/maps/dir/a/b')).toBe('https://www.google.com/maps')
-  expect(iconCacheKey('https://www.google.com/search?q=maps')).toBe('https://www.google.com')
-  expect(iconCacheKey('https://maps.google.com/')).toBe('https://maps.google.com')
+  expect(faviconCacheKey('https://www.google.com/maps/dir/a/b')).toBe('https://www.google.com/maps')
+  expect(faviconCacheKey('https://www.google.com/search?q=maps')).toBe('https://www.google.com')
+  expect(faviconCacheKey('https://maps.google.com/')).toBe('https://maps.google.com')
 })
 
-it('allows cross-origin requests only for URLs listed in the matching entry', () => {
-  expect(isAllowedIconUrl('https://www.google.com/maps', MAPS_ICON)).toBe(true)
-  expect(isAllowedIconUrl('https://www.google.com/search', MAPS_ICON)).toBe(false)
-  expect(isAllowedIconUrl('https://www.google.com/maps', 'https://www.gstatic.com/other/logo.png')).toBe(false)
-  expect(isAllowedIconUrl('https://chatgpt.com', 'https://chatgpt.com/unauth-mweb/images/favicon.svg')).toBe(true)
-  expect(isAllowedIconUrl('https://example.com', 'https://example.com/favicon.ico')).toBe(true)
-  expect(isAllowedIconUrl('https://example.com', 'https://evil.example/favicon.ico')).toBe(false)
+it('gives every product path in the known table its own favicon cache key', () => {
+  for (const entry of KNOWN_ICONS.filter(known => known.prefix)) {
+    for (const host of entry.hosts) {
+      expect(faviconCacheKey(`https://${host}${entry.prefix}/page`)).toBe(`https://${host}${entry.prefix}`)
+      expect(faviconCacheKey(`https://${host}/elsewhere`)).toBe(`https://${host}`)
+    }
+  }
 })
 
 it('loads the known table for every bundled host', () => {

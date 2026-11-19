@@ -42,7 +42,7 @@ test('a faulty AI reply is located, fixed and applied, with an undo snapshot', a
   await expect(problems).toContainText('theme.mode')
   await expect(problems).toContainText('theme.radius')
   await expect(problems).toContainText('theme.color.bg')
-  const apply = page.locator('.sd-ai .sd-primary')
+  const apply = page.locator('.sd-ai .sd-button', { hasText: /^(应用|Apply)$/ })
   await expect(apply).toHaveCount(0)
 
   // "Copy errors to AI" hands the same problems back, numbered, ready to paste into the chat.

@@ -6,6 +6,8 @@ export default defineConfig({
   base: './',
   define: { __WEB_BUILD__: 'false' },
   build: {
+    // Every supported browser has native modulepreload; skip the polyfill on the startup path.
+    modulePreload: { polyfill: false },
     rollupOptions: {
       output: {
         manualChunks(id) {

@@ -1,8 +1,10 @@
 import { z } from 'zod'
 import type { ProfileV2 } from '../schema/profile'
 import { SEARCH_ENGINES } from '../search/engines'
+import { isHttpUrl } from '../model'
 import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
 import { suggestSiteName } from '../siteName'
+import { clipText, firstChar } from '../text'
 
 const infinitySchema = z.object({
   version: z.literal('v2'),
@@ -67,11 +69,7 @@ function hostname(url: string): string {
 
 function safeUrl(value: unknown): string {
   const candidate = string(value).trim()
-  if (!candidate || candidate.length > MAX_URL) return ''
-  try {
-    const url = new URL(candidate)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? candidate : ''
-  } catch { return '' }
+  return candidate.length <= MAX_URL && isHttpUrl(candidate) ? candidate : ''
 }
 
 function templateFor(value: unknown): string {
@@ -95,13 +93,12 @@ function makeLink(value: unknown, index: number, counts: Pick<InfinitySummary, '
   const item = object(value)
   const url = safeUrl(item.target)
   if (!url || counts.links >= MAX_LINKS) { counts.skipped++; return null }
-  let host = ''
-  try { host = new URL(url).hostname } catch { /* validated */ }
+  const host = hostname(url)
   const rawName = cleanName(item.name, '')
   const nameIsUrl = !rawName || rawName.toLowerCase() === host.toLowerCase() || /^https?:\/\//i.test(rawName)
   const name = nameIsUrl ? suggestSiteName(url) || rawName || host || 'Website' : rawName
   const bgType = string(item.bgType)
-  const iconText = cleanName(item.bgText, name.slice(0, 1)).slice(0, 8)
+  const iconText = clipText(cleanName(item.bgText, firstChar(name)), 8)
   const iconColor = bgType === 'color' ? color(item.bgColor) : undefined
   counts.links++
   return {
@@ -109,7 +106,7 @@ function makeLink(value: unknown, index: number, counts: Pick<InfinitySummary, '
     name,
     url,
     color: iconColor ?? FALLBACK_COLOR,
-    icon: iconText || name.slice(0, 1) || '•',
+    icon: iconText || firstChar(name) || '•',
     iconMode: bgType === 'color' ? 'text' as const : 'auto' as const,
   }
 }
@@ -219,6 +216,8 @@ function unsupportedNotices(data: RecordValue): InfinityNotice[] {
 
 export function applyInfinityBackup(json: string, current: ProfileV2, replaceBookmarks: boolean): ProfileV2 {
   const imported = parseInfinityBackup(json, current).profile
+  // The preview's validated backup is not needed after this; do not keep a large file in memory.
+  lastRead = undefined
   if (!replaceBookmarks) {
     const existingQuick = current.bookmarks.groups.find(group => group.builtinName === 'quick-links')
     const importedQuick = imported.bookmarks.groups.find(group => group.builtinName === 'quick-links')
@@ -234,14 +233,26 @@ export function applyInfinityBackup(json: string, current: ProfileV2, replaceBoo
   return imported
 }
 
-/** Convert an Infinity v2 backup locally; remote image references are never read or fetched. */
-export function parseInfinityBackup(json: string, current: ProfileV2): InfinityImportResult {
+/** The last validated backup, so applying the file just previewed does not parse and validate it again. */
+let lastRead: { json: string; root: RecordValue } | undefined
+
+function readInfinityBackup(json: string): RecordValue {
   if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new Error('Invalid Infinity backup size')
+  if (lastRead?.json === json) return lastRead.root
   let raw: unknown
   try { raw = JSON.parse(json) } catch { throw new Error('Invalid Infinity JSON file') }
   const parsed = infinitySchema.safeParse(raw)
   if (!parsed.success) throw new Error('Invalid Infinity v2 backup structure')
-  const root = parsed.data as RecordValue
+  lastRead = { json, root: parsed.data as RecordValue }
+  return lastRead.root
+}
+
+/**
+ * Convert an Infinity v2 backup locally; remote image references are never read or fetched. Mapping always
+ * starts from `current`, so applying after a preview reflects edits made in between.
+ */
+export function parseInfinityBackup(json: string, current: ProfileV2): InfinityImportResult {
+  const root = readInfinityBackup(json)
   const data = object(root.data)
   const pages = object(data.site).sites as unknown[][]
   const profile = structuredClone(current)

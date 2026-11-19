@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.23.0
+
+0.23.0 is an optimization pass: a three-step AI panel that builds on the current page and can ask for changes, server-side fallbacks for direct Anthropic requests, interface motion that follows Reduce motion, a package about 5 MB smaller, and security, UI, storage and sync fixes. 0.22.0 was submitted to Edge Add-ons on 2026-11-19; 0.23.0 is published once that submission clears.
+
 ## Release status — 0.22.0
 
 0.22.0 makes nightTab backups import with nightTab's look (checked side by side against the README setups 001 and 003–011) and keeps that look editable: Promptab's colour, radius, shadow, font, scale, widget size and background settings drive it, and nightTab's own values are options under Theme. 0.21.0 is live in Edge Add-ons.

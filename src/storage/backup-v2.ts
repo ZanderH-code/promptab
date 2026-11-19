@@ -1,6 +1,8 @@
-import { mergeBackupProfile, parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES, type BackupProfileSelection } from '../core/backup-v2'
-import { parseBackup } from '../core/backup'
+import { mergeBackupProfile, parseBackupV2Data, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_JSON_CHARS, MAX_BACKUP_VIDEO_BYTES, type BackupProfileSelection, type BackupV2Asset, type ParsedBackupV2 } from '../core/backup-v2'
+import { parseBackupValue, type ParsedBackup } from '../core/backup'
 import { migrateV1 } from '../core/migrate/v1'
+import { MessageError } from '../i18n'
+import '../i18n/lazy'
 import type { ProfileV2 } from '../core/schema/profile'
 import type { SavedTheme } from '../core/themes/library'
 import { planImport, validateStored, type Committed, type ImportCollection, type ProfileCollection, type ProfileStore } from '../store/profile'
@@ -24,12 +26,13 @@ export type ImportAnalysis = {
 
 const empty = (): Committed => ({ profiles: {}, activeProfileId: '', history: { profiles: {} }, archived: {} })
 
-function backupFormat(json: string): 1 | 2 {
-  try {
-    const value: unknown = JSON.parse(json)
-    if (value && typeof value === 'object' && (value as { backupVersion?: unknown }).backupVersion === 1) return 1
-  } catch { /* parseBackupV2 reports the error */ }
-  return 2
+/** Parses the file once and validates it as the backup version it declares. */
+async function readBackup(json: string): Promise<{ format: 1; backup: ParsedBackup } | { format: 2; backup: ParsedBackupV2 }> {
+  if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new MessageError('error.settingsInvalid')
+  let value: unknown
+  try { value = JSON.parse(json) } catch { throw new MessageError('error.backupFile') }
+  if (value && typeof value === 'object' && (value as { backupVersion?: unknown }).backupVersion === 1) return { format: 1, backup: parseBackupValue(value) }
+  return { format: 2, backup: await parseBackupV2Data(value) }
 }
 
 /** Dependencies must refer to the same persistent profile and asset stores used by the application. */
@@ -41,6 +44,18 @@ export function createBackupV2Service(deps: {
   createId?: () => string
 }) {
   const options: HistoryOptions = { now: deps.now ?? Date.now, createId: deps.createId ?? (() => crypto.randomUUID()) }
+
+  /** parseBackupV2 verified every hash, and add() returns the content-hash reference, so nothing is read back. */
+  async function storeAssets(assets: BackupV2Asset[]): Promise<void> {
+    for (const asset of assets) {
+      const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
+      if (await deps.assets.add(asset.blob, limit) !== `mnt-asset:${asset.id}`) throw new Error('Asset ID mismatch')
+    }
+  }
+
+  function migrateBackup(parsed: ParsedBackup): Promise<ProfileV2> {
+    return migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
+  }
 
   async function readCommitted(expectedRevision: number | null): Promise<Committed> {
     const current = await deps.profiles.read()
@@ -60,18 +75,17 @@ export function createBackupV2Service(deps: {
     /** Read-only preview of what importing `json` would do; touches neither profiles nor assets. */
     async analyzeBackup(json: string, expectedRevision: number | null, recovery = false): Promise<ImportAnalysis> {
       const committed = recovery ? empty() : await readCommitted(expectedRevision)
-      const format = backupFormat(json)
+      const read = await readBackup(json)
+      const format = read.format
       let collection: ImportCollection
       let assetCount = 0
-      if (format === 1) {
-        const parsed = parseBackup(json)
-        assetCount = parsed.wallpaper ? 1 : 0
+      if (read.format === 1) {
+        assetCount = read.backup.wallpaper ? 1 : 0
         const active = committed.profiles[committed.activeProfileId]
         collection = active ? { activeProfileId: active.meta.id, profiles: Object.values(committed.profiles) } : { activeProfileId: 'new', profiles: [] }
       } else {
-        const backup = await parseBackupV2(json)
-        assetCount = backup.assets.length
-        collection = backup
+        assetCount = read.backup.assets.length
+        collection = read.backup
       }
       const ids = new Set(collection.profiles.map(profile => profile.meta.id))
       const live = Object.keys(committed.profiles)
@@ -89,30 +103,19 @@ export function createBackupV2Service(deps: {
     /**
      * Replace the committed collection (v1 or v2 backup). Profiles missing from the backup are archived
      * with their history rather than rejected; retained ones get a pre-import snapshot.
-     * Callers holding a profile store should reload it afterwards, or use store.importCollection instead.
+     * Callers holding a profile store should reload it afterwards, or use importFullIntoStore instead.
      */
     async importBackup(json: string, expectedRevision: number | null) {
       const committed = await readCommitted(expectedRevision)
       let next: Committed
       let importedThemes: SavedTheme[] | undefined
-      if (backupFormat(json) === 1) {
-        const parsed = parseBackup(json)
-        const profile = await migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
-        next = planImport(committed, v1Collection(committed, profile), options)
+      const read = await readBackup(json)
+      if (read.format === 1) {
+        next = planImport(committed, v1Collection(committed, await migrateBackup(read.backup)), options)
       } else {
-        const backup = await parseBackupV2(json)
-        importedThemes = backup.themes
-        next = planImport(committed, backup, options)
-        for (const asset of backup.assets) {
-          const reference = `mnt-asset:${asset.id}`
-          const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
-          if (await deps.assets.add(asset.blob, limit) !== reference) throw new Error('Asset ID mismatch')
-          const stored = await deps.assets.get(reference)
-          if (!stored) throw new Error(`Missing asset: ${asset.id}`)
-          const digest = await crypto.subtle.digest('SHA-256', await stored.arrayBuffer())
-          const id = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
-          if (id !== asset.id) throw new Error('Stored asset hash mismatch')
-        }
+        importedThemes = read.backup.themes
+        next = planImport(committed, read.backup, options)
+        await storeAssets(read.backup.assets)
       }
       const profiles: ProfileCollection = { activeProfileId: next.activeProfileId, profiles: next.profiles, ...(Object.keys(next.archived).length ? { archived: next.archived } : {}) }
       const result = await deps.profiles.write({ profiles, history: next.history }, expectedRevision)
@@ -125,23 +128,13 @@ export function createBackupV2Service(deps: {
       if (state.revision !== expectedRevision) throw new Error('Profile revision conflict')
       let collection: ImportCollection
       let importedThemes: SavedTheme[] | undefined
-      if (backupFormat(json) === 1) {
-        const parsed = parseBackup(json)
-        const replacement = await migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
-        collection = v1Collection({ profiles: state.profiles, activeProfileId: state.activeProfileId, history: state.history, archived: state.archived }, replacement)
+      const read = await readBackup(json)
+      if (read.format === 1) {
+        collection = v1Collection({ profiles: state.profiles, activeProfileId: state.activeProfileId, history: state.history, archived: state.archived }, await migrateBackup(read.backup))
       } else {
-        const backup = await parseBackupV2(json)
-        collection = backup
-        importedThemes = backup.themes
-        for (const asset of backup.assets) {
-          const reference = `mnt-asset:${asset.id}`
-          const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
-          if (await deps.assets.add(asset.blob, limit) !== reference) throw new Error('Asset ID mismatch')
-          const stored = await deps.assets.get(reference)
-          if (!stored) throw new Error(`Missing asset: ${asset.id}`)
-          const digest = await crypto.subtle.digest('SHA-256', await stored.arrayBuffer())
-          if (Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('') !== asset.id) throw new Error('Stored asset hash mismatch')
-        }
+        collection = read.backup
+        importedThemes = read.backup.themes
+        await storeAssets(read.backup.assets)
       }
       const library = importedThemes && deps.themes ? { ...deps.themes, incoming: importedThemes } : undefined
       await store.getState().importBackupCollection(collection, library, expectedRevision)
@@ -155,23 +148,15 @@ export function createBackupV2Service(deps: {
       const id = state.activeProfileId
       let incoming: ProfileV2
       let themes: SavedTheme[] | undefined
-      if (backupFormat(json) === 1) {
-        const parsed = parseBackup(json)
-        incoming = await migrateV1(parsed.settings, { id: options.createId, now: () => new Date(options.now()).toISOString(), add: blob => deps.assets.add(blob), wallpaper: parsed.wallpaper })
+      const read = await readBackup(json)
+      if (read.format === 1) {
         // Legacy backups do not contain a saved theme library.
+        incoming = await migrateBackup(read.backup)
       } else {
-        const backup = await parseBackupV2(json)
+        const backup = read.backup
         incoming = backup.profiles.find(profile => profile.meta.id === backup.activeProfileId)!
         themes = backup.themes
-        for (const asset of backup.assets) {
-          const reference = `mnt-asset:${asset.id}`
-          const limit = asset.blob.type.startsWith('video/') ? MAX_BACKUP_VIDEO_BYTES : MAX_BACKUP_ASSET_BYTES
-          if (await deps.assets.add(asset.blob, limit) !== reference) throw new Error('Asset ID mismatch')
-          const stored = await deps.assets.get(reference)
-          if (!stored) throw new Error(`Missing asset: ${asset.id}`)
-          const digest = await crypto.subtle.digest('SHA-256', await stored.arrayBuffer())
-          if (Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('') !== asset.id) throw new Error('Stored asset hash mismatch')
-        }
+        await storeAssets(backup.assets)
       }
       const profile = mergeBackupProfile(state.profiles[id], incoming, selection)
       const library = selection.savedThemes && themes && deps.themes ? { ...deps.themes, incoming: themes } : undefined

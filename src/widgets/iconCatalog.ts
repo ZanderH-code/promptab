@@ -5,11 +5,16 @@ export const emojis = ['🌐', '⭐', '❤️', '📚', '🎵', '🎮', '📷', 
 
 export type BrandIcon = { title: string; slug: string; path: string; hex: string }
 let catalog: Promise<BrandIcon[]> | undefined
+
+// Reads every brand shard (the same files automatic brand icons use) instead of a second full catalog.
+async function loadShardedBrands({ BRAND_SHARD_COUNT, loadBrandShard }: typeof import('../core/faviconQuality')): Promise<BrandIcon[]> {
+  const shards = await Promise.all(Array.from({ length: BRAND_SHARD_COUNT }, (_, bucket) => loadBrandShard(bucket)))
+  const brands = shards.flatMap(shard => Object.values(shard))
+  if (!brands.length) throw new Error('Brand catalog unavailable')
+  return brands.sort((a, b) => a.title.localeCompare(b.title, 'en'))
+}
 export function loadBrands() {
   return catalog ??= (import.meta.env.DEV
     ? import('simple-icons').then(module => Object.values(module) as BrandIcon[])
-    : fetch(new URL('../brand-catalog.json', import.meta.url)).then(response => {
-      if (!response.ok) throw new Error('Brand catalog unavailable')
-      return response.json() as Promise<BrandIcon[]>
-    })).catch(error => { catalog = undefined; throw error })
+    : import('../core/faviconQuality').then(loadShardedBrands)).catch(error => { catalog = undefined; throw error })
 }

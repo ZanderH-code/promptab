@@ -261,18 +261,33 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 .sd .sd-primary:hover { border-color: var(--mnt-accent); filter: brightness(1.06); }
 .sd-ai { display: grid; gap: var(--mnt-space-4); }
 .sd-ai-step { display: grid; gap: var(--mnt-space-2); padding-top: var(--mnt-space-3); border-top: 1px solid var(--mnt-border); }
-.sd-ai-step > summary { display: flex; align-items: center; gap: var(--mnt-space-2); min-height: 32px; list-style: none; cursor: pointer; }
-.sd-ai-step > summary::-webkit-details-marker { display: none; }
-/* A rotating chevron instead of the browser's black ▼ marker. */
-.sd-ai-step > summary::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: -3px; border: solid var(--mnt-text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s; }
-.sd-ai-step[open] > summary::before { margin-top: -4px; transform: rotate(45deg); }
-.sd-ai-step > summary:hover h3 { color: var(--mnt-accent); }
-.sd-ai-step > summary h3 { display: inline; margin: 0; padding: 0; border: 0; }
 .sd-hint a { color: var(--mnt-accent); text-underline-offset: 3px; }
 .sd-hint a:hover { text-decoration-thickness: 2px; }
-.sd-ai-step h3 { margin: 0; font-size: var(--mnt-text-sm); font-weight: 600; }
+.sd-ai-step h3 { display: flex; align-items: center; gap: var(--mnt-space-2); margin: 0; font-size: var(--mnt-text-sm); font-weight: 600; }
+.sd-ai-num { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--mnt-accent-soft); color: var(--mnt-accent); font-size: var(--mnt-text-xs); font-variant-numeric: tabular-nums; }
+.sd .sd-ai-link { align-self: center; color: var(--mnt-accent); font-size: var(--mnt-text-sm); text-underline-offset: 3px; }
+.sd-ai-ideas { display: flex; flex-wrap: wrap; gap: 6px; }
+.sd .sd-ai-chip { min-height: 28px; padding: 0 10px; border: 1px solid var(--mnt-border); border-radius: 999px; background: none; color: var(--mnt-text-muted); font: inherit; font-size: var(--mnt-text-xs); cursor: pointer; transition: color var(--mnt-dur-fast), border-color var(--mnt-dur-fast), background-color var(--mnt-dur-fast); }
+.sd .sd-ai-chip:hover { border-color: var(--mnt-accent); color: var(--mnt-text); background: var(--mnt-accent-soft); }
+.sd .sd-ai-chip:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
+.sd-ai-howto { display: grid; gap: 4px; margin: 0; padding-left: 1.3em; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); line-height: 1.5; }
+.sd-ai-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: var(--mnt-space-2); }
+.sd-ai-fields > div { display: grid; gap: 2px; min-width: 0; }
+.sd-ai-byok { display: grid; gap: var(--mnt-space-1); }
+.sd-ai-more > summary { width: fit-content; padding: 4px 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); cursor: pointer; }
+.sd-ai-more > summary:hover { color: var(--mnt-text); }
+.sd-ai-more > summary:focus-visible { outline: 2px solid var(--mnt-accent); outline-offset: 2px; }
+.sd-ai-more[open] { display: grid; gap: var(--mnt-space-1); }
+.sd-ai-card { display: grid; gap: 2px; padding: var(--mnt-space-2) var(--mnt-space-3); border: 1px solid var(--mnt-border); border-left: 3px solid var(--mnt-accent); border-radius: 10px; }
+.sd .sd-ai-card p { color: var(--mnt-text); }
+.sd-ai-card strong { font-size: var(--mnt-text-md); font-weight: 600; }
+.sd-ai-refine { display: grid; gap: var(--mnt-space-1); padding-top: var(--mnt-space-2); }
+.sd-ai-notice:empty { display: none; }
+/* A thin bar under the status line while the AI is writing. */
+.sd .sd-ai-progress { position: relative; padding-bottom: 6px; overflow: hidden; }
+.sd .sd-ai-progress::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--mnt-accent), transparent); background-color: var(--mnt-accent-soft); }
 .sd .sd-code.sd-ai-request { min-height: 0; white-space: pre-wrap; font-family: inherit; }
-.sd-ai-notice { align-self: center; font-size: var(--mnt-text-xs); color: var(--mnt-accent); }
+.sd-ai-notice { align-self: start; font-size: var(--mnt-text-xs); color: var(--mnt-accent); }
 .sd-ai-pick { display: grid; gap: var(--mnt-space-1); }
 .sd-ai-group { display: grid; gap: 4px; padding: var(--mnt-space-2) var(--mnt-space-3); border: 1px solid var(--mnt-border); border-left-width: 3px; border-radius: 10px; font-size: var(--mnt-text-sm); }
 .sd-ai-group ul { display: grid; gap: 4px; margin: 0; padding-left: 1.1em; color: var(--mnt-text-muted); }
@@ -344,3 +359,26 @@ button.sd-grid-block:focus-visible { outline: 2px solid var(--mnt-accent); outli
 
 /* The panel itself takes focus when empty space in it is clicked, so Esc still closes it; that needs no ring. */
 .sd.drawer:focus { outline: none; }
+
+/*
+ * Settings motion (docs/DESIGN.md §3.4): the panel slides in, a section fades in when its tab is picked,
+ * disclosures and new review results ease into place, and buttons give a little when pressed. Nothing loops
+ * except the AI progress bar, which runs only while a request the person sent is in flight.
+ */
+@keyframes sd-in { from { opacity: 0; translate: 24px 0; } }
+@keyframes sd-rise { from { opacity: 0; translate: 0 4px; } }
+@keyframes sd-sweep { from { translate: -100% 0; } to { translate: 100% 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-reduce-motion="on"]) {
+    .sd { animation: sd-in var(--mnt-dur-slow) var(--mnt-ease); }
+    .sd-scrim { animation: mnt-fade-in var(--mnt-dur-base) var(--mnt-ease); }
+    .sd-panel[data-state="active"] { animation: sd-rise var(--mnt-dur-base) var(--mnt-ease); }
+    .sd-ai-result, .sd-ai-card, .sd-ai-group, .sd-ai-ok, .sd-ai-problem, .sd-ai-notice:not(:empty) { animation: sd-rise var(--mnt-dur-base) var(--mnt-ease); }
+    .sd .sd-button, .sd .reset, .sd-segmented button, .sd .sd-ai-chip, .sd-preset { transition-property: border-color, background-color, color, filter, scale; transition-duration: var(--mnt-dur-fast); transition-timing-function: var(--mnt-ease); }
+    .sd .sd-button:not(:disabled):active, .sd .reset:active, .sd-segmented button:active, .sd .sd-ai-chip:active, .sd-preset:active { scale: .97; }
+    .sd .sd-ai-progress::after { animation: sd-sweep 1.2s var(--mnt-ease) infinite; }
+    /* Folded content fades in where the browser can animate the disclosure's content box. */
+    .sd details::details-content { opacity: 0; transition: opacity var(--mnt-dur-base) var(--mnt-ease), content-visibility var(--mnt-dur-base); transition-behavior: allow-discrete; }
+    .sd details[open]::details-content { opacity: 1; }
+  }
+}

@@ -13,6 +13,22 @@ export type PromptOptions = {
   request?: string
   /** Attach the current theme, background and CSS (never bookmarks). */
   current?: ProfileV2 | null
+  /** Describe the page around the theme (mode, background kind, layout, widget types); never names or URLs. */
+  page?: ProfileV2 | null
+  /** The colour scheme the page shows right now, which decides what `mode: "system"` looks like. */
+  scheme?: 'dark' | 'light'
+}
+
+export type RefineOptions = PromptOptions & {
+  /** The pack the person is looking at, which the AI should change rather than start over. */
+  pack: unknown
+  /** What to change, in the person's own words. */
+  change: string
+  /**
+   * Repeat the whole prompt pack. Needed when the request goes to a fresh conversation (a direct API call);
+   * a reply in the same chat only needs the change and the pack.
+   */
+  full?: boolean
 }
 
 /** The slim, human-readable field reference sent to the AI. `schema.test.ts` checks that it names every key. */
@@ -63,6 +79,29 @@ export function currentConfig(profile: ProfileV2) {
   }
 }
 
+type Copy = (typeof COPY)[Language]
+
+/**
+ * What the page looks like around the theme, in words: the mode it shows, what is behind it, how it is laid
+ * out and which widgets it has. Carries no names, addresses, wallpaper or text the person wrote.
+ */
+export function pageContext(profile: ProfileV2, language: Language, scheme: 'dark' | 'light' = 'dark'): string {
+  const c: Copy = COPY[language]
+  const showing = profile.theme.mode === 'system' ? scheme : profile.theme.mode
+  const { type, dim } = profile.background
+  const background = type === 'image' || type === 'video' ? c.pageWallpaper(type, dim) : c.pageBackground[type]
+  const widgets = [...profile.widgets].sort((a, b) => a.order - b.order).map(widget => {
+    const style = widget.type === 'bookmarks' && typeof widget.props.style === 'string' ? ` (${widget.props.style})` : ''
+    return `\`${widget.type}\`${style} → ${widget.area}`
+  })
+  return [
+    `- ${c.pageMode(profile.theme.mode, showing)}`,
+    `- ${background}`,
+    `- ${c.pageLayout}: ${profile.layout.areas.map(row => `"${row}"`).join(' / ')}`,
+    `- ${c.pageWidgets}: ${widgets.join(', ') || '-'}`,
+  ].join('\n')
+}
+
 const json = (value: unknown) => '```json\n' + JSON.stringify(value, null, 2) + '\n```'
 
 const COPY = {
@@ -75,6 +114,8 @@ const COPY = {
       '颜色一律写成 #RRGGBB；数字写成数字，不要带单位。',
       '需要图片时不要引用网址，在 `meta.notes` 里说明适合什么样的壁纸，让用户自行上传。',
       '只有用户明确要求调整布局或组件时才写 `layout` 和 `widgets`；只是换风格时不要写，它们会改动用户已有的排版。',
+      '`theme` 里一定要写 `mode`，并给出这个模式要用的配色：深色写 `color`，浅色写 `colorLight`，`system` 两套都写。只写另一个模式的配色，用户在当前模式下看不到任何变化。',
+      '在 `meta.name` 里起一个简短的名字，在 `meta.description` 里用一句话说明这套设计，用户会在应用前看到它。',
     ],
     schema: '字段参考',
     api: 'CSS API（只能依赖这些）',
@@ -123,6 +164,16 @@ const COPY = {
     current: '用户当前的配置（不含书签）',
     request: '用户的需求',
     none: '（用户没有写具体需求，请给出一个克制、好看的方案。）',
+    page: '用户页面的实际情况',
+    pageMode: (mode: string, showing: string) => `主题模式 \`${mode}\`，现在显示的是${showing === 'light' ? '浅色' : '深色'}`,
+    pageWallpaper: (type: string, dim: number) => `背景是用户自己上传的${type === 'video' ? '视频' : '图片'}壁纸（遮罩 ${dim}）：保留壁纸，面板和网站要在壁纸上清晰可读，可以用 \`glass\` 和 \`dim\``,
+    pageBackground: { theme: '背景是主题底色', color: '背景是纯色', gradient: '背景是渐变', accent: '背景是强调色', image: '', video: '' } as Record<string, string>,
+    pageLayout: '布局网格（areas）',
+    pageWidgets: '组件（类型 → 区域，按顺序）',
+    refine: '修改上一次的主题包',
+    refinePack: '当前的主题包',
+    refineChange: '要做的修改',
+    refineRules: '只改动上面提到的地方，其余保持不变。在一个 `json` 代码块中输出修改后的**完整**主题包。',
   },
   en: {
     role: 'You are designing a new-tab theme pack for Promptab. The user will paste your reply into the extension, which validates, previews and applies it. Promptab processes data locally; the user can use any AI they already use, with no Promptab account, API key or extra AI credits required.',
@@ -133,6 +184,8 @@ const COPY = {
       'Write every colour as #RRGGBB and every number as a plain number without units.',
       'Never link to images. If a picture would help, say what kind of wallpaper suits the theme in `meta.notes` and let the user upload one.',
       'Write `layout` and `widgets` only when the user asks to rearrange the page; a new style alone must not touch them, because they change the layout the user already has.',
+      'Always set `theme.mode` and give the palette that mode uses: `color` for dark, `colorLight` for light, both for `system`. A palette for the other mode alone changes nothing the user can see.',
+      'Give the pack a short `meta.name` and a one-sentence `meta.description` of the idea; the user reads it before applying.',
     ],
     schema: 'Field reference',
     api: 'CSS API (rely on nothing else)',
@@ -181,11 +234,21 @@ const COPY = {
     current: "The user's current setup (bookmarks excluded)",
     request: "The user's request",
     none: '(The user gave no specific request. Offer a restrained, good-looking design.)',
+    page: "The user's page as it is now",
+    pageMode: (mode: string, showing: string) => `Theme mode \`${mode}\`, currently showing ${showing}`,
+    pageWallpaper: (type: string, dim: number) => `The background is ${type === 'video' ? 'a video' : 'an image'} wallpaper the user uploaded (dim ${dim}): keep it, make panels and websites readable over it, and consider \`glass\` and \`dim\``,
+    pageBackground: { theme: 'The background is the theme colour', color: 'The background is a solid colour', gradient: 'The background is a gradient', accent: 'The background is the accent colour', image: '', video: '' } as Record<string, string>,
+    pageLayout: 'Layout grid (areas)',
+    pageWidgets: 'Widgets (type → area, in order)',
+    refine: 'Change the theme pack you wrote',
+    refinePack: 'The current theme pack',
+    refineChange: 'The change',
+    refineRules: 'Change only what is asked and keep everything else. Reply with the **complete** changed pack in one `json` code block.',
   },
-} as const
+}
 
 /** The full prompt an AI assistant needs to write a valid theme pack, built offline in the chosen language. */
-export function buildPromptPack({ language, request, current }: PromptOptions): string {
+export function buildPromptPack({ language, request, current, page, scheme }: PromptOptions): string {
   const c = COPY[language]
   const list = (items: readonly string[]) => items.map(item => `- ${item}`).join('\n')
   const code = (items: readonly string[]) => items.map(item => `\`${item}\``).join(', ')
@@ -199,7 +262,24 @@ export function buildPromptPack({ language, request, current }: PromptOptions): 
     `## ${c.layoutGuide}\n${c.layoutGuideText}`,
     `## ${c.examples}\n### ${c.exampleColors}\n${json(EXAMPLES[0].pack)}\n\n### ${c.exampleFull}\n${json(EXAMPLES[1].pack)}\n\n### ${c.layoutGuide}\n${json(EXAMPLES[2].pack)}`,
   ]
+  if (page) parts.push(`## ${c.page}\n${pageContext(page, language, scheme)}`)
   if (current) parts.push(`## ${c.current}\n${json(currentConfig(current))}`)
   parts.push(`## ${c.request}\n${request?.trim() || c.none}`)
   return parts.join('\n\n') + '\n'
+}
+
+/**
+ * A follow-up asking the AI to change a pack instead of starting over. In the same chat only the change and
+ * the pack are needed; `full` repeats the whole prompt pack for a request that starts a fresh conversation.
+ */
+export function buildRefinePrompt({ pack, change, full, ...options }: RefineOptions): string {
+  const c = COPY[options.language]
+  const followUp = [
+    `## ${c.refine}`,
+    // A reply that did not parse is passed on as its text, so the AI can see what it wrote.
+    `### ${c.refinePack}\n${typeof pack === 'string' ? '```\n' + pack + '\n```' : json(pack)}`,
+    `### ${c.refineChange}\n${change.trim()}`,
+    c.refineRules,
+  ].join('\n\n') + '\n'
+  return full ? `${buildPromptPack(options)}\n${followUp}` : followUp
 }

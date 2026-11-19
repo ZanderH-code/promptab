@@ -1,9 +1,10 @@
 import { variableValue } from '../core/ai/variable'
-import { useLayoutEffect, type CSSProperties } from 'react'
+import { useLayoutEffect, useMemo, type CSSProperties } from 'react'
 import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/derive'
 import { assetFontFamily, isAssetFont } from '../core/font'
 import { mixOklch } from '../core/tokens/oklch'
 import { accentPalette } from '../core/tokens/accent'
+import { isSafeFontRef, isSafeThemeValue } from '../core/css/safeValue'
 import type { ProfileV2 } from '../core/schema/profile'
 
 const FONTS: Record<string, string> = {
@@ -18,7 +19,10 @@ const FONTS: Record<string, string> = {
 const DENSITY = { compact: 0.8, comfortable: 1, spacious: 1.25 } as const
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
-export const fontStack = (ref: string) => FONTS[ref] ?? (isAssetFont(ref) ? `"${assetFontFamily(ref)}", ${FONTS.system}` : ref)
+/** A font key, an uploaded font or a plain family list; anything else (brackets, escapes, `;`) falls back to the system stack. */
+export const fontStack = (ref: string) => Object.hasOwn(FONTS, ref) ? FONTS[ref]
+  : isAssetFont(ref) ? `"${assetFontFamily(ref)}", ${FONTS.system}`
+    : isSafeFontRef(ref) ? ref : FONTS.system
 
 const ACCENT_SELECTION_KEY = 'mnt:accent-selection:v1'
 
@@ -50,14 +54,18 @@ function themeProperties(profile: ProfileV2, mode: ThemeMode, accent = selectedA
   tokens['--mnt-icon-radius'] = ICON_RADIUS[theme.iconShape]
   for (const variable of profile.custom.variables) {
     if (/^--mnt-/i.test(variable.name)) continue
-    const value = variableValue(variable, profile.custom.values[variable.name])
-    tokens[variable.name] = `${value}${variable.type === 'range' ? variable.unit : ''}`
+    const value = `${variableValue(variable, profile.custom.values[variable.name])}${variable.type === 'range' ? variable.unit : ''}`
+    // Stored profiles accept any text here; only plain values may reach the page, where CSS can read them.
+    if (isSafeThemeValue(value)) tokens[variable.name] = value
   }
   return tokens
 }
 
 /** Writes the resolved theme tokens onto <html>. */
-export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | undefined, cache = true) {
+export function useThemeTokens(latest: ProfileV2 | null, mode: ThemeMode | undefined, cache = true) {
+  // The effect reads only these parts, so edits elsewhere (bookmarks, widgets, CSS) keep the profile it last saw.
+  const inputs = latest ? JSON.stringify([latest.theme, latest.background, latest.custom.variables, latest.custom.values, latest.prefs.accentOnOpen]) : ''
+  const profile = useMemo(() => latest, [inputs])
   useLayoutEffect(() => {
     if (!profile || !mode) return
     const root = document.documentElement
@@ -70,10 +78,14 @@ export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | unde
         : undefined
     root.dataset.theme = mode
     root.dataset.glass = profile.theme.glass > 0 ? 'on' : 'off'
+    // CSS and ui/motion read the in-app motion setting from here; `system` defers to the OS preference.
+    root.dataset.reduceMotion = profile.prefs.reduceMotion
     for (const [name, value] of Object.entries(properties)) root.style.setProperty(name, value)
     try {
-      if (cache) localStorage.setItem('mnt:theme-cache:v1', JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, accentMode: profile.prefs.accentOnOpen, accentVariants, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) }))
-      else localStorage.removeItem('mnt:theme-cache:v1')
+      if (cache) {
+        const json = JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, accentMode: profile.prefs.accentOnOpen, accentVariants, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) })
+        if (localStorage.getItem('mnt:theme-cache:v1') !== json) localStorage.setItem('mnt:theme-cache:v1', json)
+      } else localStorage.removeItem('mnt:theme-cache:v1')
     } catch { /* Storage can be unavailable. */ }
     return () => { for (const name of Object.keys(properties)) root.style.removeProperty(name) }
   }, [profile, mode, cache])

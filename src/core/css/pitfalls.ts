@@ -1,4 +1,7 @@
-import { generate, parse, walk, type CssNode, type Rule } from 'css-tree'
+import type { CssNode, Rule } from 'css-tree'
+import generate from 'css-tree/generator'
+import parse from 'css-tree/parser'
+import walk from 'css-tree/walker'
 
 /**
  * Valid CSS that reliably looks wrong on the page. These came from real AI-written themes: names read

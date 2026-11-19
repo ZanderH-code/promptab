@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { migrateV1 } from '../migrate/v1'
 import { defaults } from '../model'
 import { parseNightTabBackup } from './import'
+import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
+import { isSafeFontRef } from '../css/safeValue'
 import { parseProfileV2 } from '../schema/profile'
 
 const fixture = JSON.stringify({
@@ -27,6 +29,40 @@ describe('nightTab backup importer', () => {
     expect(result.profile.theme).toMatchObject({ mode: 'light', color: { accent: '#aabbcc' }, radius: 1.6, font: { display: '"Oswald", "Fjalla One", sans-serif', ui: '"System", "Open Sans", sans-serif' } })
     expect(result.profile.background).toMatchObject({ type: 'gradient', gradient: { angle: 80, stops: ['#101010', '#303030'] } })
     expect(result.warnings).toContain('Ignored unrecognized field: extensionField')
+  })
+
+  it('ignores inherited keys in nightTab engine, icon and alignment names', async () => {
+    const backup = JSON.parse(fixture)
+    backup.bookmark[0].items[0].display.visual = { type: 'icon', icon: { name: 'constructor', prefix: 'fas' } }
+    backup.state.header = { item: { justify: 'constructor' }, search: { engine: { selected: 'constructor' } } }
+    backup.state.group = { area: { justify: '__proto__' } }
+    const result = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    const link = result.profile.bookmarks.groups.at(-1)!.items[0]
+    expect(link.iconMode).not.toBe('lucide')
+    expect(typeof link.iconName === 'string' || link.iconName === undefined).toBe(true)
+    expect(result.profile.search.engines.some(engine => engine.id === 'nighttab-constructor')).toBe(false)
+    expect(result.profile.custom.css).toContain('justify-content: flex-start')
+    expect(result.profile.custom.css).not.toMatch(/function|\[object/)
+  })
+
+  it('keeps emoji letter icons whole', async () => {
+    const backup = JSON.parse(fixture)
+    backup.bookmark[0].items[0].display = { name: { text: '🎵 Music' }, visual: { type: 'image' } }
+    const result = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    expect(result.profile.bookmarks.groups.at(-1)!.items[0].icon).toBe('🎵')
+  })
+
+  it('keeps imported font names to plain family characters', async () => {
+    const backup = JSON.parse(fixture)
+    backup.state.theme.font = { display: { name: 'Evil"\n;}body{x:url(https://evil.test/f)' }, ui: { name: '\u0000"\\' } }
+    const { font } = parseNightTabBackup(JSON.stringify(backup), await baseProfile()).profile.theme
+    expect(font.display).toBe('"Evil body x url https evil.test f", "Fjalla One", sans-serif')
+    expect(font.ui).toBe('"Open Sans", sans-serif')
+    expect(isSafeFontRef(font.display) && isSafeFontRef(font.ui)).toBe(true)
+  })
+
+  it('rejects oversized input before parsing it', async () => {
+    expect(() => parseNightTabBackup(' '.repeat(MAX_BACKUP_JSON_CHARS + 1), {} as never)).toThrow(/size/)
   })
 
   it('warns without throwing for unrecognized structures', async () => {

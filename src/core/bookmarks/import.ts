@@ -1,15 +1,11 @@
 import type { ProfileV2 } from '../schema/profile'
-import type { Shortcut } from '../model'
+import { isHttpUrl, type Shortcut } from '../model'
 import { domainSiteName, knownSiteName, tidyImportedTitle } from '../siteName'
+import { firstChar } from '../text'
 
 export type BookmarkNode = { id: string; title?: string; url?: string; children?: BookmarkNode[] }
 export type BookmarkFolder = { id: string; path: string; count: number }
 type ImportedGroup = { name: string; items: Shortcut[] }
-
-const httpUrl = (value: string | undefined) => {
-  if (!value) return false
-  try { return ['http:', 'https:'].includes(new URL(value).protocol) } catch { return false }
-}
 
 function descendants(node: BookmarkNode): BookmarkNode[] {
   return node.children?.flatMap(child => child.url ? [child] : descendants(child)) ?? []
@@ -20,7 +16,7 @@ function walk(nodes: BookmarkNode[], parentPath: string, folders: BookmarkFolder
     if (!node.children) continue
     const title = node.title?.trim()
     const path = title ? (parentPath ? `${parentPath} / ${title}` : title) : parentPath
-    const links = descendants(node).filter(child => httpUrl(child.url))
+    const links = descendants(node).filter(child => isHttpUrl(child.url ?? ''))
     byId.set(node.id, { path: path || 'Bookmarks', node })
     if (links.length && path) folders.push({ id: node.id, path, count: links.length })
     walk(node.children, path, folders, byId)
@@ -40,7 +36,7 @@ export function importBookmarkFolders(tree: BookmarkNode[], selectedIds: string[
   return selectedIds.flatMap(id => {
     const folder = byId.get(id)
     if (!folder) return []
-    const items = descendants(folder.node).filter(node => httpUrl(node.url) && !used.has(node.url!)).map(node => {
+    const items = descendants(folder.node).filter(node => isHttpUrl(node.url ?? '') && !used.has(node.url!)).map(node => {
       used.add(node.url!)
       const url = node.url!
       const rawTitle = node.title?.trim() ?? ''
@@ -50,7 +46,7 @@ export function importBookmarkFolders(tree: BookmarkNode[], selectedIds: string[
       const name = titleIsHost
         ? knownSiteName(url) || domainSiteName(url) || host
         : tidyImportedTitle(rawTitle, url) || rawTitle || domainSiteName(url) || host
-      return { id: `bookmark-${crypto.randomUUID()}`, name, url, color: '#90d5cd', icon: name.slice(0, 1).toUpperCase(), iconMode: 'auto' as const }
+      return { id: `bookmark-${crypto.randomUUID()}`, name, url, color: '#90d5cd', icon: firstChar(name).toUpperCase(), iconMode: 'auto' as const }
     })
     return items.length ? [{ name: folder.path, items }] : []
   })

@@ -71,7 +71,7 @@ for (const language of ['zh-CN', 'en'] as const) {
       await aiTab.click()
       await expect(aiTab).toHaveAttribute('aria-selected', 'true')
       await expect(page.getByRole('tabpanel')).toBeVisible()
-      await expect(page.getByRole('button', { name: language === 'en' ? 'Copy prompt pack' : '复制提示包' })).toBeVisible()
+      await expect(page.getByRole('button', { name: language === 'en' ? 'Copy prompt' : '复制提示包' })).toBeVisible()
 
       if (viewport.width === 412 && language === 'zh-CN') {
         const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()

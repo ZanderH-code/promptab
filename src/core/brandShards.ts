@@ -1,4 +1,5 @@
 import { extensionApi } from '../platform/extension'
+import { own } from './own'
 import type { Shortcut } from './model'
 
 /** A bundled brand mark, the same shape as a shortcut brand. */
@@ -35,19 +36,24 @@ async function fetchShard(bucket: number): Promise<Record<string, KnownBrand>> {
   return response.ok ? await response.json() as Record<string, KnownBrand> : {}
 }
 
+/** One shard's brands, fetched at most once per session; a failed fetch is evicted so a later call retries. */
+export function loadBrandShard(bucket: number): Promise<Record<string, KnownBrand>> {
+  let pending = shards.get(bucket)
+  if (!pending) {
+    pending = fetchShard(bucket)
+    shards.set(bucket, pending)
+    const current = pending
+    void current.catch(() => { if (shards.get(bucket) === current) shards.delete(bucket) })
+  }
+  return pending
+}
+
 /**
  * Load one brand mark on demand. Only the shard containing `slug` is fetched, and each
  * shard is fetched at most once per session. A failed shard is evicted so a later call retries.
  */
 export function loadBrand(slug: string): Promise<KnownBrand | null> {
-  const bucket = brandShardForSlug(slug)
-  let shard = shards.get(bucket)
-  if (!shard) {
-    shard = fetchShard(bucket)
-    shards.set(bucket, shard)
-    void shard.catch(() => { if (shards.get(bucket) === shard) shards.delete(bucket) })
-  }
-  return shard.then(brands => brands[slug] ?? null, () => null)
+  return loadBrandShard(brandShardForSlug(slug)).then(brands => own(brands, slug) ?? null, () => null)
 }
 
 /** Test helper: forget every cached shard. */

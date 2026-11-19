@@ -5,13 +5,15 @@ export type AiState = {
   request: string
   includeCurrent: boolean
   reply: string
+  /** A follow-up change to ask for, in the person's own words. */
+  change: string
   /** Which code block of the reply is in use. */
   pick: number
   /** Parts the person switched off; everything the pack carries is applied by default. */
   skip: Record<PackPart, boolean>
 }
 
-const initial = (): AiState => ({ request: '', includeCurrent: false, reply: '', pick: 0, skip: { theme: false, background: false, css: false, layout: false, widgets: false } })
+const initial = (): AiState => ({ request: '', includeCurrent: true, reply: '', change: '', pick: 0, skip: { theme: false, background: false, css: false, layout: false, widgets: false } })
 
 let state = initial()
 const listeners = new Set<() => void>()

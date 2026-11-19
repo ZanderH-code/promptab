@@ -1,5 +1,5 @@
 export const SEARCH_ENGINES = [
-  { id: 'google', name: 'Google', template: 'https://www.google.com/search?q={query}', host: /(^|\.)google\./ },
+  { id: 'google', name: 'Google', template: 'https://www.google.com/search?q={query}', host: /(^|\.)google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})$/ },
   { id: 'bing', name: 'Bing', template: 'https://www.bing.com/search?q={query}', host: /(^|\.)bing\.com$/ },
   { id: 'duckduckgo', name: 'DuckDuckGo', template: 'https://duckduckgo.com/?q={query}', host: /(^|\.)duckduckgo\.com$/ },
   { id: 'brave', name: 'Brave Search', template: 'https://search.brave.com/search?q={query}', host: /(^|\.)search\.brave\.com$/ },

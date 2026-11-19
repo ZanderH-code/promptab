@@ -73,5 +73,4 @@ export function lightSurface(bg: string): string {
   return mixHex(bg, '#ffffff', LIGHT_SURFACE_MIX)
 }
 
-export const DEFAULT_DARK = { ...DARK_COLORS, surface: darkSurface(DARK_COLORS.bg) }
 export const DEFAULT_LIGHT = { ...LIGHT_COLORS, surface: lightSurface(LIGHT_COLORS.bg), accent: DARK_COLORS.accent }

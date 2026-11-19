@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { applyPack } from '../../core/ai/apply'
-import { MAX_SAVED_THEMES, type SavedTheme } from '../../core/themes/library'
+import { applyPack } from '../../core/ai/merge'
+import type { SavedTheme } from '../../core/themes/library'
+import { MAX_SAVED_THEMES } from '../../core/themes/limits'
 import { createAppThemeLibrary } from '../../app/useSettings'
 import { useConfirm } from './ConfirmDialog'
 import type { Ctx } from './rows/shared'
+import { downloadJson } from '../../ui/download'
 import '../../i18n/lazy'
 
 export function MyThemes({ ctx }: { ctx: Ctx }) {
@@ -42,12 +44,8 @@ export function MyThemes({ ctx }: { ctx: Ctx }) {
   }
 
   function exportTheme(theme: SavedTheme) {
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(theme.pack, null, 2)], { type: 'application/json' }))
     const slug = theme.name.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'theme'
-    link.download = `${slug}.theme-pack.json`
-    link.click()
-    URL.revokeObjectURL(link.href)
+    downloadJson(theme.pack, `${slug}.theme-pack.json`)
   }
 
   return <section className="sd-theme-library" aria-labelledby="my-themes-title">

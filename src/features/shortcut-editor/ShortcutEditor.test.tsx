@@ -104,3 +104,49 @@ it('edits every tile setting an import can set, and resets one back to the widge
   fireEvent.click(screen.getByLabelText('Hide icon'))
   expect(onChange.mock.lastCall?.[0]).not.toHaveProperty('tile')
 })
+
+class SlowReader {
+  static pending: SlowReader[] = []
+  result: string | null = null
+  onload: (() => void) | null = null
+  onerror: (() => void) | null = null
+  readAsDataURL() { SlowReader.pending.push(this) }
+  finish(result: string) { this.result = result; this.onload?.() }
+}
+
+it('applies a slow tile image read to the edits made meanwhile, and drops it once the dialog closed', () => {
+  vi.stubGlobal('FileReader', SlowReader)
+  try {
+    const shortcut = { id: '1', name: 'Example', url: 'https://example.com', color: '#123456', icon: 'E' }
+    const onChange = vi.fn()
+    const view = render(<ShortcutEditor shortcut={shortcut} t={t} onChange={onChange} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
+    const file = new File(['x'], 'tile.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('Tile image'), { target: { files: [file] } })
+    const renamed = { ...shortcut, name: 'Renamed' }
+    view.rerender(<ShortcutEditor shortcut={renamed} t={t} onChange={onChange} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
+    SlowReader.pending.shift()!.finish('data:image/png;base64,AA')
+    expect(onChange.mock.lastCall?.[0]).toMatchObject({ name: 'Renamed', tile: { image: 'data:image/png;base64,AA' } })
+
+    fireEvent.change(screen.getByLabelText('Tile image'), { target: { files: [file] } })
+    const calls = onChange.mock.calls.length
+    view.unmount()
+    SlowReader.pending.shift()!.finish('data:image/png;base64,BB')
+    expect(onChange.mock.calls.length).toBe(calls)
+  } finally {
+    SlowReader.pending = []
+    vi.unstubAllGlobals()
+  }
+})
+
+it('keeps the tile section open when its last setting is removed', () => {
+  const shortcut = { id: '1', name: 'Example', url: 'https://example.com', color: '#123456', icon: 'E', tile: { hideIcon: true } }
+  const onChange = vi.fn()
+  const view = render(<ShortcutEditor shortcut={shortcut} t={t} onChange={onChange} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
+  const details = view.container.querySelector<HTMLDetailsElement>('details.tile-controls')!
+  expect(details.open).toBe(true)
+  fireEvent.click(screen.getByLabelText('Hide icon'))
+  const { tile: _tile, ...withoutTile } = shortcut
+  expect(onChange.mock.lastCall?.[0]).toEqual(withoutTile)
+  view.rerender(<ShortcutEditor shortcut={withoutTile} t={t} onChange={onChange} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
+  expect(details.open).toBe(true)
+})

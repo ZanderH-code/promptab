@@ -14,10 +14,15 @@ type Storage = {
 }
 type ChangeListener = (changes: Record<string, unknown>, area: string) => void
 type Base = { local: string; cloud: string }
-type Snapshot = { available: boolean; ready: boolean; enabled: boolean; busy: boolean; conflict: boolean; canUndo: boolean; status: SyncMessage | null }
+// `requested` is the switch position the person just chose, shown until the queued change has run.
+type Snapshot = { available: boolean; ready: boolean; enabled: boolean; requested: boolean | null; busy: boolean; conflict: boolean; canUndo: boolean; status: SyncMessage | null }
 const ENABLED = 'mnt.sync.enabled'
 const BASE = 'mnt.sync.base'
-let snapshot: Snapshot = { available: false, ready: false, enabled: false, busy: false, conflict: false, canUndo: false, status: null }
+const SYNC_LOCK = 'mnt.sync'
+type SyncLock = (task: () => Promise<void>) => Promise<void>
+// Every open tab runs a controller; one at a time may read the cloud, the base and the profile and act on them.
+const browserLock: SyncLock = async task => { if (typeof navigator !== 'undefined' && navigator.locks) await navigator.locks.request(SYNC_LOCK, task); else await task() }
+let snapshot: Snapshot = { available: false, ready: false, enabled: false, requested: null, busy: false, conflict: false, canUndo: false, status: null }
 const listeners = new Set<() => void>()
 const set = (patch: Partial<Snapshot>) => { snapshot = { ...snapshot, ...patch }; listeners.forEach(fn => fn()) }
 export const useSyncStatus = () => useSyncExternalStore(fn => { listeners.add(fn); return () => { listeners.delete(fn) } }, () => snapshot)
@@ -27,7 +32,7 @@ function revision(payload: SyncPayload): string {
   const { id: _id, createdAt: _createdAt, name: _name, builtinName: _builtinName, updatedAt: _updatedAt, ...meta } = payload.profile.meta
   return JSON.stringify({ ...payload.profile, meta })
 }
-let controller: ReturnType<typeof createController> | undefined
+let controller: ReturnType<typeof createSyncController> | undefined
 export const syncActions = {
   enable: (value: boolean) => controller?.enable(value),
   keepLocal: () => controller?.keepLocal(),
@@ -37,7 +42,7 @@ export const syncActions = {
   dismiss: () => set({ status: null }),
 }
 
-function createController(store: StoreApi<ProfileStore>, api: Storage) {
+export function createSyncController(store: StoreApi<ProfileStore>, api: Storage, lock: SyncLock = browserLock) {
   let stopped = false
   let base: Base | null = null
   let conflict: SyncPayload | null = null
@@ -46,9 +51,14 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
   let queue = Promise.resolve()
   const current = () => { const state = store.getState(); return state.profiles[state.activeProfileId] }
   const saveBase = async (local: string, cloud: string) => { const next = { local, cloud }; await api.local.set({ [BASE]: next }); base = next }
+  // Another tab may have published or pulled since this one last looked.
+  const readBase = async () => {
+    const raw = (await api.local.get(BASE))[BASE] as Base | undefined
+    base = raw && typeof raw.local === 'string' && typeof raw.cloud === 'string' ? raw : null
+  }
   const fail = (error: unknown) => set({ status: String(error).toLowerCase().includes('quota') ? 'quota' : 'error' })
   const run = (task: () => Promise<void>) => {
-    queue = queue.then(async () => { if (stopped) return; set({ busy: true }); try { await task() } catch (error) { if (!stopped) fail(error) } finally { if (!stopped) set({ busy: false }) } })
+    queue = queue.then(() => lock(async () => { if (stopped) return; set({ busy: true }); try { await task() } catch (error) { if (!stopped) fail(error) } finally { if (!stopped) set({ busy: false }) } }))
     return queue
   }
   const publish = async () => {
@@ -59,9 +69,9 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
     set({ status: 'saved' })
   }
   const pull = async (cloud: SyncPayload) => {
-    const before = current()
-    const merged = mergeSyncedProfile(before, cloud)
-    await store.getState().updateProfile(before.meta.id, () => merged)
+    let before: ProfileV2 | null = null
+    // Merge inside the store queue so a local edit committed meanwhile is kept, not replaced.
+    await store.getState().updateProfile(current().meta.id, profile => { before = structuredClone(profile); return mergeSyncedProfile(profile, cloud) })
     undoProfile = before
     undoRevision = revision(toSyncPayload(current()))
     await saveBase(undoRevision, revision(cloud))
@@ -70,6 +80,9 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
   }
   const reconcile = async () => {
     if (!snapshot.enabled || conflict) return
+    // Adopt what other tabs committed so this tab never pushes or pulls on top of an old profile.
+    await store.getState().refresh()
+    await readBase()
     const cloud = await readSyncStorage(api.sync)
     const localRev = revision(toSyncPayload(current()))
     if (!cloud) {
@@ -79,7 +92,10 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
     }
     const cloudRev = revision(cloud)
     const decision = decideSyncChanges(base, localRev, cloudRev)
-    if (decision === 'unchanged') { if (!base || localRev === cloudRev) await saveBase(localRev, cloudRev); return }
+    if (decision === 'unchanged') {
+      if (!base || (localRev === cloudRev && (base.local !== localRev || base.cloud !== cloudRev))) await saveBase(localRev, cloudRev)
+      return
+    }
     if (decision === 'conflict') { conflict = cloud; set({ conflict: true, status: null }); return }
     if (decision === 'pull') await pull(cloud)
     else await publish()
@@ -92,14 +108,12 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
   const changed: ChangeListener = (changes, area) => { if (area === 'sync' && Object.keys(changes).some(key => key === 'mnt.sync.manifest')) schedule() }
   api.onChanged?.addListener(changed)
   void run(async () => {
-    const values = await api.local.get([ENABLED, BASE])
-    const raw = values[BASE] as Base | undefined
-    base = raw && typeof raw.local === 'string' && typeof raw.cloud === 'string' ? raw : null
+    const values = await api.local.get([ENABLED])
     set({ available: true, enabled: values[ENABLED] === true, ready: true })
     await reconcile()
   })
   return {
-    enable: (value: boolean) => run(async () => {
+    enable: (value: boolean) => { set({ requested: value }); return run(async () => {
       if (!value) {
         await api.local.set({ [ENABLED]: false }); conflict = null; undoProfile = null
         set({ enabled: false, conflict: false, canUndo: false, status: 'disabled' }); return
@@ -110,7 +124,7 @@ function createController(store: StoreApi<ProfileStore>, api: Storage) {
       set({ enabled: true, status: null })
       if (cloud) { conflict = cloud; set({ conflict: true }) }
       else { base = null; await api.local.remove(BASE); await publish() }
-    }),
+    }).finally(() => { if (snapshot.requested === value) set({ requested: null }) }) },
     keepLocal: () => run(async () => {
       if (!conflict || !snapshot.enabled) return
       const latest = await readSyncStorage(api.sync)
@@ -146,7 +160,7 @@ export function SyncRuntime({ store }: { store: StoreApi<ProfileStore> }) {
     const api = extensionApi()?.storage as { local?: Storage['local']; sync?: Storage['sync']; onChanged?: Storage['onChanged'] } | undefined
     const local = api?.local, sync = api?.sync
     if (!local || !sync) { set({ available: false, ready: true }); return }
-    controller = createController(store, { local, sync, onChanged: api.onChanged })
+    controller = createSyncController(store, { local, sync, onChanged: api.onChanged })
     return () => { controller?.stop(); controller = undefined }
   }, [store])
   return null

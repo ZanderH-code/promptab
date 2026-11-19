@@ -31,4 +31,13 @@ describe('wallpaper rotation', () => {
     const daily = { ...rotation, interval: 'day' as const }
     expect(wallpaperRotationIndex(daily, midday + 24 * 60 * 60 * 1000, 0)).toBe((wallpaperRotationIndex(daily, midday, 0) + 1) % rotation.images.length)
   })
+
+  it('moves to the next image at month and year ends', () => {
+    const images = { images: ['a', 'b', 'c', 'd', 'e'] }
+    for (const [before, after] of [[new Date(2026, 3, 30, 23), new Date(2026, 4, 1, 0)], [new Date(2026, 1, 28, 23), new Date(2026, 2, 1, 0)], [new Date(2026, 11, 31, 23), new Date(2027, 0, 1, 0)]]) {
+      const hourly = { ...images, interval: 'hour' as const }, daily = { ...images, interval: 'day' as const }
+      expect(wallpaperRotationIndex(hourly, after.getTime())).toBe((wallpaperRotationIndex(hourly, before.getTime()) + 1) % 5)
+      expect(wallpaperRotationIndex(daily, after.getTime())).toBe((wallpaperRotationIndex(daily, before.getTime()) + 1) % 5)
+    }
+  })
 })

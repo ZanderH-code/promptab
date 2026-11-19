@@ -9,7 +9,7 @@ import { OnboardingCard, type OnboardingAction } from './OnboardingCard'
 
 export type Group = ProfileV2['bookmarks']['groups'][number]
 export type ShortcutGridProps = {
-  groups: Group[]; shortcuts: Shortcut[]; editing: boolean; onManageDone: () => void; t: Translate; language: 'en' | 'zh-CN'
+  groups: Group[]; shortcuts: Shortcut[]; editing: boolean; t: Translate; language: 'en' | 'zh-CN'
   style: 'tile' | 'list' | 'minimal' | 'card' | 'icon-only' | 'block'; source: string; showGroupTitles: boolean; maxColumns: number; showAdd: boolean; iconColor: 'per-site' | 'accent'; openInNewTab: boolean; liftOnHover: boolean
   reduceMotion?: 'system' | 'on' | 'off'; reduceTransparency?: 'system' | 'on' | 'off'
   onGroups: (update: (groups: Group[]) => Group[]) => void
