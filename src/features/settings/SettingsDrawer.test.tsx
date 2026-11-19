@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import type { ComponentProps } from 'react'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createStore } from 'zustand/vanilla'
 import { migrateV1 } from '../../core/migrate/v1'
@@ -35,7 +36,11 @@ function setup(options: { profile?: ProfileV2; settings?: Partial<Settings>; lan
     onPatch: vi.fn(), onProfileChange: vi.fn(), onClose: vi.fn(), onWallpaperFile: vi.fn(), onWallpaperFiles: vi.fn(), onWallpaperVideoFile: vi.fn(), onWallpaperRemove: vi.fn(), onReset: vi.fn(), onError: vi.fn(), onEnterEditMode: vi.fn(),
   }
   const view = render(<><button>opener</button><SettingsDrawer {...props} /></>)
-  return { ...props, rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>) }
+  return {
+    ...props,
+    rerender: (profile: ProfileV2) => view.rerender(<><button>opener</button><SettingsDrawer {...props} profile={profile} /></>),
+    rerenderWith: (changes: Partial<ComponentProps<typeof SettingsDrawer>>) => view.rerender(<><button>opener</button><SettingsDrawer {...props} {...changes} /></>),
+  }
 }
 const lastUpdate = (props: ReturnType<typeof setup>) => {
   const call = props.onProfileChange.mock.calls.at(-1)!
@@ -74,6 +79,27 @@ describe('SettingsDrawer queued changes', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove stop 1' }))
     fireEvent.click(screen.getByRole('button', { name: 'Remove stop 2' }))
     expect(applyAll(props).background.gradient?.stops).toEqual(['#888888', '#ffffff'])
+  })
+})
+
+describe('SettingsDrawer memoised rows', () => {
+  it('shows the focal preview once the wallpaper URL arrives, with the same t and profile', () => {
+    const withImage = structuredClone(base)
+    withImage.background = { ...withImage.background, type: 'image', image: { asset: `mnt-asset:${'a'.repeat(64)}`, blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' } }
+    const props = setup({ profile: withImage, initialSection: 'background' })
+    expect(document.querySelector('.sd-focal-preview')).toBeNull()
+    props.rerenderWith({ wallpaperUrl: 'blob:wallpaper' })
+    expect(document.querySelector('.sd-focal-preview')).not.toBeNull()
+  })
+
+  it('calls the latest callbacks from rows built before they changed', () => {
+    const props = setup({ initialSection: 'about' })
+    const later = vi.fn()
+    props.rerenderWith({ onProfileChange: later })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tab title' }), { target: { value: 'Studio' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Tab title' }))
+    expect(props.onProfileChange).not.toHaveBeenCalled()
+    expect(later).toHaveBeenCalled()
   })
 })
 
