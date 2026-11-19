@@ -10,7 +10,7 @@ const shortcut = (id: string): Shortcut => ({ id, name: id, url: `https://exampl
 const first = { id: 'first', name: 'First', collapsed: true, items: [shortcut('Alpha')] } as Group
 const second = { id: 'second', name: 'A long folder name '.repeat(8), collapsed: true, items: [shortcut('Beta'), shortcut('Gamma')] } as Group
 const makeProps = (groups: Group[]): ShortcutGridProps => ({
-  groups, shortcuts: groups.flatMap(group => group.items) as Shortcut[], editing: false, onManageDone: vi.fn(), t: (key, params) => translate('en', key, params), language: 'en',
+  groups, shortcuts: groups.flatMap(group => group.items) as Shortcut[], editing: false, t: (key, params) => translate('en', key, params), language: 'en',
   style: 'tile', source: 'all', showGroupTitles: true, maxColumns: 6, showAdd: false, iconColor: 'per-site', openInNewTab: true, liftOnHover: false,
   onGroups: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onMove: vi.fn(), onAdd: vi.fn(), onContextMenu: vi.fn(), onGroupContextMenu: vi.fn(), onboarding: false, onOnboardingAction: vi.fn(),
 })
@@ -111,5 +111,17 @@ describe('bookmark folders', () => {
     expect(within(dialog).getByRole('alert')).toHaveTextContent('Enter a group name.')
     fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Group name' }), { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Add group' })).not.toBeInTheDocument()
+  })
+
+  it('counts only selected websites that still exist after one is deleted elsewhere', async () => {
+    const groups = [{ ...first, collapsed: false }, { ...second, collapsed: false }]
+    const { rerender } = render(<ShortcutGrid {...makeProps(groups)} editing />)
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Select Beta' })).toBeEnabled(), { timeout: 10000 })
+    for (const name of ['Alpha', 'Beta', 'Gamma']) fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }))
+    expect(screen.getByText('3 selected')).toBeInTheDocument()
+    // A single delete (or undo, or an import) removes Beta without going through the selection toolbar.
+    const withoutBeta = [groups[0], { ...groups[1], items: groups[1].items.filter(item => item.id !== 'Beta') }]
+    rerender(<ShortcutGrid {...makeProps(withoutBeta)} editing />)
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
   })
 })

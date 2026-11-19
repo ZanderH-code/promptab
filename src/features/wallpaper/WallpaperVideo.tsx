@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useReducedMotion } from '../../ui/useReducedMotion'
 
 type Battery = { charging: boolean; level: number; addEventListener(type: 'levelchange' | 'chargingchange', listener: () => void): void; removeEventListener(type: 'levelchange' | 'chargingchange', listener: () => void): void }
 type Props = { src: string; poster: string; blur: number; grayscale: number; reduceMotion: 'system' | 'on' | 'off' }
@@ -6,20 +7,13 @@ type Props = { src: string; poster: string; blur: number; grayscale: number; red
 export function WallpaperVideo({ src, poster, blur, grayscale, reduceMotion }: Props) {
   const video = useRef<HTMLVideoElement>(null)
   const [visible, setVisible] = useState(() => !document.hidden)
-  const [reduced, setReduced] = useState(() => reduceMotion === 'on' || (reduceMotion === 'system' && matchMedia('(prefers-reduced-motion: reduce)').matches))
+  const reduced = useReducedMotion(reduceMotion)
   const [batteryAllowsMotion, setBatteryAllowsMotion] = useState(true)
   const [playing, setPlaying] = useState(false)
   const [firstFrameMs, setFirstFrameMs] = useState<number | null>(null)
   const startedAt = useRef(performance.now())
   const firstFrameSeen = useRef(false)
   const allowed = visible && !reduced && batteryAllowsMotion
-
-  useEffect(() => {
-    const media = matchMedia('(prefers-reduced-motion: reduce)')
-    const update = () => setReduced(reduceMotion === 'on' || (reduceMotion === 'system' && media.matches))
-    media.addEventListener('change', update)
-    return () => media.removeEventListener('change', update)
-  }, [reduceMotion])
 
   useEffect(() => {
     const update = () => setVisible(!document.hidden)

@@ -1,6 +1,8 @@
-/** Messages for custom CSS, safe mode and fonts. Spread into the main dictionaries. */
+/**
+ * Safe-mode and CSS-guard messages the page itself can show. Spread into the main dictionaries; the custom CSS
+ * editor and font strings are settings-only and live in lazy.ts (CSS issues in ai.ts, with the CSS checks).
+ */
 const messages = {
-  "settings.tab.style": ['自定义 CSS', 'Custom CSS'],
   "safe.banner": ['安全模式：自定义样式已暂停', 'Safe mode: custom styles are paused'],
   "safe.hint": ['你的 CSS 仍然保存着，只是本次页面不加载。', 'Your CSS is still saved; it is just not loaded on this page.'],
   "safe.editCss": ['编辑 CSS', 'Edit CSS'],
@@ -10,41 +12,6 @@ const messages = {
   "safe.autoEntered": ['自定义 CSS 让设置入口无法使用，已自动进入安全模式。', 'Custom CSS made the settings entry unusable, so safe mode was started.'],
   "css.rolledBack": ['这段 CSS 会让设置入口无法使用，已自动恢复到之前的样式。', 'That CSS made the settings entry unusable, so the previous styles were restored.'],
   "css.previewRejected": ['预览的 CSS 会让设置入口无法使用，已放弃预览。', 'The previewed CSS made the settings entry unusable, so the preview was discarded.'],
-  "css.title": ['自定义 CSS', 'Custom CSS'],
-  "css.hint": ['用 CSS 微调外观。样式放在 user 层，可以覆盖内置样式，但不能遮挡设置入口。只允许 data:image 图片和本地资源，不加载任何外部网址。', 'Fine-tune the look with CSS. It lives in the user layer, so it overrides built-in styles but can never cover the settings entry. Only data:image and local assets are allowed; nothing loads from the network.'],
-  "css.enable": ['启用自定义 CSS', 'Enable custom CSS'],
-  "css.editor": ['自定义 CSS 内容', 'Custom CSS source'],
-  "css.apply": ['应用', 'Apply'],
-  "css.revert": ['还原', 'Revert'],
-  "css.clear": ['清空', 'Clear'],
-  "css.valid": ['没有发现问题', 'No problems found'],
-  "css.dirty": ['有未应用的修改', 'Unapplied changes'],
-  "css.applied": ['已应用', 'Applied'],
-  "css.disabled": ['已禁用', 'Disabled'],
-  "css.usage": ['{kb} / 64 KB · {rules} / 2000 条规则', '{kb} / 64 KB · {rules} / 2000 rules'],
-  "css.errorCount": ['{count} 个问题，修正后才能应用', '{count} problems to fix before applying'],
-  "css.at": ['第 {line} 行第 {column} 列', 'Line {line}, column {column}'],
-  "css.safeNote": ['安全模式下自定义 CSS 不会生效，但仍可以编辑。', 'Custom CSS is not loaded in safe mode, but you can still edit it.'],
-  "css.issue.syntax": ['语法错误：{detail}', 'Syntax error: {detail}'],
-  "css.issue.unbalanced": ['括号不成对', 'Unbalanced brackets'],
-  "css.issue.too-large": ['超过 64 KB（目前 {detail} 字节）', 'Larger than 64 KB ({detail} bytes)'],
-  "css.issue.too-many-rules": ['规则数 {detail} 超过上限 2000', '{detail} rules exceeds the limit of 2000'],
-  "css.issue.at-rule": ['不允许使用 {detail}', '{detail} is not allowed'],
-  "css.issue.url": ['不允许外部网址，只能用 data:image 或本地资源：{detail}', 'External URLs are not allowed; use data:image or a local asset: {detail}'],
-  "css.issue.font-url": ['@font-face 只能使用本地字体资源（mnt-asset:）：{detail}', '@font-face may only use local font assets (mnt-asset:): {detail}'],
-  "css.issue.property": ['不允许使用属性 {detail}', 'The property {detail} is not allowed'],
-  "css.issue.function": ['不允许使用函数 {detail}', 'The function {detail} is not allowed'],
-  "css.issue.escape": ['名称里不允许使用转义字符：{detail}', 'Escape sequences are not allowed in names: {detail}'],
-  "css.issue.raw-value": ['无法解析 {detail} 的值', 'Could not parse the value of {detail}'],
-  "font.barlowCondensed": ['Barlow Condensed（窄体科技）', 'Barlow Condensed (condensed tech)'],
-  "font.cormorant": ['Cormorant Garamond（优雅衬线）', 'Cormorant Garamond (elegant serif)'],
-  "font.outfit": ['Outfit（几何无衬线）', 'Outfit (geometric sans)'],
-  "font.uploaded": ['已上传：{name}', 'Uploaded: {name}'],
-  "font.upload": ['上传字体', 'Upload font'],
-  "font.uploadHint": ['支持 woff2、ttf、otf，最大 2 MB。字体只保存在本机。', 'woff2, ttf or otf, up to 2 MB. The font stays on this device.'],
-  "font.uploadFailed": ['字体文件无效：请选择不超过 2 MB 的 woff2、ttf 或 otf 文件。', 'Invalid font file: choose a woff2, ttf or otf file up to 2 MB.'],
-  "font.uploadDisplay": ['用作显示字体', 'Use as display font'],
-  "font.uploadUi": ['用作界面字体', 'Use as interface font'],
 } as const
 
 type ChineseMessages = { readonly [Key in keyof typeof messages]: (typeof messages)[Key][0] }

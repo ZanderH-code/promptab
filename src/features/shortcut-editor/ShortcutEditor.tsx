@@ -66,6 +66,12 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
   const latest = useRef(shortcut)
   const lastUrl = useRef(shortcut.url)
   latest.current = shortcut
+  // File reads finish later: they apply to the shortcut as it is then, and not at all once the dialog closed.
+  const mounted = useRef(true)
+  useEffect(() => {
+    mounted.current = true
+    return () => { mounted.current = false }
+  }, [])
   useEffect(() => {
     let active = true
     void import('../../core/siteName').then(module => {
@@ -83,6 +89,8 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
   const [brandError, setBrandError] = useState(false)
   const [query, setQuery] = useState('')
   const [searchActive, setSearchActive] = useState(false)
+  // Opened for a shortcut that already has a tile look; after that only the person opens or closes it.
+  const [tileOpen, setTileOpen] = useState(() => !!shortcut.tile)
   const selected = shortcut.image ? 'upload' : shortcut.iconMode || 'auto'
   useEffect(() => {
     let active = true
@@ -126,13 +134,14 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
       validateImage(file, MAX_ICON_BYTES)
       const reader = new FileReader()
       reader.onload = () => {
+        if (!mounted.current) return
         const image = String(reader.result)
         setLocalImage(image)
-        const next = { ...shortcut, image }
+        const next = { ...latest.current, image }
         delete next.builtinIcon
         onChange(next)
       }
-      reader.onerror = () => onError('error.readImage')
+      reader.onerror = () => { if (mounted.current) onError('error.readImage') }
       reader.readAsDataURL(file)
     } catch (error) {
       onError(toMessageRef(error, 'error.readImage').key)
@@ -140,10 +149,10 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
   }
 
   /** Changes the tile look; a value of `undefined` removes that setting, and an empty look removes the tile. */
-  function changeTile(changes: Partial<TileLook>) {
-    const tile: TileLook = { ...shortcut.tile, ...changes }
+  function changeTile(changes: Partial<TileLook>, base: Shortcut = shortcut) {
+    const tile: TileLook = { ...base.tile, ...changes }
     for (const key of Object.keys(tile) as (keyof TileLook)[]) if (tile[key] === undefined) delete tile[key]
-    const { tile: _previous, ...rest } = shortcut
+    const { tile: _previous, ...rest } = base
     onChange(Object.keys(tile).length ? { ...rest, tile } : rest)
   }
 
@@ -152,8 +161,8 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
     try {
       validateImage(file, MAX_TILE_IMAGE_BYTES)
       const reader = new FileReader()
-      reader.onload = () => changeTile({ image: String(reader.result) })
-      reader.onerror = () => onError('error.readImage')
+      reader.onload = () => { if (mounted.current) changeTile({ image: String(reader.result) }, latest.current) }
+      reader.onerror = () => { if (mounted.current) onError('error.readImage') }
       reader.readAsDataURL(file)
     } catch (error) {
       onError(toMessageRef(error, 'error.readImage').key)
@@ -245,7 +254,7 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
             </label>
           </div>
         )}
-        <details className="tile-controls" open={!!shortcut.tile}>
+        <details className="tile-controls" open={tileOpen} onToggle={event => setTileOpen(event.currentTarget.open)}>
           <summary>{t('editor.tile')}</summary>
           <div className="tile-controls-grid">
             <label className="stack">{t('editor.tileSize')}<select value={shortcut.tile?.span ?? ''} onChange={event => changeTile({ span: (event.target.value || undefined) as TileLook['span'] })}>{SPANS.map(([value, key]) => <option key={value} value={value}>{t(key)}</option>)}</select></label>

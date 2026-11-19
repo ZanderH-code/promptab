@@ -6,6 +6,7 @@ import type { Translate } from '../i18n'
 import { GroupMenuTrigger, ShortcutLink, type ContextMenuEvent } from './ShortcutGridContent'
 import type { Group } from './ShortcutGrid'
 import { WebsiteIcon } from './WebsiteIcon'
+import { useReducedMotion, useReducedTransparency } from '../ui/useReducedMotion'
 import '../i18n/lazy'
 
 /** Keeps a folder dialog open when the grid remounts for the lazy drag layer. */
@@ -45,8 +46,8 @@ export function BookmarkFolder({ group, name, shortcuts, style, iconColor, openI
       ? { ...item, name: t('builtin.sampleWebsite'), icon: t('builtin.sampleWebsiteIcon') }
       : item)
   }, [group.items, shortcuts, t])
-  const reducedTransparency = reduceTransparency === 'on' || (reduceTransparency === 'system' && window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches)
-  const reducedMotion = reduceMotion === 'on' || (reduceMotion === 'system' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
+  const reducedTransparency = useReducedTransparency(reduceTransparency)
+  const reducedMotion = useReducedMotion(reduceMotion)
   const portalRoot = document.querySelector('.mnt-root') ?? document.body
 
   useEffect(() => {

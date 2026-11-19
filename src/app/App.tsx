@@ -177,6 +177,10 @@ export default function App() {
     },
   })
 
+  const settingsLanguage = settings?.language ?? 'en'
+  // Stable per language: the CSS editor, settings sections and folder items key effects and memos on `t`.
+  const t = useCallback((key: MessageKey, params?: MessageParams) => translate(settingsLanguage, key, params), [settingsLanguage])
+
   if (!settings) {
     const language = __WEB_BUILD__ ? 'en' : systemLanguage(navigator.languages?.length ? navigator.languages : [navigator.language])
     return <main className="loading">{error ? <><p role="alert">{translate(language, error.key, error.params)}</p><Suspense fallback={null}><BackupSection settings={{ ...defaults, language }} t={(key, params) => translate(language, key, params)} onError={setError} recovery /></Suspense></> : translate(language, 'app.loading')}</main>
@@ -185,7 +189,6 @@ export default function App() {
   const s = settings
   const imageStyle = profile ? wallpaperStyle(profile, wallpaper.url) : null
   const videoBackground = profile?.background.type === 'video' ? profile.background.video : undefined
-  const t =(key: MessageKey, params?: MessageParams) => translate(s.language, key, params)
 
   const openMenu = (event: ContextMenuEvent, target: MenuTarget, options: { clamp?: boolean; shortcut?: Shortcut; group?: ProfileV2['bookmarks']['groups'][number] } = {}) => {
     event.preventDefault()
@@ -353,7 +356,6 @@ export default function App() {
           if (action === 'add') setEditing(newShortcut('#b0a092'))
           else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
         }}
-        onManageDone={() => setEditMode(false)}
         t={t}
         onError={setError}
         onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}

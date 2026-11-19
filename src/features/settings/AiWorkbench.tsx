@@ -16,6 +16,7 @@ import { useAiState } from './aiState'
 import { ByokFields, useAiConnection } from './ByokPanel'
 import { Segmented, Toggle } from './controls'
 import type { Ctx } from './rows'
+import { downloadJson } from '../../ui/download'
 
 const MAX_REPLY_BYTES = 512 * 1024
 const PART_LABELS: Record<PackPart, MessageKey> = { theme: 'ai.part.theme', background: 'ai.part.background', css: 'ai.part.css', layout: 'ai.part.layout', widgets: 'ai.part.widgets' }
@@ -86,8 +87,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
 
   function downloadTheme() {
     const pack = createExportPack()
-    const url = URL.createObjectURL(new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' }))
-    const link = document.createElement('a'); link.href = url; link.download = themeFilename(pack.meta?.name ?? ''); link.click(); URL.revokeObjectURL(url)
+    downloadJson(pack, themeFilename(pack.meta?.name ?? ''))
     markExported(pack.meta?.name ?? t('ai.defaultName'))
   }
 

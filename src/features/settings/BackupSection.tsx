@@ -8,6 +8,7 @@ import { assets } from '../../app/useSettings'
 import { createAppProfileStorage, createAppThemeLibrary, type AppProfileStore } from '../../app/useSettings'
 import { useConfirm } from './ConfirmDialog'
 import { SyncSection } from './SyncSection'
+import { downloadJson } from '../../ui/download'
 import '../../i18n/lazy'
 
 type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean; store?: AppProfileStore }
@@ -30,12 +31,7 @@ export function BackupSection({ settings, t, onError, recovery = false, store }:
       const json = await createBackupV2Service({ profiles: persistence, assets, themes: createAppThemeLibrary() }).exportBackup()
       const size = new Blob([json]).size / (1024 * 1024)
       if (size >= 10 && !(await confirm({ title: t('backup.largeExport', { size: size.toFixed(1) }), confirmLabel: t('common.continue'), cancelLabel: t('common.cancel') }))) return
-      const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `promptab-${new Date().toISOString().slice(0, 10)}.json`
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      downloadJson(json, `promptab-${new Date().toISOString().slice(0, 10)}.json`)
       setStatus('backup.exported')
     } catch (error) {
       onError(toMessageRef(error, 'error.export'))

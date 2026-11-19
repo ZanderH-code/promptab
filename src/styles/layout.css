@@ -29,7 +29,7 @@
   .shortcut-wrap, .add-shortcut { width: 100%; min-width: 0; }
   .shortcut > span:last-child { max-width: calc(var(--mnt-cell-width) - var(--mnt-space-2)); }
   .shortcut-icon, .add-shortcut > span { width: var(--mnt-effective-icon, var(--mnt-icon-size)); height: var(--mnt-effective-icon, var(--mnt-icon-size)); }
-  .settings-button, .search button, .drawer-head button, .editor-close, .shortcut-actions button, .drag-handle, .error button { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; flex-shrink: 0; }
+  .settings-button, .search button, .editor-close, .shortcut-actions button, .drag-handle, .error button { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; flex-shrink: 0; }
   .shortcut-actions { flex-wrap: wrap; }
   .drag-handle { display: flex; }
   .lucide { flex-shrink: 0; }
@@ -125,7 +125,7 @@
   @media (max-width: 639px) { .grid { --mnt-effective-icon: min(var(--mnt-icon-size), 64px); --mnt-grid-columns: min(var(--mnt-columns), var(--mnt-item-count), 4); } }
 
   @media (pointer: coarse) {
-    .settings-button, .search button, .shortcut-actions button, .drag-handle, .mnt-widget-toolbar button, .edit-toolbar button, .edit-entry, .mnt-weather-refresh {
+    .settings-button, .search button, .shortcut-actions button, .drag-handle, .mnt-widget-toolbar button, .edit-toolbar button, .mnt-weather-refresh {
       min-width: 44px; min-height: 44px;
     }
     .shortcut-actions { position: static; width: 100%; flex-wrap: wrap; }

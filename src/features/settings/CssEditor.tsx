@@ -7,6 +7,8 @@ import { findCssPitfalls } from '../../core/css/pitfalls'
 import { sanitizeCss } from '../../core/css/sanitize'
 import { Toggle } from './controls'
 import type { Ctx } from './rows'
+import '../../i18n/ai'
+import '../../i18n/lazy'
 
 /**
  * Page-lifetime drafts of the stylesheet editor, keyed by profile id. The drawer unmounts a section

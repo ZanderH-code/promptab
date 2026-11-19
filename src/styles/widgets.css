@@ -4,13 +4,12 @@
     display: flex; gap: 6px; padding: 6px; border: 1px solid var(--mnt-border); border-radius: 999px;
     background: var(--mnt-surface); box-shadow: var(--mnt-elev-2);
   }
-  .edit-toolbar button, .edit-entry {
+  .edit-toolbar button {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     min-height: 36px; padding: 0 12px; border: 0; border-radius: 999px;
     background: transparent; color: var(--mnt-text); cursor: pointer;
   }
-  .edit-toolbar button:hover, .edit-entry:hover { background: var(--mnt-accent-soft); }
-  .edit-entry { width: 36px; padding: 0; }
+  .edit-toolbar button:hover { background: var(--mnt-accent-soft); }
   .onboarding-card {
     display: flex; flex-direction: column; align-items: flex-start; gap: 14px; width: 100%;
     margin-top: calc(56px * var(--mnt-density)); padding: 20px 22px; border: 1px solid var(--mnt-border); border-radius: var(--mnt-radius);
@@ -38,7 +37,6 @@
   .mnt-productivity h2 { margin: 0 0 var(--mnt-space-3); color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); font-weight: 500; overflow-wrap: anywhere; }
   .mnt-productivity-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--mnt-space-3); }
   .mnt-todo-count { color: var(--mnt-text-muted); font-size: var(--mnt-text-xs); font-variant-numeric: tabular-nums; }
-  .mnt-productivity-empty { margin: 0; color: var(--mnt-text-muted); font-size: var(--mnt-text-sm); }
   .mnt-todo-list { display: grid; gap: var(--mnt-space-1); margin: 0 0 var(--mnt-space-2); padding: 0; list-style: none; }
   .mnt-todo-list li { display: flex; align-items: center; gap: var(--mnt-space-2); border-radius: 6px; }
   .mnt-todo-list label { display: flex; flex: 1; min-width: 0; align-items: center; gap: var(--mnt-space-3); min-height: 32px; cursor: pointer; }
@@ -105,19 +103,7 @@
     letter-spacing: .19em;
   }
 
-  .brandmark {
-    color: var(--mnt-accent-text);
-    font-size: 19px;
-    vertical-align: middle;
-    margin-right: 9px;
-  }
-
-  .brandmuted {
-    color: var(--mnt-text-muted);
-    font-weight: 400;
-  }
-
-  .settings-button,.drawer-head button {
+  .settings-button {
     border: 0;
     background: none;
     color: var(--mnt-text-muted);
@@ -324,28 +310,6 @@
     box-shadow: -15px 0 60px var(--mnt-shadow-color);
   }
 
-  .drawer-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .drawer-head small {
-    color: var(--mnt-accent-text);
-    font-size: 9px;
-    letter-spacing: .18em;
-  }
-
-  .drawer-head h2 {
-    font-size: 21px;
-    font-weight: 500;
-    margin: 9px 0;
-  }
-
-  .drawer-head button {
-    font-size: 25px;
-  }
-
   .drawer p {
     color: var(--mnt-text-muted);
     font-size: 12px;
@@ -409,10 +373,11 @@
   .reset {
     background: none;
     border: 1px solid var(--mnt-border-strong);
-    border-radius: 6px;
+    border-radius: 10px;
     padding: 10px;
     color: var(--mnt-text-muted);
     margin-top: 22px;
+    transition: border-color .15s,color .15s;
   }
 
   .modal-backdrop {
@@ -425,9 +390,11 @@
   .modal {
     --mnt-bg: var(--mnt-scheme-bg);
     width: min(400px,100%);
+    max-height: 90vh;
+    overflow: auto;
     background: var(--mnt-surface);
     padding: 28px;
-    border-radius: 12px;
+    border-radius: 16px;
   }
 
   .keyboard-help h2 { margin: 0 0 20px; }
@@ -509,12 +476,7 @@
     }
 
     .desktop {
-      margin: 50px auto;
       transform: none;
-    }
-
-    .clock {
-      font-size: 80px;
     }
 
     .search {
@@ -575,59 +537,11 @@
     flex-direction: column;
   }
 
-  .layout-stacked.layout-reverse .overview {
-    order: 2;
-  }
-
-  .layout-stacked.layout-reverse .bookmarks {
-    order: 1;
-  }
-
-  .layout-split {
-    display: grid;
-    grid-template-columns: minmax(0,1fr) minmax(280px,0.7fr);
-    gap: clamp(30px,6vw,100px);
-    align-items: center;
-  }
-
-  .layout-split .overview {
-    grid-column: 2;
-    grid-row: 1;
-    border-left: 1px solid var(--mnt-accent);
-    padding-left: clamp(24px,4vw,64px);
-  }
-
-  .layout-split .bookmarks {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  .layout-split .shortcuts-heading {
-    margin-top: 0;
-  }
-
-  .layout-split .clock {
-    font-size: clamp(60px,8vw,105px);
-  }
-
-  .layout-split.layout-reverse .overview {
-    grid-column: 1;
-    border-left: 0;
-    border-right: 1px solid var(--mnt-accent);
-    padding-left: 0;
-    padding-right: clamp(24px,4vw,64px);
-  }
-
-  .layout-split.layout-reverse .bookmarks {
-    grid-column: 2;
-  }
-
   .scrim {
     pointer-events: none;
   }
 
   .drag-handle {
-    display: block;
     margin: 4px auto 0;
     background: none;
     border: 0;
@@ -647,8 +561,8 @@
     min-width: 160px;
     background: var(--mnt-surface);
     border: 1px solid var(--mnt-border-strong);
-    border-radius: 8px;
-    padding: 6px;
+    border-radius: 12px;
+    padding: 5px;
     box-shadow: 0 12px 35px var(--mnt-shadow-color);
   }
 
@@ -660,32 +574,11 @@
     background: none;
     color: var(--mnt-text);
     padding: 10px 12px;
-    border-radius: 5px;
+    border-radius: 8px;
   }
 
   .context-menu button:hover,.context-menu button:focus {
     background: var(--mnt-border);
-  }
-
-  .icon-preview {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin: 18px 0;
-    color: var(--mnt-text-muted);
-    font-size: 12px;
-    line-height: 1.5;
-  }
-
-  .icon-preview .shortcut-icon {
-    flex: none;
-    width: 56px;
-    height: 56px;
-  }
-
-  .modal {
-    max-height: 90vh;
-    overflow: auto;
   }
 
   /* Website editor */
@@ -1002,29 +895,6 @@
     font-size: 14px;
   }
 
-  @media (max-width:800px) {
-    .layout-split {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
-    }
-
-    .layout-split .overview,.layout-split.layout-reverse .overview {
-      border: 0;
-      padding: 0;
-      width: 100%;
-    }
-
-    .layout-split .bookmarks {
-      width: 100%;
-    }
-
-    .layout-split.layout-reverse .bookmarks {
-      order: -1;
-    }
-
-  }
-
   /* Unified controls: rounded, accent-led, same across drawer and dialogs */
   input[type=checkbox] {
     appearance: none;
@@ -1179,11 +1049,6 @@
     outline-offset: 2px;
   }
 
-  .reset {
-    border-radius: 10px;
-    transition: border-color .15s,color .15s;
-  }
-
   .reset:hover {
     border-color: var(--mnt-accent);
     color: var(--mnt-text);
@@ -1201,19 +1066,6 @@
 
   .editor-cancel:hover {
     border-color: var(--mnt-accent);
-  }
-
-  .context-menu {
-    border-radius: 12px;
-    padding: 5px;
-  }
-
-  .context-menu button {
-    border-radius: 8px;
-  }
-
-  .modal {
-    border-radius: 16px;
   }
 
   .drawer input[type=range]:not([type=x]):not([type=y]) {
