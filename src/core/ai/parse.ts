@@ -9,7 +9,9 @@ export type Reading =
 
 const JSON_LANGS = new Set(['json', 'jsonc', 'json5'])
 const CSS_LANGS = new Set(['css', 'scss', 'less'])
-const looksLikeCss = (code: string) => /[^{}]+\{[^{}]*:[^{}]*\}/.test(code) && !/^\s*[{[]/.test(code)
+// A selector character, then a block with a declaration. `[^{}:]*:` fixes where the colon is, so a long reply
+// without braces (or a block full of colons) is scanned in linear time.
+const looksLikeCss = (code: string) => /[^{}]\{[^{}:]*:[^{}]*\}/.test(code) && !/^\s*[{[]/.test(code)
 
 function classify(lang: string, code: string): Candidate | undefined {
   const trimmed = code.trim()

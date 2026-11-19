@@ -51,6 +51,16 @@ describe('extractCandidates', () => {
   })
 })
 
+describe('extractCandidates on long input', () => {
+  it('classifies large brace-less or colon-heavy text in linear time', () => {
+    const started = performance.now()
+    for (const reply of ['a'.repeat(50_000), ' '.repeat(50_000) + 'x', 'a{' + ':'.repeat(50_000), 'x'.repeat(50_000) + '{a:b}']) extractCandidates(reply)
+    expect(performance.now() - started).toBeLessThan(500)
+    expect(extractCandidates('x'.repeat(50_000) + '{a:b}')).toHaveLength(1)
+    expect(extractCandidates('a{' + ':'.repeat(1000))).toHaveLength(0)
+  })
+})
+
 describe('autoFix', () => {
   it('repairs colours, units and key case and says what it did', () => {
     const { value, fixes } = autoFix({ theme: { color: { bg: '0e1116', text: '#FFF', accent: '#7ee0c3' }, Radius: '12px' } })
