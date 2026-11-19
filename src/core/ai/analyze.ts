@@ -2,7 +2,7 @@ import type { z } from 'zod'
 import type { Language } from '../../i18n'
 import { CSS_API_CLASSES } from '../css/api'
 import { findCssPitfalls, type CssPitfall } from '../css/pitfalls'
-import { sanitizeCss, type CssIssue } from '../css/sanitize'
+import { sanitizeCss, type CssIssue, type SanitizedCss } from '../css/sanitize'
 import { isAssetFont, isFontKey } from '../font'
 import { profileIssues, type ProfileIssue, type ProfileV2 } from '../schema/profile'
 import { localizeIssue } from '../schema/issueMessages'
@@ -55,10 +55,10 @@ function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
 
 const fieldProblem = (issue: ProfileIssue): Problem => ({ kind: 'field', path: issue.path, expected: issue.expected, value: issue.value })
 
-function cssWarnings(pack: AiPack, language?: Language): Warning[] {
+/** `result` is the sanitizer's verdict on `pack.css`, already computed while looking for problems. */
+function cssWarnings(pack: AiPack, result: SanitizedCss | undefined, language?: Language): Warning[] {
   const css = pack.css?.trim()
-  if (!css) return []
-  const result = sanitizeCss(css)
+  if (!css || !result) return []
   const warnings: Warning[] = []
   const lines = css.split('\n').length
   if (lines > MAX_CSS_LINES) warnings.push({ kind: 'css-lines', lines })
@@ -106,12 +106,10 @@ export function analyzeCandidate(candidate: Candidate, profile: ProfileV2, langu
   const parts = partsOf(pack)
   const problems: Problem[] = []
   if (!PACK_PARTS.some(part => parts[part])) problems.push({ kind: 'empty' })
-  if (parts.css && typeof pack.css === 'string') {
-    const result = sanitizeCss(pack.css!)
-    for (const issue of result.errors) problems.push({ kind: 'css', issue })
-  }
+  const sanitized = parts.css && typeof pack.css === 'string' ? sanitizeCss(pack.css) : undefined
+  for (const issue of sanitized?.errors ?? []) problems.push({ kind: 'css', issue })
   const merged = applyPack(profile, pack)
   if (!problems.length) for (const issue of profileIssues(merged, language)) problems.push(fieldProblem(issue))
   if (problems.length) return { fixes, problems, warnings, parts }
-  return { fixes, problems, warnings: [...warnings, ...themeWarnings(merged, pack), ...cssWarnings(pack, language)], pack, parts }
+  return { fixes, problems, warnings: [...warnings, ...themeWarnings(merged, pack), ...cssWarnings(pack, sanitized, language)], pack, parts }
 }
