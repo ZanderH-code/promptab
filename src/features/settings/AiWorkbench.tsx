@@ -202,6 +202,11 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
     className="sd-code" data-user-content aria-label={t('ai.reply')} value={state.reply} rows={api ? 6 : 8} spellCheck={false} autoCapitalize="off" autoCorrect="off" wrap="off"
     placeholder={t('ai.replyPlaceholder')} onChange={event => edit({ reply: event.target.value, pick: 0 })}
   />
+  // Progress and errors show next to whatever sent the request: step 2 at first, the review once there is one.
+  const requestStatus = api && <>
+    {connection.sending && <p className="sd-ai-progress" role="status">{t('ai.byok.sending')}</p>}
+    {connection.error && <p className="sd-ai-problem" role="alert">{t(connection.error)}</p>}
+  </>
   const packName = analysis?.pack?.meta?.name
   const packDescription = analysis?.pack?.meta?.description
 
@@ -238,8 +243,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
               <button id="byok-send-button" type="button" className="sd-button sd-primary" disabled={connection.sending || !connection.ready} onClick={generate}>{t('ai.byok.send')}</button>
               {connection.sending && <button type="button" className="sd-button" onClick={connection.cancel}>{t('ai.byok.cancel')}</button>}
             </div>
-            {connection.sending && <p className="sd-ai-progress" role="status">{t('ai.byok.sending')}</p>}
-            {connection.error && <p className="sd-ai-problem" role="alert">{t(connection.error)}</p>}
+            {!hasReply && requestStatus}
             <details className="sd-ai-more">
               <summary>{t('ai.rawReply')}</summary>
               {replyBox}
@@ -312,7 +316,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
 
               <div className="sd-css-actions">
                 {needsFix && (
-                  <button type="button" className="sd-button" disabled={connection.sending} onClick={() => api ? askForChange(true) : void copy(buildErrorFeedback(t, analysis.problems, ctx.s.language, analysis.warnings), 'ai.copied')}>
+                  <button type="button" className="sd-button" disabled={api && (connection.sending || !connection.ready)} onClick={() => api ? askForChange(true) : void copy(buildErrorFeedback(t, analysis.problems, ctx.s.language, analysis.warnings), 'ai.copied')}>
                     {t(api ? 'ai.askFix' : analysis.problems.length ? 'ai.copyErrors' : 'ai.copyAdvice')}
                   </button>
                 )}
@@ -337,6 +341,7 @@ export function AiWorkbench({ ctx }: { ctx: Ctx }) {
               )}
             </>
           )}
+          {requestStatus}
         </section>
       )}
 
