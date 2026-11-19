@@ -77,7 +77,8 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
 
   useEffect(() => {
     let alive = true, imageObjectUrl = '', videoObjectUrl = '', posterObjectUrl = ''
-    setUrl(imageReference ? readWallpaperPreview(imageReference) ?? '' : '')
+    const preview = imageReference ? readWallpaperPreview(imageReference) : null
+    setUrl(preview ?? '')
     setVideoUrl(''); setPosterUrl('')
     const timer = setTimeout(() => {
       void Promise.all([
@@ -91,7 +92,8 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
         if (!alive) return
         if (image) {
           imageObjectUrl = URL.createObjectURL(image); setUrl(imageObjectUrl)
-          if (imageReference) void writeWallpaperPreview(imageReference, image)
+          // Asset IDs are content hashes, so a preview stored for this reference is already current.
+          if (imageReference && preview === null) void writeWallpaperPreview(imageReference, image)
         }
         if (video) { videoObjectUrl = URL.createObjectURL(video); setVideoUrl(videoObjectUrl) }
         if (poster) { posterObjectUrl = URL.createObjectURL(poster); setPosterUrl(posterObjectUrl) }
