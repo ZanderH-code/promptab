@@ -6,7 +6,7 @@ import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform
 import { brandCandidate } from './brandIndex'
 
 /** Re-exported so a brand shortcut that only stores a slug can use the lazy chunk it already needs. */
-export { loadBrand } from './brandShards'
+export { BRAND_SHARD_COUNT, loadBrand, loadBrandShard } from './brandShards'
 
 export const ICON_CACHE_TTL_MS = 6048e5
 export const ICON_NEGATIVE_TTL_MS = 36e5

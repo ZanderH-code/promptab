@@ -11,9 +11,11 @@ async function save(page: Page) {
   await expect(page.locator('.shortcut-editor')).toHaveCount(0)
 }
 
-test('saved brand icons render without requesting the brand catalog chunk', async ({ page }) => {
+const isBrandShard = (url: string) => /\/brands\/\d+\.json$/.test(new URL(url).pathname)
+
+test('saved brand icons render without requesting the brand catalog', async ({ page }) => {
   const requests: string[] = []
-  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/brand-catalog.json')) requests.push(request.url()) })
+  page.on('request', request => { if (isBrandShard(request.url())) requests.push(request.url()) })
   await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
@@ -40,7 +42,7 @@ test('saved brand icons render without requesting the brand catalog chunk', asyn
 
 test('brand catalog loads on demand and chosen icons survive reload', async ({ page }) => {
   const requests: string[] = []
-  page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/brand-catalog.json')) requests.push(request.url()) })
+  page.on('request', request => { if (isBrandShard(request.url())) requests.push(request.url()) })
   await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
@@ -49,7 +51,7 @@ test('brand catalog loads on demand and chosen icons survive reload', async ({ p
   await page.locator('.icon-choice').filter({ hasText: '品牌图标' }).click()
   expect(requests).toHaveLength(0)
   await page.getByLabel('搜索品牌').focus()
-  await expect.poll(() => requests.length).toBe(1)
+  await expect.poll(() => new Set(requests).size).toBe(128)
   await page.getByLabel('搜索品牌').fill('github')
   await page.getByRole('button', { name: 'GitHub', exact: true }).click()
   await page.getByLabel('图标颜色').selectOption('custom')

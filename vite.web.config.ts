@@ -2,18 +2,10 @@ import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
-import * as icons from 'simple-icons'
 
 export default defineConfig({
   plugins: [
     react(),
-    {
-      name: 'promptab-web-brand-catalog',
-      generateBundle() {
-        const catalog = Object.values(icons).map(({ title, slug, path, hex }) => ({ title, slug, path, hex }))
-        this.emitFile({ type: 'asset', fileName: 'brand-catalog.json', source: `${JSON.stringify(catalog)}\n` })
-      },
-    },
     VitePWA({
       base: '/promptab/app/',
       registerType: 'prompt',
@@ -43,7 +35,7 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/promptab/app/index.html',
         globPatterns: ['**/*.{html,js,css,ico,png,svg,webmanifest,woff2,json}'],
-        globIgnores: ['manifest.json', 'brand-catalog.json', 'brand-index.json', 'brands/**'],
+        globIgnores: ['manifest.json', 'brand-index.json', 'brands/**'],
         cleanupOutdatedCaches: true,
       },
     }),
@@ -64,6 +56,8 @@ export default defineConfig({
   base: '/promptab/app/',
   define: { __WEB_BUILD__: 'true' },
   build: {
+    // Every supported browser has native modulepreload; skip the polyfill on the startup path.
+    modulePreload: { polyfill: false },
     outDir: 'dist-web',
     emptyOutDir: true,
     rollupOptions: {
