@@ -12,7 +12,7 @@ import { applyPack, exportThemePack } from './apply'
 import { EXAMPLES } from './examples'
 import { autoFix } from './fix'
 import { extractCandidates } from './parse'
-import { buildPromptPack, slimSchema } from './prompt'
+import { buildPromptPack, buildRefinePrompt, pageContext, slimSchema } from './prompt'
 import { buildErrorFeedback, problemText } from './report'
 
 const asset = `mnt-asset:${'c'.repeat(64)}`
@@ -378,6 +378,30 @@ describe('applyPack', () => {
   })
 })
 
+describe('applyPack palettes', () => {
+  const light = { bg: '#f3ecdf', text: '#2f2a24', accent: '#9a4a28' }
+  const dark = { bg: '#0e1116', text: '#e6edf3', accent: '#7ee0c3' }
+  const withLight = { ...profile, theme: { ...profile.theme, mode: 'system' as const, colorLight: { ...light, surface: '#ffffff' } } }
+
+  it('switches to light when a pack only brings a light palette', () => {
+    const next = applyPack(profile, { kind: 'mnt.theme-pack', packVersion: 2, theme: { colorLight: light } })
+    expect(next.theme.mode).toBe('light')
+    expect(next.theme.colorLight?.bg).toBe(light.bg)
+  })
+
+  it('lets a dark-only palette show in light mode instead of keeping the old light palette', () => {
+    const next = applyPack(withLight, { kind: 'mnt.theme-pack', packVersion: 2, theme: { color: dark } })
+    expect(next.theme.color.bg).toBe(dark.bg)
+    expect(next.theme.colorLight).toBeUndefined()
+    expect(next.theme.mode).toBe('system')
+  })
+
+  it('keeps the light palette when a pack does not recolour', () => {
+    const next = applyPack(withLight, { kind: 'mnt.theme-pack', packVersion: 2, theme: { radius: 4 } })
+    expect(next.theme.colorLight?.bg).toBe(light.bg)
+  })
+})
+
 describe('buildPromptPack', () => {
   for (const language of ['zh-CN', 'en'] as const) {
     it(`names the whole CSS API, the schema and both examples (${language})`, () => {
@@ -408,6 +432,27 @@ describe('buildPromptPack', () => {
     expect(prompt).not.toContain('Private Site')
     expect(prompt).not.toContain('mnt-asset:')
     expect(prompt).toContain('"accent": "#90d5cd"')
+  })
+
+  it('describes the page around the theme without names, addresses or wallpaper', () => {
+    const prompt = buildPromptPack({ language: 'en', page: profile, scheme: 'light' })
+    expect(prompt).toContain("The user's page as it is now")
+    expect(prompt).toContain('currently showing dark')
+    expect(prompt).toContain('image wallpaper')
+    expect(prompt).toContain('`clock` → clock')
+    for (const secret of ['secret.example.org', 'Private Site', 'mnt-asset:', 'Favorites']) expect(prompt).not.toContain(secret)
+    expect(pageContext({ ...profile, theme: { ...profile.theme, mode: 'system' } }, 'zh-CN', 'light')).toContain('现在显示的是浅色')
+  })
+
+  it('asks for a change to an existing pack, briefly in the same chat or in full for a fresh request', () => {
+    const pack = EXAMPLES[0].pack
+    const short = buildRefinePrompt({ language: 'en', pack, change: 'a little darker' })
+    expect(short).toContain('a little darker')
+    expect(short).toContain(pack.meta!.name!)
+    expect(short).not.toContain('Field reference')
+    const full = buildRefinePrompt({ language: 'en', pack, change: 'a little darker', full: true, page: profile })
+    expect(full).toContain('Field reference')
+    expect(full.indexOf('Field reference')).toBeLessThan(full.indexOf('a little darker'))
   })
 
   it('keeps the slim schema in step with the real schema keys', () => {

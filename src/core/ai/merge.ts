@@ -39,14 +39,18 @@ export function applyPack(profile: ProfileV2, pack: AiPack, parts: Iterable<Pack
 
   if (chosen.has('theme') && pack.theme && Object.keys(pack.theme).length) {
     const { color, colorLight, font, mode, ...rest } = pack.theme
-    const { preset: _preset, ...theme } = profile.theme
+    const { preset: _preset, colorLight: currentLight, ...theme } = profile.theme
+    // A new palette for one mode only must still show: a dark palette replaces the old light one (light mode
+    // falls back to it), and a light palette with no mode switches to light.
+    const keepLight = colorLight ? withSurface(colorLight, (bg) => lightSurface(bg)) : color ? undefined : currentLight
+    const nextMode = mode ?? (colorLight && !color ? 'light' : undefined)
     next = {
       ...next,
       theme: {
         ...theme, ...rest,
-        ...(mode ? { mode } : {}),
+        ...(keepLight ? { colorLight: keepLight } : {}),
+        ...(nextMode ? { mode: nextMode } : {}),
         ...(color ? { color: withSurface(color, darkSurface) } : {}),
-        ...(colorLight ? { colorLight: withSurface(colorLight, (bg) => lightSurface(bg)) } : {}),
         ...(font ? { font: { display: font.display ?? theme.font.display, ui: font.ui ?? theme.font.ui } } : {}),
       },
     }
