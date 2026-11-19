@@ -21,7 +21,10 @@ function DropGroup({ id, children }: { id: string; children: React.ReactNode }) 
   return <div ref={setNodeRef} data-drop-group={id}>{children}</div>
 }
 export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, onOnboardingAction, t, onGroups, onEdit, onRemove, onMove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: Props) {
-  const [selected, setSelected] = useState<string[]>([])
+  const [picked, setSelected] = useState<string[]>([])
+  // Websites can disappear by other routes (single delete, undo, import): only count what is still there.
+  const present = new Set(groups.flatMap(group => group.items.map(item => item.id)))
+  const selected = picked.filter(id => present.has(id))
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const [dialog, setDialog] = useState<{ kind: 'name'; id?: string; value: string; invalid?: boolean } | { kind: 'delete-group'; id: string } | { kind: 'delete-selected' } | null>(null)
   const sensors = useSensors(

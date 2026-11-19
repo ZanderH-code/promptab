@@ -112,4 +112,16 @@ describe('bookmark folders', () => {
     fireEvent.keyDown(within(dialog).getByRole('textbox', { name: 'Group name' }), { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Add group' })).not.toBeInTheDocument()
   })
+
+  it('counts only selected websites that still exist after one is deleted elsewhere', async () => {
+    const groups = [{ ...first, collapsed: false }, { ...second, collapsed: false }]
+    const { rerender } = render(<ShortcutGrid {...makeProps(groups)} editing />)
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Select Beta' })).toBeEnabled(), { timeout: 10000 })
+    for (const name of ['Alpha', 'Beta', 'Gamma']) fireEvent.click(screen.getByRole('checkbox', { name: `Select ${name}` }))
+    expect(screen.getByText('3 selected')).toBeInTheDocument()
+    // A single delete (or undo, or an import) removes Beta without going through the selection toolbar.
+    const withoutBeta = [groups[0], { ...groups[1], items: groups[1].items.filter(item => item.id !== 'Beta') }]
+    rerender(<ShortcutGrid {...makeProps(withoutBeta)} editing />)
+    expect(screen.getByText('2 selected')).toBeInTheDocument()
+  })
 })
