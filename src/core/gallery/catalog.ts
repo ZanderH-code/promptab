@@ -4,6 +4,7 @@ import { areaStyleSchema, variableDeclSchema, widgetSchema } from '../schema/pro
 import { sanitizeCss } from '../css/sanitize'
 import { checkTheme } from '../tokens/quality'
 import { themeColorsFor } from '../tokens/derive'
+import '../../i18n/lazy'
 
 export const MAX_GALLERY_BYTES = 64 * 1024
 export function galleryColors<T>(theme: { mode: string; color: T; colorLight?: T }): T {

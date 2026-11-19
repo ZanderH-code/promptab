@@ -7,6 +7,7 @@ import { RANGES } from '../../core/schema/defaults'
 import { dimToPass, wallpaperContrast } from '../../core/tokens/wallpaper'
 import type { Translate } from '../../i18n'
 import { colorsFor, minContrastFor, type ThemeMode } from './themeApi'
+import '../../i18n/lazy'
 
 const averages = new Map<string, Promise<string | null>>()
 const averageOf = (asset: string) => {

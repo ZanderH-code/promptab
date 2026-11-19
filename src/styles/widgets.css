@@ -230,6 +230,9 @@
     font-size: 10px;
   }
 
+  /* The open-all button shows its icon; a look can show this short text instead. */
+  .mnt-group-open-all-text { display: none; }
+
   .grid {
     display: grid;
   }
@@ -555,7 +558,7 @@
     object-fit: cover;
   }
 
-  .shortcut span:last-child {
+  .shortcut span:last-child:not(.mnt-link-backdrop-image) {
     max-width: 120px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -838,6 +841,15 @@
     white-space: nowrap;
   }
 
+  .tile-controls { margin-top: 16px; }
+  .tile-controls summary { cursor: pointer; color: var(--mnt-text-muted); font-size: 13px; }
+  .tile-controls-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin-top: 12px; }
+  .tile-controls select { min-height: 32px; border: 1px solid var(--mnt-border-strong); border-radius: 8px; background: transparent; color: var(--mnt-text); }
+  .tile-controls .tile-color { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .tile-image-actions { display: flex; align-items: center; gap: 12px; }
+  .tile-range-head { display: flex; align-items: baseline; gap: 12px; }
+  .tile-range-head .editor-link { margin-left: auto; font-size: 12px; }
+  .tile-image-actions img { width: 40px; height: 28px; border-radius: 4px; object-fit: cover; }
   .text-icon-controls {
     display: flex;
     align-items: center;

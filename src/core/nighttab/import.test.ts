@@ -24,7 +24,7 @@ describe('nightTab backup importer', () => {
     const result = parseNightTabBackup(fixture, await baseProfile())
     expect(result.count).toBe(1)
     expect(result.profile.bookmarks.groups.at(-1)).toMatchObject({ name: 'Work', collapsed: true, items: [{ name: 'Docs', url: 'https://docs.example', color: '#123456', icon: 'D', iconMode: 'text' }] })
-    expect(result.profile.theme).toMatchObject({ mode: 'light', color: { accent: '#aabbcc' }, radius: 10, font: { display: 'barlow-condensed', ui: 'system' } })
+    expect(result.profile.theme).toMatchObject({ mode: 'light', color: { accent: '#aabbcc' }, radius: 1.6, font: { display: '"Oswald", "Fjalla One", sans-serif', ui: '"System", "Open Sans", sans-serif' } })
     expect(result.profile.background).toMatchObject({ type: 'gradient', gradient: { angle: 80, stops: ['#101010', '#303030'] } })
     expect(result.warnings).toContain('Ignored unrecognized field: extensionField')
   })
@@ -39,7 +39,7 @@ describe('nightTab backup importer', () => {
   it('maps an unmarked bookmark array cautiously and warns about the missing marker', async () => {
     const result = parseNightTabBackup(JSON.stringify({ bookmark: [{ name: { text: 'Personal', show: true }, collapse: false, toolbar: {}, items: [{ url: 'https://example.org', display: { name: { text: 'Example' }, visual: { type: 'icon', icon: { name: 'globe' } } }, color: { by: 'theme' } }] }] }), await baseProfile())
     expect(result.count).toBe(1)
-    expect(result.profile.bookmarks.groups.at(-1)).toMatchObject({ name: 'Personal', items: [{ name: 'Example', iconMode: 'lucide', iconName: 'globe' }] })
+    expect(result.profile.bookmarks.groups.at(-1)).toMatchObject({ name: 'Personal', items: [{ name: 'Example', iconMode: 'brand', iconName: 'fa-globe', iconColorMode: 'accent', brand: { slug: 'fa-globe', viewBox: '0 0 496 512' } }] })
     expect(result.warnings).toContain('Backup is missing the nightTab format marker; imported recognized fields only')
   })
 })
@@ -82,10 +82,10 @@ const fullBackup = {
 }
 
 describe('nightTab 7 backup', () => {
-  it('maps brand icons to automatic icons and generic Font Awesome icons to built-in ones', async () => {
+  it('draws Font Awesome icons from the bundled subset and falls back to automatic icons', async () => {
     const { profile } = parseNightTabBackup(JSON.stringify(fullBackup), await baseProfile())
     const items = profile.bookmarks.groups.at(-1)!.items
-    expect(items.map(link => [link.name, link.iconMode, link.iconName])).toEqual([['GitHub', 'auto', undefined], ['Mail', 'lucide', 'mail'], ['Rare', 'auto', undefined], ['News', 'text', undefined], ['Art', 'text', undefined]])
+    expect(items.map(link => [link.name, link.iconMode, link.iconName])).toEqual([['GitHub', 'brand', 'fa-github'], ['Mail', 'brand', 'fa-envelope'], ['Rare', 'auto', undefined], ['News', 'text', undefined], ['Art', 'text', undefined]])
     expect(items[3]).toMatchObject({ icon: 'NW', color: '#010203' })
     expect(items[4]).toMatchObject({ icon: 'A', color: '#102030' })
   })
@@ -96,11 +96,13 @@ describe('nightTab 7 backup', () => {
     expect(widget('clock')).toMatchObject({ hidden: false, props: { hours: true, minutes: true, seconds: true, hour12: true, separator: '.' } })
     expect(widget('date')).toMatchObject({ hidden: false, props: { format: 'custom', weekday: true, day: true, month: true, year: false, weekdayStyle: 'short', monthStyle: 'long', ordinal: true, weekStart: 'sunday', separator: '/', order: ['weekday', 'month', 'day', 'year'] } })
     expect(profile.search.engines.find(engine => engine.id === profile.search.defaultEngineId)).toMatchObject({ name: 'Docs', template: 'https://docs.example/search?term={query}' })
-    expect(profile.prefs).toMatchObject({ openSearchInNewTab: true, openShortcutsInNewTab: true, liftOnHover: true, accentOnOpen: 'random', pageTitle: 'My desk' })
+    // The nightTab hover comes with the look, so Promptab's own lift is off.
+    expect(profile.prefs).toMatchObject({ openSearchInNewTab: true, openShortcutsInNewTab: true, liftOnHover: false, accentOnOpen: 'random', pageTitle: 'My desk' })
     expect(profile.layout.align).toBe('top-left')
-    expect(profile.theme).toMatchObject({ scale: 1.2, radius: 12, mode: 'dark', color: { accent: '#ff5500' } })
-    expect(widget('bookmarks')).toMatchObject({ props: { style: 'list', showUrl: true } })
-    expect(warnings).toEqual(expect.arrayContaining([expect.stringContaining('image background'), expect.stringContaining('1 saved nightTab themes')]))
+    expect(profile.theme).toMatchObject({ scale: 1.2, radius: 1.92, shadow: 18.75, mode: 'dark', color: { accent: '#ff5500' } })
+    expect(profile.layout.contentWidth).toBe(1920)
+    expect(widget('bookmarks')).toMatchObject({ props: { style: 'block', showUrl: true, groupDisplay: 'sections', openAll: true } })
+    expect(warnings).toEqual(expect.arrayContaining([expect.stringContaining('Background image: download https://images.example/wall.jpg'), expect.stringContaining('1 saved nightTab themes')]))
     expect(() => parseProfileV2(profile)).not.toThrow()
   })
 
@@ -123,5 +125,56 @@ describe('nightTab 7 backup', () => {
     expect(profile.search.defaultEngineId).toBe('duckduckgo')
     expect(new Set(profile.search.engines.map(engine => engine.id)).size).toBe(profile.search.engines.length)
   })
-})
 
+  it('turns each website\'s nightTab display into tile settings the website editor can change', async () => {
+    const backup = structuredClone(fullBackup)
+    const link = item('https://tiles.example', 'Tiles', { show: false, size: 50 })
+    link.display = { ...link.display, direction: 'horizontal', order: 'name-visual', gutter: 50, rotate: 15, name: { ...link.display.name, show: false, size: 14 } }
+    backup.bookmark[0].items = [{ ...link, border: 2, shape: { wide: true, tall: false }, color: { by: 'custom', ...color(1, 2, 3), opacity: 20 } }]
+    const { profile } = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    expect(profile.bookmarks.groups.at(-1)!.items[0].tile).toEqual({ span: 'wide', background: '#010203', opacity: 20, border: 8, direction: 'horizontal', nameFirst: true, hideName: true, hideIcon: true, gap: 1.25, iconScale: 2, nameScale: 2, rotate: 15 })
+    expect(() => parseProfileV2(profile)).not.toThrow()
+  })
+
+  it('keeps the imported look adjustable: sizes, wallpaper and nightTab options become settings', async () => {
+    const backup = structuredClone(fullBackup) as typeof fullBackup & { state: Record<string, unknown> }
+    backup.state.header.clock.size = 250
+    backup.state.header.search.size = 80
+    backup.state.toolbar = { location: 'corner', position: 'top-right', size: 150, accent: { show: true }, add: { show: false }, edit: { show: true } }
+    backup.state.bookmark = { ...backup.state.bookmark, size: 115, line: { show: false }, hoverScale: { show: true }, shadow: { show: false } }
+    backup.state.theme.background.image = { ...backup.state.theme.background.image, opacity: 40, blur: 6, grayscale: 30, scale: 120, vignette: { opacity: 25, start: 90, end: 40 } }
+    const current = await baseProfile()
+    current.custom.values = { '--nt-width': 33, '--mine': 2 }
+    const { profile, warnings } = parseNightTabBackup(JSON.stringify(backup), current)
+    const size = (type: string) => (profile.widgets.find(entry => entry.type === type)!.props as { size?: number }).size
+    expect([size('clock'), size('date'), size('search'), size('bookmarks')]).toEqual([2.5, undefined, 0.8, 1.15])
+    // A corner toolbar sits outside the zoomed layout, so it also carries nightTab's overall size.
+    expect(size('toolbar')).toBe(1.8)
+    // No image is chosen yet: its look waits for the file.
+    expect(profile.background).toMatchObject({ type: 'theme', nextLook: { opacity: 40, blur: 6, grayscale: 30, scale: 1.2, vignette: 25 } })
+    const variables = Object.fromEntries(profile.custom.variables.map(variable => [variable.name, variable]))
+    expect(Object.keys(variables)).toEqual(['--nt-width', '--nt-padding', '--nt-gutter', '--nt-search-opacity', '--nt-toolbar-opacity', '--nt-open-all-opacity', '--nt-line', '--nt-hover-zoom', '--nt-hover-shadow'])
+    expect(variables['--nt-width']).toMatchObject({ type: 'range', min: 0, max: 100, unit: '', default: 80, label: { en: 'nightTab layout width (% of window)' } })
+    expect([variables['--nt-line'].default, variables['--nt-hover-zoom'].default, variables['--nt-hover-shadow'].default]).toEqual([0, 1, 0])
+    // Values for the old look's variables are dropped; other values stay.
+    expect(profile.custom.values).toEqual({ '--mine': 2 })
+    const css = profile.custom.css
+    expect(css).toContain('--nt-010: var(--mnt-bg)')
+    expect(css).toContain('--nt-radius: calc(var(--mnt-radius) * var(--nt-unit))')
+    expect(css).toContain('var(--mnt-shadow-strength, 40)')
+    expect(css).toContain('[data-show-url] .mnt-bookmark-block .mnt-link::after')
+    expect(css).not.toMatch(/\.wallpaper-media[^{]*\{[^}]*!important/)
+    expect(warnings).toEqual(expect.arrayContaining([expect.stringContaining('The nightTab look follows your settings')]))
+    expect(() => parseProfileV2(profile)).not.toThrow()
+  })
+
+  it('applies the wallpaper look to an image the person already chose', async () => {
+    const current = await baseProfile()
+    current.background = { type: 'image', dim: 20, image: { asset: 'mnt-asset:wall', blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' } }
+    const backup = structuredClone(fullBackup)
+    backup.state.theme.background.image = { ...backup.state.theme.background.image, opacity: 70, grayscale: 100, vignette: { opacity: 40, start: 90, end: 50 } }
+    const { profile } = parseNightTabBackup(JSON.stringify(backup), current)
+    expect(profile.background).toMatchObject({ type: 'image', dim: 0, image: { asset: 'mnt-asset:wall', opacity: 70, grayscale: 100, vignette: 40, scale: 1, position: 'center' } })
+    expect(profile.background.nextLook).toBeUndefined()
+  })
+})

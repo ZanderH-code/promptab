@@ -12,6 +12,7 @@ import { SearchTermsContext } from './searchHighlight'
 import { useConfirm } from './ConfirmDialog'
 import { TABS, itemsFor, type Ctx, type Item, type TabId } from './rows'
 import { RESETTABLE, defaultProfile, resetSection, type ResettableTab } from './sectionDefaults'
+import '../../i18n/lazy'
 
 type Props = {
   store: StoreApi<ProfileStore>

@@ -39,6 +39,7 @@ function themeProperties(profile: ProfileV2, mode: ThemeMode, accent = selectedA
   const shadowAlpha = theme.shadow * (mode === 'dark' ? 1 : 0.4)
   tokens['--mnt-shadow-color'] = `color-mix(in oklch, var(--mnt-black) ${shadowAlpha}%, transparent)`
   tokens['--mnt-radius'] = `${theme.radius}px`
+  tokens['--mnt-shadow-strength'] = String(theme.shadow)
   tokens['--mnt-font-ui'] = fontStack(theme.font.ui)
   tokens['--mnt-font-display'] = fontStack(theme.font.display)
   tokens['--mnt-density'] = String(DENSITY[theme.density])

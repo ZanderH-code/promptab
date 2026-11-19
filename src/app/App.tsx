@@ -311,20 +311,26 @@ export default function App() {
       <h1 className="visually-hidden">Promptab</h1>
       {imageStyle && (
         <div className="wallpaper" aria-hidden="true">
-          <div className="wallpaper-image" style={imageStyle} />
+          <div className="wallpaper-media" style={{ opacity: (profile!.background.image!.opacity ?? 100) / 100 }}><div className="wallpaper-image" style={imageStyle} /></div>
+          {!!profile!.background.tint && <div className="wallpaper-tint" style={{ '--mnt-wallpaper-tint': `${profile!.background.tint}%` } as CSSProperties} />}
           <div className="wallpaper-shade" />
           <div className="wallpaper-vignette" style={{ '--vignette': `${profile!.background.image!.vignette}%` } as CSSProperties} />
         </div>
       )}
       {videoBackground && wallpaper.videoUrl && wallpaper.posterUrl && (
         <div className="wallpaper" aria-hidden="true">
-          <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url(\"${wallpaper.posterUrl}\")` }} />}>
-            <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} reduceMotion={profile!.prefs.reduceMotion} />
-          </Suspense>
+          <div className="wallpaper-media" style={{ opacity: (videoBackground.opacity ?? 100) / 100 }}>
+            <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url(\"${wallpaper.posterUrl}\")` }} />}>
+              <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} reduceMotion={profile!.prefs.reduceMotion} />
+            </Suspense>
+          </div>
+          {!!profile!.background.tint && <div className="wallpaper-tint" style={{ '--mnt-wallpaper-tint': `${profile!.background.tint}%` } as CSSProperties} />}
           <div className="wallpaper-shade" />
+          {!!videoBackground.vignette && <div className="wallpaper-vignette" style={{ '--vignette': `${videoBackground.vignette}%` } as CSSProperties} />}
         </div>
       )}
-      {!(profile && ['banner', 'icon-split'].includes(detectTemplate(profile)) && profile.widgets.some(widget => widget.type === 'toolbar' && !widget.hidden && widget.area === (detectTemplate(profile) === 'banner' ? 'banner' : 'overview') && widget.props.actions?.includes('settings'))) && <header className="mnt-header">
+      {/* A visible toolbar with its own settings button replaces the corner entry, so the page never shows two. */}
+      {!(profile && profile.widgets.some(widget => widget.type === 'toolbar' && !widget.hidden && (widget.props.actions ?? ['add', 'edit', 'settings']).includes('settings'))) && <header className="mnt-header">
         <button className="settings-button mnt-settings-entry" onClick={() => openSettings()} aria-label={t('settings.open')}><SettingsIcon size={20} strokeWidth={1.5} aria-hidden="true" /> <span>{t('settings.button')}</span></button>
       </header>}
       {editMode && <nav className="edit-toolbar" aria-label={t('edit.toolbar')}>
@@ -353,6 +359,7 @@ export default function App() {
         onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
         onGroups={update => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, bookmarks: { ...p.bookmarks, groups: update(p.bookmarks.groups) } }), undefined, true))}
         onGroupContextMenu={(event, group) => openMenu(event, 'group', { clamp: true, group })}
+        onOpenAll={openGroupLinks}
         onEdit={setEditing}
         onRemove={removeShortcut}
         onMove={openMoveDialog}
@@ -360,6 +367,7 @@ export default function App() {
         onBookmarkContextMenu={(event: ContextMenuEvent, shortcut: Shortcut) => openMenu(event, 'shortcut', { clamp: true, shortcut })}
         onOpenSettings={section => openSettings(section)}
         onEnterEditMode={() => setEditMode(true)}
+        onAccent={accent => patch({ accent })}
         onWidgetChange={(widgetId, update) => run((st, id) => st.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, widgets: p.widgets.map(item => item.id === widgetId ? update(item as never) : item) })))}
       />}
 

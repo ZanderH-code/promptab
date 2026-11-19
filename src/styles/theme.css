@@ -49,6 +49,9 @@
 
   .wallpaper-video-poster { transition: opacity 180ms ease-out; }
 
+  .wallpaper-media, .wallpaper-tint { position: absolute; inset: 0; }
+  .wallpaper-tint { background: color-mix(in srgb, var(--mnt-accent) var(--mnt-wallpaper-tint, 0%), transparent); }
+
   .wallpaper-shade {
     position: absolute;
     inset: 0;

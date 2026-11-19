@@ -11,6 +11,7 @@ import { ColorField, RangeField, Row, Toggle, type RowState } from '../controls'
 import { AreaGridPreview } from '../AreaGridPreview'
 import { layoutDefaults, maxColumnsDefault, widgetDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
   const [value, setValue] = useState(checked)
@@ -146,7 +147,7 @@ export function layoutItems(ctx: Ctx): Item[] {
     node: <div className="sd-note"><strong>{widgetLabel(widget)}{widget.hidden && <span className="sd-muted"> · {t('settings.widgetHidden')}</span>}</strong>
       <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areas.map(area => ({ value: area, label: areaLabel(area) }))} onChange={area => change(p => touch({ ...p, widgets: p.widgets.map(item => item.id === widget.id ? { ...item, area } : item) }))} /></Row>
       <Row label={t('settings.widgetOrder')}><button className="sd-button" disabled={widget.order <= 0} onClick={() => widgetMove(widget.id, -1)}>↑</button><button className="sd-button" onClick={() => widgetMove(widget.id, 1)}>↓</button></Row>
-      <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={0.5} max={3} step={0.1} changed={!!widgetFallback && (widget.props.size ?? 1) !== widgetFallback.size} onReset={widgetFallback ? () => patchWidget(widget.id, { size: widgetFallback.size }) : undefined} resetLabel={resetLabel('settings.widgetSize')} onChange={size => patchWidget(widget.id, { size })} />
+      <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={RANGES.widgetSize.min} max={RANGES.widgetSize.max} step={0.1} changed={!!widgetFallback && (widget.props.size ?? 1) !== widgetFallback.size} onReset={widgetFallback ? () => patchWidget(widget.id, { size: widgetFallback.size }) : undefined} resetLabel={resetLabel('settings.widgetSize')} onChange={size => patchWidget(widget.id, { size })} />
       <Row label={t('settings.widgetAlign')} changed={!!widgetFallback && (widget.props.align ?? 'center') !== widgetFallback.align} onReset={widgetFallback ? () => patchWidget(widget.id, { align: widgetFallback.align }) : undefined} resetLabel={resetLabel('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget(widget.id, { align })} /></Row>
       {widget.type === 'clock' && <Toggle label={t('settings.widgetEyebrow')} checked={widget.props.eyebrow === true} onChange={eyebrow => patchWidget(widget.id, { eyebrow })} />}
       {widget.type === 'greeting' && <Toggle label={t('settings.greetingTransition')} checked={widget.props.transitional === true} onChange={transitional => patchWidget(widget.id, { transitional })} />}

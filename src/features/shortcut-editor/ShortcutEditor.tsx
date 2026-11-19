@@ -1,10 +1,11 @@
 import { Plus, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react'
 import { validateImage } from '../../core/image'
-import type { Shortcut } from '../../core/model'
+import type { Shortcut, TileLook } from '../../core/model'
 import { toMessageRef, type MessageKey, type Translate } from '../../i18n'
 import { WebsiteIcon } from '../../widgets/WebsiteIcon'
 import { emojis, genericIcons, loadBrands, type BrandIcon } from '../../widgets/iconCatalog'
+import '../../i18n/lazy'
 
 type Props = {
   shortcut: Shortcut
@@ -18,11 +19,31 @@ type Props = {
 }
 
 const MAX_ICON_BYTES = 512 * 1024
+const MAX_TILE_IMAGE_BYTES = 5 * 1024 * 1024
+const SPANS = [['', 'editor.tileNormal'], ['wide', 'editor.tileWide'], ['tall', 'editor.tileTall'], ['large', 'editor.tileLarge']] as const
+const POSITIONS = [
+  ['top-left', 'settings.posTopLeft'], ['top-center', 'settings.posTop'], ['top-right', 'settings.posTopRight'],
+  ['center-left', 'settings.posLeft'], ['center-center', 'settings.posCenter'], ['center-right', 'settings.posRight'],
+  ['bottom-left', 'settings.posBottomLeft'], ['bottom-center', 'settings.posBottom'], ['bottom-right', 'settings.posBottomRight'],
+] as const
+
+/** Numeric tile settings: [key, label, min, max, step, value shown when unset, unit]. Unset means the widget style decides. */
+const TILE_RANGES = [
+  ['border', 'editor.tileBorder', 0, 16, 1, 0, 'px'],
+  ['iconScale', 'editor.tileIconScale', 0.25, 8, 0.05, 1, '×'],
+  ['nameScale', 'editor.tileNameScale', 0.25, 4, 0.05, 1, '×'],
+  ['gap', 'editor.tileGap', 0, 5, 0.025, 0.625, 'em'],
+  ['rotate', 'editor.tileRotate', -360, 360, 1, 0, '°'],
+  ['offsetX', 'editor.tileOffsetX', -20, 20, 0.1, 0, 'em'],
+  ['offsetY', 'editor.tileOffsetY', -20, 20, 0.1, 0, 'em'],
+] as const
+const TILE_FLAGS = [['nameFirst', 'editor.tileNameFirst'], ['hideName', 'editor.tileHideName'], ['hideIcon', 'editor.tileHideIcon']] as const
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]):not(.visually-hidden), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, onSave, onError }: Props) {
   const fileInput = useRef<HTMLInputElement>(null)
+  const tileInput = useRef<HTMLInputElement>(null)
   const form = useRef<HTMLFormElement>(null)
   const firstField = useRef<HTMLInputElement>(null)
   const titleId = useId()
@@ -117,6 +138,27 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
     }
   }
 
+  /** Changes the tile look; a value of `undefined` removes that setting, and an empty look removes the tile. */
+  function changeTile(changes: Partial<TileLook>) {
+    const tile: TileLook = { ...shortcut.tile, ...changes }
+    for (const key of Object.keys(tile) as (keyof TileLook)[]) if (tile[key] === undefined) delete tile[key]
+    const { tile: _previous, ...rest } = shortcut
+    onChange(Object.keys(tile).length ? { ...rest, tile } : rest)
+  }
+
+  function uploadTileImage(file?: File) {
+    if (!file) return
+    try {
+      validateImage(file, MAX_TILE_IMAGE_BYTES)
+      const reader = new FileReader()
+      reader.onload = () => changeTile({ image: String(reader.result) })
+      reader.onerror = () => onError('error.readImage')
+      reader.readAsDataURL(file)
+    } catch (error) {
+      onError(toMessageRef(error, 'error.readImage').key)
+    }
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -194,7 +236,7 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
           <div className="text-icon-controls">
             <label className="stack">
               {t('editor.iconText')}
-              <input maxLength={2} value={shortcut.icon} placeholder={shortcut.name.slice(0, 1)} onChange={event => changeIcon(event.target.value)} />
+              <input maxLength={8} value={shortcut.icon} placeholder={shortcut.name.slice(0, 1)} onChange={event => changeIcon(event.target.value)} />
             </label>
             <label>
               {t('editor.iconColor')}
@@ -202,6 +244,38 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
             </label>
           </div>
         )}
+        <details className="tile-controls" open={!!shortcut.tile}>
+          <summary>{t('editor.tile')}</summary>
+          <div className="tile-controls-grid">
+            <label className="stack">{t('editor.tileSize')}<select value={shortcut.tile?.span ?? ''} onChange={event => changeTile({ span: (event.target.value || undefined) as TileLook['span'] })}>{SPANS.map(([value, key]) => <option key={value} value={value}>{t(key)}</option>)}</select></label>
+            <label className="stack">{t('editor.tileAlign')}<select value={shortcut.tile?.align ?? 'center-center'} onChange={event => changeTile({ align: event.target.value === 'center-center' ? undefined : event.target.value as TileLook['align'] })}>{POSITIONS.map(([value, key]) => <option key={value} value={value}>{t(key)}</option>)}</select></label>
+            <label className="tile-color"><input type="checkbox" checked={!!shortcut.tile?.background} onChange={event => changeTile({ background: event.target.checked ? shortcut.color : undefined })} />{t('editor.tileBackground')}{shortcut.tile?.background && <input type="color" aria-label={t('editor.tileBackground')} value={shortcut.tile.background} onChange={event => changeTile({ background: event.target.value })} />}</label>
+            <label className="tile-color"><input type="checkbox" checked={!!shortcut.tile?.accent} onChange={event => changeTile({ accent: event.target.checked ? shortcut.color : undefined })} />{t('editor.tileAccent')}{shortcut.tile?.accent && <input type="color" aria-label={t('editor.tileAccent')} value={shortcut.tile.accent} onChange={event => changeTile({ accent: event.target.value })} />}</label>
+            <label className="stack">{t('editor.tileOpacity')} {shortcut.tile?.opacity ?? 100}%<input type="range" min={0} max={100} value={shortcut.tile?.opacity ?? 100} onChange={event => changeTile({ opacity: Number(event.target.value) === 100 ? undefined : Number(event.target.value) })} /></label>
+            <div className="stack tile-image">
+              <span>{t('editor.tileImage')}</span>
+              <span className="tile-image-actions">
+                {shortcut.tile?.image && <img src={shortcut.tile.image} alt="" />}
+                <button type="button" className="editor-link" onClick={() => tileInput.current?.click()}>{t('editor.tileImageChoose')}</button>
+                {shortcut.tile?.image && <button type="button" className="editor-link" onClick={() => changeTile({ image: undefined, imageOpacity: undefined })}>{t('editor.tileImageRemove')}</button>}
+              </span>
+              <input ref={tileInput} className="visually-hidden" type="file" accept="image/png,image/jpeg,image/webp" aria-label={t('editor.tileImage')} onChange={event => { uploadTileImage(event.target.files?.[0]); event.target.value = '' }} />
+            </div>
+            <label className="stack">{t('editor.tileDirection')}<select value={shortcut.tile?.direction ?? ''} onChange={event => changeTile({ direction: (event.target.value || undefined) as TileLook['direction'] })}><option value="">{t('editor.tileDefault')}</option><option value="vertical">{t('editor.tileVertical')}</option><option value="horizontal">{t('editor.tileHorizontal')}</option></select></label>
+            {TILE_FLAGS.map(([key, label]) => <label key={key} className="tile-color"><input type="checkbox" checked={!!shortcut.tile?.[key]} onChange={event => changeTile({ [key]: event.target.checked || undefined })} />{t(label)}</label>)}
+            {TILE_RANGES.map(([key, label, min, max, step, fallback, unit]) => {
+              const value = shortcut.tile?.[key]
+              return (
+                <div key={key} className="stack tile-range">
+                  <span className="tile-range-head">{t(label)} {value === undefined ? t('editor.tileDefault') : `${value}${unit}`}{value !== undefined && <button type="button" className="editor-link" aria-label={t('editor.tileResetNamed', { name: t(label) })} onClick={() => changeTile({ [key]: undefined })}>{t('editor.tileReset')}</button>}</span>
+                  <input type="range" aria-label={t(label)} min={min} max={max} step={step} value={value ?? fallback} onChange={event => changeTile({ [key]: Number(event.target.value) })} />
+                </div>
+              )
+            })}
+            {shortcut.tile?.image && <label className="stack">{t('editor.tileImageOpacity')} {shortcut.tile.imageOpacity ?? 100}%<input type="range" min={0} max={100} value={shortcut.tile.imageOpacity ?? 100} onChange={event => changeTile({ imageOpacity: Number(event.target.value) })} /></label>}
+          </div>
+          <p className="icon-hint">{t('editor.tileHint')}</p>
+        </details>
         <div className="editor-actions">
           <button type="button" className="editor-cancel" onClick={onClose}>{t('common.cancel')}</button>
           <button className="primary">{t('editor.save')}</button>

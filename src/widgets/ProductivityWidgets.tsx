@@ -5,6 +5,7 @@ import type { Widget } from '../core/schema/profile'
 import { localDay } from '../core/widgets/defaults'
 import type { Translate } from '../i18n'
 import { useDraftText } from '../ui/useDraftText'
+import '../i18n/lazy'
 
 type ProductivityWidget = Extract<Widget, { type: 'todo' | 'note' | 'countdown' }>
 /** Updates are functions of the saved widget, so quick clicks never overwrite each other with a stale copy. */

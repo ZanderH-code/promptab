@@ -15,10 +15,10 @@ type ProfileWidget = ProfileV2['widgets'][number]
 
 function portableWidget(widget: ProfileWidget): ProfileWidget | null {
   const allowed: Partial<Record<ProfileWidget['type'], string[]>> = {
-    clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow'],
-    date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'weekNumber', 'weekStart', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase'],
-    search: ['size', 'align'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor', 'showUrl'],
-    greeting: ['size', 'align', 'transitional'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions'],
+    clock: ['size', 'align', 'hour12', 'seconds', 'hours', 'minutes', 'pad', 'separator', 'separatorSpacing', 'eyebrow', 'words', 'meridiem', 'separatorAccent'],
+    date: ['size', 'align', 'format', 'weekday', 'day', 'month', 'year', 'weekNumber', 'weekStart', 'order', 'separator', 'separatorSpacing', 'weekdayStyle', 'monthStyle', 'ordinal', 'uppercase', 'dayStyle', 'separatorAccent'],
+    search: ['size', 'align', 'namePlaceholder', 'findBookmarks'], bookmarks: ['size', 'align', 'style', 'maxColumns', 'showGroupTitles', 'showAdd', 'iconColor', 'showUrl', 'groupDisplay', 'openAll'],
+    greeting: ['size', 'align', 'transitional'], text: ['size', 'align', 'muted'], spacer: ['size', 'align', 'height'], toolbar: ['size', 'align', 'actions', 'corner', 'style'],
     weather: ['size', 'align', 'unit', 'showForecast'],
   }
   const props = allowed[widget.type]

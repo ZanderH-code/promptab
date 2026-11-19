@@ -42,6 +42,23 @@ export const ATTRIBUTE_NOTES: Record<(typeof CSS_API_ATTRIBUTES)[number], string
   '[data-folder]': 'A folder entry or dialog; its value is the bookmark group ID.',
   '[data-theme-mode="dark"]': 'The page while the dark palette is in use.',
   '[data-theme-mode="light"]': 'The page while the light palette is in use.',
+  '[data-link-id]': 'A website link; its value is the website ID.',
+  '[data-link-url]': 'A website link; its value is the address without scheme or `www.`.',
+  '[data-tile-span="wide"]': 'A website set to span two columns in its editor.',
+  '[data-tile-span="tall"]': 'A website set to span two rows in its editor.',
+  '[data-tile-span="large"]': 'A website set to span two columns and two rows.',
+  '[data-tile-backdrop]': 'A website with its own background colour, image or opacity.',
+  '[data-tile-faint]': 'A website whose own background plate is below 40% opacity.',
+  '[data-tile-hide-icon]': 'A website set to hide its icon in its editor.',
+  '[data-part="hour"]': 'The hour part of the clock.',
+  '[data-part="minute"]': 'The minute part of the clock.',
+  '[data-part="second"]': 'The second part of the clock.',
+  '[data-part="meridiem"]': 'The AM/PM part of a 12-hour clock.',
+  '[data-separator-accent]': 'On the clock or date when its separators use the accent colour.',
+  '[data-corner="top-left"]': 'A toolbar pinned to the top-left corner.',
+  '[data-corner="top-right"]': 'A toolbar pinned to the top-right corner.',
+  '[data-corner="bottom-left"]': 'A toolbar pinned to the bottom-left corner.',
+  '[data-corner="bottom-right"]': 'A toolbar pinned to the bottom-right corner.',
 }
 
 const json = (value: unknown) => JSON.stringify(value, null, 2) + '\n'

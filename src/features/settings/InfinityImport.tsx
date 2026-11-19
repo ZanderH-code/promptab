@@ -3,6 +3,7 @@ import { MAX_BACKUP_JSON_CHARS } from '../../core/backup-v2'
 import { applyInfinityBackup, parseInfinityBackup, type InfinityImportResult, type InfinityNotice } from '../../core/infinity/import'
 import type { MessageKey } from '../../i18n'
 import type { Ctx } from './rows/shared'
+import '../../i18n/lazy'
 
 const noticeKey: Record<InfinityNotice, MessageKey> = {
   wallpaper: 'infinity.noticeWallpaper',

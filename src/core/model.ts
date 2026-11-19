@@ -1,5 +1,12 @@
 import { MessageError } from '../i18n'
 
+/** Per-website tile look. Lengths are in the tile's em; opacities 0-100; border in pixels. */
+export type TileLook = {
+  span?: 'wide' | 'tall' | 'large'; background?: string; image?: string; opacity?: number; imageOpacity?: number; accent?: string; border?: number
+  align?: 'top-left' | 'top-center' | 'top-right' | 'center-left' | 'center-center' | 'center-right' | 'bottom-left' | 'bottom-center' | 'bottom-right'
+  direction?: 'vertical' | 'horizontal'; nameFirst?: boolean; hideName?: boolean; hideIcon?: boolean; gap?: number; iconScale?: number; nameScale?: number; rotate?: number; offsetX?: number; offsetY?: number
+}
+
 export type Shortcut = {
   id: string
   name: string
@@ -10,11 +17,14 @@ export type Shortcut = {
   iconMode?: 'auto' | 'text' | 'brand' | 'lucide' | 'emoji'
   iconName?: string
   iconColorMode?: 'brand' | 'accent' | 'custom'
-  brand?: { slug: string; title: string; path: string; hex: string }
+  /** `viewBox` is set for marks drawn on a box other than 24×24, such as imported Font Awesome icons. */
+  brand?: { slug: string; title: string; path: string; hex: string; viewBox?: string }
   /** Stable identities for generated built-in labels; absent means literal user content. */
   builtinName?: 'sample-website'
   builtinIcon?: 'sample-website'
   builtinGroup?: 'quick-links'
+  /** Tile look; `image` is an `mnt-asset:` reference in the profile and a data URL while loaded in the page. */
+  tile?: TileLook
 }
 
 export type Settings = {

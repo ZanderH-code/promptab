@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ProfileV2 } from '../../core/schema/profile'
 import type { Translate } from '../../i18n'
+import '../../i18n/lazy'
 
 /**
  * A miniature of the committed area grid. It mirrors the page's grid template and column proportions

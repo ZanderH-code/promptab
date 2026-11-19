@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Translate } from '../i18n'
+import '../i18n/lazy'
 
 const shortcuts = [
   ['E', 'keyboard.edit'], ['A', 'keyboard.add'], [',', 'keyboard.settings'],

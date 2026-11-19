@@ -8,6 +8,7 @@ import { assets } from '../../app/useSettings'
 import { createAppProfileStorage, createAppThemeLibrary, type AppProfileStore } from '../../app/useSettings'
 import { useConfirm } from './ConfirmDialog'
 import { SyncSection } from './SyncSection'
+import '../../i18n/lazy'
 
 type Props = { settings: Settings; t: Translate; onError: (error: MessageRef) => void; recovery?: boolean; store?: AppProfileStore }
 

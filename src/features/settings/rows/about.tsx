@@ -2,6 +2,7 @@ import type { ProfileV2 } from '../../../core/schema/profile'
 import { DraftText } from '../../../ui/DraftText'
 import { Row, Toggle } from '../controls'
 import { Select, touch, type Ctx, type Item } from './shared'
+import '../../../i18n/lazy'
 
 export function aboutItems(ctx: Ctx): Item[] {
   const { t, profile, change } = ctx

@@ -112,9 +112,9 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
       for (const file of files) validateImage(file, MAX_WALLPAPER_BYTES)
       const references = await Promise.all(files.map(file => assets.add(file)))
       run((store, id) => store.getState().updateProfile(id, p => {
-        const { rotation: _rotation, ...background } = p.background
+        const { rotation: _rotation, nextLook, ...background } = p.background
         return { ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: {
-          ...background, type: 'image', image: { blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center', ...p.background.image, asset: references[0] },
+          ...background, type: 'image', image: { blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center', ...p.background.image, ...nextLook, asset: references[0] },
           ...(references.length > 1 ? { rotation: { images: references, interval: 'open' as const } } : {}),
         } }
       }))
@@ -127,9 +127,12 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
       validateVideo(file)
       const [asset, poster] = await Promise.all([assets.add(file, MAX_WALLPAPER_VIDEO_BYTES), videoPoster(file)])
       const posterAsset = await assets.add(poster)
-      run((store, id) => store.getState().updateProfile(id, p => ({ ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: {
-        ...p.background, type: 'video', video: { asset, poster: posterAsset, blur: 0, grayscale: 0 },
-      } })))
+      run((store, id) => store.getState().updateProfile(id, p => {
+        // A look waiting for the next wallpaper (set by an import) applies to this video; videos have no zoom.
+        const { nextLook, ...background } = p.background
+        const { scale: _scale, ...look } = nextLook ?? {}
+        return { ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: { ...background, type: 'video', video: { asset, poster: posterAsset, blur: 0, grayscale: 0, ...look } } }
+      }))
     } catch (error) { console.error(error); onError(toMessageRef(error, 'error.saveWallpaper')) }
   }, [onError, run])
 

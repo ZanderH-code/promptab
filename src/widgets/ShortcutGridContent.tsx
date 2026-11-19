@@ -1,6 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { ProfileV2 } from '../core/schema/profile'
-import type { Shortcut } from '../core/model'
+import type { Shortcut, TileLook } from '../core/model'
 import type { Translate } from '../i18n'
 import { WebsiteIcon } from './WebsiteIcon'
 
@@ -66,7 +66,55 @@ export function GroupMenuTrigger({ group, ariaLabel, className, children, onGrou
   }}>{children}</div>
 }
 
+/** Opens every website of a group; shown beside the group name when the websites widget enables it. */
+export function OpenAllButton({ group, label, text, onOpenAll }: { group: ProfileV2['bookmarks']['groups'][number]; label: string; text: string; onOpenAll: (group: ProfileV2['bookmarks']['groups'][number]) => void }) {
+  // Material Design "open in browser" glyph (Apache-2.0). The short text is hidden unless a look shows it instead.
+  return <button type="button" className="mnt-group-open-all" aria-label={label} title={label} onClick={event => { event.stopPropagation(); onOpenAll(group) }}><svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true"><path fill="currentColor" d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h4v-2H5V8h14v10h-4v2h4c1.1 0 2-.9 2-2V6c0-1.1-.89-2-2-2zm-7 6l-4 4h3v6h2v-6h3l-4-4z" /></svg><span className="mnt-group-open-all-text" aria-hidden="true">{text}</span></button>
+}
+
+/** Whether a group heading shows its name and its open-all button in display mode. */
+export function headingParts(group: ProfileV2['bookmarks']['groups'][number], openAll: boolean | undefined, canOpenAll: boolean) {
+  const name = group.showName !== false
+  const open = !!openAll && canOpenAll && group.openAll !== false && group.items.length > 0
+  return { name, open, any: name || open }
+}
+
+/** Black or white text on a colour, whichever reads better (relative luminance threshold 0.55). */
+export function textOn(hex: string): '#000000' | '#ffffff' {
+  const value = Number.parseInt(hex.slice(1), 16)
+  const r = (value >> 16) & 255, g = (value >> 8) & 255, b = value & 255
+  return (0.2721 * r + 0.7152 * g + 0.1255 * b) / 255 < 0.55 ? '#ffffff' : '#000000'
+}
+
+/** Inline custom properties and data attributes for one website's tile look. */
+export function tileProps(tile: TileLook | undefined) {
+  if (!tile) return { style: {} as CSSProperties, data: {} }
+  const style: Record<string, string | number> = {}
+  if (tile.accent) { style['--mnt-accent'] = tile.accent; style['--mnt-on-accent'] = textOn(tile.accent); style['--mnt-accent-soft'] = `color-mix(in oklch, ${tile.accent} 20%, transparent)` }
+  if (tile.background) style['--mnt-tile-bg'] = tile.background
+  if (tile.opacity !== undefined) style['--mnt-tile-opacity'] = tile.opacity / 100
+  if (tile.border !== undefined) style['--mnt-tile-border'] = `${tile.border}px`
+  if (tile.iconScale !== undefined) style['--mnt-tile-icon-scale'] = tile.iconScale
+  if (tile.nameScale !== undefined) style['--mnt-tile-name-scale'] = tile.nameScale
+  if (tile.rotate) style['--mnt-tile-rotate'] = `${tile.rotate}deg`
+  if (tile.offsetX) style['--mnt-tile-x'] = `${tile.offsetX}em`
+  if (tile.offsetY) style['--mnt-tile-y'] = `${tile.offsetY}em`
+  if (tile.gap !== undefined) style['--mnt-tile-gap'] = `${tile.gap}em`
+  const data: Record<string, string> = {}
+  if (tile.span) data['data-tile-span'] = tile.span
+  if (tile.align) data['data-tile-align'] = tile.align
+  if (tile.direction) data['data-tile-direction'] = tile.direction
+  if (tile.nameFirst) data['data-tile-name-first'] = ''
+  if (tile.hideName) data['data-tile-hide-name'] = ''
+  if (tile.hideIcon) data['data-tile-hide-icon'] = ''
+  if (tile.background || tile.image || tile.opacity !== undefined) data['data-tile-backdrop'] = ''
+  if (tile.opacity !== undefined && tile.opacity < 40) data['data-tile-faint'] = ''
+  return { style: style as CSSProperties, data }
+}
+
 const linkHost = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, '') } catch { return undefined } }
+/** The address without scheme, leading www. or trailing slashes, as shown in the hover strip. */
+export const displayUrl = (url: string) => url.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '')
 
 export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, onContextMenu }: {
   item: Shortcut; iconColor: 'per-site' | 'accent'; openInNewTab: boolean; liftOnHover: boolean; t: Translate; onContextMenu: (event: ContextMenuEvent, shortcut: Shortcut) => void
@@ -136,5 +184,6 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
     const rect = event.currentTarget.getBoundingClientRect()
     onContextMenu({ clientX: rect.left, clientY: rect.bottom, focusTarget: event.currentTarget, preventDefault() {}, stopPropagation() {} }, item)
   }
-  return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} title={name} href={item.url} draggable={false} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPress} onPointerCancel={endPress} onClick={onClick}><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
+  const look = tileProps(item.tile)
+  return <a className={`shortcut mnt-link${liftOnHover ? ' mnt-lift-on-hover' : ''}`} data-link-host={linkHost(item.url)} data-link-id={item.id} data-link-url={displayUrl(item.url)} {...look.data} style={look.style} title={name} href={item.url} draggable={false} {...(openInNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})} onContextMenu={openContextMenu} onKeyDown={onKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={endPress} onPointerCancel={endPress} onClick={onClick}><span className="mnt-link-backdrop" aria-hidden="true">{item.tile?.image && <span className="mnt-link-backdrop-image" style={{ backgroundImage: `url("${item.tile.image}")`, opacity: (item.tile.imageOpacity ?? 100) / 100 }} />}</span><span className="shortcut-icon mnt-link-icon" {...(!item.builtinIcon && !item.image ? { 'data-user-content': true } : {})} style={{ '--tile': item.id === 'example' && item.color.toLowerCase() === '#90d5cd' ? 'var(--mnt-accent)' : item.color } as CSSProperties}><WebsiteIcon shortcut={{ ...item, icon, ...(iconColor === 'accent' ? { iconColorMode: 'accent' as const } : {}) }} /></span><span className="mnt-link-name" {...(item.builtinName ? {} : { 'data-user-content': true })}>{name}</span></a>
 }

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { aiEn, aiZh } from './ai'
+import { lazyEn, lazyZh } from './lazy'
 import { en } from './en'
 import { interpolate, MessageError, messagesVersion, registerMessages, subscribeMessages, systemLanguage, toMessageRef, translate } from './index'
 import { zhCN } from './zh-CN'
@@ -21,8 +24,8 @@ describe('i18n', () => {
   })
 
   it('has the same non-empty keys and placeholders in both languages, including the lazy AI set', () => {
-    const english: Record<string, string> = { ...en, ...aiEn }
-    const chinese: Record<string, string> = { ...zhCN, ...aiZh }
+    const english: Record<string, string> = { ...en, ...aiEn, ...lazyEn }
+    const chinese: Record<string, string> = { ...zhCN, ...aiZh, ...lazyZh }
     expect(Object.keys(english).sort()).toEqual(Object.keys(chinese).sort())
     for (const key of Object.keys(chinese)) {
       expect(english[key]!.trim(), `en.${key}`).not.toBe('')
@@ -83,5 +86,26 @@ describe('i18n', () => {
     const error = new MessageError('error.imageType', { size: 5 })
     expect(toMessageRef(error, 'error.saveWallpaper')).toEqual({ key: 'error.imageType', params: { size: 5 } })
     expect(toMessageRef(new Error('boom'), 'error.saveWallpaper')).toEqual({ key: 'error.saveWallpaper' })
+  })
+
+  it('registers lazy messages wherever they are used', () => {
+    const source = join(__dirname, '..')
+    const files: string[] = []
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const path = join(dir, name)
+        if (statSync(path).isDirectory()) walk(path)
+        else if (/\.tsx?$/.test(name) && !/\.test\./.test(name) && !path.includes(`${join('src', 'i18n')}`)) files.push(path)
+      }
+    }
+    walk(source)
+    const keys = Object.keys(lazyZh)
+    const missing = files.filter(file => {
+      const text = readFileSync(file, 'utf8')
+      const prefixes = [...text.matchAll(/`([a-zA-Z][\w.]*)\$\{/g)].map(match => match[1])
+      const uses = keys.some(key => text.includes(`'${key}'`) || text.includes(`"${key}"`) || prefixes.some(prefix => key.startsWith(prefix)))
+      return uses && !/import '(?:\.\.?\/)+(?:i18n\/)?lazy'/.test(text)
+    }).map(file => relative(source, file))
+    expect(missing).toEqual([])
   })
 })

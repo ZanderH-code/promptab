@@ -1318,26 +1318,25 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
 
   const cards = page.locator('.sd-widget-card')
   await expect(cards).toHaveCount(4)
-  // Clock and date keep their disclosure; default rows keep it closed.
-  for (const id of ['widget-clock', 'widget-date']) {
+  // Clock, date and search keep their disclosure; default rows keep it closed.
+  for (const id of ['widget-clock', 'widget-date', 'showSearch']) {
     const card = page.locator(`[data-widget-card="${id}"]`)
     await expect(card.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
     await expect(card.locator('summary')).toHaveAttribute('aria-expanded', 'false')
   }
-  // Search and shortcuts only have a header switch: no summary and no chevron.
-  const searchCard = page.locator('[data-widget-card="showSearch"]')
+  // Websites only has a header switch: no summary and no chevron.
   const shortcutsCard = page.locator('[data-widget-card="widget-shortcuts"]')
-  for (const card of [searchCard, shortcutsCard]) {
+  for (const card of [shortcutsCard]) {
     await expect(card).toHaveClass(/sd-widget-card-plain/)
     await expect(card.locator('input[type=checkbox]')).toHaveCount(1)
     await expect(card.locator('summary')).toHaveCount(0)
     await expect(card.locator('svg')).toHaveCount(0)
   }
   await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
-  // Tab moves straight from one plain switch to the next card.
-  await searchCard.locator('input[type=checkbox]').focus()
+  // Tab moves straight from a plain switch out of its card.
+  await shortcutsCard.locator('input[type=checkbox]').focus()
   await page.keyboard.press('Tab')
-  expect(await page.evaluate(() => document.activeElement?.closest('[data-widget-card]')?.getAttribute('data-widget-card'))).toBe('widget-shortcuts')
+  expect(await page.evaluate(() => document.activeElement?.closest('[data-widget-card]')?.getAttribute('data-widget-card') ?? null)).not.toBe('widget-shortcuts')
 
   // One click opens the clock card; its header switch hides the clock and the card stays open.
   const clockCard = page.locator('[data-widget-card="widget-clock"]')
@@ -1370,7 +1369,7 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
   await dateCard.locator('.sd-widget-switch input[type=checkbox]').click()
   await expect(page.locator('[data-widget="date"]')).toHaveCount(0)
   await expect(dateCard.locator('summary')).toHaveAttribute('aria-expanded', 'true')
-  await searchCard.locator('input[type=checkbox]').click()
+  await page.locator('[data-widget-card="showSearch"] .sd-widget-switch input[type=checkbox]').click()
   await expect(page.locator('[data-widget="search"]')).toHaveCount(0)
   await shortcutsCard.locator('input[type=checkbox]').click()
   await expect(page.locator('[data-widget="bookmarks"]')).toHaveCount(0)

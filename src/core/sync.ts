@@ -30,6 +30,7 @@ export function toSyncPayload(profile: ProfileV2): SyncPayload {
     ...structuredClone(group),
     items: group.items.map(item => {
       const { image: _image, ...bookmark } = structuredClone(item)
+      if (bookmark.tile?.image) { const { image: _tileImage, ...tile } = bookmark.tile; bookmark.tile = tile }
       return bookmark
     }),
   }))
@@ -66,12 +67,16 @@ export function parseSyncPayload(json: string): SyncPayload {
 /** Apply the sync projection while retaining device-local wallpaper, fonts and icon assets. */
 export function mergeSyncedProfile(local: ProfileV2, payload: SyncPayload): ProfileV2 {
   const incoming = payload.profile
-  const localImages = new Map(local.bookmarks.groups.flatMap(group => group.items.map(item => [item.id, item.image] as const)))
+  const localItems = new Map(local.bookmarks.groups.flatMap(group => group.items.map(item => [item.id, item] as const)))
   const groups = incoming.bookmarks.groups.map(group => ({
     ...structuredClone(group),
     items: group.items.map(item => {
-      const image = localImages.get(item.id)
-      return image ? { ...structuredClone(item), image } : structuredClone(item)
+      const next: ProfileV2['bookmarks']['groups'][number]['items'][number] = structuredClone(item)
+      const kept = localItems.get(item.id)
+      if (kept?.image) next.image = kept.image
+      // Tile images stay on this device too, while the rest of the tile look follows the cloud.
+      if (kept?.tile?.image) next.tile = { ...next.tile, image: kept.tile.image }
+      return next
     }),
   }))
   const merged = {

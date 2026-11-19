@@ -4,6 +4,7 @@ import type { StoreApi } from 'zustand/vanilla'
 import type { Language, Translate } from '../../i18n'
 import type { ProfileStore } from '../../store/profile'
 import { useConfirm } from './ConfirmDialog'
+import '../../i18n/lazy'
 
 export type ProfileSectionProps = { store: StoreApi<ProfileStore>; t: Translate; language: Language }
 

@@ -17,6 +17,7 @@ export const RANGES = {
   vignette: { min: 0, max: 100 },
   scale: { min: 0.5, max: 2 },
   contentWidth: { min: 480, max: 1920 },
+  widgetSize: { min: 0.5, max: 5 },
   gap: { min: 0, max: 200 },
 } as const
 
