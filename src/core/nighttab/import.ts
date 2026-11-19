@@ -2,6 +2,7 @@ import type { ProfileV2, Widget } from '../schema/profile'
 import { isHttpUrl } from '../model'
 import { SEARCH_ENGINES } from '../search/engines'
 import { RANGES } from '../schema/defaults'
+import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
 import { primaryRamp, rgbHex, type Ramp } from './palette'
 import { own } from '../own'
 import { clipText, firstChar } from '../text'
@@ -87,8 +88,15 @@ function bookmarkUrl(item: AnyRecord): string {
   try { return ['http:', 'https:'].includes(new URL(candidate).protocol) ? candidate : '' } catch { return '' }
 }
 
-/** A nightTab font name as a font stack with nightTab's own fallbacks; the font itself must be on this computer or uploaded. */
-const fontStack = (name: string, fallback: string) => `"${name.replace(/["\\]/g, '')}", "${fallback}", sans-serif`
+/**
+ * A nightTab font name as a font stack with nightTab's own fallbacks; the font itself must be on this computer or
+ * uploaded. Only characters a plain family list may hold are kept (no quotes, escapes, brackets or line breaks),
+ * so the stack is never dropped when the theme is applied.
+ */
+const fontStack = (name: string, fallback: string) => {
+  const family = name.replace(/[^\p{L}\p{N} ._-]+/gu, ' ').replace(/\s+/g, ' ').trim()
+  return `${family ? `"${family}", ` : ''}"${fallback}", sans-serif`
+}
 
 const ALIGNMENTS = ['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'] as const
 type Alignment = typeof ALIGNMENTS[number]
@@ -401,6 +409,7 @@ function importTheme(theme: AnyRecord, profile: ProfileV2, warnings: string[]) {
 }
 
 export function parseNightTabBackup(json: string, current: ProfileV2): NightTabResult {
+  if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new Error('Invalid nightTab backup size')
   let raw: unknown
   try { raw = JSON.parse(json) } catch { throw new Error('Invalid JSON') }
   const root = record(raw)

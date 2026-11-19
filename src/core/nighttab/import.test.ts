@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { migrateV1 } from '../migrate/v1'
 import { defaults } from '../model'
 import { parseNightTabBackup } from './import'
+import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
+import { isSafeFontRef } from '../css/safeValue'
 import { parseProfileV2 } from '../schema/profile'
 
 const fixture = JSON.stringify({
@@ -48,6 +50,19 @@ describe('nightTab backup importer', () => {
     backup.bookmark[0].items[0].display = { name: { text: '🎵 Music' }, visual: { type: 'image' } }
     const result = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
     expect(result.profile.bookmarks.groups.at(-1)!.items[0].icon).toBe('🎵')
+  })
+
+  it('keeps imported font names to plain family characters', async () => {
+    const backup = JSON.parse(fixture)
+    backup.state.theme.font = { display: { name: 'Evil"\n;}body{x:url(https://evil.test/f)' }, ui: { name: '\u0000"\\' } }
+    const { font } = parseNightTabBackup(JSON.stringify(backup), await baseProfile()).profile.theme
+    expect(font.display).toBe('"Evil body x url https evil.test f", "Fjalla One", sans-serif')
+    expect(font.ui).toBe('"Open Sans", sans-serif')
+    expect(isSafeFontRef(font.display) && isSafeFontRef(font.ui)).toBe(true)
+  })
+
+  it('rejects oversized input before parsing it', async () => {
+    expect(() => parseNightTabBackup(' '.repeat(MAX_BACKUP_JSON_CHARS + 1), {} as never)).toThrow(/size/)
   })
 
   it('warns without throwing for unrecognized structures', async () => {
