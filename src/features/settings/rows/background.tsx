@@ -50,7 +50,8 @@ export function backgroundItems(ctx: Ctx): Item[] {
   })
   const stops = bg.gradient?.stops ?? []
   const angle = bg.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE
-  const setStops = (next: string[]) => setBackground(b => ({ ...b, gradient: { angle: b.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE, stops: next } }))
+  // A function of the saved stops: saves are queued, so quick clicks must not each start from this render's copy.
+  const setStops = (update: (current: string[]) => string[]) => setBackground(b => ({ ...b, gradient: { angle: b.gradient?.angle ?? GRADIENT_DEFAULT_ANGLE, stops: update(b.gradient?.stops ?? []) } }))
   const position = parsePosition(image?.position ?? 'center')
   const defaultPosition = parsePosition(fallback?.image.position ?? 'center')
   const setExact = (x: number, y: number) => setImage({ position: `${x}% ${y}%` })
@@ -98,11 +99,11 @@ export function backgroundItems(ctx: Ctx): Item[] {
           <RangeField t={t} label={t('settings.gradientAngle')} value={angle} min={0} max={360} unit="°" changed={!!fallback && angle !== fallback.gradientAngle} onReset={fallback ? () => setBackground(b => ({ ...b, gradient: { angle: fallback.gradientAngle, stops: b.gradient?.stops ?? stops } })) : undefined} resetLabel={resetLabel('settings.gradientAngle')} onChange={angle => setBackground(b => ({ ...b, gradient: { angle, stops: b.gradient?.stops ?? stops } }))} />
           {stops.map((stop, index) => (
             <div className="sd-stop" key={index}>
-              <ColorField t={t} label={t('settings.gradientStop', { n: index + 1 })} value={stop} onChange={value => setStops(stops.map((item, i) => i === index ? value : item))} />
-              {stops.length > 2 && <button type="button" className="sd-icon-button" aria-label={t('settings.gradientRemove', { n: index + 1 })} onClick={() => setStops(stops.filter((_, i) => i !== index))}><Minus size={16} strokeWidth={1.5} aria-hidden="true" /></button>}
+              <ColorField t={t} label={t('settings.gradientStop', { n: index + 1 })} value={stop} onChange={value => setStops(current => current.map((item, i) => i === index ? value : item))} />
+              {stops.length > 2 && <button type="button" className="sd-icon-button" aria-label={t('settings.gradientRemove', { n: index + 1 })} onClick={() => setStops(current => current.length > 2 ? current.filter((_, i) => i !== index) : current)}><Minus size={16} strokeWidth={1.5} aria-hidden="true" /></button>}
             </div>
           ))}
-          {stops.length < 3 && <button type="button" className="sd-button" onClick={() => setStops([...stops, stops[stops.length - 1] ?? colors.accent])}><Plus size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.gradientAdd')}</button>}
+          {stops.length < 3 && <button type="button" className="sd-button" onClick={() => setStops(current => current.length < 3 ? [...current, current[current.length - 1] ?? colors.accent] : current)}><Plus size={14} strokeWidth={1.5} aria-hidden="true" />{t('settings.gradientAdd')}</button>}
         </div>
       ),
     })

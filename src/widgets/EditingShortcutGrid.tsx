@@ -78,13 +78,15 @@ export function EditingShortcutGrid({ groups, shortcuts, editing, onboarding, on
     if (!targetGroup) return
     if (target.startsWith('group:') && targetGroup.id === currentGroup?.id) return
     if (!target.startsWith('group:') && targetGroup.id === currentGroup?.id) {
-      const groupItems = targetGroup.items.map(item => item.id)
-      const from = groupItems.indexOf(activeId), to = groupItems.indexOf(target)
-      if (from < 0 || to < 0) return
-      const reordered = [...groupItems]
-      reordered.splice(from, 1)
-      reordered.splice(to, 0, activeId)
-      update(current => current.map(group => group.id === targetGroup.id ? { ...group, items: reordered.map(id => group.items.find(item => item.id === id)!) } : group))
+      // Reorder the saved group, not this render's copy: an earlier save may still be on its way.
+      update(current => current.map(group => {
+        if (group.id !== targetGroup.id) return group
+        const from = group.items.findIndex(item => item.id === activeId), to = group.items.findIndex(item => item.id === target)
+        if (from < 0 || to < 0) return group
+        const items = [...group.items]
+        items.splice(to, 0, ...items.splice(from, 1))
+        return { ...group, items }
+      }))
       return
     }
     move(selected.includes(activeId) ? selected : [activeId], targetGroup.id, target.startsWith('group:') ? undefined : target)

@@ -10,6 +10,7 @@ import type { ProfileStore } from '../../store/profile'
 import { SettingsDrawer, initialTab, matches } from './SettingsDrawer'
 import { parsePosition } from './rows'
 import { STARTER_SITES } from '../../core/starter-sites'
+import { createProductivityWidget } from '../../core/widgets/defaults'
 
 vi.mock('./BackupSection', () => ({ BackupSection: () => <p>backup-stub</p> }))
 vi.mock('./ProfileSection', () => ({ ProfileSection: () => <p>profiles-stub</p> }))
@@ -40,6 +41,41 @@ const lastUpdate = (props: ReturnType<typeof setup>) => {
   const call = props.onProfileChange.mock.calls.at(-1)!
   return { next: (call[0] as (p: ProfileV2) => ProfileV2)(structuredClone(props.profile)), kind: call[1] as string | undefined }
 }
+
+/** Saves are queued: every update must compose with the ones before it, like the store applies them. */
+const applyAll = (props: ReturnType<typeof setup>) => props.onProfileChange.mock.calls.reduce((profile, [update]) => (update as (p: ProfileV2) => ProfileV2)(profile), structuredClone(props.profile))
+
+describe('SettingsDrawer queued changes', () => {
+  it('rotates the date order once per click before the profile comes back', () => {
+    const props = setup({ initialSection: 'widgets' })
+    const date = props.profile.widgets.find(widget => widget.type === 'date')!
+    expect(date).toBeDefined()
+    const button = screen.getByRole('button', { name: 'Show weekday → Show month → Show day → Show year' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    const next = applyAll(props).widgets.find(widget => widget.id === date.id)!
+    expect(next.props).toMatchObject({ order: ['day', 'year', 'weekday', 'month'] })
+  })
+
+  it('adds one todo per click before the profile comes back', () => {
+    const profile = structuredClone(base)
+    profile.widgets = [...profile.widgets, createProductivityWidget('todo', profile.widgets[0].area, 'todo-1')]
+    const props = setup({ profile, initialSection: 'widgets' })
+    fireEvent.click(screen.getByRole('button', { name: 'Add todo' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add todo' }))
+    const todo = applyAll(props).widgets.find(widget => widget.id === 'todo-1')!
+    expect(todo.type === 'todo' && todo.props.items).toHaveLength(2)
+  })
+
+  it('never removes a gradient below two stops from a stale copy', () => {
+    const gradient = structuredClone(base)
+    gradient.background = { ...gradient.background, type: 'gradient', gradient: { angle: 90, stops: ['#000000', '#888888', '#ffffff'] } }
+    const props = setup({ profile: gradient, initialSection: 'background' })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove stop 1' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove stop 2' }))
+    expect(applyAll(props).background.gradient?.stops).toEqual(['#888888', '#ffffff'])
+  })
+})
 
 describe('SettingsDrawer tabs', () => {
   it('sets and clears the tab title in About', () => {
