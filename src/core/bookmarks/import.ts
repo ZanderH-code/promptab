@@ -1,6 +1,7 @@
 import type { ProfileV2 } from '../schema/profile'
 import type { Shortcut } from '../model'
 import { domainSiteName, knownSiteName, tidyImportedTitle } from '../siteName'
+import { firstChar } from '../text'
 
 export type BookmarkNode = { id: string; title?: string; url?: string; children?: BookmarkNode[] }
 export type BookmarkFolder = { id: string; path: string; count: number }
@@ -50,7 +51,7 @@ export function importBookmarkFolders(tree: BookmarkNode[], selectedIds: string[
       const name = titleIsHost
         ? knownSiteName(url) || domainSiteName(url) || host
         : tidyImportedTitle(rawTitle, url) || rawTitle || domainSiteName(url) || host
-      return { id: `bookmark-${crypto.randomUUID()}`, name, url, color: '#90d5cd', icon: name.slice(0, 1).toUpperCase(), iconMode: 'auto' as const }
+      return { id: `bookmark-${crypto.randomUUID()}`, name, url, color: '#90d5cd', icon: firstChar(name).toUpperCase(), iconMode: 'auto' as const }
     })
     return items.length ? [{ name: folder.path, items }] : []
   })

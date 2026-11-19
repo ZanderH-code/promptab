@@ -4,6 +4,7 @@ import { SEARCH_ENGINES } from '../search/engines'
 import { RANGES } from '../schema/defaults'
 import { primaryRamp, rgbHex, type Ramp } from './palette'
 import { own } from '../own'
+import { clipText, firstChar } from '../text'
 import { nightTabLook } from './look'
 import { FONT_AWESOME } from './fontAwesome'
 
@@ -152,9 +153,9 @@ function importBookmarks(root: AnyRecord, profile: ProfileV2, warnings: string[]
       const tile = tileOf(item, warnings, name)
       const color = customColor(item.color) ?? customColor(item.accent) ?? colorOf(first(record(item.style).color)) ?? profile.theme.color.accent
       if (visual?.mode === 'auto' && visual.image) warnings.push(`Website "${name}" uses the icon image ${visual.image}. Save that file, then choose it in the website's editor under Icon → Image.`)
-      const letter = (visual?.mode === 'text' ? visual.icon : '') || text(first(item.letter, typeof item.icon === 'string' ? item.icon : undefined, item.text)) || name.slice(0, 1).toUpperCase()
+      const letter = (visual?.mode === 'text' ? visual.icon : '') || text(first(item.letter, typeof item.icon === 'string' ? item.icon : undefined, item.text)) || firstChar(name).toUpperCase()
       const id = `nighttab-${groupIndex}-${index}-${crypto.randomUUID()}`
-      const base = { id, name, url, color, icon: letter.slice(0, 8), ...(tile ? { tile } : {}) }
+      const base = { id, name, url, color, icon: clipText(letter, 8), ...(tile ? { tile } : {}) }
       if (visual?.mode === 'fa') return [{ ...base, iconMode: 'brand', iconName: `fa-${visual.name}`, iconColorMode: 'accent', brand: { slug: `fa-${visual.name}`, title: visual.title, path: visual.path, hex: '000000', viewBox: `0 0 ${visual.width} 512` } }]
       if (visual?.mode === 'lucide') return [{ ...base, iconMode: 'lucide', iconName: visual.iconName }]
       if (visual?.mode === 'auto') return [{ ...base, iconMode: 'auto' }]

@@ -43,6 +43,13 @@ describe('nightTab backup importer', () => {
     expect(result.profile.custom.css).not.toMatch(/function|\[object/)
   })
 
+  it('keeps emoji letter icons whole', async () => {
+    const backup = JSON.parse(fixture)
+    backup.bookmark[0].items[0].display = { name: { text: '🎵 Music' }, visual: { type: 'image' } }
+    const result = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    expect(result.profile.bookmarks.groups.at(-1)!.items[0].icon).toBe('🎵')
+  })
+
   it('warns without throwing for unrecognized structures', async () => {
     const result = parseNightTabBackup(JSON.stringify({ exportVersion: 1, mystery: true }), await baseProfile())
     expect(result.count).toBe(0)

@@ -3,6 +3,7 @@ import type { ProfileV2 } from '../schema/profile'
 import { SEARCH_ENGINES } from '../search/engines'
 import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
 import { suggestSiteName } from '../siteName'
+import { clipText, firstChar } from '../text'
 
 const infinitySchema = z.object({
   version: z.literal('v2'),
@@ -101,7 +102,7 @@ function makeLink(value: unknown, index: number, counts: Pick<InfinitySummary, '
   const nameIsUrl = !rawName || rawName.toLowerCase() === host.toLowerCase() || /^https?:\/\//i.test(rawName)
   const name = nameIsUrl ? suggestSiteName(url) || rawName || host || 'Website' : rawName
   const bgType = string(item.bgType)
-  const iconText = cleanName(item.bgText, name.slice(0, 1)).slice(0, 8)
+  const iconText = clipText(cleanName(item.bgText, firstChar(name)), 8)
   const iconColor = bgType === 'color' ? color(item.bgColor) : undefined
   counts.links++
   return {
@@ -109,7 +110,7 @@ function makeLink(value: unknown, index: number, counts: Pick<InfinitySummary, '
     name,
     url,
     color: iconColor ?? FALLBACK_COLOR,
-    icon: iconText || name.slice(0, 1) || '•',
+    icon: iconText || firstChar(name) || '•',
     iconMode: bgType === 'color' ? 'text' as const : 'auto' as const,
   }
 }

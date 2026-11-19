@@ -4,6 +4,7 @@ import { cachedFavicon, faviconCacheKey, initialFaviconSources } from '../core/f
 import type { KnownBrand } from '../core/brandShards'
 import type { Shortcut } from '../core/model'
 import { brandIconColor } from '../core/tokens/iconContrast'
+import { firstChar } from '../core/text'
 
 type Status = 'loading' | 'found' | 'missing'
 type IconShortcut = Omit<Shortcut, 'iconMode'> & { iconMode?: 'auto' | 'text' | 'brand' | 'lucide' | 'emoji'; iconName?: string; iconColorMode?: 'brand' | 'accent' | 'custom' }
@@ -87,7 +88,7 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   // Automatic marks take the brand hex by default; a manual mark only when the user chose "brand",
   // which keeps stored shortcuts rendering as they did before automatic brands existed.
   const color = (hex?: string, auto?: boolean) => shortcut.iconColorMode === 'accent' ? 'var(--mnt-accent)' : shortcut.iconColorMode === 'custom' ? shortcut.color : hex && (auto || shortcut.iconColorMode === 'brand') ? brandIconColor(hex, shortcut.color) : undefined
-  const letter = shortcut.name.trim().slice(0, 1).toUpperCase() || '•'
+  const letter = firstChar(shortcut.name).toUpperCase() || '•'
   const textFallback = shortcut.icon || letter
   if (automatic || (shortcut.iconMode === 'brand' && !source)) {
     const brand = (automatic ? undefined : shortcut.brand) ?? currentAutoState.brand

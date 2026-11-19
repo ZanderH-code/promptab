@@ -35,6 +35,14 @@ async function profile() {
 }
 
 describe('Infinity backup importer', () => {
+  it('keeps emoji letter icons whole', async () => {
+    const input = JSON.parse(fixture)
+    input.data.site.sites[1].push({ type: 'web', name: '🎵 Music', target: 'https://music.example', bgType: 'color', bgColor: '#123456' }, { type: 'web', name: 'Clip', target: 'https://clip.example', bgType: 'color', bgColor: '#123456', bgText: '1234567🎵' })
+    const items = parseInfinityBackup(JSON.stringify(input), await profile()).profile.bookmarks.groups.flatMap(group => group.items)
+    expect(items.find(item => item.url === 'https://music.example')?.icon).toBe('🎵')
+    expect(items.find(item => item.url === 'https://clip.example')?.icon).toBe('1234567')
+  })
+
   it.each([false, true])('applies against the latest profile (replace=%s)', async replace => {
     const current = await profile()
     parseInfinityBackup(fixture, current) // Preview before subsequent edits.
