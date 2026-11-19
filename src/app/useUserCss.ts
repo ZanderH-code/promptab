@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { checkSettingsEntry, type EntryCheck } from '../core/css/reach'
 import type { ProfileV2 } from '../core/schema/profile'
+import { pageTransitionDone } from '../ui/motion'
 import { assets } from './useSettings'
 
 export const USER_CSS_ID = 'mnt-user-css'
@@ -56,6 +57,7 @@ export function useUserCss({ profile, safe, ready, onUnreachable, onReachable }:
       if (!alive) { objectUrls.forEach(URL.revokeObjectURL); return }
       style.textContent = resolveCssAssets(result.layered, resolved)
       document.head.append(style)
+      await pageTransitionDone()
       await settled()
       if (!alive) return
       const check = checkSettingsEntry()

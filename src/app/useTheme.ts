@@ -75,6 +75,8 @@ export function useThemeTokens(profile: ProfileV2 | null, mode: ThemeMode | unde
         : undefined
     root.dataset.theme = mode
     root.dataset.glass = profile.theme.glass > 0 ? 'on' : 'off'
+    // CSS and ui/motion read the in-app motion setting from here; `system` defers to the OS preference.
+    root.dataset.reduceMotion = profile.prefs.reduceMotion
     for (const [name, value] of Object.entries(properties)) root.style.setProperty(name, value)
     try {
       if (cache) localStorage.setItem('mnt:theme-cache:v1', JSON.stringify({ mode, system: profile.theme.mode === 'system', glass: root.dataset.glass, background, accentMode: profile.prefs.accentOnOpen, accentVariants, properties: Object.fromEntries(Object.entries(properties).filter(([name]) => name.startsWith('--mnt-'))) }))

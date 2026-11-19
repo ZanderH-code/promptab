@@ -1,0 +1,27 @@
+/*
+ * Interface motion (docs/DESIGN.md §3.4, §7). Only opacity, translate and scale move, and only in answer to
+ * something the person did: nothing animates when the page first appears and nothing loops. Every rule sits
+ * behind `prefers-reduced-motion: no-preference` and the in-app "Reduce motion" setting (data-reduce-motion).
+ */
+@layer widgets {
+  @keyframes mnt-fade-in { from { opacity: 0; } }
+  @keyframes mnt-rise-in { from { opacity: 0; translate: 0 6px; } }
+  @keyframes mnt-drop-in { from { opacity: 0; translate: 0 -4px; } }
+
+  @media (prefers-reduced-motion: no-preference) {
+    :root:not([data-reduce-motion="on"]) {
+      /* Overlays the person opens. */
+      .modal-backdrop { animation: mnt-fade-in var(--mnt-dur-base) var(--mnt-ease); }
+      .modal { animation: mnt-rise-in var(--mnt-dur-base) var(--mnt-ease); }
+      .context-menu, .dropdown-content { animation: mnt-drop-in var(--mnt-dur-fast) var(--mnt-ease); transform-origin: top; }
+      .undo-toast { animation: mnt-rise-in var(--mnt-dur-base) var(--mnt-ease); }
+
+      /* A pressed website tile gives a little. */
+      .shortcut-icon, .add-shortcut span { transition: transform .2s, scale var(--mnt-dur-fast) var(--mnt-ease); }
+      .shortcut:active .shortcut-icon, .add-shortcut:active span { scale: .94; }
+
+    }
+    /* A theme switch fades between the old and new colours instead of jumping (see ui/motion.ts). */
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--mnt-dur-base); animation-timing-function: var(--mnt-ease); }
+  }
+}
