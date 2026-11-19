@@ -138,7 +138,8 @@ export function ShortcutLink({ item, iconColor, openInNewTab, liftOnHover, t, on
   }
   const cancelLongPress = () => { if (pressTimer.current !== undefined) window.clearTimeout(pressTimer.current); pressTimer.current = undefined; clearMoveListener() }
   const endPress = () => { cancelLongPress(); moved.current = false }
-  useEffect(() => clearMoveListener, [])
+  // Unmounting mid-press must not leave the timer to open a menu for a detached tile.
+  useEffect(() => cancelLongPress, [])
   const onPointerDown = (event: ReactPointerEvent<HTMLAnchorElement>) => {
     if (event.pointerType !== 'touch' || event.button !== 0) return
     cancelLongPress()
