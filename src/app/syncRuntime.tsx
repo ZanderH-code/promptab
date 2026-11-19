@@ -14,14 +14,15 @@ type Storage = {
 }
 type ChangeListener = (changes: Record<string, unknown>, area: string) => void
 type Base = { local: string; cloud: string }
-type Snapshot = { available: boolean; ready: boolean; enabled: boolean; busy: boolean; conflict: boolean; canUndo: boolean; status: SyncMessage | null }
+// `requested` is the switch position the person just chose, shown until the queued change has run.
+type Snapshot = { available: boolean; ready: boolean; enabled: boolean; requested: boolean | null; busy: boolean; conflict: boolean; canUndo: boolean; status: SyncMessage | null }
 const ENABLED = 'mnt.sync.enabled'
 const BASE = 'mnt.sync.base'
 const SYNC_LOCK = 'mnt.sync'
 type SyncLock = (task: () => Promise<void>) => Promise<void>
 // Every open tab runs a controller; one at a time may read the cloud, the base and the profile and act on them.
 const browserLock: SyncLock = async task => { if (typeof navigator !== 'undefined' && navigator.locks) await navigator.locks.request(SYNC_LOCK, task); else await task() }
-let snapshot: Snapshot = { available: false, ready: false, enabled: false, busy: false, conflict: false, canUndo: false, status: null }
+let snapshot: Snapshot = { available: false, ready: false, enabled: false, requested: null, busy: false, conflict: false, canUndo: false, status: null }
 const listeners = new Set<() => void>()
 const set = (patch: Partial<Snapshot>) => { snapshot = { ...snapshot, ...patch }; listeners.forEach(fn => fn()) }
 export const useSyncStatus = () => useSyncExternalStore(fn => { listeners.add(fn); return () => { listeners.delete(fn) } }, () => snapshot)
@@ -112,7 +113,7 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
     await reconcile()
   })
   return {
-    enable: (value: boolean) => run(async () => {
+    enable: (value: boolean) => { set({ requested: value }); return run(async () => {
       if (!value) {
         await api.local.set({ [ENABLED]: false }); conflict = null; undoProfile = null
         set({ enabled: false, conflict: false, canUndo: false, status: 'disabled' }); return
@@ -123,7 +124,7 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
       set({ enabled: true, status: null })
       if (cloud) { conflict = cloud; set({ conflict: true }) }
       else { base = null; await api.local.remove(BASE); await publish() }
-    }),
+    }).finally(() => { if (snapshot.requested === value) set({ requested: null }) }) },
     keepLocal: () => run(async () => {
       if (!conflict || !snapshot.enabled) return
       const latest = await readSyncStorage(api.sync)

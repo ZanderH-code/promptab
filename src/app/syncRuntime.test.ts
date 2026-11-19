@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react'
+import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { defaults } from '../core/model'
 import { migrateV1 } from '../core/migrate/v1'
@@ -66,6 +66,24 @@ describe('sync runtime', () => {
     for (const store of stores) expect(store.getState().profiles.main.theme.color.accent).toBe('#123456')
     expect((await readSyncStorage(area(w.sync)))!.profile.theme.color.accent).toBe('#123456')
     status.unmount()
+  })
+
+  it('shows the chosen switch position at once and settles on the stored one', async () => {
+    const w = await world()
+    w.local['mnt.sync.enabled'] = false
+    const status = renderHook(() => useSyncStatus())
+    let release!: () => void
+    const held = new Promise<void>(resolve => { release = resolve })
+    const lock = (task: () => Promise<void>) => held.then(task)
+    const controller = createSyncController(await w.store(), { local: area(w.local), sync: area(w.sync) }, lock)
+    let done!: Promise<void>
+    act(() => { done = controller.enable(true) })
+    // The lock is still held by another tab, yet the switch already shows what was chosen.
+    expect(status.result.current).toMatchObject({ requested: true })
+    await act(async () => { release(); await done })
+    expect(status.result.current).toMatchObject({ requested: null, enabled: true })
+    expect(w.local['mnt.sync.enabled']).toBe(true)
+    controller.stop()
   })
 
   it('merges a pulled profile into a local edit committed meanwhile', async () => {
