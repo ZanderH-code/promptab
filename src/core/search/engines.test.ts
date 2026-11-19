@@ -27,6 +27,12 @@ describe('search engine presets', () => {
     }
   })
 
+  it('recognizes Google country domains but not company hosts that start with google', () => {
+    const google = SEARCH_ENGINES[0].host
+    for (const host of ['google.com', 'www.google.com', 'www.google.co.uk', 'www.google.com.hk', 'google.de']) expect(google.test(host)).toBe(true)
+    for (const host of ['google.mycorp.example', 'search.google.internal.example', 'notgoogle.com', 'google.example']) expect(google.test(host)).toBe(false)
+  })
+
   it('keeps Baidu available to legacy migration recognition only', () => {
     expect(LEGACY_SEARCH_ENGINES.find(engine => engine.id === 'baidu')).toMatchObject({
       name: { 'zh-CN': '百度', en: 'Baidu' },

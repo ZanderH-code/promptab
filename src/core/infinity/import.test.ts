@@ -35,6 +35,13 @@ async function profile() {
 }
 
 describe('Infinity backup importer', () => {
+  it('keeps a custom engine on a host that merely starts with google', async () => {
+    const input = JSON.parse(fixture)
+    input.data.searcher.searchEngine.custom.push({ name: 'Intranet', target: 'https://google.mycorp.example/find?q=%s' })
+    const engines = parseInfinityBackup(JSON.stringify(input), await profile()).profile.search.engines
+    expect(engines.some(engine => engine.name === 'Intranet' && engine.template.startsWith('https://google.mycorp.example/find?q='))).toBe(true)
+  })
+
   it('keeps emoji letter icons whole', async () => {
     const input = JSON.parse(fixture)
     input.data.site.sites[1].push({ type: 'web', name: '🎵 Music', target: 'https://music.example', bgType: 'color', bgColor: '#123456' }, { type: 'web', name: 'Clip', target: 'https://clip.example', bgType: 'color', bgColor: '#123456', bgText: '1234567🎵' })
