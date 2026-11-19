@@ -63,6 +63,8 @@ test('a changed cloud profile is applied and can be undone', async ({ page }) =>
   const toggle = page.getByRole('checkbox', { name: 'Sync this profile across devices' })
   await toggle.check()
   await expect(toggle).toBeChecked()
+  // The switch moves at once; the first upload finishes a moment later.
+  await expect(page.getByRole('status').filter({ hasText: 'Profile synced.' })).toBeVisible()
 
   await page.evaluate(async () => {
     const storage = window.chrome as unknown as { storage: { sync: { get(keys: null): Promise<Record<string, unknown>> }; __syncData: Record<string, unknown>; __notify(changes: Record<string, { newValue?: unknown }>, area: string): void } }

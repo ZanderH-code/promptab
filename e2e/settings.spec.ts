@@ -14,6 +14,8 @@ async function launch(page: Page) {
 async function openDrawer(page: Page) {
   await page.locator('.mnt-settings-entry').first().click()
   await expect(page.getByRole('dialog')).toBeVisible()
+  // The drawer slides in and the scrim fades in; contrast and hit tests need them at rest.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished)))
 }
 
 async function openStyle(page: Page) {
