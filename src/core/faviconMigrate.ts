@@ -1,5 +1,5 @@
 import { extensionApi } from '../platform/extension'
-import { ICON_CACHE_KEY, ICON_STALE_TTL_MS, readIconCache } from './favicon'
+import { ICON_STALE_TTL_MS, readIconCache, writeIconCache } from './favicon'
 import { loadBrand } from './brandShards'
 
 const V2_KEY = 'mnt.iconCache:v2'
@@ -48,7 +48,7 @@ export async function migrateV2() {
     }
   }
   try {
-    localStorage.setItem(ICON_CACHE_KEY, JSON.stringify(entries))
+    writeIconCache(entries)
     await storage.remove?.([V2_KEY])
   } catch { /* Migration is best effort; discovery still runs. */ }
 }

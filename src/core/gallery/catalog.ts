@@ -10,6 +10,19 @@ export const MAX_GALLERY_BYTES = 64 * 1024
 export function galleryColors<T>(theme: { mode: string; color: T; colorLight?: T }): T {
   return theme.mode === 'light' && theme.colorLight ? theme.colorLight : theme.color
 }
+const EXTERNAL_URL = /(?:https?:)?\/\/|\b(?:ftp|file):/i
+
+/** CSS text with escapes (`\2f`, `\/`) decoded, so an escaped URL cannot dodge the plain-text check. */
+export function decodeCssEscapes(css: string): string {
+  return css.replace(/\\(?:([\da-f]{1,6})[ \t\n\f]?|\r\n|([\s\S]))/gi, (_match, hex: string | undefined, char: string | undefined) => {
+    if (hex) {
+      const code = Number.parseInt(hex, 16)
+      return code > 0 && code <= 0x10ffff && (code < 0xd800 || code > 0xdfff) ? String.fromCodePoint(code) : '\ufffd'
+    }
+    return char === undefined || char === '\n' || char === '\r' || char === '\f' ? '' : char
+  })
+}
+
 const metadata = z.object({ name: z.string().trim().min(1), author: z.string().trim().min(1), tags: z.array(z.string().trim().min(1)).min(1).max(12), prompt: z.object({ en: z.string().trim().min(1), 'zh-CN': z.string().trim().min(1) }).strict() }).passthrough()
 
 /** Gallery entries are ordinary AI packs with additional, strictly checked metadata. */
@@ -18,7 +31,8 @@ export function validateGalleryPack(value: unknown): string[] {
   let json: string
   try { json = JSON.stringify(value) ?? '' } catch { return ['Invalid JSON value'] }
   if (new TextEncoder().encode(json).length > MAX_GALLERY_BYTES) errors.push('Pack exceeds size limit')
-  if (/(?:https?:)?\/\/|\b(?:ftp|file):/i.test(json)) errors.push('External URL is not allowed')
+  const css = value && typeof value === 'object' ? (value as Record<string, unknown>).css : undefined
+  if (EXTERNAL_URL.test(json) || (typeof css === 'string' && EXTERNAL_URL.test(decodeCssEscapes(css)))) errors.push('External URL is not allowed')
   if (!value || typeof value !== 'object' || Array.isArray(value)) return [...errors, 'Pack must be an object']
   const raw = value as Record<string, unknown>
   if (raw.kind !== 'mnt.theme-pack' || raw.packVersion !== 2) errors.push('Gallery requires mnt.theme-pack version 2')

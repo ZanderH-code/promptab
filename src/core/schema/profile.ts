@@ -20,12 +20,15 @@ export const baseColorsSchema = z.object({ bg: color, surface: color, text: colo
 export const fontRefSchema = nonempty
 const label = z.object({ 'zh-CN': nonempty, en: nonempty })
 const variableBase = { name: z.string().regex(/^--[a-zA-Z_][\w-]*$/), label }
-export const variableDeclSchema = z.discriminatedUnion('type', [
-  z.object({ ...variableBase, type: z.literal('range'), min: z.number(), max: z.number(), unit: z.string(), default: z.number() }).refine(v => v.min <= v.max && v.default >= v.min && v.default <= v.max),
+/** A variable declaration whose select options and range unit use the given string rules. */
+export const variableDecl = (option: z.ZodType<string>, unit: z.ZodType<string>) => z.discriminatedUnion('type', [
+  z.object({ ...variableBase, type: z.literal('range'), min: z.number(), max: z.number(), unit, default: z.number() }).refine(v => v.min <= v.max && v.default >= v.min && v.default <= v.max),
   z.object({ ...variableBase, type: z.literal('color'), default: color }),
   z.object({ ...variableBase, type: z.literal('toggle'), default: z.union([z.literal(0), z.literal(1)]) }),
-  z.object({ ...variableBase, type: z.literal('select'), options: z.array(nonempty).min(1), default: nonempty }).refine(v => v.options.includes(v.default)),
+  z.object({ ...variableBase, type: z.literal('select'), options: z.array(option).min(1), default: option }).refine(v => v.options.includes(v.default)),
 ])
+/** Variables as stored in a profile; kept loose so profiles saved by older versions still load. */
+export const variableDeclSchema = variableDecl(nonempty, z.string())
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,
@@ -219,7 +222,8 @@ export type VariableDecl = z.infer<typeof variableDeclSchema>
 
 export type ProfileIssue = { path: string; expected: string; value: string }
 
-function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
+/** One schema issue with its dotted path and the offending value as text. */
+export function describeIssue(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
   const actual = issue.path.reduce<unknown>((current, key) =>
     current != null && typeof current === 'object' ? (current as Record<PropertyKey, unknown>)[key] : undefined, value)
   let display: string
@@ -232,7 +236,7 @@ function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
 export function profileIssues(value: unknown, language?: Language): ProfileIssue[] {
   const result = profileV2Schema.safeParse(value)
   return result.success ? [] : result.error.issues.map(issue => {
-    const described = describe(value, issue)
+    const described = describeIssue(value, issue)
     return language ? localizeIssue(described, language) : described
   })
 }
@@ -241,7 +245,7 @@ export function profileIssues(value: unknown, language?: Language): ProfileIssue
 export function parseProfileV2(value: unknown, language?: Language): ProfileV2 {
   const result = profileV2Schema.safeParse(value)
   if (!result.success) {
-    const described = describe(value, result.error.issues[0])
+    const described = describeIssue(value, result.error.issues[0])
     throw new MessageError('error.profileValidation', { ...(language ? localizeIssue(described, language) : described) })
   }
   return result.data

@@ -7,7 +7,7 @@ import { portableCss, sanitizeCss } from '../css/sanitize'
 import { applyTemplate } from '../layout/profile'
 import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
-import { aiPackSchema, partsOf } from './pack'
+import { aiPackSchema, partsOf, unknownKeys } from './pack'
 import { applyPack, exportThemePack } from './apply'
 import { EXAMPLES } from './examples'
 import { autoFix } from './fix'
@@ -51,11 +51,32 @@ describe('extractCandidates', () => {
   })
 })
 
+describe('extractCandidates on long input', () => {
+  it('classifies large brace-less or colon-heavy text in linear time', () => {
+    const started = performance.now()
+    for (const reply of ['a'.repeat(50_000), ' '.repeat(50_000) + 'x', 'a{' + ':'.repeat(50_000), 'x'.repeat(50_000) + '{a:b}']) extractCandidates(reply)
+    expect(performance.now() - started).toBeLessThan(500)
+    expect(extractCandidates('x'.repeat(50_000) + '{a:b}')).toHaveLength(1)
+    expect(extractCandidates('a{' + ':'.repeat(1000))).toHaveLength(0)
+  })
+})
+
 describe('autoFix', () => {
   it('repairs colours, units and key case and says what it did', () => {
     const { value, fixes } = autoFix({ theme: { color: { bg: '0e1116', text: '#FFF', accent: '#7ee0c3' }, Radius: '12px' } })
     expect(value).toMatchObject({ theme: { color: { bg: '#0e1116', text: '#ffffff' }, radius: 12 } })
     expect(fixes.map(f => f.kind).sort()).toEqual(['color', 'color', 'key', 'number'])
+  })
+})
+
+describe('inherited keys in packs', () => {
+  it('reports constructor and __proto__ as unknown and keeps them ordinary keys', () => {
+    const raw = JSON.parse('{"constructor":{"x":1},"__proto__":{"css":"a{}"},"theme":{"toString":1}}')
+    expect(unknownKeys(raw).sort()).toEqual(['__proto__', 'constructor', 'theme.toString'])
+    const { value } = autoFix(raw)
+    expect(Object.getPrototypeOf(value)).toBe(Object.prototype)
+    expect((value as { css?: unknown }).css).toBeUndefined()
+    expect(Object.keys(value as object).sort()).toEqual(['__proto__', 'constructor', 'theme'])
   })
 })
 

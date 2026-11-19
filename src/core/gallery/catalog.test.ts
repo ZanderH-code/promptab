@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { galleryColors, validateGalleryPack } from './catalog'
+import { decodeCssEscapes, galleryColors, validateGalleryPack } from './catalog'
 
 const pack = { kind: 'mnt.theme-pack', packVersion: 2, cssApiVersion: 1, meta: { name: 'Test', author: 'Author', tags: ['dark'], prompt: { en: 'A dark theme', 'zh-CN': '深色主题' } }, theme: { mode: 'dark', color: { bg: '#10141b', surface: '#161b22', text: '#ffffff', accent: '#a8f0db' } } }
 
@@ -17,6 +17,13 @@ describe('gallery validation', () => {
     expect(validateGalleryPack({ ...candidate, variables: [{ ...candidate.variables[0], mystery: true }] }).join(' ')).toMatch(/unknown/i)
     expect(validateGalleryPack({ ...candidate, layout: { ...candidate.layout, areaStyles: { overview: { mystery: true } } } }).join(' ')).toMatch(/unknown/i)
     expect(validateGalleryPack({ ...candidate, widgets: [candidate.widgets[0], { ...candidate.widgets[1], hidden: true }] }).join(' ')).toMatch(/bookmarks/i)
+  })
+  it('rejects URLs hidden behind CSS escapes', () => {
+    expect(decodeCssEscapes('"https:\\2f\\2f evil" \\/\\/x \\66ile:')).toBe('"https://evil" //x file:')
+    for (const css of ['a{--u:"https:\\2f\\2f evil.test/x.png"}', 'a{--u:"\\/\\/evil.test"}', 'a{--u:"\\000068ttps:\\2f/evil"}']) {
+      expect(validateGalleryPack({ ...pack, css })).toContain('External URL is not allowed')
+    }
+    expect(validateGalleryPack({ ...pack, css: '.mnt-clock{content:"\\2014"}' })).toEqual([])
   })
   it('indexes the active light palette', () => {
     const theme = { ...pack.theme, mode: 'light' as const, colorLight: { bg: '#ffffff', surface: '#f5f5f5', text: '#111111', accent: '#123456' } }

@@ -57,24 +57,3 @@ export function knownIconFor(input: string): KnownIcon | null {
   const path = url.pathname.replace(/\/+$/, '') || '/'
   return KNOWN_ICONS.find(entry => entry.hosts.includes(host) && (!entry.prefix || path === entry.prefix || path.startsWith(entry.prefix + '/'))) ?? null
 }
-
-/** Known entries with a path prefix keep separate cache entries per product path. */
-export function knownCacheKey(input: string): string | null {
-  const url = parsed(input)
-  const known = knownIconFor(input)
-  if (!url || !known?.prefix) return null
-  return url.origin + known.prefix
-}
-
-/** Cache and discovery key: origin plus the known product path, or just the origin. */
-export function iconCacheKey(input: string): string | null {
-  const url = parsed(input)
-  return url ? knownCacheKey(input) ?? url.origin : null
-}
-
-/** A cached URL may cross origins only when the known table lists it for this shortcut. */
-export function isAllowedIconUrl(key: string, url: string): boolean {
-  const known = knownIconFor(key)
-  if (known?.urls.includes(url)) return true
-  try { return new URL(url).origin === new URL(key).origin } catch { return false }
-}

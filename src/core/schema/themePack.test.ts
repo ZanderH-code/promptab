@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DARK, DEFAULT_LIGHT } from './defaults'
+import { DARK_COLORS, DEFAULT_LIGHT, darkSurface } from './defaults'
 import { parseThemePack, themePackIssues, themePackSchema } from './themePack'
+
+const DEFAULT_DARK = { ...DARK_COLORS, surface: darkSurface(DARK_COLORS.bg) }
 
 const pack = {
   id: 'sample',

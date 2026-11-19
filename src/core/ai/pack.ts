@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { RANGES } from '../schema/defaults'
-import { baseColorsSchema, profileV2Schema, variableDeclSchema, widgetSchema } from '../schema/profile'
+import { baseColorsSchema, profileV2Schema, widgetSchema } from '../schema/profile'
+import { packFontRefSchema, packVariableDeclSchema } from '../schema/packFields'
 import { areaGridProblem, areaNames } from '../layout/grid'
 
 /**
@@ -27,10 +28,7 @@ const colors = z.object({
   accent: baseColorsSchema.shape.accent,
   surface: baseColorsSchema.shape.surface.optional(),
 })
-const fontRef = z.string({ error: 'font key or family name' }).refine(
-  value => /^[\p{L}\p{N}\s,"'._-]+$/u.test(value) && value.trim().length > 0 && !value.startsWith('mnt-asset:'),
-  { error: 'font key (serif, mono, outfit, ...) or a plain family name' },
-)
+const fontRef = packFontRefSchema
 
 export const aiPackSchema = z.object({
   $schema: z.string().optional(),
@@ -64,7 +62,7 @@ export const aiPackSchema = z.object({
     dim: number(RANGES.dim).optional(),
   }).optional(),
   css: z.string().optional(),
-  variables: z.array(variableDeclSchema).superRefine((variables, ctx) => {
+  variables: z.array(packVariableDeclSchema).superRefine((variables, ctx) => {
     const seen = new Set<string>()
     variables.forEach((variable, index) => {
       if (seen.has(variable.name) || /^--mnt-/i.test(variable.name)) ctx.addIssue({ code: 'custom', path: [index, 'name'], message: 'unique non-reserved variable name' })
@@ -156,6 +154,6 @@ export function unknownKeys(value: unknown, tree: KeyTree | null = PACK_KEYS, pa
   if (!tree || !value || typeof value !== 'object' || Array.isArray(value)) return []
   return Object.entries(value).flatMap(([key, child]) => {
     const here = path ? `${path}.${key}` : key
-    return key in tree ? unknownKeys(child, tree[key], here) : [here]
+    return Object.hasOwn(tree, key) ? unknownKeys(child, tree[key], here) : [here]
   })
 }

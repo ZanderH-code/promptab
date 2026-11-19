@@ -47,6 +47,27 @@ describe('sanitizeCss', () => {
     expect(result.errors[0].code).toBe('url')
   })
 
+  it.each([
+    ['var() in image-set', 'a{--u:"https://evil.test/x.png";background-image:image-set(var(--u) 1x)}'],
+    ['var() in -webkit-image-set', 'a{--u:"https://evil.test/x.png";background-image:-webkit-image-set(var(--u) 1x)}'],
+    ['@property initial value', '@property --u{syntax:"*";inherits:false;initial-value:"https://evil.test/x.png"}a{background-image:image-set(var(--u) 1x)}'],
+    ['var() fallback', 'a{background-image:image-set(var(--u,"https://evil.test/x.png") 1x)}'],
+    ['env()', 'a{background-image:image(env(--u))}'],
+    ['attr()', 'a{background-image:cross-fade(attr(data-u string), red)}'],
+    ['var() in a nested gradient', 'a{background-image:image-set(linear-gradient(var(--c), red) 1x)}'],
+    ['unknown nested function', 'a{background-image:image-set(element(#x) 1x)}'],
+  ])('rejects indirect values in url functions: %s', (_name, css) => {
+    const result = sanitizeCss(css)
+    expect(result.ok).toBe(false)
+    expect(result.errors.map(error => error.code)).toContain('function')
+  })
+
+  it('checks strings in nested url functions and allows safe image-set arguments', () => {
+    expect(codes('a{background-image:image-set(image("https://evil.test/x.png") 1x)}')).toEqual(['url'])
+    expect(sanitizeCss('a{background-image:image-set("data:image/png;base64,AAAA" type("image/png") 1x, linear-gradient(rgb(0 0 0), red) 2x)}').ok).toBe(true)
+    expect(sanitizeCss('a{--u:"https://example.test";content:var(--u);background:linear-gradient(var(--a), red)}').ok).toBe(true)
+  })
+
   it('allows data:image, local asset and fragment urls', () => {
     expect(sanitizeCss('a{background:url(data:image/png;base64,iVBORw0KGgo=)}').ok).toBe(true)
     expect(sanitizeCss('a{mask:url(#m);filter:url(#f)}').ok).toBe(true)

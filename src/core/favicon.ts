@@ -43,6 +43,14 @@ export function readIconCache(): IconCache {
   return cache
 }
 
+/** Stores the whole cache and keeps the in-memory copy current, so the next read does not parse it again. */
+export function writeIconCache(entries: IconCache) {
+  const raw = JSON.stringify(entries)
+  localStorage.setItem(ICON_CACHE_KEY, raw)
+  rawCache = raw
+  cache = entries
+}
+
 /** Fresh failures and stale successes are returned; entries older than the stale window are not. */
 export function cachedFavicon(input: string): IconCacheEntry | null {
   const key = faviconCacheKey(input)

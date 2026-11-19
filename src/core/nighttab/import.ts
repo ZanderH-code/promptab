@@ -2,7 +2,10 @@ import type { ProfileV2, Widget } from '../schema/profile'
 import { isHttpUrl } from '../model'
 import { SEARCH_ENGINES } from '../search/engines'
 import { RANGES } from '../schema/defaults'
+import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
 import { primaryRamp, rgbHex, type Ramp } from './palette'
+import { own } from '../own'
+import { clipText, firstChar } from '../text'
 import { nightTabLook } from './look'
 import { FONT_AWESOME } from './fontAwesome'
 
@@ -73,7 +76,7 @@ function displayVisual(item: AnyRecord): Visual | undefined {
     const name = text(icon.name).replace(/^fa-/, '')
     const glyph = FONT_AWESOME[`${text(icon.prefix) === 'fab' ? 'fab' : 'fas'} ${name}`]
     if (glyph) return { mode: 'fa', name, title: (text(icon.label) || name).slice(0, 100), width: glyph[0], path: glyph[1] }
-    const generic = text(icon.prefix) === 'fab' ? undefined : FONT_AWESOME_GENERIC[name]
+    const generic = text(icon.prefix) === 'fab' ? undefined : own(FONT_AWESOME_GENERIC, name)
     return generic ? { mode: 'lucide', iconName: generic } : { mode: 'auto' }
   }
   if (type === 'image') return { mode: 'auto', image: text(record(visual.image).url) }
@@ -82,11 +85,18 @@ function displayVisual(item: AnyRecord): Visual | undefined {
 
 function bookmarkUrl(item: AnyRecord): string {
   const candidate = text(first(item.url, item.href, item.address))
-  try { return ['http:', 'https:'].includes(new URL(candidate).protocol) ? candidate : '' } catch { return '' }
+  return isHttpUrl(candidate) ? candidate : ''
 }
 
-/** A nightTab font name as a font stack with nightTab's own fallbacks; the font itself must be on this computer or uploaded. */
-const fontStack = (name: string, fallback: string) => `"${name.replace(/["\\]/g, '')}", "${fallback}", sans-serif`
+/**
+ * A nightTab font name as a font stack with nightTab's own fallbacks; the font itself must be on this computer or
+ * uploaded. Only characters a plain family list may hold are kept (no quotes, escapes, brackets or line breaks),
+ * so the stack is never dropped when the theme is applied.
+ */
+const fontStack = (name: string, fallback: string) => {
+  const family = name.replace(/[^\p{L}\p{N} ._-]+/gu, ' ').replace(/\s+/g, ' ').trim()
+  return `${family ? `"${family}", ` : ''}"${fallback}", sans-serif`
+}
 
 const ALIGNMENTS = ['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'] as const
 type Alignment = typeof ALIGNMENTS[number]
@@ -151,9 +161,9 @@ function importBookmarks(root: AnyRecord, profile: ProfileV2, warnings: string[]
       const tile = tileOf(item, warnings, name)
       const color = customColor(item.color) ?? customColor(item.accent) ?? colorOf(first(record(item.style).color)) ?? profile.theme.color.accent
       if (visual?.mode === 'auto' && visual.image) warnings.push(`Website "${name}" uses the icon image ${visual.image}. Save that file, then choose it in the website's editor under Icon → Image.`)
-      const letter = (visual?.mode === 'text' ? visual.icon : '') || text(first(item.letter, typeof item.icon === 'string' ? item.icon : undefined, item.text)) || name.slice(0, 1).toUpperCase()
+      const letter = (visual?.mode === 'text' ? visual.icon : '') || text(first(item.letter, typeof item.icon === 'string' ? item.icon : undefined, item.text)) || firstChar(name).toUpperCase()
       const id = `nighttab-${groupIndex}-${index}-${crypto.randomUUID()}`
-      const base = { id, name, url, color, icon: letter.slice(0, 8), ...(tile ? { tile } : {}) }
+      const base = { id, name, url, color, icon: clipText(letter, 8), ...(tile ? { tile } : {}) }
       if (visual?.mode === 'fa') return [{ ...base, iconMode: 'brand', iconName: `fa-${visual.name}`, iconColorMode: 'accent', brand: { slug: `fa-${visual.name}`, title: visual.title, path: visual.path, hex: '000000', viewBox: `0 0 ${visual.width} 512` } }]
       if (visual?.mode === 'lucide') return [{ ...base, iconMode: 'lucide', iconName: visual.iconName }]
       if (visual?.mode === 'auto') return [{ ...base, iconMode: 'auto' }]
@@ -217,7 +227,8 @@ function searchEngine(search: AnyRecord): { id: string; name: string; template: 
   const selected = text(engine.selected)
   const builtin = SEARCH_ENGINES.find(candidate => candidate.id === selected)
   if (builtin) return { id: builtin.id, name: builtin.name, template: builtin.template }
-  if (NIGHTTAB_ENGINES[selected]) return { id: `nighttab-${selected}`, ...NIGHTTAB_ENGINES[selected] }
+  const known = own(NIGHTTAB_ENGINES, selected)
+  if (known) return { id: `nighttab-${selected}`, ...known }
   if (selected !== 'custom') return undefined
   const custom = record(engine.custom)
   const url = text(custom.url), query = text(custom.queryName)
@@ -398,6 +409,7 @@ function importTheme(theme: AnyRecord, profile: ProfileV2, warnings: string[]) {
 }
 
 export function parseNightTabBackup(json: string, current: ProfileV2): NightTabResult {
+  if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new Error('Invalid nightTab backup size')
   let raw: unknown
   try { raw = JSON.parse(json) } catch { throw new Error('Invalid JSON') }
   const root = record(raw)

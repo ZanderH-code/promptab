@@ -22,12 +22,12 @@ const ALIASES: Record<string, string> = {
 const flat = (key: string) => key.toLowerCase().replace(/[-_]/g, '')
 
 function canonicalKey(key: string, tree: KeyTree): string | undefined {
-  if (key in tree) return key
+  if (Object.hasOwn(tree, key)) return key
   const wanted = flat(key)
   const exact = Object.keys(tree).find(known => flat(known) === wanted)
   if (exact) return exact
-  const alias = ALIASES[wanted]
-  return alias && alias in tree ? alias : undefined
+  const alias = Object.hasOwn(ALIASES, wanted) ? ALIASES[wanted] : undefined
+  return alias && Object.hasOwn(tree, alias) ? alias : undefined
 }
 
 function fixColor(value: string): string | undefined {
@@ -71,9 +71,10 @@ export function autoFix(raw: unknown): { value: unknown; fixes: Fix[] } {
     const result: Record<string, unknown> = {}
     for (const [key, child] of Object.entries(source)) {
       const target = tree ? canonicalKey(key, tree) : key
-      const name = target && target !== key && !(target in source) && !(target in result) ? target : key
+      const name = target && target !== key && !Object.hasOwn(source, target) && !Object.hasOwn(result, target) ? target : key
       if (name !== key) fixes.push({ kind: 'key', path: path ? `${path}.${key}` : key, before: key, after: name })
-      result[name] = walk(child, tree?.[name] ?? null, path ? `${path}.${name}` : name)
+      // defineProperty keeps a `__proto__` key an ordinary property instead of replacing the prototype.
+      Object.defineProperty(result, name, { value: walk(child, (tree && Object.hasOwn(tree, name) ? tree[name] : null), path ? `${path}.${name}` : name), enumerable: true, writable: true, configurable: true })
     }
     return result
   }

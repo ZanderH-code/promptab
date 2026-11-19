@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { migrateV1 } from '../migrate/v1'
 import { defaults } from '../model'
 import { applyInfinityBackup, parseInfinityBackup } from './import'
@@ -35,6 +35,35 @@ async function profile() {
 }
 
 describe('Infinity backup importer', () => {
+  it('applies a previewed backup without parsing it again, with the same result', async () => {
+    const current = await profile()
+    const preview = parseInfinityBackup(fixture, current)
+    const parse = vi.spyOn(JSON, 'parse')
+    try {
+      const applied = applyInfinityBackup(fixture, current, true)
+      expect(parse).not.toHaveBeenCalled()
+      const stable = (value: unknown) => JSON.stringify(value).replace(/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}/g, 'uuid').replace(/"updatedAt":"[^"]*"/, '')
+      expect(stable(applied)).toBe(stable(preview.profile))
+      applyInfinityBackup(fixture, current, true)
+      expect(parse).toHaveBeenCalledTimes(1)
+    } finally { parse.mockRestore() }
+  })
+
+  it('keeps a custom engine on a host that merely starts with google', async () => {
+    const input = JSON.parse(fixture)
+    input.data.searcher.searchEngine.custom.push({ name: 'Intranet', target: 'https://google.mycorp.example/find?q=%s' })
+    const engines = parseInfinityBackup(JSON.stringify(input), await profile()).profile.search.engines
+    expect(engines.some(engine => engine.name === 'Intranet' && engine.template.startsWith('https://google.mycorp.example/find?q='))).toBe(true)
+  })
+
+  it('keeps emoji letter icons whole', async () => {
+    const input = JSON.parse(fixture)
+    input.data.site.sites[1].push({ type: 'web', name: '🎵 Music', target: 'https://music.example', bgType: 'color', bgColor: '#123456' }, { type: 'web', name: 'Clip', target: 'https://clip.example', bgType: 'color', bgColor: '#123456', bgText: '1234567🎵' })
+    const items = parseInfinityBackup(JSON.stringify(input), await profile()).profile.bookmarks.groups.flatMap(group => group.items)
+    expect(items.find(item => item.url === 'https://music.example')?.icon).toBe('🎵')
+    expect(items.find(item => item.url === 'https://clip.example')?.icon).toBe('1234567')
+  })
+
   it.each([false, true])('applies against the latest profile (replace=%s)', async replace => {
     const current = await profile()
     parseInfinityBackup(fixture, current) // Preview before subsequent edits.

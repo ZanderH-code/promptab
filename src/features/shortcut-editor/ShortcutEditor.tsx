@@ -2,6 +2,7 @@ import { Plus, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react'
 import { validateImage } from '../../core/image'
 import type { Shortcut, TileLook } from '../../core/model'
+import { firstChar } from '../../core/text'
 import { toMessageRef, type MessageKey, type Translate } from '../../i18n'
 import { WebsiteIcon } from '../../widgets/WebsiteIcon'
 import { emojis, genericIcons, loadBrands, type BrandIcon } from '../../widgets/iconCatalog'
@@ -97,7 +98,7 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
     onChange(next)
   }
   const automatic = { ...shortcut, image: undefined, iconMode: 'auto' as const }
-  const textIcon = shortcut.icon || shortcut.name.trim().slice(0, 1).toUpperCase() || 'A'
+  const textIcon = shortcut.icon || firstChar(shortcut.name).toUpperCase() || 'A'
 
   function changeUrl(url: string) {
     lastUrl.current = url

@@ -1,4 +1,5 @@
 import { extensionApi } from '../platform/extension'
+import { own } from './own'
 import type { Shortcut } from './model'
 
 /** A bundled brand mark, the same shape as a shortcut brand. */
@@ -52,7 +53,7 @@ export function loadBrandShard(bucket: number): Promise<Record<string, KnownBran
  * shard is fetched at most once per session. A failed shard is evicted so a later call retries.
  */
 export function loadBrand(slug: string): Promise<KnownBrand | null> {
-  return loadBrandShard(brandShardForSlug(slug)).then(brands => brands[slug] ?? null, () => null)
+  return loadBrandShard(brandShardForSlug(slug)).then(brands => own(brands, slug) ?? null, () => null)
 }
 
 /** Test helper: forget every cached shard. */

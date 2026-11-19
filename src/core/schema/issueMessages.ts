@@ -118,7 +118,7 @@ export function schemaExpectation(expected: string): SchemaExpectation {
   return { key: 'unknown', params: { expected } }
 }
 
-export function localizeExpectation(expected: string, language: Language): string {
+function localizeExpectation(expected: string, language: Language): string {
   const parsed = schemaExpectation(expected)
   return schemaMessages[language][parsed.key](parsed.params ?? {})
 }

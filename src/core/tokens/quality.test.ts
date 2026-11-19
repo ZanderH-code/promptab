@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DARK, DEFAULT_LIGHT } from '../schema/defaults'
+import { DARK_COLORS, DEFAULT_LIGHT, darkSurface } from '../schema/defaults'
 import { checkTheme, fixThemeLightness } from './quality'
 import { contrastRatio, hexToOklch } from './oklch'
+
+const DEFAULT_DARK = { ...DARK_COLORS, surface: darkSurface(DARK_COLORS.bg) }
 
 const hueDistance = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180)
 
