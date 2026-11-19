@@ -43,8 +43,18 @@ describe('BYOK requests', () => {
     const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'msg_test', type: 'message', role: 'assistant', model: 'test-model', content: [{ type: 'text', text: '{"kind":"mnt.theme-pack"}' }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }), { headers: { 'content-type': 'application/json' } }))
     vi.stubGlobal('fetch', fetch)
     expect(await sendByok({ ...input, provider: 'anthropic' })).toContain('mnt.theme-pack')
-    expect(String(fetch.mock.calls[0][0])).toBe('https://api.anthropic.com/v1/messages')
-    expect(fetch.mock.calls[0][1].redirect).toBe('error')
+    const [url, options] = fetch.mock.calls[0]
+    expect(new URL(String(url)).pathname).toBe('/v1/messages')
+    expect(new URL(String(url)).origin).toBe('https://api.anthropic.com')
+    expect(options.redirect).toBe('error')
+    expect(new Headers(options.headers).get('anthropic-beta')).toContain('server-side-fallback-2026-07-01')
+    expect(JSON.parse(options.body)).toMatchObject({ fallbacks: 'default', max_tokens: 16000, messages: [{ role: 'user', content: input.prompt }] })
+  })
+
+  it('reports a refusal separately from a broken response', async () => {
+    vi.stubGlobal('chrome', { runtime: { getURL: vi.fn() }, permissions: { request: vi.fn().mockResolvedValue(true) } })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 'msg_test', type: 'message', role: 'assistant', model: 'test-model', content: [], stop_reason: 'refusal', usage: { input_tokens: 1, output_tokens: 0 } }), { headers: { 'content-type': 'application/json' } })))
+    await expect(sendByok({ ...input, provider: 'anthropic' })).rejects.toThrow('refusal')
   })
 
   it('uses the direct-browser header and skips extension permissions on the web', async () => {

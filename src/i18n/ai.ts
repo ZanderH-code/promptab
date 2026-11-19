@@ -31,6 +31,7 @@ const messages = {
   "ai.byok.auth": ['服务商拒绝认证，请检查密钥和账号权限。', 'The provider rejected authentication. Check your key and account access.'],
   "ai.byok.rate": ['服务商限制了请求，请稍后重试。', 'The provider rate limit was reached. Try again later.'],
   "ai.byok.timeout": ['请求超时，请重试。', 'The request timed out. Try again.'],
+  "ai.byok.refusal": ['模型拒绝了这个请求，换个说法再试一次。', 'The model declined this request. Try rewording it.'],
   "ai.byok.response": ['服务商返回了无法使用或过大的结果。', 'The provider returned an unusable or oversized response.'],
   "ai.byok.input": ['请检查输入；请求中不能包含 API 密钥。', 'Check your input; the request cannot contain the API key.'],
   "ai.step1": ['第 1 步：复制提示包', 'Step 1: copy the prompt pack'],

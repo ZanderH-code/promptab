@@ -1,10 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { extensionApi, isExtensionEnvironment, isFirefoxExtension } from '../../platform/extension'
 
 export type ByokProvider = 'anthropic' | 'openai'
 type Input = { provider: ByokProvider; model: string; key: string; prompt: string; signal?: AbortSignal }
 const origins: Record<ByokProvider, string> = { anthropic: 'https://api.anthropic.com', openai: 'https://api.openai.com' }
 const MAX_RESPONSE = 512 * 1024
+/** Prefilled model per provider; the person can type any other model ID. */
+export const DEFAULT_MODELS: Record<ByokProvider, string> = { anthropic: 'claude-opus-5-5', openai: '' }
 
 async function boundedFetch(url: RequestInfo | URL, options?: RequestInit): Promise<Response> {
   const response = await fetch(url, { ...options, redirect: 'error', credentials: 'omit' })
@@ -48,14 +49,24 @@ export async function sendByok(input: Input): Promise<string> {
   input.signal?.addEventListener('abort', cancel, { once: true })
   if (input.signal?.aborted) controller.abort()
   let timedOut = false
+  let sdkErrors: typeof import('@anthropic-ai/sdk').default | undefined
   const timeout = setTimeout(() => { timedOut = true; cancel() }, 90000)
   try {
     let result: string
     if (input.provider === 'anthropic') {
+      // The SDK is large and only this branch needs it, so it loads on the first Anthropic request.
+      const { default: Anthropic } = await import('@anthropic-ai/sdk')
+      sdkErrors = Anthropic
       const client = new Anthropic({ apiKey: input.key, baseURL: origin, dangerouslyAllowBrowser: true, maxRetries: 0, fetch: boundedFetch })
-      const response = await client.messages.create({ model: input.model, max_tokens: 16000, messages: [{ role: 'user', content: input.prompt }] }, { signal: controller.signal })
+      // Server-side fallback: if the model declines for policy reasons, the API retries on its default fallback
+      // model in the same call; on models without fallbacks the request simply runs alone.
+      const response = await client.beta.messages.create({
+        model: input.model, max_tokens: 16000, messages: [{ role: 'user', content: input.prompt }],
+        betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+      }, { signal: controller.signal })
+      if (response.stop_reason === 'refusal') throw new Error('refusal')
       if (response.stop_reason !== 'end_turn') throw new Error('response')
-      result = response.content.filter(block => block.type === 'text').map(block => block.text).join('\n')
+      result = response.content.flatMap(block => block.type === 'text' ? [block.text] : []).join('\n')
     } else {
       const response = await boundedFetch(`${origin}/v1/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${input.key}` }, body: JSON.stringify({ model: input.model, messages: [{ role: 'user', content: input.prompt }] }), signal: controller.signal })
       if (response.status === 401 || response.status === 403) throw new Error('auth')
@@ -70,9 +81,9 @@ export async function sendByok(input: Input): Promise<string> {
     return result
   } catch (error) {
     if (controller.signal.aborted) throw new Error(timedOut ? 'timeout' : 'cancelled')
-    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) throw new Error('auth')
-    if (error instanceof Anthropic.RateLimitError) throw new Error('rate')
-    if (error instanceof Error && ['response', 'auth', 'rate'].includes(error.message)) throw new Error(error.message)
+    if (sdkErrors && (error instanceof sdkErrors.AuthenticationError || error instanceof sdkErrors.PermissionDeniedError)) throw new Error('auth')
+    if (sdkErrors && error instanceof sdkErrors.RateLimitError) throw new Error('rate')
+    if (error instanceof Error && ['response', 'auth', 'rate', 'refusal'].includes(error.message)) throw new Error(error.message)
     throw new Error('provider')
   } finally {
     clearTimeout(timeout)

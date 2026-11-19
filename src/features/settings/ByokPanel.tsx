@@ -3,7 +3,7 @@ import { sendByok } from '../../core/ai/byok'
 import type { MessageKey } from '../../i18n'
 import type { Ctx } from './rows'
 
-const errors: Record<string, MessageKey> = { permission: 'ai.byok.permission', auth: 'ai.byok.auth', rate: 'ai.byok.rate', timeout: 'ai.byok.timeout', response: 'ai.byok.response', input: 'ai.byok.input' }
+const errors: Record<string, MessageKey> = { permission: 'ai.byok.permission', auth: 'ai.byok.auth', rate: 'ai.byok.rate', timeout: 'ai.byok.timeout', response: 'ai.byok.response', refusal: 'ai.byok.refusal', input: 'ai.byok.input' }
 
 export function ByokPanel({ ctx, prompt, onReply }: { ctx: Ctx; prompt: string; onReply: (reply: string) => void }) {
   const { t } = ctx
