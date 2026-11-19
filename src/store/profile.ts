@@ -21,17 +21,14 @@ export interface ProfileStore {
   archived: Record<string, ArchivedProfile>
   revision: number | null
   initialized: boolean
-  draft: Transient
   preview: Transient
   initialize(): Promise<void>
   /** Re-reads persistence and adopts a newer revision published by another tab. */
   refresh(): Promise<void>
   updateProfile(id: string, update: (profile: ProfileV2) => ProfileV2, kind?: ChangeKind, retryOnConflict?: boolean): Promise<void>
   undo(id: string, expectedRevision?: number | null): Promise<void>
-  setDraft(id: string, profile: ProfileV2): void
   setPreview(id: string, profile: ProfileV2, label?: string): void
   setPreviewOriginal(showingOriginal: boolean): void
-  clearDraft(): void
   clearPreview(): void
   restoreSnapshot(id: string, snapshotId: string): Promise<void>
   pinSnapshot(id: string, snapshotId: string, pinned: boolean): Promise<void>
@@ -45,8 +42,6 @@ export interface ProfileStore {
   importBackupCollection(incoming: ImportCollection, themes: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; incoming: SavedTheme[] } | undefined, expectedRevision: number | null): Promise<void>
   /** Brings an archived profile and its history back; fails if the ID is live. The active profile is unchanged. */
   restoreArchivedProfile(id: string): Promise<void>
-  /** Replaces the whole collection; omitted live profiles are archived, retained ones get a pre-import snapshot. */
-  importCollection(incoming: ImportCollection): Promise<void>
 }
 
 type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string; onExternalRefresh?: () => void; onCommit?: (state: Committed, revision: number | null) => void }
@@ -155,7 +150,7 @@ export function createProfileStore(options: Options) {
       const committed = validateStored(saved.profiles, saved.history)
       // An in-session undo would restore a whole stale profile and erase the other tab's change.
       undos.clear()
-      set({ ...committed, revision: saved.revision, draft: null, preview: null })
+      set({ ...committed, revision: saved.revision, preview: null })
       options.onCommit?.(committed, saved.revision)
       options.onExternalRefresh?.()
     }
@@ -214,7 +209,7 @@ export function createProfileStore(options: Options) {
       return { next, after: () => { undos.set(id, [...(undos.get(id) ?? []), { profile: structuredClone(old) }]) } }
     }, retryOnConflict)
     return {
-      profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), archived: {}, revision: null, initialized: false, draft: null, preview: null,
+      profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), archived: {}, revision: null, initialized: false, preview: null,
       initialize: () => enqueue(async () => {
         if (get().initialized) return
         const saved = await options.persistence.read()
@@ -240,10 +235,9 @@ export function createProfileStore(options: Options) {
         const themes = entry.themes && { ...entry.themes, expected: entry.themes.after, value: entry.themes.before }
         return { next: entry.collection ? structuredClone(entry.collection) : { ...current(), profiles: { ...get().profiles, [id]: profile }, history: recordChange(get().history, old, 'restore', historyOptions) }, themes, after: () => { stack.pop() } }
       }),
-      setDraft: (id, value) => { existing(id); set({ draft: { profileId: id, profile: validateProfile(value, id) } }) },
       setPreview: (id, value, label) => { existing(id); set({ preview: { profileId: id, profile: validateProfile(value, id), ...(label ? { label } : {}) } }) },
       setPreviewOriginal: showingOriginal => set(state => state.preview ? { preview: { ...state.preview, showingOriginal } } : state),
-      clearDraft: () => set({ draft: null }), clearPreview: () => set({ preview: null }),
+      clearPreview: () => set({ preview: null }),
       restoreSnapshot: (id, snapshotId) => transaction(() => {
         const old = existing(id)
         const restored = restoreSnapshot(get().history, old, snapshotId, historyOptions)
@@ -269,7 +263,7 @@ export function createProfileStore(options: Options) {
         if (!ids.length) throw new Error('Cannot delete last profile')
         const histories = { ...get().history.profiles }; delete histories[id]
         const archived = { ...get().archived, [id]: { profile: structuredClone(get().profiles[id]), history: get().history.profiles[id] ?? { snapshots: [], lastEditAt: null }, archivedAt: historyOptions.now() } }
-        return { next: { profiles, activeProfileId: get().activeProfileId === id ? ids[0] : get().activeProfileId, history: { profiles: histories }, archived }, after: () => { undos.delete(id); set(state => ({ draft: state.draft?.profileId === id ? null : state.draft, preview: state.preview?.profileId === id ? null : state.preview })) } }
+        return { next: { profiles, activeProfileId: get().activeProfileId === id ? ids[0] : get().activeProfileId, history: { profiles: histories }, archived }, after: () => { undos.delete(id); set(state => ({ preview: state.preview?.profileId === id ? null : state.preview })) } }
       }),
       resetProfile: (id, profile) => update(id, () => profile, 'reset'),
       importProfile: (id, profile) => update(id, () => profile, 'import'),
@@ -283,7 +277,7 @@ export function createProfileStore(options: Options) {
         return { next, themes, after: () => {
           undos.clear()
           undos.set(next.activeProfileId, [{ profile: structuredClone(next.profiles[next.activeProfileId]), collection: before, themes: undoThemes }])
-          set({ draft: null, preview: null })
+          set({ preview: null })
         } }
       }),
       importPartial: (id, value, library, expectedRevision) => transaction(async () => {
@@ -306,10 +300,6 @@ export function createProfileStore(options: Options) {
         const rest = { ...archived }; delete rest[id]
         return { next: { ...current(), profiles: { ...profiles, [id]: structuredClone(archived[id].profile) }, history: { profiles: { ...history.profiles, [id]: structuredClone(archived[id].history) } }, archived: rest } }
       }),
-      importCollection: incoming => transaction(() => ({
-        next: planImport(current(), incoming, historyOptions),
-        after: () => { undos.clear(); set({ draft: null, preview: null }) },
-      })),
     }
   })
 }

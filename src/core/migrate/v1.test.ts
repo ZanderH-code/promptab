@@ -1,6 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { defaults, validate } from '../model'
-import { migrateV1, projectV1 } from './v1'
+import { defaults, validate, type Settings } from '../model'
+import { parseProfileV2, type ProfileV2 } from '../schema/profile'
+import { migrateV1 } from './v1'
+
+type WidgetOf<T extends ProfileV2['widgets'][number]['type']> = Extract<ProfileV2['widgets'][number], { type: T }>
+
+/** Reads a migrated profile back as v1 settings, so a test can check the migration kept every legacy field. */
+async function projectV1(profile: ProfileV2, reader: { get: (reference: string) => Promise<Blob | undefined> }): Promise<{ settings: Settings; wallpaper?: Blob }> {
+  const p = parseProfileV2(profile)
+  const widget = <T extends ProfileV2['widgets'][number]['type']>(id: string, type: T) => p.widgets.find(item => item.id === id && item.type === type) as WidgetOf<T>
+  const clock = widget('clock', 'clock'), date = widget('date', 'date'), search = widget('search', 'search'), bookmarks = widget('bookmarks', 'bookmarks')
+  const engine = p.search.engines.find(item => item.id === p.search.defaultEngineId)!
+  const rows = p.layout.areas.map(row => row.trim().split(/\s+/))
+  const split = rows.length === 1 && rows[0].length === 2
+  const reverse = split ? rows[0][0] !== bookmarks.area : rows[0][0] === bookmarks.area
+  const encode = (blob: Blob) => new Promise<string>(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.readAsDataURL(blob) })
+  const shortcuts = await Promise.all(p.bookmarks.groups.flatMap(group => group.items).map(async item => {
+    const { builtinName: _builtinName, builtinIcon: _builtinIcon, builtinGroup: _builtinGroup, ...literal } = item
+    return { ...literal, ...(item.image ? { image: await encode((await reader.get(item.image))!) } : {}) }
+  }))
+  const settings = validate({
+    schemaVersion: 1, language: p.prefs.language === 'system' ? defaults.language : p.prefs.language, theme: p.theme.mode === 'light' ? 'light' : 'dark',
+    accent: p.theme.color.accent, background: p.theme.color.bg,
+    showClock: !clock.hidden, showDate: !date.hidden, showSearch: !search.hidden, hour12: clock.props.hour12 ?? defaults.hour12,
+    searchTemplate: engine.template, shortcuts, columns: bookmarks.props.maxColumns ?? defaults.columns, iconSize: p.theme.iconSize, iconShape: p.theme.iconShape,
+    alignment: p.layout.align === 'center-left' ? 'left' : 'center', layout: split ? 'split' : 'stacked', reverse,
+    overlay: p.background.dim,
+  })
+  const wallpaper = p.background.type === 'image' && p.background.image ? await reader.get(p.background.image.asset) : undefined
+  return { settings, ...(wallpaper ? { wallpaper } : {}) }
+}
 
 const image = 'data:image/png;base64,aGVsbG8='
 function dependencies() {
@@ -117,10 +146,7 @@ describe('v1 migration', () => {
     expect((await projectV1(profile, deps)).wallpaper).toBe(deps.blobs.get(profile.background.image!.asset))
   })
 
-  it('rejects malformed inline data and missing assets', async () => {
-    const deps = dependencies()
-    await expect(migrateV1({ ...defaults, wallpaper: 'data:image/png;base64,%%%%' }, deps)).rejects.toThrow()
-    const profile = await migrateV1({ ...defaults, shortcuts: [{ ...defaults.shortcuts[0], image }] }, deps)
-    await expect(projectV1(profile, { get: async () => undefined })).rejects.toThrow()
+  it('rejects malformed inline data', async () => {
+    await expect(migrateV1({ ...defaults, wallpaper: 'data:image/png;base64,%%%%' }, dependencies())).rejects.toThrow()
   })
 })
