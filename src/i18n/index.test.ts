@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 import { aiEn, aiZh } from './ai'
 import { lazyEn, lazyZh } from './lazy'
 import { en } from './en'
-import { interpolate, MessageError, messagesVersion, registerMessages, subscribeMessages, systemLanguage, toMessageRef, translate } from './index'
+import { interpolate, MessageError, messagesVersion, registerMessageSets, subscribeMessages, systemLanguage, toMessageRef, translate } from './index'
 import { zhCN } from './zh-CN'
 import { syncMessages } from '../core/syncMessages'
 import { weatherMessages } from '../core/weatherMessages'
@@ -42,16 +42,17 @@ describe('i18n', () => {
     expect(Object.keys(aiZh).length).toBeGreaterThan(90)
   })
 
-  it('registers lazily loaded messages and notifies subscribers', () => {
+  it('registers lazily loaded messages for every language with one notification', () => {
     const listener = vi.fn()
     const unsubscribe = subscribeMessages(listener)
     const before = messagesVersion()
-    registerMessages('en', { 'gallery.open': 'Open gallery' })
+    registerMessageSets({ 'zh-CN': { 'gallery.open': '打开画廊' }, en: { 'gallery.open': 'Open gallery' } })
     expect(translate('en', 'gallery.open' as never)).toBe('Open gallery')
+    expect(translate('zh-CN', 'gallery.open' as never)).toBe('打开画廊')
     expect(messagesVersion()).toBe(before + 1)
     expect(listener).toHaveBeenCalledTimes(1)
     unsubscribe()
-    registerMessages('en', { 'gallery.open': 'Open gallery!' })
+    registerMessageSets({ en: { 'gallery.open': 'Open gallery!' } })
     expect(listener).toHaveBeenCalledTimes(1)
     expect(translate('en', 'gallery.open' as never)).toBe('Open gallery!')
   })

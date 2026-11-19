@@ -1,4 +1,4 @@
-import { registerMessages } from './index'
+import { registerMessageSets } from './index'
 
 /** Messages for the AI workbench and gallery. Registered when their lazy chunks load. */
 const messages = {
@@ -112,6 +112,18 @@ const messages = {
   "ai.previewHint": ['还没有保存，应用后可以随时撤销。', 'Not saved yet; after applying you can undo at any time.'],
   "ai.compareOriginal": ['对比原始效果', 'Compare original'],
   "ai.defaultName": ['AI 主题', 'AI theme'],
+  // CSS check results: shown by the CSS editor and in AI reports, whose modules register this file.
+  "css.issue.syntax": ['语法错误：{detail}', 'Syntax error: {detail}'],
+  "css.issue.unbalanced": ['括号不成对', 'Unbalanced brackets'],
+  "css.issue.too-large": ['超过 64 KB（目前 {detail} 字节）', 'Larger than 64 KB ({detail} bytes)'],
+  "css.issue.too-many-rules": ['规则数 {detail} 超过上限 2000', '{detail} rules exceeds the limit of 2000'],
+  "css.issue.at-rule": ['不允许使用 {detail}', '{detail} is not allowed'],
+  "css.issue.url": ['不允许外部网址，只能用 data:image 或本地资源：{detail}', 'External URLs are not allowed; use data:image or a local asset: {detail}'],
+  "css.issue.font-url": ['@font-face 只能使用本地字体资源（mnt-asset:）：{detail}', '@font-face may only use local font assets (mnt-asset:): {detail}'],
+  "css.issue.property": ['不允许使用属性 {detail}', 'The property {detail} is not allowed'],
+  "css.issue.function": ['不允许使用函数 {detail}', 'The function {detail} is not allowed'],
+  "css.issue.escape": ['名称里不允许使用转义字符：{detail}', 'Escape sequences are not allowed in names: {detail}'],
+  "css.issue.raw-value": ['无法解析 {detail} 的值', 'Could not parse the value of {detail}'],
 } as const
 
 type ChineseMessages = { readonly [Key in keyof typeof messages]: (typeof messages)[Key][0] }
@@ -126,5 +138,4 @@ export const aiEn: Record<keyof typeof aiZh, string> = Object.fromEntries(
 export type AiMessageKey = keyof typeof aiZh
 
 // Module-level registration: every AI/gallery chunk imports this module before it renders.
-registerMessages('zh-CN', aiZh)
-registerMessages('en', aiEn)
+registerMessageSets({ 'zh-CN': aiZh, en: aiEn })

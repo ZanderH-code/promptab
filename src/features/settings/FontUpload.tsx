@@ -3,6 +3,7 @@ import { assets } from '../../app/useSettings'
 import { MAX_FONT_BYTES, detectFont } from '../../core/font'
 import type { Ctx } from './rows'
 import { editTheme } from './themeApi'
+import '../../i18n/lazy'
 
 type Target = 'display' | 'ui'
 

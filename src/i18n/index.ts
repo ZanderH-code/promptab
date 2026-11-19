@@ -13,9 +13,9 @@ const registered: Record<Language, Record<string, string>> = { 'zh-CN': {}, en: 
 let version = 0
 const listeners = new Set<() => void>()
 
-/** Adds or replaces messages from a lazy chunk and re-renders subscribers. */
-export function registerMessages(language: Language, messages: Record<string, string>) {
-  Object.assign(registered[language], messages)
+/** Adds or replaces messages from a lazy chunk, every language at once, and re-renders subscribers once. */
+export function registerMessageSets(sets: Partial<Record<Language, Record<string, string>>>) {
+  for (const language of Object.keys(sets) as Language[]) Object.assign(registered[language], sets[language])
   version += 1
   for (const listener of listeners) listener()
 }
