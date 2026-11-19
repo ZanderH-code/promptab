@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { cachedFavicon, faviconCacheKey, initialFaviconSources } from '../core/favicon'
 import type { KnownBrand } from '../core/brandShards'
@@ -25,9 +25,12 @@ export function WebsiteIcon({ shortcut, onStatus }: { shortcut: IconShortcut; on
   /** Brand mode may store only a slug; the mark is fetched and shown without being written back. */
   const manualBrand = shortcut.iconMode === 'brand' && !shortcut.brand ? shortcut.iconName : undefined
   // Manual brand state is tagged with its slug, so a later non-auto render never reuses another mark.
-  const cacheKey = automatic ? faviconCacheKey(shortcut.url) : manualBrand ? `brand:${manualBrand}` : null
-  const cached = automatic ? cachedFavicon(shortcut.url) : null
-  const initialSources = automatic ? initialFaviconSources(shortcut.url) : []
+  // Once per address: the cache read is synchronous localStorage and the sources parse the URL, so not on every render.
+  const { cacheKey, cached, initialSources } = useMemo(() => ({
+    cacheKey: automatic ? faviconCacheKey(shortcut.url) : manualBrand ? `brand:${manualBrand}` : null,
+    cached: automatic ? cachedFavicon(shortcut.url) : null,
+    initialSources: automatic ? initialFaviconSources(shortcut.url) : [],
+  }), [automatic, manualBrand, shortcut.url])
   // The synchronous cache paints the first render: no favicon.ico attempt, no blank, no letter flash.
   const initialAutoState: AutoState = { key: cacheKey, url: cached ? cached.url ?? null : initialSources[0] ?? null, cache: !!cached, brand: cached?.brand }
   const currentAutoState = autoState?.key === cacheKey ? autoState : initialAutoState

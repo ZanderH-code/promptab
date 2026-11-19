@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, expect, it } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { ICON_CACHE_KEY } from '../core/favicon'
 import { WebsiteIcon } from './WebsiteIcon'
 
@@ -113,4 +113,18 @@ it('shows the new icon after the shortcut url or image changes', () => {
   const manual = render(<WebsiteIcon shortcut={{ ...shortcut, image: 'data:image/png;base64,first' }} />)
   manual.rerender(<WebsiteIcon shortcut={{ ...shortcut, image: 'data:image/png;base64,second' }} />)
   expect(manual.container.querySelector('img')?.getAttribute('src')).toBe('data:image/png;base64,second')
+})
+
+it('reads the favicon cache once per address, not on every render', () => {
+  const getItem = vi.spyOn(Storage.prototype, 'getItem')
+  const item = { id: 'a', name: 'Example', url: 'https://example.com', icon: 'E', color: '#123456' }
+  const view = render(<WebsiteIcon shortcut={{ ...item }} />)
+  const reads = () => getItem.mock.calls.filter(([key]) => key === ICON_CACHE_KEY).length
+  const first = reads()
+  expect(first).toBeGreaterThan(0)
+  for (let index = 0; index < 3; index++) view.rerender(<WebsiteIcon shortcut={{ ...item }} />)
+  expect(reads()).toBe(first)
+  view.rerender(<WebsiteIcon shortcut={{ ...item, url: 'https://example.org' }} />)
+  expect(reads()).toBeGreaterThan(first)
+  getItem.mockRestore()
 })

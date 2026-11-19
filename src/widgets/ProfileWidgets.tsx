@@ -111,13 +111,19 @@ function DateBlock({ widget, language }: { widget: Extract<Widget, {type:'date'}
   return <div className="date mnt-date" data-separator-accent={p.separatorAccent ? '' : undefined}><Tokens tokens={dateTokens(now, language, p)} kind="date" /></div>
 }
 
+/** Owns the minute tick, so only the greeting re-renders each minute, not the layout and every tile. */
+function Greeting({ name, transitional, language, t }: { name?: string; transitional?: boolean; language: Settings['language']; t: Translate }) {
+  const now = useNow('minute')
+  const greeting = t(`greeting.${greetingPeriod(now.getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
+  return <div>{name ? <span data-user-content>{t('greeting.withName', { greeting, name })}</span> : greeting}{transitional && <div>{formatGreetingTransition(now, language)}</div>}</div>
+}
+
 export function ProfileWidgets(props: Props) {
   const { profile, language, shortcuts, editing, onboarding, t } = props
   const breakpoint = useBreakpoint()
   const grid = breakpoint === 'wide' ? { areas: profile.layout.areas, columns: profile.layout.columns, rows: profile.layout.rows } : profile.layout.breakpoints?.[breakpoint] ?? (breakpoint === 'narrow' ? profile.layout.breakpoints?.medium : undefined) ?? { areas: profile.layout.areas, columns: profile.layout.columns, rows: profile.layout.rows }
   const names = [...new Set(grid.areas.flatMap(row => row.trim().split(/\s+/)).filter(name => name !== '.'))]
   const palette = profile.theme.color
-  const now = useNow('minute')
   const searchEngine = profile.search.engines.find(e => e.id === profile.search.defaultEngineId)
   const searchTemplate = searchEngine?.template ?? 'https://www.google.com/search?q={query}'
   const [find, setFind] = useState('')
@@ -152,8 +158,7 @@ export function ProfileWidgets(props: Props) {
           case 'search': return frame(<Search template={searchTemplate} engineName={widget.props.namePlaceholder ? searchEngine?.name : undefined} onFind={widget.props.findBookmarks && findsBookmarks ? setFind : undefined} openInNewTab={profile.prefs.openSearchInNewTab} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
           case 'bookmarks': return frame(<ShortcutGrid groups={groups} shortcuts={query ? shortcuts.filter(matches) : shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} showAdd={editing || (!query && widget.props.showAdd !== false)} iconColor={widget.props.iconColor ?? 'per-site'} openInNewTab={profile.prefs.openShortcutsInNewTab} liftOnHover={profile.prefs.liftOnHover} reduceMotion={profile.prefs.reduceMotion} reduceTransparency={profile.prefs.reduceTransparency} onGroups={props.onGroups} onGroupContextMenu={props.onGroupContextMenu} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} groupDisplay={widget.props.groupDisplay} openAll={widget.props.openAll} onOpenAll={props.onOpenAll} />)
           case 'greeting': {
-            const greeting = t(`greeting.${greetingPeriod(now.getHours())}` as 'greeting.morning' | 'greeting.afternoon' | 'greeting.evening')
-            return frame(<div>{widget.props.name ? <span data-user-content>{t('greeting.withName', { greeting, name: widget.props.name })}</span> : greeting}{widget.props.transitional && <div>{formatGreetingTransition(now, language)}</div>}</div>)
+            return frame(<Greeting name={widget.props.name} transitional={widget.props.transitional} language={language} t={t} />)
           }
           case 'text': return frame(<div>{widget.props.text}</div>)
           case 'spacer': return frame(<div aria-hidden="true" style={{ height: widget.props.height ?? 40 }} />)
