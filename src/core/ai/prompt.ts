@@ -276,7 +276,8 @@ export function buildRefinePrompt({ pack, change, full, ...options }: RefineOpti
   const c = COPY[options.language]
   const followUp = [
     `## ${c.refine}`,
-    `### ${c.refinePack}\n${json(pack)}`,
+    // A reply that did not parse is passed on as its text, so the AI can see what it wrote.
+    `### ${c.refinePack}\n${typeof pack === 'string' ? '```\n' + pack + '\n```' : json(pack)}`,
     `### ${c.refineChange}\n${change.trim()}`,
     c.refineRules,
   ].join('\n\n') + '\n'

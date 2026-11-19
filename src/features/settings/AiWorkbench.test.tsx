@@ -97,3 +97,52 @@ describe('theme export', () => {
     expect(within(dialog).getByRole('checkbox', { name: '不导出自定义 CSS' })).toBeInTheDocument()
   })
 })
+
+describe('AI workbench flow', () => {
+  const pack = { kind: 'mnt.theme-pack', version: 2, meta: { name: 'Night Paper', description: 'Warm paper tones for late reading.' }, theme: { mode: 'dark', color: { bg: '#141210', text: '#efe6d8', textMuted: '#b3a796', accent: '#d9a35f' } } }
+
+  it('copies one prompt with the request, the page outline and the current theme', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    await setup('.clock { color: red }')
+    fireEvent.click(screen.getByRole('button', { name: 'warm paper feel with a serif clock' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Copy prompt' }))
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
+    const prompt = writeText.mock.calls[0][0] as string
+    expect(prompt).toContain('warm paper feel with a serif clock')
+    expect(prompt).toContain("The user's page as it is now")
+    expect(prompt).toContain('.clock { color: red }')
+  })
+
+  it('names the pack it read and turns a change into a short follow-up', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    await setup('')
+    fireEvent.change(screen.getByRole('textbox', { name: "The AI's reply" }), { target: { value: '```json\n' + JSON.stringify(pack) + '\n```' } })
+    expect(screen.getByText('Night Paper')).toBeInTheDocument()
+    expect(screen.getByText('Warm paper tones for late reading.')).toBeInTheDocument()
+    const change = screen.getByRole('textbox', { name: 'Want any changes?' })
+    const ask = screen.getByRole('button', { name: 'Copy change request' })
+    expect(ask).toBeDisabled()
+    fireEvent.change(change, { target: { value: 'make the accent green' } })
+    fireEvent.click(ask)
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalled())
+    const prompt = writeText.mock.calls[0][0] as string
+    expect(prompt).toContain('make the accent green')
+    expect(prompt).toContain('"Night Paper"')
+    expect(prompt).not.toContain('Field reference')
+  })
+
+  it('remembers the API method and model but never the key', async () => {
+    localStorage.clear()
+    await setup('')
+    fireEvent.click(screen.getByRole('radio', { name: 'Generate with my API key' }))
+    expect(screen.getByLabelText('Model')).toHaveValue('claude-opus-5-5')
+    fireEvent.change(screen.getByLabelText('API key'), { target: { value: 'secret-test-key' } })
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled()
+    const saved = localStorage.getItem('promptab.ai.connection') ?? ''
+    expect(saved).toContain('"method":"api"')
+    expect(saved).not.toContain('secret-test-key')
+    localStorage.clear()
+  })
+})
