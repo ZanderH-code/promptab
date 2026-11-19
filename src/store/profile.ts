@@ -12,6 +12,8 @@ export type ImportCollection = { activeProfileId: string; profiles: ProfileV2[] 
 export interface ProfilePersistence {
   read(): Promise<{ revision: number; profiles: unknown; history: unknown } | null>
   write(data: { profiles: ProfileCollection; history: History<ProfileV2> }, expectedRevision: number | null): Promise<{ revision: number }>
+  /** Cheap check of the published revision; lets a refresh skip reading data it already has. */
+  readIndexRevision?(): Promise<number | null>
 }
 type Transient = { profileId: string; profile: ProfileV2; /** Shown in the preview banner; previews without one are driven by their own panel. */ label?: string; showingOriginal?: boolean } | null
 export interface ProfileStore {
@@ -44,7 +46,12 @@ export interface ProfileStore {
   restoreArchivedProfile(id: string): Promise<void>
 }
 
-type Options = { persistence: ProfilePersistence; initialProfile: ProfileV2; now?: () => number; createId?: () => string; onExternalRefresh?: () => void; onCommit?: (state: Committed, revision: number | null) => void }
+type Options = {
+  persistence: ProfilePersistence; initialProfile: ProfileV2
+  /** Persisted state the caller already read and checked with validateStored; initialize adopts it without reading again. */
+  validated?: Committed & { revision: number }
+  now?: () => number; createId?: () => string; onExternalRefresh?: () => void; onCommit?: (state: Committed, revision: number | null) => void
+}
 export type Committed = Pick<ProfileStore, 'profiles' | 'activeProfileId' | 'history' | 'archived'>
 
 function validateProfile(value: unknown, id?: string): ProfileV2 {
@@ -127,7 +134,7 @@ const persistable = (next: Committed): ProfileCollection => ({
 
 /** Creates an independent vanilla Zustand store. Persistence and asset reconciliation are supplied by the caller. */
 export function createProfileStore(options: Options) {
-  const initial = validateProfile(options.initialProfile)
+  const initial = options.validated ? options.validated.profiles[options.validated.activeProfileId] : validateProfile(options.initialProfile)
   const historyOptions = { now: options.now ?? Date.now, createId: options.createId ?? (() => crypto.randomUUID()) }
   let queue: Promise<void> = Promise.resolve()
   const undos = new Map<string, { profile: ProfileV2; collection?: Committed; themes?: { read(): Promise<SavedTheme[]>; write(value: SavedTheme[]): Promise<void>; before: SavedTheme[]; after: SavedTheme[] } }[]>()
@@ -144,6 +151,7 @@ export function createProfileStore(options: Options) {
     }
     const adoptExternal = async () => {
       if (!get().initialized) return
+      if (options.persistence.readIndexRevision && await options.persistence.readIndexRevision() === get().revision) return
       const saved = await options.persistence.read()
       if (!saved || saved.revision === get().revision) return
       if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision')
@@ -164,7 +172,8 @@ export function createProfileStore(options: Options) {
       try {
         if (themes) await themes.write(themes.value)
         profileWriteStarted = true
-        saved = await options.persistence.write(structuredClone({ profiles: persistable(next), history: next.history }), get().revision)
+        // Persistence serializes the data and never keeps or changes these objects.
+        saved = await options.persistence.write({ profiles: persistable(next), history: next.history }, get().revision)
       } catch (error) {
         if (themes) {
           if (profileWriteStarted) {
@@ -212,6 +221,13 @@ export function createProfileStore(options: Options) {
       profiles: { [initial.meta.id]: initial }, activeProfileId: initial.meta.id, history: createHistory(), archived: {}, revision: null, initialized: false, preview: null,
       initialize: () => enqueue(async () => {
         if (get().initialized) return
+        if (options.validated) {
+          const { revision, ...committed } = options.validated
+          if (!Number.isSafeInteger(revision) || revision < 1) throw new Error('Invalid revision')
+          set({ ...committed, revision, initialized: true })
+          options.onCommit?.(committed, revision)
+          return
+        }
         const saved = await options.persistence.read()
         if (saved) {
           if (!Number.isSafeInteger(saved.revision) || saved.revision < 1) throw new Error('Invalid revision')

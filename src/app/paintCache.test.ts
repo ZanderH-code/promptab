@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ProfileV2 } from '../core/schema/profile'
 import { PAINT_CACHE_KEY, readPaintCache, writePaintCache } from './paintCache'
 
@@ -18,8 +18,27 @@ describe('paint cache', () => {
   it('round-trips the active profile and revision', () => {
     const value = profile()
     writePaintCache(committed(value), 7)
-    expect(readPaintCache()).toEqual({ version: 1, revision: 7, activeProfileId: 'a', profile: value })
-    expect(localStorage.getItem(PAINT_CACHE_KEY)).not.toContain('data:')
+    expect(readPaintCache()).toMatchObject({ version: 1, revision: 7, activeProfileId: 'a', profile: value })
+  })
+
+  it('does not rewrite an unchanged entry', () => {
+    writePaintCache(committed(profile()), 3)
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    writePaintCache(committed(profile()), 3)
+    expect(setItem).not.toHaveBeenCalled()
+    writePaintCache(committed(profile()), 4)
+    expect(setItem).toHaveBeenCalledTimes(1)
+    setItem.mockRestore()
+  })
+
+  it('ignores an entry written by another build', () => {
+    writePaintCache(committed(profile()), 1)
+    const stored = JSON.parse(localStorage.getItem(PAINT_CACHE_KEY)!)
+    localStorage.setItem(PAINT_CACHE_KEY, JSON.stringify({ ...stored, build: 'older-build' }))
+    expect(readPaintCache()).toBeNull()
+    const { build: _build, ...unstamped } = stored
+    localStorage.setItem(PAINT_CACHE_KEY, JSON.stringify(unstamped))
+    expect(readPaintCache()).toBeNull()
   })
 
   it('removes the key instead of storing a payload over 512 KB', () => {
@@ -32,15 +51,18 @@ describe('paint cache', () => {
   it('ignores corrupt JSON and a different version', () => {
     localStorage.setItem(PAINT_CACHE_KEY, '{')
     expect(readPaintCache()).toBeNull()
-    localStorage.setItem(PAINT_CACHE_KEY, JSON.stringify({ version: 2, revision: 1, activeProfileId: 'a', profile: profile() }))
+    writePaintCache(committed(profile()), 1)
+    const stored = JSON.parse(localStorage.getItem(PAINT_CACHE_KEY)!)
+    localStorage.setItem(PAINT_CACHE_KEY, JSON.stringify({ ...stored, version: 2 }))
     expect(readPaintCache()).toBeNull()
-    localStorage.setItem(PAINT_CACHE_KEY, JSON.stringify({ version: 1, revision: 1, activeProfileId: 'b', profile: profile('a') }))
+    localStorage.setItem(PAINT_CACHE_KEY, JSON.stringify({ ...stored, activeProfileId: 'b' }))
     expect(readPaintCache()).toBeNull()
   })
 
-  it('never stores binary data URLs', () => {
+  it('keeps profiles whose text mentions data: (sanitized CSS images, URLs), bounded by size alone', () => {
     const css = 'body { background: url(data:image/png;base64,AAAA) }'
-    writePaintCache(committed({ ...profile(), custom: { ...profile().custom, css } }), 1)
-    expect(localStorage.getItem(PAINT_CACHE_KEY)).toBeNull()
+    const value = { ...profile(), custom: { ...profile().custom, css } }
+    writePaintCache(committed(value), 1)
+    expect(readPaintCache()?.profile).toEqual(value)
   })
 })

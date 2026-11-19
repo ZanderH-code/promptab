@@ -133,6 +133,17 @@ describe('profile persistence', () => {
     expect(await store.read()).toBeNull()
   })
 
+  it('reads the published revision from the index alone', async () => {
+    const db = memory()
+    const store = createProfileStorage(db.backend, { lock: queueLock() })
+    expect(await store.readIndexRevision()).toBeNull()
+    await store.write(first, null)
+    const read: string[] = []
+    db.beforeGet(async key => { read.push(key) })
+    expect(await store.readIndexRevision()).toBe(1)
+    expect(read).toEqual(['profiles:v2:index'])
+  })
+
   it('rejects stale revisions', async () => {
     const store = createProfileStorage(memory().backend, { lock: queueLock() })
     await store.write(first, null)

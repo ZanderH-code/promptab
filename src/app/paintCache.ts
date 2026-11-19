@@ -3,18 +3,25 @@ import type { Committed } from '../store/profile'
 
 export const PAINT_CACHE_KEY = 'mnt:paint-cache:v1'
 const MAX_BYTES = 512 * 1024
+/**
+ * The cached profile is rendered before the stored one is validated, so it is only trusted by the build
+ * that wrote it: built chunk names carry a content hash, so an update (and its schema) never reads an older entry.
+ */
+const BUILD = import.meta.url
 
 /** The last published profile, readable synchronously before chrome.storage answers. */
-export type PaintCache = { version: 1; revision: number | null; activeProfileId: string; profile: ProfileV2 }
+export type PaintCache = { version: 1; build: string; revision: number | null; activeProfileId: string; profile: ProfileV2 }
 
-/** Stores only the active profile; history, drafts, previews and binary data never enter the cache. */
+/** Stores only the active profile; history, drafts and previews never enter the cache, and assets stay references. */
 export function writePaintCache(committed: Committed, revision: number | null): void {
   try {
     const profile = committed.profiles[committed.activeProfileId]
     if (!profile) { localStorage.removeItem(PAINT_CACHE_KEY); return }
-    const payload: PaintCache = { version: 1, revision, activeProfileId: committed.activeProfileId, profile }
+    const payload: PaintCache = { version: 1, build: BUILD, revision, activeProfileId: committed.activeProfileId, profile }
     const json = JSON.stringify(payload)
-    if (json.includes('data:') || new Blob([json]).size > MAX_BYTES) { localStorage.removeItem(PAINT_CACHE_KEY); return }
+    if (new Blob([json]).size > MAX_BYTES) { localStorage.removeItem(PAINT_CACHE_KEY); return }
+    // Startup commits the profile the cache usually already holds; reading is cheaper than rewriting it.
+    if (localStorage.getItem(PAINT_CACHE_KEY) === json) return
     localStorage.setItem(PAINT_CACHE_KEY, json)
   } catch { /* Storage may be unavailable or full; the cache is optional. */ }
 }
@@ -25,7 +32,7 @@ export function readPaintCache(): PaintCache | null {
     const raw = localStorage.getItem(PAINT_CACHE_KEY)
     if (!raw) return null
     const value = JSON.parse(raw) as Partial<PaintCache> | null
-    if (!value || typeof value !== 'object' || value.version !== 1) return null
+    if (!value || typeof value !== 'object' || value.version !== 1 || value.build !== BUILD) return null
     if (typeof value.activeProfileId !== 'string' || !value.profile || typeof value.profile !== 'object') return null
     if (value.profile.meta?.id !== value.activeProfileId) return null
     if (value.revision !== null && typeof value.revision !== 'number') return null

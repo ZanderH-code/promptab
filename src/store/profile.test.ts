@@ -95,6 +95,24 @@ describe('profile store', () => {
     expect(onExternalRefresh).not.toHaveBeenCalled()
   })
 
+  it('refresh checks the index revision before reading the whole collection', async () => {
+    const { persistence, external } = setup()
+    const read = vi.fn(() => persistence.read())
+    let indexRevision: number | null = null
+    const store = createProfileStore({ persistence: { ...persistence, read, readIndexRevision: async () => indexRevision }, initialProfile: profile() })
+    await store.getState().initialize()
+    await store.getState().renameProfile('a', 'Alpha')
+    indexRevision = 1
+    read.mockClear()
+    await store.getState().refresh()
+    expect(read).not.toHaveBeenCalled()
+    external(value => ({ ...value, meta: { ...value.meta, name: 'Other tab' } }))
+    indexRevision = 2
+    await store.getState().refresh()
+    expect(read).toHaveBeenCalledTimes(1)
+    expect(store.getState().profiles.a.meta.name).toBe('Other tab')
+  })
+
   it('refresh adopts an externally changed revision and clears the undo stack', async () => {
     const onExternalRefresh = vi.fn()
     const { store, external } = setup({ onExternalRefresh })
