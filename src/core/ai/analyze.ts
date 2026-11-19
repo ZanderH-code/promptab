@@ -8,7 +8,7 @@ import { profileIssues, type ProfileIssue, type ProfileV2 } from '../schema/prof
 import { localizeIssue } from '../schema/issueMessages'
 import { themeColorsFor, type ThemeMode } from '../tokens/derive'
 import { checkTheme, type CheckId } from '../tokens/quality'
-import { applyPack } from './apply'
+import { applyPack } from './merge'
 import { autoFix, type Fix } from './fix'
 import { aiPackSchema, PACK_PARTS, partsOf, unknownKeys, type AiPack, type PackPart } from './pack'
 import { readCandidate, type Candidate } from './parse'
