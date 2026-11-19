@@ -17,6 +17,10 @@ export async function migrateFirstRun(backend: AsyncKeyValueBackend, options: Bo
   if (await backend.get('backup:v1-original') === null) await backend.set('backup:v1-original', JSON.stringify(raw))
   const initial = options.defaultSettings ?? defaults
   const fresh = raw.backend === 'local' ? raw.value === null : !raw.present
+  // Starter sites are only needed for a fresh install; fetch them while the migration runs.
+  const starter = fresh ? import('../core/starter-sites') : null
+  // Awaited below; this only keeps a failed load from being reported as unhandled if the migration fails first.
+  starter?.catch(() => {})
   const input = raw.backend === 'local'
     ? raw.value === null ? { ...initial, shortcuts: [] } : JSON.parse(raw.value)
     : raw.present ? raw.value : { ...initial, shortcuts: [] }
@@ -28,10 +32,6 @@ export async function migrateFirstRun(backend: AsyncKeyValueBackend, options: Bo
     add: blob => assets.add(blob),
     wallpaper,
   })
-  if (fresh) {
-    // Starter sites are only needed for the first-run migration.
-    const { STARTER_SITES } = await import('../core/starter-sites')
-    profile.bookmarks.groups[0].items = structuredClone(STARTER_SITES)
-  }
+  if (starter) profile.bookmarks.groups[0].items = structuredClone((await starter).STARTER_SITES)
   return { profile, fresh }
 }
