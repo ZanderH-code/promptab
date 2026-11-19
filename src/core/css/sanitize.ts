@@ -44,6 +44,40 @@ const URL_STRING_FUNCTIONS = new Set<string>(CSS_SANITIZER_POLICY.urlStringFunct
 const FORBIDDEN_FUNCTIONS = new Set<string>(CSS_SANITIZER_POLICY.forbiddenFunctions)
 const ASSET_URL = new RegExp(CSS_SANITIZER_POLICY.assetUrlPattern)
 const ASSET_GLOBAL = new RegExp(CSS_SANITIZER_POLICY.assetUrlPattern.slice(1, -1), 'g')
+/** Functions whose result is only known once the page computes styles, so a URL could hide behind them. */
+const INDIRECT_FUNCTIONS = new Set(['var', 'env', 'attr', 'if', 'inherit'])
+/** Functions a URL-taking function may contain besides other URL-taking functions; none of them loads anything. */
+const URL_ARGUMENT_FUNCTIONS = /^(?:type|calc|min|max|clamp|rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark|(?:-webkit-)?(?:repeating-)?(?:linear|radial|conic)-gradient)$/
+
+type FunctionNode = Extract<CssNode, { type: 'Function' }>
+type UrlArgumentVisitor = {
+  /** A string the function would load as a URL. */
+  url(node: Extract<CssNode, { type: 'String' }>): void
+  /** A node whose value cannot be checked here (an indirect or unknown function, or unparsed text). */
+  blocked(node: CssNode, detail: string): void
+}
+
+/**
+ * Walks every argument of a URL-taking function such as `image-set()`, not only its direct strings: a string
+ * nested in another URL-taking function is a URL too, and `var()`/`env()`/`attr()` or an unknown function
+ * could supply one when styles are computed.
+ */
+function visitUrlArguments(fn: FunctionNode, visitor: UrlArgumentVisitor) {
+  const visit = (node: CssNode, loadsStrings: boolean) => {
+    if (node.type === 'String') { if (loadsStrings) visitor.url(node); return }
+    if (node.type === 'Raw') { if (node.value.trim()) visitor.blocked(node, 'raw'); return }
+    let strings = loadsStrings
+    if (node.type === 'Function') {
+      const name = node.name.toLowerCase()
+      if (INDIRECT_FUNCTIONS.has(name)) { visitor.blocked(node, name); return }
+      if (URL_STRING_FUNCTIONS.has(name)) strings = true
+      else if (!loadsStrings || URL_ARGUMENT_FUNCTIONS.test(name)) strings = false
+      else { visitor.blocked(node, name); return }
+    }
+    if ('children' in node && node.children) for (const child of node.children) visit(child, strings)
+  }
+  for (const child of fn.children) visit(child, true)
+}
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length
 
@@ -116,6 +150,8 @@ export function sanitizeCss(source: string): SanitizedCss {
       if (!allowedHere) fail(inFontFace ? 'font-url' : 'url', node, value.length > 60 ? `${value.slice(0, 57)}...` : value)
       else if (ASSET_URL.test(value)) assets.add(value)
     }
+    // Nested URL functions are checked with the outermost one.
+    const checkedFunctions = new WeakSet<CssNode>()
     walk(ast, function (node) {
       const inFontFace = this.atrule?.name.toLowerCase() === 'font-face'
       switch (node.type) {
@@ -139,8 +175,12 @@ export function sanitizeCss(source: string): SanitizedCss {
           if (node.name.includes('\\')) { fail('escape', node, node.name); break }
           const name = node.name.toLowerCase()
           if (FORBIDDEN_FUNCTIONS.has(name)) fail('function', node, name)
-          else if (URL_STRING_FUNCTIONS.has(name)) {
-            for (const child of node.children) if (child.type === 'String') checkUrl(child.value, child, inFontFace)
+          else if (URL_STRING_FUNCTIONS.has(name) && !checkedFunctions.has(node)) {
+            walk(node, inner => { if (inner.type === 'Function') checkedFunctions.add(inner) })
+            visitUrlArguments(node, {
+              url: child => checkUrl(child.value, child, inFontFace),
+              blocked: (child, detail) => fail(child.type === 'Raw' ? 'raw-value' : 'function', child, `${name}(${detail})`),
+            })
           }
           break
         }
@@ -180,7 +220,7 @@ export function portableCss(source: string): { css: string | undefined; removed:
         walk(node.value, value => {
           if (value.type === 'Url' && localUrl(value.value)) referencesAsset = true
           else if (value.type === 'Function' && URL_STRING_FUNCTIONS.has(value.name.toLowerCase())) {
-            for (const child of value.children) if (child.type === 'String' && localUrl(child.value)) referencesAsset = true
+            visitUrlArguments(value, { url: child => { if (localUrl(child.value)) referencesAsset = true }, blocked: () => {} })
           }
         })
         if (referencesAsset) {
