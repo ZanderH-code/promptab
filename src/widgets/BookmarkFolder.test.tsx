@@ -10,7 +10,7 @@ const shortcut = (id: string): Shortcut => ({ id, name: id, url: `https://exampl
 const first = { id: 'first', name: 'First', collapsed: true, items: [shortcut('Alpha')] } as Group
 const second = { id: 'second', name: 'A long folder name '.repeat(8), collapsed: true, items: [shortcut('Beta'), shortcut('Gamma')] } as Group
 const makeProps = (groups: Group[]): ShortcutGridProps => ({
-  groups, shortcuts: groups.flatMap(group => group.items) as Shortcut[], editing: false, onManageDone: vi.fn(), t: (key, params) => translate('en', key, params), language: 'en',
+  groups, shortcuts: groups.flatMap(group => group.items) as Shortcut[], editing: false, t: (key, params) => translate('en', key, params), language: 'en',
   style: 'tile', source: 'all', showGroupTitles: true, maxColumns: 6, showAdd: false, iconColor: 'per-site', openInNewTab: true, liftOnHover: false,
   onGroups: vi.fn(), onEdit: vi.fn(), onRemove: vi.fn(), onMove: vi.fn(), onAdd: vi.fn(), onContextMenu: vi.fn(), onGroupContextMenu: vi.fn(), onboarding: false, onOnboardingAction: vi.fn(),
 })

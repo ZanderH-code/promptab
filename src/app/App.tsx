@@ -356,7 +356,6 @@ export default function App() {
           if (action === 'add') setEditing(newShortcut('#b0a092'))
           else openSettings(action === 'import' ? 'data' : action === 'theme' ? 'appearance' : 'ai')
         }}
-        onManageDone={() => setEditMode(false)}
         t={t}
         onError={setError}
         onContextMenu={(event: ContextMenuEvent) => openMenu(event, 'clock')}
