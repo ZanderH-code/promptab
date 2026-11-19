@@ -4,6 +4,7 @@ import { deriveTokens, themeColorsFor, type ThemeMode } from '../core/tokens/der
 import { assetFontFamily, isAssetFont } from '../core/font'
 import { mixOklch } from '../core/tokens/oklch'
 import { accentPalette } from '../core/tokens/accent'
+import { isSafeFontRef, isSafeThemeValue } from '../core/css/safeValue'
 import type { ProfileV2 } from '../core/schema/profile'
 
 const FONTS: Record<string, string> = {
@@ -18,7 +19,10 @@ const FONTS: Record<string, string> = {
 const DENSITY = { compact: 0.8, comfortable: 1, spacious: 1.25 } as const
 const ICON_RADIUS = { circle: '50%', rounded: '24%', square: '4px' } as const
 
-export const fontStack = (ref: string) => FONTS[ref] ?? (isAssetFont(ref) ? `"${assetFontFamily(ref)}", ${FONTS.system}` : ref)
+/** A font key, an uploaded font or a plain family list; anything else (brackets, escapes, `;`) falls back to the system stack. */
+export const fontStack = (ref: string) => Object.hasOwn(FONTS, ref) ? FONTS[ref]
+  : isAssetFont(ref) ? `"${assetFontFamily(ref)}", ${FONTS.system}`
+    : isSafeFontRef(ref) ? ref : FONTS.system
 
 const ACCENT_SELECTION_KEY = 'mnt:accent-selection:v1'
 
@@ -50,8 +54,9 @@ function themeProperties(profile: ProfileV2, mode: ThemeMode, accent = selectedA
   tokens['--mnt-icon-radius'] = ICON_RADIUS[theme.iconShape]
   for (const variable of profile.custom.variables) {
     if (/^--mnt-/i.test(variable.name)) continue
-    const value = variableValue(variable, profile.custom.values[variable.name])
-    tokens[variable.name] = `${value}${variable.type === 'range' ? variable.unit : ''}`
+    const value = `${variableValue(variable, profile.custom.values[variable.name])}${variable.type === 'range' ? variable.unit : ''}`
+    // Stored profiles accept any text here; only plain values may reach the page, where CSS can read them.
+    if (isSafeThemeValue(value)) tokens[variable.name] = value
   }
   return tokens
 }

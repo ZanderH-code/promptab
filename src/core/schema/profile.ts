@@ -4,6 +4,7 @@ import { areaGridProblem, areaNames } from '../layout/grid'
 import { localizeIssue } from './issueMessages'
 import { isHttpUrl } from '../model'
 import { DEFAULT_DIM, RANGES } from './defaults'
+import { PACK_TOKEN, PACK_UNIT, isSafeFontRef, isSafeThemeValue } from '../css/safeValue'
 
 const nonempty = z.string().refine(value => value.trim().length > 0, { error: 'non-empty string' })
 const color = z.string().regex(/^#[\da-f]{6}$/i, { error: '#RRGGBB color' })
@@ -20,12 +21,22 @@ export const baseColorsSchema = z.object({ bg: color, surface: color, text: colo
 export const fontRefSchema = nonempty
 const label = z.object({ 'zh-CN': nonempty, en: nonempty })
 const variableBase = { name: z.string().regex(/^--[a-zA-Z_][\w-]*$/), label }
-export const variableDeclSchema = z.discriminatedUnion('type', [
-  z.object({ ...variableBase, type: z.literal('range'), min: z.number(), max: z.number(), unit: z.string(), default: z.number() }).refine(v => v.min <= v.max && v.default >= v.min && v.default <= v.max),
+const variableDecl = (option: z.ZodType<string>, unit: z.ZodType<string>) => z.discriminatedUnion('type', [
+  z.object({ ...variableBase, type: z.literal('range'), min: z.number(), max: z.number(), unit, default: z.number() }).refine(v => v.min <= v.max && v.default >= v.min && v.default <= v.max),
   z.object({ ...variableBase, type: z.literal('color'), default: color }),
   z.object({ ...variableBase, type: z.literal('toggle'), default: z.union([z.literal(0), z.literal(1)]) }),
-  z.object({ ...variableBase, type: z.literal('select'), options: z.array(nonempty).min(1), default: nonempty }).refine(v => v.options.includes(v.default)),
+  z.object({ ...variableBase, type: z.literal('select'), options: z.array(option).min(1), default: option }).refine(v => v.options.includes(v.default)),
 ])
+/** Variables as stored in a profile; kept loose so profiles saved by older versions still load. */
+export const variableDeclSchema = variableDecl(nonempty, z.string())
+const packToken = z.string().refine(value => PACK_TOKEN.test(value) && isSafeThemeValue(value) && value.trim().length > 0, { error: 'plain CSS value without brackets, quotes or url' })
+/** Variables a newly imported pack may declare: values that are safe to write onto the page as they are. */
+export const packVariableDeclSchema = variableDecl(packToken, z.string().regex(PACK_UNIT, { error: 'unit of up to 6 lowercase letters or %' }))
+/** A font an imported pack may name: a key or a plain family list (the stored profile accepts any text). */
+export const packFontRefSchema = z.string({ error: 'font key or family name' }).refine(
+  value => isSafeFontRef(value) && !value.startsWith('mnt-asset:'),
+  { error: 'font key (serif, mono, outfit, ...) or a plain family name' },
+)
 
 export const linkSchema = z.object({
   id: nonempty, name: nonempty, url: z.string().refine(isHttpUrl, { error: 'HTTP(S) URL' }), color, icon: nonempty,

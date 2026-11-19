@@ -3,7 +3,7 @@ import { MessageError } from '../../i18n'
 import type { Language } from '../../i18n'
 import { localizeIssue } from './issueMessages'
 import type { ProfileIssue } from './profile'
-import { profileV2Schema } from './profile'
+import { packFontRefSchema, profileV2Schema } from './profile'
 
 /**
  * Internal partial theme pack: the slice of a profile that a preset (or a future imported theme) may set.
@@ -20,7 +20,7 @@ export const themePackThemeSchema = z.object({
   mode: themeShape.mode,
   color: themeShape.color,
   colorLight: themeShape.colorLight,
-  font: themeShape.font.optional(),
+  font: z.object({ display: packFontRefSchema, ui: packFontRefSchema }).optional(),
   radius: themeShape.radius.optional(),
   shadow: themeShape.shadow.optional(),
   glass: themeShape.glass.optional(),
