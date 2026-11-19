@@ -53,6 +53,7 @@ describe('clock and date tokens', () => {
     expect(formatClock(evening, 'en', { words: true, hour12: true, separator: ':', separatorSpacing: 0.25 })).toBe('Six : Fifty-Three')
     expect(formatClock(new Date(2021, 7, 10, 7, 5), 'en', { words: true })).toBe('Zero Seven:Zero Five')
     expect(clockTokens(evening, 'en', { hour12: true, pad: false, meridiem: true, separator: ':' }).map(token => [token.kind, token.text])).toEqual([['part', '6'], ['separator', ':'], ['part', '53'], ['part', ' PM']])
+    expect(clockTokens(evening, 'zh-CN', { hour12: true, meridiem: true }).at(-1)?.text).toBe(' 下午')
     expect(formatClock(evening, 'en', { separator: '' })).toBe('1853')
   })
 

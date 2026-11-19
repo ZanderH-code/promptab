@@ -30,7 +30,7 @@ test('a fresh install can reproduce the icon-split template through the UI', asy
       else await page.locator('.add-shortcut').first().click()
       const editor = page.locator('.shortcut-editor')
       await editor.getByLabel('网址').fill(site.url)
-      await editor.getByLabel('名称').fill(site.name)
+      await editor.getByLabel('名称', { exact: true }).fill(site.name)
       if ('brand' in site) {
         await editor.getByRole('button', { name: /品牌图标/ }).click()
         const search = editor.getByLabel('搜索品牌')

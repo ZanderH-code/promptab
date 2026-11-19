@@ -78,7 +78,7 @@ export function clockTokens(date: Date, language: string, props: ClockProps): Te
     if (index > 0) tokens.push({ kind: 'separator', text: `${spacing}${separator}${spacing}` })
     tokens.push({ kind: 'part', ...value })
   })
-  if (hour12 && props.meridiem && tokens.length) tokens.push({ kind: 'part', part: 'meridiem', text: ` ${date.getHours() < 12 ? 'AM' : 'PM'}` })
+  if (hour12 && props.meridiem && tokens.length) tokens.push({ kind: 'part', part: 'meridiem', text: language.startsWith('zh') ? ` ${date.getHours() < 12 ? '上午' : '下午'}` : ` ${date.getHours() < 12 ? 'AM' : 'PM'}` })
   return tokens
 }
 
