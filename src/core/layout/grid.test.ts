@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { areaGridProblem, areaNames, breakpointFor, columnCount, resolveGrid, widgetsIn } from './grid'
+import { areaGridProblem, areaNames, columnCount, widgetsIn } from './grid'
 import { templateGrid } from './templates'
-import { BREAKPOINTS } from '../schema/defaults'
 import { profileV2Schema } from '../schema/profile'
 import { applyTemplate, detectTemplate } from './profile'
 import { migrateV1 } from '../migrate/v1'
@@ -32,17 +31,6 @@ describe('layout grids', () => {
     expect(areaGridProblem(['overview overview links', 'search search links'])).toBeNull()
   })
 
-  it('uses narrow overrides, then medium, and base at wide widths', () => {
-    const layout = { areas: ['base'], breakpoints: { medium: { areas: ['mid'] }, narrow: { areas: ['small'] } } } as any
-    expect(resolveGrid(layout, 'narrow').areas).toEqual(['small'])
-    expect(resolveGrid(layout, 'medium').areas).toEqual(['mid'])
-    expect(resolveGrid(layout, 'wide').areas).toEqual(['base'])
-    expect(resolveGrid({ areas: ['base'], breakpoints: { medium: { areas: ['mid'] } } } as any, 'narrow').areas).toEqual(['mid'])
-  })
-
-  it('classifies breakpoint boundaries from shared defaults', () => {
-    expect([breakpointFor(BREAKPOINTS.narrowMax), breakpointFor(BREAKPOINTS.narrowMax + 1), breakpointFor(BREAKPOINTS.mediumMax), breakpointFor(BREAKPOINTS.mediumMax + 1)]).toEqual(['narrow', 'medium', 'medium', 'wide'])
-  })
 
   it('orders visible widgets and exposes six named templates', () => {
     const widgets = [{ id: 'b', area: 'a', order: 2 }, { id: 'a', area: 'a', order: 1 }, { id: 'x', area: 'b', order: 0 }, { id: 'h', area: 'a', order: 0, hidden: true }] as any

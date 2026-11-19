@@ -85,7 +85,7 @@ function displayVisual(item: AnyRecord): Visual | undefined {
 
 function bookmarkUrl(item: AnyRecord): string {
   const candidate = text(first(item.url, item.href, item.address))
-  try { return ['http:', 'https:'].includes(new URL(candidate).protocol) ? candidate : '' } catch { return '' }
+  return isHttpUrl(candidate) ? candidate : ''
 }
 
 /**

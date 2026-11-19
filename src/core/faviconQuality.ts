@@ -44,7 +44,6 @@ const queue: Array<() => void> = []
 const KNOWN_HOSTS = /(^|\.)(google\.(com|dev)|ai\.google|chatgpt\.com|v0\.(app|dev)|deepseek\.com|grok\.com|outlook\.(live|office)\.com|reddit\.com|tradingview\.com|coinmarketcap\.com|interactivebrokers\.com|wealthsimple\.com)$/
 export function isKnownHost(hostname: string) { return KNOWN_HOSTS.test(hostname.toLowerCase()) }
 export function isUsableIcon(width: number, height: number, transparent = false, placeholder = false) { return width > 1 && height > 1 && !transparent && !placeholder }
-export function isCacheEntryFresh(entry: IconCacheEntry, now = Date.now()) { return entry.expiresAt > now }
 /** Least-recently-used first, so the tail can be dropped at the capacity limit. */
 export function trimCacheEntries(entries: Record<string, IconCacheEntry>, limit = ICON_CACHE_LIMIT) {
   if (Object.keys(entries).length <= limit) return entries

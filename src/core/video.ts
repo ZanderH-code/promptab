@@ -1,6 +1,6 @@
 import { MessageError } from '../i18n'
 
-export const VIDEO_TYPES = ['video/mp4', 'video/webm'] as const
+const VIDEO_TYPES = ['video/mp4', 'video/webm'] as const
 export const MAX_WALLPAPER_VIDEO_BYTES = 30 * 1024 * 1024
 
 export function validateVideo(file: Blob) {

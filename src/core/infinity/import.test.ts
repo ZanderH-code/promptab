@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { migrateV1 } from '../migrate/v1'
 import { defaults } from '../model'
 import { applyInfinityBackup, parseInfinityBackup } from './import'
@@ -35,6 +35,20 @@ async function profile() {
 }
 
 describe('Infinity backup importer', () => {
+  it('applies a previewed backup without parsing it again, with the same result', async () => {
+    const current = await profile()
+    const preview = parseInfinityBackup(fixture, current)
+    const parse = vi.spyOn(JSON, 'parse')
+    try {
+      const applied = applyInfinityBackup(fixture, current, true)
+      expect(parse).not.toHaveBeenCalled()
+      const stable = (value: unknown) => JSON.stringify(value).replace(/[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}/g, 'uuid').replace(/"updatedAt":"[^"]*"/, '')
+      expect(stable(applied)).toBe(stable(preview.profile))
+      applyInfinityBackup(fixture, current, true)
+      expect(parse).toHaveBeenCalledTimes(1)
+    } finally { parse.mockRestore() }
+  })
+
   it('keeps a custom engine on a host that merely starts with google', async () => {
     const input = JSON.parse(fixture)
     input.data.searcher.searchEngine.custom.push({ name: 'Intranet', target: 'https://google.mycorp.example/find?q=%s' })

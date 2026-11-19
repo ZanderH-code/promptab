@@ -3,7 +3,7 @@ import { MessageError } from '../../i18n'
 import type { Language } from '../../i18n'
 import { localizeIssue } from './issueMessages'
 import type { ProfileIssue } from './profile'
-import { packFontRefSchema, profileV2Schema } from './profile'
+import { describeIssue, packFontRefSchema, profileV2Schema } from './profile'
 
 /**
  * Internal partial theme pack: the slice of a profile that a preset (or a future imported theme) may set.
@@ -56,26 +56,17 @@ export const themePackSchema = z.object({
 
 export type ThemePack = z.infer<typeof themePackSchema>
 
-function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
-  const actual = issue.path.reduce<unknown>((current, key) =>
-    current != null && typeof current === 'object' ? (current as Record<PropertyKey, unknown>)[key] : undefined, value)
-  let display: string
-  try { display = typeof actual === 'string' ? actual : JSON.stringify(actual) ?? String(actual) }
-  catch { display = String(actual) }
-  return { path: issue.path.map(String).join('.') || '$', expected: issue.message, value: display }
-}
-
 /** Every validation problem in a candidate pack (empty when valid). */
 export function themePackIssues(value: unknown, language?: Language): ProfileIssue[] {
   const result = themePackSchema.safeParse(value)
   if (result.success) return []
-  const issues = result.error.issues.map(issue => describe(value, issue))
+  const issues = result.error.issues.map(issue => describeIssue(value, issue))
   return language ? issues.map(issue => localizeIssue(issue, language)) : issues
 }
 
 /** Parse a pack or throw a localizable error with the first invalid path. */
 export function parseThemePack(value: unknown): ThemePack {
   const result = themePackSchema.safeParse(value)
-  if (!result.success) throw new MessageError('error.profileValidation', { ...describe(value, result.error.issues[0]) })
+  if (!result.success) throw new MessageError('error.profileValidation', { ...describeIssue(value, result.error.issues[0]) })
   return result.data
 }

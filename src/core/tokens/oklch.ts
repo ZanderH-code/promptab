@@ -113,11 +113,6 @@ export function mixOklch(a: string, b: string, amount: number): string {
   })
 }
 
-/** Same hue and chroma at another lightness (chroma is reduced only to stay inside sRGB). */
-export function withLightness(hex: string, l: number): string {
-  return oklchToHex({ ...hexToOklch(hex), l })
-}
-
 /** `rgb(r g b / a%)` for translucent layers, from a hex colour and an alpha of 0-1. */
 export function toRgba(hex: string, alpha: number): string {
   const [r, g, b] = hexToRgb(hex)

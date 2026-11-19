@@ -230,7 +230,8 @@ export type VariableDecl = z.infer<typeof variableDeclSchema>
 
 export type ProfileIssue = { path: string; expected: string; value: string }
 
-function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
+/** One schema issue with its dotted path and the offending value as text. */
+export function describeIssue(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
   const actual = issue.path.reduce<unknown>((current, key) =>
     current != null && typeof current === 'object' ? (current as Record<PropertyKey, unknown>)[key] : undefined, value)
   let display: string
@@ -243,7 +244,7 @@ function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
 export function profileIssues(value: unknown, language?: Language): ProfileIssue[] {
   const result = profileV2Schema.safeParse(value)
   return result.success ? [] : result.error.issues.map(issue => {
-    const described = describe(value, issue)
+    const described = describeIssue(value, issue)
     return language ? localizeIssue(described, language) : described
   })
 }
@@ -252,7 +253,7 @@ export function profileIssues(value: unknown, language?: Language): ProfileIssue
 export function parseProfileV2(value: unknown, language?: Language): ProfileV2 {
   const result = profileV2Schema.safeParse(value)
   if (!result.success) {
-    const described = describe(value, result.error.issues[0])
+    const described = describeIssue(value, result.error.issues[0])
     throw new MessageError('error.profileValidation', { ...(language ? localizeIssue(described, language) : described) })
   }
   return result.data

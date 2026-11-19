@@ -1,10 +1,9 @@
-import type { z } from 'zod'
 import type { Language } from '../../i18n'
 import { CSS_API_CLASSES } from '../css/api'
 import { findCssPitfalls, type CssPitfall } from '../css/pitfalls'
 import { sanitizeCss, type CssIssue, type SanitizedCss } from '../css/sanitize'
 import { isAssetFont, isFontKey } from '../font'
-import { profileIssues, type ProfileIssue, type ProfileV2 } from '../schema/profile'
+import { describeIssue, profileIssues, type ProfileIssue, type ProfileV2 } from '../schema/profile'
 import { localizeIssue } from '../schema/issueMessages'
 import { themeColorsFor, type ThemeMode } from '../tokens/derive'
 import { checkTheme, type CheckId } from '../tokens/quality'
@@ -45,13 +44,6 @@ export type Analysis = {
 
 export const MAX_CSS_LINES = 200
 const NO_PARTS = { theme: false, background: false, css: false, layout: false, widgets: false }
-
-function describe(value: unknown, issue: z.core.$ZodIssue): ProfileIssue {
-  const actual = issue.path.reduce<unknown>((current, key) => (current != null && typeof current === 'object' ? (current as Record<PropertyKey, unknown>)[key] : undefined), value)
-  let shown: string
-  try { shown = typeof actual === 'string' ? actual : JSON.stringify(actual) ?? String(actual) } catch { shown = String(actual) }
-  return { path: issue.path.map(String).join('.') || '$', expected: issue.message, value: shown }
-}
 
 const fieldProblem = (issue: ProfileIssue): Problem => ({ kind: 'field', path: issue.path, expected: issue.expected, value: issue.value })
 
@@ -98,7 +90,7 @@ export function analyzeCandidate(candidate: Candidate, profile: ProfileV2, langu
   const warnings: Warning[] = unknownKeys(value).map(path => ({ kind: 'unknown-key', path }))
   const parsed = aiPackSchema.safeParse(value)
   if (!parsed.success) {
-    const issues = parsed.error.issues.map(issue => describe(value, issue))
+    const issues = parsed.error.issues.map(issue => describeIssue(value, issue))
     return { fixes, problems: (language ? issues.map(issue => localizeIssue(issue, language)) : issues).map(fieldProblem), warnings, parts: NO_PARTS }
   }
 

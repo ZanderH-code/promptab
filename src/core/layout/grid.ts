@@ -1,14 +1,6 @@
 import type { ProfileV2 } from '../schema/profile'
-import { BREAKPOINTS } from '../schema/defaults'
 
-export type Breakpoint = 'narrow' | 'medium' | 'wide'
 export type Grid = { areas: string[]; columns?: string[]; rows?: string[] }
-
-/** `narrow` is below 640px, `medium` up to 1024px, `wide` above (DESIGN §4). */
-export const NARROW_MAX = BREAKPOINTS.narrowMax
-export const MEDIUM_MAX = BREAKPOINTS.mediumMax
-
-export const breakpointFor = (width: number): Breakpoint => width <= NARROW_MAX ? 'narrow' : width <= MEDIUM_MAX ? 'medium' : 'wide'
 
 const cells = (row: string) => row.trim().split(/\s+/)
 
@@ -54,17 +46,6 @@ export function areaGridProblem(areas: readonly string[], rules: AreaGridRules =
 
 /** Number of columns a grid needs: the cells of its first row. */
 export const columnCount = (areas: readonly string[]) => (areas[0] ? cells(areas[0]).length : 1)
-
-/**
- * The grid for a breakpoint. Overrides cascade like `max-width` media queries: narrow falls back to medium,
- * medium and wide fall back to the base grid.
- */
-export function resolveGrid(layout: ProfileV2['layout'], breakpoint: Breakpoint): Grid {
-  const base: Grid = { areas: layout.areas, ...(layout.columns ? { columns: layout.columns } : {}), ...(layout.rows ? { rows: layout.rows } : {}) }
-  const { narrow, medium } = layout.breakpoints ?? {}
-  const pick = breakpoint === 'narrow' ? narrow ?? medium : breakpoint === 'medium' ? medium : undefined
-  return pick ? { areas: pick.areas, ...(pick.columns ? { columns: pick.columns } : {}), ...(pick.rows ? { rows: pick.rows } : {}) } : base
-}
 
 /** Visible widgets of one area, in display order. */
 export function widgetsIn(widgets: ProfileV2['widgets'], area: string): ProfileV2['widgets'] {
