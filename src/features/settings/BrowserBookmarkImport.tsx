@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { appendImportedBookmarkGroups, collectBookmarkFolders, importBookmarkFolders, type BookmarkFolder, type BookmarkNode } from '../../core/bookmarks/import'
 import type { MessageKey } from '../../i18n'
 import type { Ctx } from './rows/shared'
-import { extensionApi, isExtensionEnvironment } from '../../platform/extension'
+import { extensionApi, extensionBookmarks, isExtensionEnvironment } from '../../platform/extension'
 import '../../i18n/lazy'
 
 type Props = { ctx: Ctx }
@@ -15,18 +15,21 @@ export function BrowserBookmarkImport({ ctx }: Props) {
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<MessageKey | null>(null)
-  const available = isExtensionEnvironment() && !!browserApi()?.permissions?.request && !!browserApi()?.bookmarks?.getTree
+  // Chromium defines the bookmarks API only after the optional permission is granted, so only the request is checked here.
+  const available = isExtensionEnvironment() && !!browserApi()?.permissions?.request
 
   const openPicker = async () => {
     const api = browserApi()
-    if (!api?.bookmarks || !api.permissions?.request) return
+    if (!api?.permissions?.request) return
     setBusy(true)
     setStatus(null)
     try {
       // Keep the optional permission request in the original button gesture.
       const granted = await api.permissions.request({ permissions: ['bookmarks'] })
       if (!granted) { setStatus('bookmarks.permissionDenied'); return }
-      const tree = await api.bookmarks.getTree() as BookmarkNode[]
+      const bookmarks = extensionBookmarks()
+      if (!bookmarks) { setStatus('bookmarks.loadFailed'); return }
+      const tree = await bookmarks.getTree() as BookmarkNode[]
       setTree(tree)
       setFolders(collectBookmarkFolders(tree))
       setSelected([])

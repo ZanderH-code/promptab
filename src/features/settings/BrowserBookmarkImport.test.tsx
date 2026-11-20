@@ -41,6 +41,17 @@ describe('BrowserBookmarkImport', () => {
     expect(next.bookmarks.groups.at(-1)).toMatchObject({ name: 'Reading', items: [{ name: 'Read', url: 'https://read.example' }] })
   })
 
+  it('offers import before Chromium defines the bookmarks API, then reads it once access is granted', async () => {
+    const api: Record<string, unknown> = { runtime: { getURL: vi.fn() }, permissions: { request: vi.fn() } }
+    const getTree = vi.fn().mockResolvedValue(tree)
+    ;(api.permissions as { request: ReturnType<typeof vi.fn> }).request.mockImplementation(async () => { api.bookmarks = { getTree }; return true })
+    Object.defineProperty(window, 'chrome', { configurable: true, value: api })
+    await setup()
+    fireEvent.click(screen.getByRole('button', { name: 'Choose folders' }))
+    await screen.findByRole('group', { name: 'Bookmark folders' })
+    expect(getTree).toHaveBeenCalledOnce()
+  })
+
   it('handles denied permission without reading bookmarks', async () => {
     const api = chromeMock(false)
     Object.defineProperty(window, 'chrome', { configurable: true, value: api })

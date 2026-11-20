@@ -1,4 +1,4 @@
-import { extensionApi } from '../platform/extension'
+import { extensionApi, extensionStorage } from '../platform/extension'
 import { ICON_STALE_TTL_MS, readIconCache, writeIconCache } from './favicon'
 import { loadBrand } from './brandShards'
 
@@ -27,7 +27,7 @@ function isCacheableUrl(key: string, url: string, known?: boolean) {
 
 /** Moves fresh v2 entries from `storage.local` into the synchronous v3 cache, then deletes the old key. */
 export async function migrateV2() {
-  const storage = extensionApi()?.storage?.local
+  const storage = extensionStorage()?.local
   if (!storage) return
   let raw: unknown
   try { raw = (await storage.get(V2_KEY))[V2_KEY] } catch { return }

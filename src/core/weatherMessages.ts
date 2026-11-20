@@ -11,7 +11,7 @@ export const weatherMessages: Record<Language, Record<WeatherMessage, string>> =
   en: {
     title: 'Weather', city: 'City', searchCity: 'Search cities', useLocation: 'Use current location', cityResults: 'City search results',
     unit: 'Temperature unit', celsius: 'Celsius', fahrenheit: 'Fahrenheit', showForecast: 'Show 3-day forecast',
-    privacyHint: 'Weather comes from Open-Meteo, a free, open-source service. After you pick a city, the widget loads it when a new tab opens and refreshes every 30 minutes. Only the city name and its coordinates are sent. Your location is read only when you click Use current location.',
+    privacyHint: 'Weather comes from Open-Meteo, a free, open-source service. After you pick a city, the widget loads it when a new tab opens and refreshes every 30 minutes. Only the city name and its coordinates are sent. Your location is read only when you click Use current location; its coordinates are then sent once to BigDataCloud to show the place name.',
     permissionDenied: 'Network access was not granted.', searchTooShort: 'Enter at least two characters.', noCities: 'No matching cities found.',
     searchFailed: 'City search could not be completed.', currentLocation: 'Current location', locationUnavailable: 'Your device could not report a location (on Windows, location services may be off). Search for your city instead.',
     locationFailed: 'Could not get your location. Search for your city instead.', loading: 'Loading…', refresh: 'Update weather',
@@ -28,7 +28,7 @@ export const weatherMessages: Record<Language, Record<WeatherMessage, string>> =
   'zh-CN': {
     title: '天气', city: '城市', searchCity: '搜索城市', useLocation: '使用当前位置', cityResults: '城市搜索结果',
     unit: '温度单位', celsius: '摄氏度', fahrenheit: '华氏度', showForecast: '显示未来三天',
-    privacyHint: '天气来自免费开源的 Open-Meteo。选好城市后，每次打开新标签页会自动加载，并每 30 分钟更新一次。只会发送城市名称和坐标；只有点击“使用当前位置”时才会读取定位。',
+    privacyHint: '天气来自免费开源的 Open-Meteo。选好城市后，每次打开新标签页会自动加载，并每 30 分钟更新一次。只会发送城市名称和坐标；只有点击“使用当前位置”时才会读取定位，并把坐标发送一次给 BigDataCloud 以显示具体地名。',
     permissionDenied: '未获得网络访问权限。', searchTooShort: '请输入至少两个字符。', noCities: '没有找到匹配的城市。',
     searchFailed: '无法完成城市搜索。', currentLocation: '当前位置', locationUnavailable: '设备无法提供位置（例如 Windows 的定位服务已关闭）。请直接搜索城市。',
     locationFailed: '无法获取位置，请直接搜索城市。', loading: '正在加载…', refresh: '更新天气',

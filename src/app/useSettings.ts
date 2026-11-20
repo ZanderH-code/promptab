@@ -6,7 +6,7 @@ import { MessageError, systemLanguage, toMessageRef, type MessageRef } from '../
 import { bootstrap } from '../storage/bootstrap'
 import { createAssetLibrary } from '../storage/assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, PROFILE_INDEX_KEY } from '../storage/profiles'
-import { extensionApi } from '../platform/extension'
+import { extensionStorage } from '../platform/extension'
 import { createProfileStore } from '../store/profile'
 import { readPaintCache, writePaintCache } from './paintCache'
 import { cachedImageReference, cachedImageUrl, rememberImageUrl } from './imageUrls'
@@ -16,7 +16,7 @@ export const assets = createAssetLibrary()
 export type AppProfileStore = ReturnType<typeof createProfileStore>
 
 export function createAppProfileStorage() {
-  const local = extensionApi()?.storage?.local
+  const local = extensionStorage()?.local
   const backend = local ? createChromeStorageBackend(local) : createLocalStorageBackend(localStorage)
   return { backend, persistence: createProfileStorage(backend) }
 }
@@ -256,7 +256,7 @@ export function useSettings() {
       const onStorage = (event: StorageEvent) => { if (event.key === PROFILE_INDEX_KEY) refresh() }
       const onVisibility = () => { if (document.visibilityState === 'visible') refresh() }
       const changed = (changes: Record<string, unknown>, area: string) => { if (area === 'local' && PROFILE_INDEX_KEY in changes) refresh() }
-      const onChanged = extensionApi()?.storage?.onChanged
+      const onChanged = extensionStorage()?.onChanged
       window.addEventListener('storage', onStorage)
       document.addEventListener('visibilitychange', onVisibility)
       onChanged?.addListener(changed)

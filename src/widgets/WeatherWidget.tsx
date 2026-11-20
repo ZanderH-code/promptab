@@ -2,11 +2,13 @@ import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow, Cl
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Settings } from '../core/model'
 import type { Widget } from '../core/schema/profile'
-import { fetchWeatherForecast, hasWeatherPermission, isForecastFresh, readCachedForecast, requestWeatherPermission, weatherIconForCode, type WeatherForecast, type WeatherUnit } from '../core/weather'
+import { fetchWeatherForecast, hasPlacePermission, hasWeatherPermission, lookupPlaceName, isForecastFresh, readCachedForecast, requestWeatherPermission, weatherIconForCode, type WeatherForecast, type WeatherUnit } from '../core/weather'
 import { weatherText, type WeatherMessage } from '../core/weatherMessages'
 
 type WeatherWidgetData = Extract<Widget, { type: 'weather' }>
-type Props = { widget: WeatherWidgetData; language: Settings['language']; onChooseCity?: () => void }
+/** Saves a change to this widget (the looked-up place name). */
+type WeatherUpdate = (id: string, update: (widget: Widget) => Widget) => void
+type Props = { widget: WeatherWidgetData; language: Settings['language']; onChooseCity?: () => void; onChange?: WeatherUpdate }
 
 const icons = { Sun, CloudSun, Cloud, CloudFog, CloudDrizzle, CloudRain, CloudSnow, CloudLightning }
 /** How often an open tab checks whether its forecast is older than the 30-minute cache. */
@@ -22,7 +24,7 @@ function WeatherDay({ day, unit, language }: { day: WeatherForecast['days'][numb
   return <li><span>{date}</span><Icon aria-hidden="true" size={18} /><span>{temperature(day.high, unit)} / {temperature(day.low, unit)}</span></li>
 }
 
-export function WeatherWidget({ widget, language, onChooseCity }: Props) {
+export function WeatherWidget({ widget, language, onChooseCity, onChange }: Props) {
   const unit = widget.props.unit ?? 'celsius'
   const { latitude, longitude } = widget.props
   const hasCoordinates = typeof latitude === 'number' && typeof longitude === 'number'
@@ -32,14 +34,17 @@ export function WeatherWidget({ widget, language, onChooseCity }: Props) {
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<'permission' | 'refresh' | null>(null)
   const place = useRef('')
+  const named = useRef('')
+  const needsName = hasCoordinates && widget.props.currentLocation === true && !widget.props.city
 
   const load = useCallback(async (fromClick: boolean) => {
     if (!hasCoordinates) return
     const key = `${latitude}:${longitude}:${unit}`
     setBusy(true)
     try {
-      // Only a click may show the browser's permission prompt; automatic loads just check it.
-      const granted = fromClick ? await requestWeatherPermission('forecast') : await hasWeatherPermission()
+      // Only a click may show the browser's permission prompt; automatic loads just check it. A current location
+      // without a place name also asks for the name lookup in that click.
+      const granted = fromClick ? await requestWeatherPermission(needsName ? 'location' : 'forecast') : await hasWeatherPermission()
       if (!granted) { setStatus('permission'); return }
       const result = await fetchWeatherForecast(latitude, longitude, unit, { force: fromClick })
       if (place.current !== key) return
@@ -48,7 +53,24 @@ export function WeatherWidget({ widget, language, onChooseCity }: Props) {
       setStatus(null)
     } catch { if (place.current === key) setStatus('refresh') }
     finally { if (place.current === key) setBusy(false) }
-  }, [hasCoordinates, latitude, longitude, unit])
+  }, [hasCoordinates, latitude, longitude, unit, needsName])
+
+  // Locations saved before place names existed (or whose lookup failed) get their name once access allows it.
+  useEffect(() => {
+    const key = `${latitude}:${longitude}`
+    if (!needsName || !onChange || named.current === key) return
+    let cancelled = false
+    void (async () => {
+      try {
+        if (!await hasPlacePermission() || cancelled) return
+        // One lookup per place, so a place without a name is not asked about on every refresh.
+        named.current = key
+        const name = await lookupPlaceName(latitude!, longitude!, { language: language === 'zh-CN' ? 'zh' : 'en' })
+        if (name && !cancelled) onChange(widget.id, item => item.type === 'weather' && item.props.latitude === latitude && item.props.longitude === longitude && !item.props.city ? { ...item, props: { ...item.props, city: name } } : item)
+      } catch { /* "Current location" stays as the title. */ }
+    })()
+    return () => { cancelled = true }
+  }, [needsName, onChange, widget.id, latitude, longitude, language, busy])
 
   // A new city or unit replaces the card and loads by itself.
   useEffect(() => {
@@ -71,7 +93,7 @@ export function WeatherWidget({ widget, language, onChooseCity }: Props) {
 
   const Icon = forecast ? icons[weatherIconForCode(forecast.code)] : CloudSun
   const statusMessage: WeatherMessage | null = status === 'permission' ? 'needsAccess' : status === 'refresh' ? 'refreshFailed' : null
-  const title = widget.props.currentLocation ? weatherText(language, 'currentLocation') : widget.props.city || weatherText(language, 'title')
+  const title = widget.props.city || (widget.props.currentLocation ? weatherText(language, 'currentLocation') : weatherText(language, 'title'))
   const time = forecast ? new Intl.DateTimeFormat(language, { timeStyle: 'short' }).format(forecast.updatedAt) : ''
   const note = !forecast ? null : offline ? weatherText(language, 'offline') : busy && !isForecastFresh(forecast) ? weatherText(language, 'stale', { time }) : weatherText(language, 'updatedAt', { time })
 
