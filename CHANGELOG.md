@@ -4,6 +4,8 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.23.1]
+
 ### Changed
 
 - The weather widget names your current location (for example "上海市, 中国") instead of showing "Current location". The coordinates are sent once to BigDataCloud's free reverse geocoder, a new optional host (`https://api.bigdatacloud.net/*`) asked for in the same click as the location; the name is saved with the widget. Locations saved earlier get their name after the next refresh click.
