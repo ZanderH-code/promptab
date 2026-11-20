@@ -2,7 +2,7 @@ import {
   browserFaviconUrl, faviconCacheKey, ICON_STALE_TTL_MS, normalizeUrl, readIconCache, writeIconCache,
   type IconCacheEntry,
 } from './favicon'
-import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
+import { extensionApi, extensionStorage, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
 import { brandCandidate } from './brandIndex'
 
 /** Re-exported so a brand shortcut that only stores a slug can use the lazy chunk it already needs. */
@@ -136,7 +136,7 @@ function cachedCandidate(entry: IconCacheEntry): FaviconCandidate | null {
 /** Only extensions can hold a v2 cache; the web build skips the migration chunk entirely. */
 function migrateV2() {
   if (migration) return migration
-  const storage = extensionApi()?.storage?.local
+  const storage = extensionStorage()?.local
   migration = storage ? import('./faviconMigrate').then(module => module.migrateV2()).catch(() => {}) : Promise.resolve()
   return migration
 }

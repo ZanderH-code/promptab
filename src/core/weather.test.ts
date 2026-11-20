@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fetchWeatherForecast, hasWeatherPermission, isForecastFresh, locationProblem, parseOpenMeteoForecast, readCachedForecast, requestWeatherPermission, searchWeatherCities, weatherCityDetail, weatherCityLabel, weatherIconForCode, type WeatherCache } from './weather'
+import { fetchWeatherForecast, hasPlacePermission, hasWeatherPermission, isForecastFresh, locationProblem, lookupPlaceName, parseOpenMeteoForecast, readCachedForecast, requestWeatherPermission, searchWeatherCities, weatherCityDetail, weatherCityLabel, weatherIconForCode, type WeatherCache } from './weather'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -53,6 +53,16 @@ describe('weather access for automatic loads', () => {
     expect(request).toHaveBeenCalledWith({ origins: ['https://api.open-meteo.com/*', 'https://geocoding-api.open-meteo.com/*'] })
   })
 
+  it('adds the place-name host only when the current location is used', async () => {
+    const request = vi.fn().mockResolvedValue(true)
+    const contains = vi.fn().mockResolvedValue(false)
+    vi.stubGlobal('chrome', { runtime: { getURL: vi.fn() }, permissions: { request, contains } })
+    await requestWeatherPermission('location')
+    expect(request).toHaveBeenCalledWith({ origins: ['https://api.open-meteo.com/*', 'https://geocoding-api.open-meteo.com/*', 'https://api.bigdatacloud.net/*'] })
+    await expect(hasPlacePermission()).resolves.toBe(false)
+    expect(contains).toHaveBeenCalledWith({ origins: ['https://api.bigdatacloud.net/*'] })
+  })
+
   it('checks the forecast permission without prompting', async () => {
     const contains = vi.fn().mockResolvedValue(true)
     const request = vi.fn()
@@ -64,6 +74,22 @@ describe('weather access for automatic loads', () => {
 })
 
 describe('weather cities and location', () => {
+  it('names the current location from the reverse geocoder', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ city: 'Portland', locality: 'Downtown', principalSubdivision: 'Oregon', countryName: 'United States' })))
+    await expect(lookupPlaceName(45.52, -122.68, { fetcher, language: 'en' })).resolves.toBe('Portland, Oregon, United States')
+    const url = fetcher.mock.calls[0][0] as URL
+    expect(url.origin + url.pathname).toBe('https://api.bigdatacloud.net/data/reverse-geocode-client')
+    expect(url.searchParams.get('localityLanguage')).toBe('en')
+    expect(fetcher.mock.calls[0][1]).toMatchObject({ credentials: 'omit' })
+  })
+
+  it('falls back to the locality, drops a region that repeats the city, and returns nothing without a name', async () => {
+    const reply = (body: object) => vi.fn().mockResolvedValue(new Response(JSON.stringify(body)))
+    await expect(lookupPlaceName(31.2, 121.5, { fetcher: reply({ city: '', locality: '上海市', principalSubdivision: '上海市', countryName: '中国' }) })).resolves.toBe('上海市, 中国')
+    await expect(lookupPlaceName(0, 0, { fetcher: reply({ city: '', locality: '', countryName: '' }) })).resolves.toBe('')
+    await expect(lookupPlaceName(0, 0, { fetcher: vi.fn().mockResolvedValue(new Response('', { status: 429 })) })).rejects.toThrow()
+  })
+
   it('labels same-named cities by region and drops a region that repeats the city', () => {
     expect(weatherCityLabel({ name: '北京', region: '北京市', country: '中国' })).toBe('北京, 中国')
     expect(weatherCityLabel({ name: '北京', region: '重庆市', country: '中国' })).toBe('北京, 重庆市, 中国')

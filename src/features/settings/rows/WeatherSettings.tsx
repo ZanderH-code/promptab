@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import type { Widget } from '../../../core/schema/profile'
-import { locationProblem, requestWeatherPermission, searchWeatherCities, weatherCityDetail, weatherCityLabel, type WeatherCity } from '../../../core/weather'
+import { locationProblem, lookupPlaceName, requestWeatherPermission, searchWeatherCities, weatherCityDetail, weatherCityLabel, type WeatherCity } from '../../../core/weather'
 import { weatherText, type WeatherMessage } from '../../../core/weatherMessages'
 import { isExtensionEnvironment, extensionApi } from '../../../platform/extension'
 import { Row, Toggle } from '../controls'
@@ -20,9 +20,10 @@ async function canSearchCities() {
 export function WeatherSettings({ ctx, widget, patch }: Props) {
   const cityId = useId()
   const listId = useId()
-  const savedLabel = widget.props.currentLocation ? weatherText(ctx.s.language, 'currentLocation') : widget.props.city ?? ''
+  // A current location shows its looked-up place name; only an unnamed one falls back to "Current location".
+  const savedLabel = widget.props.currentLocation ? widget.props.city || weatherText(ctx.s.language, 'currentLocation') : widget.props.city ?? ''
   const [query, setQuery] = useState(savedLabel)
-  useEffect(() => { if (widget.props.currentLocation) setQuery(weatherText(ctx.s.language, 'currentLocation')) }, [ctx.s.language, widget.props.currentLocation])
+  useEffect(() => { if (widget.props.currentLocation) setQuery(savedLabel) }, [savedLabel, widget.props.currentLocation])
   const [cities, setCities] = useState<WeatherCity[]>([])
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -81,17 +82,21 @@ export function WeatherSettings({ ctx, widget, patch }: Props) {
 
   const useCurrentLocation = async () => {
     if (!navigator.geolocation) { setStatus({ key: 'locationUnavailable' }); return }
-    // Ask for Open-Meteo access in the same click so the forecast can load without a second prompt.
-    const granted = await requestWeatherPermission('all')
+    // Ask for Open-Meteo and place-name access in the same click so nothing needs a second prompt.
+    const granted = await requestWeatherPermission('location')
     setAllowed(granted)
     if (!granted) { setStatus({ key: 'permissionDenied' }); return }
     setBusy('locate')
     setStatus({ key: 'locating' })
     setOpen(false)
-    navigator.geolocation.getCurrentPosition(position => {
-      patch({ city: '', latitude: position.coords.latitude, longitude: position.coords.longitude, currentLocation: true })
-      setQuery(message('currentLocation'))
-      setStatus({ key: 'locationSaved' })
+    navigator.geolocation.getCurrentPosition(async position => {
+      const { latitude, longitude } = position.coords
+      patch({ city: '', latitude, longitude, currentLocation: true })
+      let name = ''
+      try { name = await lookupPlaceName(latitude, longitude, { language: ctx.s.language === 'zh-CN' ? 'zh' : 'en' }) } catch { /* The forecast works without a name. */ }
+      if (name) patch({ city: name, latitude, longitude, currentLocation: true })
+      setQuery(name || message('currentLocation'))
+      setStatus(name ? { key: 'citySaved', city: name } : { key: 'locationSaved' })
       setBusy(null)
     }, error => {
       setStatus({ key: locationProblem(error.code) })

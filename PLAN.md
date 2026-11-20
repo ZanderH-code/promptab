@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.23.1
+
+0.23.1 fixes the Chrome Web Store rejection of 0.23.0 ("requesting but not using storage"): storage and bookmarks are now referenced as `chrome.storage.*` / `chrome.bookmarks.*`, so the store's static scan sees them. The weather widget names a current location through BigDataCloud's reverse geocoder (new optional host), and browser bookmark import is offered in Chromium again. 0.23.0 is live in Edge Add-ons.
+
 ## Release status — 0.23.0
 
 0.23.0 is an optimization pass: a three-step AI panel that builds on the current page and can ask for changes, server-side fallbacks for direct Anthropic requests, interface motion that follows Reduce motion, a package about 5 MB smaller, and security, UI, storage and sync fixes. 0.22.0 was submitted to Edge Add-ons on 2026-11-19; 0.23.0 is published once that submission clears.

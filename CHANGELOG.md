@@ -4,6 +4,17 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.23.1]
+
+### Changed
+
+- The weather widget names your current location (for example "上海市, 中国") instead of showing "Current location". The coordinates are sent once to BigDataCloud's free reverse geocoder, a new optional host (`https://api.bigdatacloud.net/*`) asked for in the same click as the location; the name is saved with the widget. Locations saved earlier get their name after the next refresh click.
+
+### Fixed
+
+- The Chrome Web Store rejected 0.23.0 because its review could not find `storage` in use: every storage call went through an indirect `browser ?? chrome` lookup. Storage and bookmarks are now reached as `chrome.storage.*` / `chrome.bookmarks.*` (or `browser.*` on Firefox).
+- Browser bookmark import is offered in Chromium again. Chromium defines the bookmarks API only after the optional permission is granted, so the import button was hidden before anyone could grant it.
+
 ## [0.23.0]
 
 ### Changed

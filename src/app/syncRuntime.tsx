@@ -5,7 +5,7 @@ import type { ProfileV2 } from '../core/schema/profile'
 import { debounceSync, decideSyncChanges, mergeSyncedProfile, readSyncStorage, toSyncPayload, writeSyncStorage, type SyncPayload } from '../core/sync'
 import { syncText, type SyncMessage } from '../core/syncMessages'
 import type { Language } from '../i18n'
-import { extensionApi, type ExtensionStorageArea } from '../platform/extension'
+import { extensionStorage, type ExtensionStorageArea } from '../platform/extension'
 
 type Storage = {
   local: ExtensionStorageArea & { remove(keys: string | string[]): Promise<void> }
@@ -157,7 +157,7 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
 
 export function SyncRuntime({ store }: { store: StoreApi<ProfileStore> }) {
   useEffect(() => {
-    const api = extensionApi()?.storage as { local?: Storage['local']; sync?: Storage['sync']; onChanged?: Storage['onChanged'] } | undefined
+    const api = extensionStorage() as { local?: Storage['local']; sync?: Storage['sync']; onChanged?: Storage['onChanged'] } | undefined
     const local = api?.local, sync = api?.sync
     if (!local || !sync) { set({ available: false, ready: true }); return }
     controller = createSyncController(store, { local, sync, onChanged: api.onChanged })

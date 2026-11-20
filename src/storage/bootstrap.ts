@@ -5,7 +5,7 @@ import { validateStored, type ProfileCollection } from '../store/profile'
 import type { createAssetLibrary } from './assets'
 import { createChromeStorageBackend, createLocalStorageBackend, createProfileStorage, type AsyncKeyValueBackend, type ProfileLock, type ProfileSnapshot } from './profiles'
 import type { RawSettings } from './settings'
-import { extensionApi } from '../platform/extension'
+import { extensionStorage } from '../platform/extension'
 
 export type BootstrapSnapshot = { revision: number; profiles: ProfileCollection; history: History<ProfileV2> }
 export type BootstrapOptions = {
@@ -39,7 +39,7 @@ export async function bootstrap(options: BootstrapOptions = {}): Promise<Bootstr
 }
 
 async function bootstrapLocked(options: BootstrapOptions): Promise<BootstrapSnapshot> {
-  const local = extensionApi()?.storage?.local
+  const local = extensionStorage()?.local
   const backend = options.backend ?? (local ? createChromeStorageBackend(local) : createLocalStorageBackend(localStorage))
   const profiles = options.profiles ?? createProfileStorage(backend)
   const current = await profiles.read()

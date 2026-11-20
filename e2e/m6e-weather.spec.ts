@@ -26,6 +26,11 @@ test('weather searches cities, changes units, caches results, and falls back off
       { id: 2, name: 'Paris', country: 'France', latitude: 48.8566, longitude: 2.3522 },
     ] },
   }))
+  let placeQuery = ''
+  await page.route('https://api.bigdatacloud.net/**', route => {
+    placeQuery = new URL(route.request().url()).search
+    return route.fulfill({ json: { city: '旧金山', locality: 'Mission District', principalSubdivision: '加利福尼亚州', countryName: '美国' } })
+  })
   let online = true
   let forecastCalls = 0
   let forecastCoordinates = ''
@@ -60,13 +65,15 @@ test('weather searches cities, changes units, caches results, and falls back off
   await expect(city).toHaveValue('Paris, France')
 
   await page.getByRole('button', { name: '使用当前位置', exact: true }).click()
-  await expect(city).toHaveValue('当前位置')
+  // The current location is named, not just called "Current location".
+  await expect(city).toHaveValue('旧金山, 加利福尼亚州, 美国')
+  expect(placeQuery).toBe('?latitude=37.7749&longitude=-122.4194&localityLanguage=zh')
   await page.getByRole('combobox', { name: '温度单位' }).click()
   await page.getByRole('option', { name: '华氏度', exact: true }).click()
   await page.getByRole('button', { name: '关闭设置', exact: true }).click()
 
   // The widget loads by itself for the chosen place; nobody has to press refresh.
-  await expect(widget.getByRole('heading', { name: '当前位置' })).toBeVisible()
+  await expect(widget.getByRole('heading', { name: '旧金山, 加利福尼亚州, 美国' })).toBeVisible()
   await expect(widget.getByText('68°F')).toBeVisible()
   await expect(widget.getByText('75°F / 58°F').first()).toBeVisible()
   await expect(widget.getByText('周一', { exact: true })).toBeVisible()

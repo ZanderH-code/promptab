@@ -163,7 +163,7 @@ export function ProfileWidgets(props: Props) {
           case 'text': return frame(<div>{widget.props.text}</div>)
           case 'spacer': return frame(<div aria-hidden="true" style={{ height: widget.props.height ?? 40 }} />)
           case 'todo': case 'note': case 'countdown': return frame(<Suspense fallback={null}><ProductivityWidgetView widget={widget} language={language} t={t} onChange={props.onWidgetChange} /></Suspense>)
-          case 'weather': return frame(<Suspense fallback={null}><WeatherWidget widget={widget} language={language} onChooseCity={() => props.onOpenSettings('widgets')} /></Suspense>)
+          case 'weather': return frame(<Suspense fallback={null}><WeatherWidget widget={widget} language={language} onChooseCity={() => props.onOpenSettings('widgets')} onChange={(id, update) => props.onWidgetChange(id, update as never)} /></Suspense>)
           case 'toolbar': return widget.props.corner ? null : frame(toolbar(widget))
         }
       })}

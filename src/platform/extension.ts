@@ -22,6 +22,31 @@ export type ExtensionApi = {
   bookmarks?: { getTree(): Promise<unknown[]> }
 }
 
+/** The extension globals, typed only as far as Promptab uses them. */
+declare const browser: ExtensionApi | undefined
+declare const chrome: ExtensionApi | undefined
+
+/**
+ * The extension's storage areas. Spelled out as `browser.storage.*` / `chrome.storage.*` rather than reached through
+ * extensionApi(), because store review statically scans the bundle for the APIs behind each permission: the
+ * indirect lookup minified to `e.chrome` and the Chrome Web Store rejected `storage` as "requested but not used".
+ */
+export function extensionStorage(): ExtensionApi['storage'] {
+  if (typeof browser !== 'undefined' && browser?.storage) return { local: browser.storage.local, sync: browser.storage.sync, onChanged: browser.storage.onChanged }
+  if (typeof chrome !== 'undefined' && chrome?.storage) return { local: chrome.storage.local, sync: chrome.storage.sync, onChanged: chrome.storage.onChanged }
+  return undefined
+}
+
+/**
+ * The bookmarks API, spelled out for the same static review. Chromium only defines it once the optional
+ * `bookmarks` permission is granted, so look it up after the request, not before.
+ */
+export function extensionBookmarks(): ExtensionApi['bookmarks'] {
+  if (typeof browser !== 'undefined' && browser?.bookmarks) return browser.bookmarks
+  if (typeof chrome !== 'undefined' && chrome?.bookmarks) return { getTree: () => chrome!.bookmarks!.getTree() }
+  return undefined
+}
+
 /** Firefox exposes `browser`; Chromium exposes `chrome`. Both implement promise-based MV3 APIs. */
 export function extensionApi(): ExtensionApi | undefined {
   const globals = globalThis as typeof globalThis & { browser?: ExtensionApi; chrome?: ExtensionApi }

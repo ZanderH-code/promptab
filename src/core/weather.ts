@@ -23,20 +23,25 @@ type OpenMeteoResponse = {
 const CACHE_TTL = 30 * 60_000
 const FORECAST_ORIGIN = 'https://api.open-meteo.com/v1/forecast'
 const GEOCODING_ORIGIN = 'https://geocoding-api.open-meteo.com/v1/search'
+/** Free, keyless reverse geocoder meant for a device's own location; Open-Meteo has no coordinates-to-name lookup. */
+const REVERSE_ORIGIN = 'https://api.bigdatacloud.net/data/reverse-geocode-client'
 
 export type WeatherCity = { id: number; name: string; region: string; country: string; latitude: number; longitude: number }
 
-const ORIGINS = { forecast: 'https://api.open-meteo.com/*', geocoding: 'https://geocoding-api.open-meteo.com/*' } as const
+const ORIGINS = { forecast: 'https://api.open-meteo.com/*', geocoding: 'https://geocoding-api.open-meteo.com/*', place: 'https://api.bigdatacloud.net/*' } as const
 
 /**
  * Asks for network access to Open-Meteo. Must run inside a click handler. Asking for both services at once means
  * choosing a city also allows the forecast, so the widget can load by itself afterwards without a second prompt.
+ * `location` adds the place-name lookup, asked for only when the person uses their current location.
  */
-export async function requestWeatherPermission(service: 'forecast' | 'geocoding' | 'all') {
+export async function requestWeatherPermission(service: 'forecast' | 'geocoding' | 'place' | 'all' | 'location') {
   if (!isExtensionEnvironment()) return true
   const permissions = extensionApi()?.permissions
   if (!permissions) return false
-  const permissionRequest = { origins: service === 'all' ? [ORIGINS.forecast, ORIGINS.geocoding] : [ORIGINS[service]] }
+  const origins = service === 'all' ? [ORIGINS.forecast, ORIGINS.geocoding]
+    : service === 'location' ? [ORIGINS.forecast, ORIGINS.geocoding, ORIGINS.place] : [ORIGINS[service]]
+  const permissionRequest = { origins }
   if (isFirefoxExtension()) Object.assign(permissionRequest, { data_collection: ['locationInfo'] })
   return permissions.request(permissionRequest)
 }
@@ -61,6 +66,29 @@ export function weatherCityLabel(city: Pick<WeatherCity, 'name' | 'region' | 'co
 export function weatherCityDetail(city: Pick<WeatherCity, 'name' | 'region' | 'country'>) {
   const region = city.region && !city.region.startsWith(city.name) && city.region !== city.country ? city.region : ''
   return [region, city.country].filter(Boolean).join(', ')
+}
+
+/** Checks, without prompting, whether the place name of a saved current location may be looked up. */
+export async function hasPlacePermission() {
+  if (!isExtensionEnvironment()) return true
+  try { return await extensionApi()?.permissions?.contains?.({ origins: [ORIGINS.place] }) ?? false } catch { return false }
+}
+
+/**
+ * Names the place at the device's coordinates ("上海市, 中国", "Portland, Oregon, United States"), or '' when the
+ * lookup has no usable name. Only the coordinates and the display language are sent.
+ */
+export async function lookupPlaceName(latitude: number, longitude: number, options: { fetcher?: typeof fetch; language?: string } = {}) {
+  if (!isNumber(latitude) || !isNumber(longitude)) return ''
+  const url = new URL(REVERSE_ORIGIN)
+  url.search = new URLSearchParams({ latitude: String(latitude), longitude: String(longitude), localityLanguage: options.language ?? 'en' }).toString()
+  const response = await (options.fetcher ?? fetch)(url, { credentials: 'omit', redirect: 'error', cache: 'no-store' })
+  if (!response.ok) throw new Error(`Place lookup failed (${response.status})`)
+  const place = await response.json() as Record<string, unknown>
+  const text = (value: unknown) => typeof value === 'string' ? value.trim().slice(0, 100) : ''
+  const name = text(place.city) || text(place.locality)
+  if (!name) return ''
+  return weatherCityLabel({ name, region: text(place.principalSubdivision), country: text(place.countryName) })
 }
 
 export type LocationProblem = 'locationDenied' | 'locationUnavailable' | 'locationTimeout'
