@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import type { Settings } from '../../../core/model'
 import { DEFAULT_AREA_STYLE, RANGES } from '../../../core/schema/defaults'
 import { profileIssues, type ProfileV2 } from '../../../core/schema/profile'
@@ -19,6 +19,17 @@ function AreaBleedToggle({ label, checked, onChange }: { label: string; checked:
   return <Toggle label={label} checked={value} onChange={next => { setValue(next); onChange(next) }} />
 }
 
+
+/** One area's style rows behind a disclosure: open at first only when the area already has custom styles, then the user's choice sticks. */
+function AreaStyleDisclosure({ area, initialOpen, searching, summary, children }: { area: string; initialOpen: boolean; searching: boolean; summary: ReactNode; children: ReactNode }) {
+  const [open, setOpen] = useState(initialOpen)
+  return (
+    <details className="sd-area-style" data-area-style={area} open={searching || open} onToggle={event => { if (!searching) setOpen(event.currentTarget.open) }}>
+      <summary>{summary}</summary>
+      <div>{children}</div>
+    </details>
+  )
+}
 
 export function layoutItems(ctx: Ctx): Item[] {
   const { t, s, profile, change, patch } = ctx
@@ -147,7 +158,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       return touch({ ...p, layout: { ...p.layout, areaStyles: Object.keys(styles).length ? styles : undefined } })
     })
     const mark = (label: MessageKey, changed: boolean, clear: () => void): RowState => ({ changed, onReset: changed ? clear : undefined, resetLabel: resetLabel(label) })
-    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding', 'settings.areaBackground', 'settings.areaOpacity', 'settings.areaBleed', 'settings.areaAlign', 'settings.areaBorderTop', 'settings.areaBorderRight', 'settings.areaBorderBottom', 'settings.areaBorderLeft'], node: <div className="sd-note"><strong data-user-content>{areaLabel(area)}</strong>
+    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding', 'settings.areaBackground', 'settings.areaOpacity', 'settings.areaBleed', 'settings.areaAlign', 'settings.areaBorderTop', 'settings.areaBorderRight', 'settings.areaBorderBottom', 'settings.areaBorderLeft'], node: <AreaStyleDisclosure area={area} initialOpen={Object.keys(style).length > 0} searching={!!ctx.searching} summary={<><span data-user-content>{areaLabel(area)}</span><span className="sd-muted"> · {t('settings.areaStyle')}</span></>}>
       <Row label={t('settings.areaBackground')}><Select ctx={ctx} label={t('settings.areaBackground')} value={style.background ?? 'surface'} options={[{ value: 'surface', label: t('settings.colorSurface') }, { value: 'accent', label: t('settings.accent') }, { value: 'bg', label: t('settings.background') }, { value: '#102932', label: t('common.custom') }]} onChange={background => setStyle({ background })} /></Row>
       {style.background && style.background.startsWith('#') && <ColorField t={t} label={t('settings.areaBackground')} value={style.background} onChange={background => setStyle({ background })} />}
       <RangeField t={t} label={t('settings.areaOpacity')} hint={t('settings.hint.areaOpacity')} value={style.opacity ?? DEFAULT_AREA_STYLE.opacity} min={0} max={100} unit="%" {...mark('settings.areaOpacity', style.opacity !== undefined && style.opacity !== DEFAULT_AREA_STYLE.opacity, () => clearStyle('opacity'))} onChange={opacity => setStyle({ opacity })} />
@@ -156,7 +167,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       <AreaBleedToggle label={t('settings.areaBleed')} checked={style.bleed ?? false} onChange={bleed => setStyle({ bleed })} />
       <Row label={t('settings.areaAlign')}><Select ctx={ctx} label={t('settings.areaAlign')} value={style.align ?? 'center-center'} options={(['top-left','top-center','top-right','center-left','center-center','center-right','bottom-left','bottom-center','bottom-right'] as const).map((value, index) => ({ value, label: t((['settings.posTopLeft','settings.posTop','settings.posTopRight','settings.posLeft','settings.posCenter','settings.posRight','settings.posBottomLeft','settings.posBottom','settings.posBottomRight'] as const)[index]) }))} onChange={align => setStyle({ align })} /></Row>
       {(['top', 'right', 'bottom', 'left'] as const).map(side => <RangeField key={side} t={t} label={t(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} hint={t(`settings.hint.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey)} value={style.border?.[side] ?? DEFAULT_AREA_STYLE.border} min={0} max={16} unit="px" {...mark(`settings.areaBorder${side[0].toUpperCase()}${side.slice(1)}` as MessageKey, !!style.border?.[side], () => clearStyle('border', side))} onChange={width => setStyle({ border: { ...style.border, [side]: width } })} />)}
-    </div> }
+    </AreaStyleDisclosure> }
   })
   const gridItems = [...gridEditor(), ...(narrow ? gridEditor(true) : [{ id: 'narrow-grid', keys: ['settings.layoutNarrow'], node: <button type="button" className="sd-button" onClick={() => change(p => touch({ ...p, layout: { ...p.layout, breakpoints: { ...p.layout.breakpoints, narrow: { areas: p.layout.areas } } } }))}>{t('settings.layoutNarrow')}</button> } as Item]) ]
   /** Renames a custom area wherever it appears, in one undoable change: grids, widgets and area styles. */

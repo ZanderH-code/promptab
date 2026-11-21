@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { openTab, seedExistingUser } from './helpers'
+import { openAreaStyle, openTab, seedExistingUser } from './helpers'
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test('named area backgrounds follow the active theme tokens', async ({ page }) => {
-  const controls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '概览' }) })
+  const controls = await openAreaStyle(page, 'overview')
   const area = page.locator('.mnt-area[data-area="overview"]')
   for (const [label, token] of [['强调色', 'accent'], ['背景色', 'bg'], ['面板色', 'surface']] as const) {
     await controls.getByRole('combobox', { name: '区域背景' }).click()
@@ -35,7 +35,7 @@ test('named area backgrounds follow the active theme tokens', async ({ page }) =
 })
 
 test('full-width areas fit the content viewport when a scrollbar is reserved', async ({ page }) => {
-  const controls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '概览' }) })
+  const controls = await openAreaStyle(page, 'overview')
   await page.evaluate(() => {
     document.documentElement.style.scrollbarGutter = 'stable'
     document.body.style.minHeight = '200vh'

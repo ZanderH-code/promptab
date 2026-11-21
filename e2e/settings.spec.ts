@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { openWidgetCard, seedExistingUser } from './helpers'
+import { openAreaStyle, openWidgetCard, seedExistingUser } from './helpers'
 
 const MARKER = '.mnt-clock { color: rgb(1, 2, 3); }'
 
@@ -1223,6 +1223,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
   expect(await overflow(), 'background panel').toBe(true)
 
   await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   for (const label of ['Area opacity', 'Area blur', 'Area padding', 'Top accent divider', 'Right accent divider', 'Bottom accent divider', 'Left accent divider', 'Max columns']) await hint(label)
   expect(await overflow(), 'layout panel at 1400').toBe(true)
   await page.setViewportSize({ width: 420, height: 800 })
@@ -1238,6 +1239,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
   await page.getByRole('tab', { name: '背景', exact: true }).click()
   for (const label of ['遮罩浓度', '晕影', '灰度', '图片缩放']) await hint(label)
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   for (const label of ['区域透明度', '区域模糊', '区域内边距', '上边强调线', '右边强调线', '下边强调线', '左边强调线', '每行最多列数']) await hint(label)
   expect(await overflow(), 'zh layout panel').toBe(true)
 
@@ -1284,6 +1286,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await expect(page.getByRole('spinbutton', { name: 'Blur value', exact: true }).first()).toHaveAccessibleDescription('')
 
   await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   await describe('Area opacity', 'Fades this area’s background behind its widgets.')
   await describe('Area blur', 'Blurs what shows through this area.')
   await describe('Area padding', 'Adds space between the area edge and its widgets.')
@@ -1304,6 +1307,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await describe('遮罩浓度', '加深内容后方的页面底色。')
   await expect(page.getByRole('spinbutton', { name: '遮罩浓度的数值', exact: true }).first()).toHaveAccessibleDescription('加深内容后方的页面底色。')
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   await describe('区域透明度', '调整区域背景在其组件后方的透明度。')
   await describe('每行最多列数', '设置每行最多显示的网站数量。')
 
@@ -1558,7 +1562,7 @@ test('layout rows show a dot and reset to their defaults', async ({ page }) => {
   await expect(widthRow.locator('.sd-dot')).toHaveCount(1)
 
   // An area-style reset drops its key, then the whole area style when nothing else remains.
-  const area = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Overview' }) }).first()
+  const area = await openAreaStyle(page, 'overview')
   const opacityRow = area.locator('.sd-row').filter({ has: page.getByText('Area opacity', { exact: true }) }).first()
   const opacity = area.getByRole('spinbutton', { name: 'Area opacity value', exact: true })
   await opacity.fill('50')

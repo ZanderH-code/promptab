@@ -129,3 +129,11 @@ export async function openWidgetCard(page: Page, id: string) {
   await expect(card.locator('details')).toHaveAttribute('open', '')
   return card
 }
+
+/** Opens an area's style disclosure on the Areas & grid tab (leaves it open if it already is) and returns it. */
+export async function openAreaStyle(page: Page, area: string) {
+  const block = page.locator(`[data-area-style="${area}"]`)
+  if (await block.getAttribute('open') === null) await block.locator('summary').click()
+  await expect(block).toHaveAttribute('open', '')
+  return block
+}
