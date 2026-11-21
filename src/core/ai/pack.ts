@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { RANGES } from '../schema/defaults'
 import { baseColorsSchema, profileV2Schema, widgetSchema } from '../schema/profile'
 import { packFontRefSchema, packVariableDeclSchema } from '../schema/packFields'
-import { areaGridProblem, areaNames } from '../layout/grid'
+import { areaNames } from '../layout/grid'
 
 /**
  * The theme pack an AI assistant is asked to write (v1: theme, background and css only).
@@ -86,13 +86,6 @@ export const aiPackSchema = z.object({
   if (background?.type === 'color' && !background.color) ctx.addIssue({ code: 'custom', path: ['background', 'color'], message: 'color required when type is "color"' })
   if (pack.layout || pack.widgets) {
     const layout = pack.layout
-    if (layout?.areas) {
-      for (const issue of [
-        areaGridProblem(layout.areas),
-        ...(layout.breakpoints?.narrow?.areas ? [areaGridProblem(layout.breakpoints.narrow.areas)] : []),
-        ...(layout.breakpoints?.medium?.areas ? [areaGridProblem(layout.breakpoints.medium.areas)] : []),
-      ].filter((issue): issue is string => !!issue)) ctx.addIssue({ code: 'custom', path: ['layout', 'areas'], message: issue })
-    }
     const profile = profileV2Schema.safeParse({
       schemaVersion: 2,
       meta: { id: 'ai-pack', name: 'AI pack', createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z' },
@@ -113,7 +106,9 @@ export const aiPackSchema = z.object({
     if (!profile.success) for (const issue of profile.error.issues) {
       const path = issue.path.map(String)
       const packPath = path[0] === 'layout' ? ['layout', ...path.slice(1)] : path[0] === 'widgets' ? ['widgets', ...path.slice(1)] : ['layout']
-      ctx.addIssue({ code: 'custom', path: packPath, message: issue.message })
+      // Models repeat an identical row to make an area taller; say how to fix it, not only what is wrong.
+      const hint = packPath.at(-1) === 'areas' && issue.message.startsWith('duplicate area') ? `; rows must differ, so keep one row and make it taller in ${[...packPath.slice(0, -1), 'rows'].join('.')}` : ''
+      ctx.addIssue({ code: 'custom', path: packPath, message: issue.message + hint })
     }
     if (pack.widgets && layout?.areas) {
       const grids = [...(layout.areas ? [layout.areas] : []), ...Object.values(layout.breakpoints ?? {}).filter((grid): grid is NonNullable<typeof grid> => !!grid).map(grid => grid.areas)]

@@ -1,6 +1,6 @@
 # Promptab real-model evals and tracing: plan (draft)
 
-Status: phase 1 done (runner, 50 cases, replay in CI, first baseline: DeepSeek V4.1 Flash, 84% first-pass valid, 98% after one fix round). Replaces the simulated eval in `docs/ai/eval.md` with a real one.
+Status: phase 1 done. Three-provider baseline committed (DeepSeek V4.1 Flash 96% / 100%, GPT-6 Luna 94% / 100%, Claude Sonnet 5.5 98% / 100%, first pass / after one fix round); all pass the release gate. Results: `docs/ai/eval.md`.
 
 ## Goal
 

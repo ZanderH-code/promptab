@@ -3,7 +3,7 @@ import { CLASS_NOTES } from '../css/notes'
 import { FONT_KEYS, isAssetFont } from '../font'
 import type { Language } from '../../i18n'
 import { RANGES } from '../schema/defaults'
-import type { ProfileV2 } from '../schema/profile'
+import { DATE_PARTS, type ProfileV2 } from '../schema/profile'
 import { EXAMPLES } from './examples'
 import { PACK_KIND } from './pack'
 
@@ -31,7 +31,9 @@ export type RefineOptions = PromptOptions & {
   full?: boolean
 }
 
-/** The slim, human-readable field reference sent to the AI. `schema.test.ts` checks that it names every key. */
+const NINE_GRID = ['top-left', 'top-center', 'top-right', 'center-left', 'center-center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'] as const
+
+/** The slim, human-readable field reference sent to the AI. `ai.test.ts` checks it names every widget prop and option. */
 export function slimSchema(): string {
   const r = RANGES
   return [
@@ -62,7 +64,23 @@ export function slimSchema(): string {
     '  },',
     '  "css": "string, optional; see the CSS API below",',
     '  "layout": { "areas": ["bookmarks overview"], "columns": ["1fr", "minmax(280px, 0.7fr)"], "rows": ["auto"], "breakpoints": { "narrow": { "areas": ["overview", "bookmarks"], "columns": ["1fr"] } }, "areaStyles": {}, "contentWidth": 1200, "align": "center-center", "gap": 24 },',
+    `  // layout.align and areaStyles.<area>.align: ${NINE_GRID.join(' | ')}`,
+    `  // areaStyles: { "<area name>": { "background": "#RRGGBB" | "surface" | "accent" | "bg", "opacity": 0-100, "blur": ${r.blur.min}-${r.blur.max}, "padding": 0-200, "bleed": boolean, "align": see above, "border": { "top" | "right" | "bottom" | "left": 0-16 } } }`,
     '  "widgets": [{ "id": "clock", "type": "clock", "area": "overview", "order": 0, "props": { "hour12": false } }]',
+    `  // every widget: "id" unique text, "type", "area" (a name in layout.areas and in every breakpoint's areas), "order" integer >= 0, "props" object (REQUIRED, write {} when there are none), optional "hidden"; any props may add "size": number ${r.widgetSize.min}-${r.widgetSize.max} (a number, never "sm" or "md") and "align": "left" | "center" | "right"`,
+    '  // props by type; all optional unless marked REQUIRED:',
+    '  //   clock: hour12, seconds, hours, minutes, pad, eyebrow, words, meridiem, separatorAccent (booleans); separator (up to 8 characters); separatorSpacing 0-1',
+    `  //   date: format "full" | "custom"; weekday, day, month, year, weekNumber, ordinal, uppercase, separatorAccent (booleans); order [${DATE_PARTS.map(part => `"${part}"`).join(' | ')}]; weekStart "monday" | "sunday" | "saturday"; weekdayStyle "long" | "short"; monthStyle "long" | "short" | "numeric"; dayStyle "number" | "word"; separator; separatorSpacing`,
+    '  //   search: engine; namePlaceholder, findBookmarks (booleans)',
+    '  //   bookmarks: style "tile" | "list" | "minimal" | "card" | "icon-only" | "block"; maxColumns integer 2-10; showGroupTitles, showAdd, showUrl, openAll (booleans); iconColor "per-site" | "accent"; groupDisplay "folders" | "sections"; source',
+    '  //   greeting: name (up to 60 characters); transitional (boolean)',
+    '  //   text: text (up to 500 characters); muted (boolean)',
+    '  //   spacer: height 8-400',
+    '  //   toolbar: actions ["accent" | "add" | "edit" | "settings"]; style "icons" | "buttons"; corner "top-left" | "top-right" | "bottom-left" | "bottom-right"',
+    '  //   todo: title; items REQUIRED, e.g. [{ "id": "t1", "text": "Plan the week", "done": false }] (each item needs id, text and done); hideCompleted (boolean)',
+    '  //   note: title; content REQUIRED text',
+    '  //   countdown: title REQUIRED; targetDate REQUIRED, date only "YYYY-MM-DD"; format "days" | "detailed"',
+    '  //   weather: city; latitude, longitude (numbers); unit "celsius" | "fahrenheit"; showForecast, currentLocation (booleans)',
     '}',
   ].join('\n')
 }
@@ -160,7 +178,7 @@ const COPY = {
     exampleColors: '示例 1：只改配色和形状',
     exampleFull: '示例 2：含渐变背景和 CSS',
     layoutGuide: '布局和组件',
-    layoutGuideText: 'areas 是 CSS 网格区域名称的字符串数组；columns/rows 使用受限的 CSS track 值。breakpoints 可覆盖 narrow/medium 网格。areaStyles 仅支持背景、透明度、模糊、内边距、通栏和边框。widgets 必须使用受支持的组件类型、有效属性，并且 area 必须存在于每个适用网格中。布局示例把时钟和日期放进右侧横幅，搜索栏和网站留在下方；不要隐藏用户的网站或搜索栏。',
+    layoutGuideText: 'areas 是 CSS 网格区域名称的字符串数组；columns/rows 使用受限的 CSS track 值。breakpoints 可覆盖 narrow/medium 网格。areaStyles 仅支持背景、透明度、模糊、内边距、通栏、边框和对齐。widgets 必须使用受支持的组件类型、有效属性，并且 area 必须存在于每个适用网格中。布局示例把时钟和日期放进右侧横幅，搜索栏和网站留在下方；不要隐藏用户的网站或搜索栏。',
     current: '用户当前的配置（不含书签）',
     request: '用户的需求',
     none: '（用户没有写具体需求，请给出一个克制、好看的方案。）',
@@ -230,7 +248,7 @@ const COPY = {
     exampleColors: 'Example 1: colours and shape only',
     exampleFull: 'Example 2: gradient background and CSS',
     layoutGuide: 'Layout and widgets',
-    layoutGuideText: 'areas is an array of CSS grid area rows; columns and rows use the restricted CSS track grammar. breakpoints may override narrow/medium grids. areaStyles only supports background, opacity, blur, padding, bleed, and borders. widgets must use supported component types and valid props, with each area present in every applicable grid. The layout example puts the clock and date in a right-side banner and keeps the search bar and websites below; never hide the user’s websites or search bar.',
+    layoutGuideText: 'areas is an array of CSS grid area rows; columns and rows use the restricted CSS track grammar. breakpoints may override narrow/medium grids. areaStyles only supports background, opacity, blur, padding, bleed, borders and alignment. widgets must use supported component types and valid props, with each area present in every applicable grid. The layout example puts the clock and date in a right-side banner and keeps the search bar and websites below; never hide the user’s websites or search bar.',
     current: "The user's current setup (bookmarks excluded)",
     request: "The user's request",
     none: '(The user gave no specific request. Offer a restrained, good-looking design.)',

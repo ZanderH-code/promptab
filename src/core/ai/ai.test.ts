@@ -5,7 +5,7 @@ import { CLASS_NOTES } from '../css/notes'
 import { findCssPitfalls } from '../css/pitfalls'
 import { portableCss, sanitizeCss } from '../css/sanitize'
 import { applyTemplate } from '../layout/profile'
-import { parseProfileV2, profileIssues, type ProfileV2 } from '../schema/profile'
+import { areaStyleSchema, parseProfileV2, profileIssues, widgetSchema, type ProfileV2 } from '../schema/profile'
 import { analyzeCandidate } from './analyze'
 import { aiPackSchema, partsOf, unknownKeys } from './pack'
 import { applyPack, exportThemePack } from './apply'
@@ -185,6 +185,14 @@ describe('AI pack layout and widget parts', () => {
     expect(aiPackSchema.safeParse({ layout: { areas: ['a b', 'b a'] } }).success).toBe(false)
     expect(aiPackSchema.safeParse({ layout: { areas: ['clock search', 'links links'], breakpoints: { narrow: { areas: ['overview'] } } }, widgets: valid.widgets }).success).toBe(false)
     expect(aiPackSchema.safeParse({ widgets: [{ id: 'x', type: 'script', area: 'clock', order: 0, props: {} }] }).success).toBe(false)
+  })
+
+  it('tells the AI how to fix a repeated grid row, not only that it is wrong', () => {
+    const repeated = ['bookmarks divider overview', 'bookmarks divider overview']
+    const top = aiPackSchema.safeParse({ layout: { areas: repeated } }).error?.issues.filter(issue => issue.path.join('.') === 'layout.areas')
+    expect(top?.map(issue => issue.message)).toEqual([expect.stringContaining('rows must differ, so keep one row and make it taller in layout.rows')])
+    const narrow = aiPackSchema.safeParse({ layout: { areas: ['bookmarks divider overview'], breakpoints: { narrow: { areas: ['bookmarks', 'bookmarks'] } } } }).error?.issues.filter(issue => issue.path.join('.') === 'layout.breakpoints.narrow.areas')
+    expect(narrow?.map(issue => issue.message)).toEqual([expect.stringContaining('duplicate area "bookmarks"; rows must differ, so keep one row and make it taller in layout.breakpoints.narrow.rows')])
   })
 
   it('counts layout and widgets as independently selectable pack parts', () => {
@@ -453,6 +461,54 @@ describe('buildPromptPack', () => {
     const full = buildRefinePrompt({ language: 'en', pack, change: 'a little darker', full: true, page: profile })
     expect(full).toContain('Field reference')
     expect(full.indexOf('Field reference')).toBeLessThan(full.indexOf('a little darker'))
+  })
+
+  it('documents every widget type, prop and option, and every area style, in the slim schema', () => {
+    // A widget or option added to the schema but not to the prompt is one the AI cannot use (the evals found four).
+    const lines = slimSchema().split('\n')
+    const after = (marker: string) => {
+      const line = lines.find(text => text.includes(marker))
+      expect(line, marker).toBeDefined()
+      return line!.slice(line!.indexOf(marker) + marker.length)
+    }
+    const hasWord = (text: string, word: string) => new RegExp(`(^|[^\\w-])${word}([^\\w-]|$)`).test(text)
+    type Node = { def: { type: string }; unwrap?: () => Node; element?: Node; options?: readonly unknown[]; shape?: Record<string, Node> }
+    /** Enum values and nested object keys a field accepts, through optional, array, union and object wrappers. */
+    const accepted = (node: Node): { values: string[]; keys: string[] } => {
+      const merge = (parts: { values: string[]; keys: string[] }[]) => ({ values: parts.flatMap(part => part.values), keys: parts.flatMap(part => part.keys) })
+      switch (node.def.type) {
+        case 'optional': return accepted(node.unwrap!())
+        case 'array': return accepted(node.element!)
+        case 'enum': return { values: node.options!.map(String), keys: [] }
+        case 'union': return merge((node.options as Node[]).map(accepted))
+        case 'object': return merge([{ values: [], keys: Object.keys(node.shape!) }, ...Object.values(node.shape!).map(accepted)])
+        default: return { values: [], keys: [] }
+      }
+    }
+    const every = after('// every widget:')
+    for (const option of widgetSchema.options) {
+      const type = (option.shape.type as unknown as { value: string }).value
+      const line = after(`//   ${type}:`)
+      for (const [key, prop] of Object.entries(option.shape.props.shape)) {
+        // size and align are shared by every widget and documented once, on the "every widget" line.
+        const where = key === 'size' || key === 'align' ? every : line
+        expect(hasWord(where, key), `${type}.${key}`).toBe(true)
+        const { values, keys } = accepted(prop as unknown as Node)
+        for (const value of values) expect(where, `${type}.${key}=${value}`).toContain(`"${value}"`)
+        for (const nested of keys) expect(hasWord(where, nested), `${type}.${key}.${nested}`).toBe(true)
+      }
+    }
+    const areaStyles = after('// areaStyles:')
+    const alignments = after('// layout.align and areaStyles.<area>.align:')
+    for (const [key, prop] of Object.entries(areaStyleSchema.shape)) {
+      expect(areaStyles, `areaStyles.${key}`).toContain(`"${key}"`)
+      const { values, keys } = accepted(prop as unknown as Node)
+      for (const value of values) {
+        if (key === 'align') expect(hasWord(alignments, value), `areaStyles.align=${value}`).toBe(true)
+        else expect(areaStyles, `areaStyles.${key}=${value}`).toContain(`"${value}"`)
+      }
+      for (const nested of keys) expect(areaStyles, `areaStyles.${key}.${nested}`).toContain(`"${nested}"`)
+    }
   })
 
   it('keeps the slim schema in step with the real schema keys', () => {
