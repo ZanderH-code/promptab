@@ -504,6 +504,9 @@ describe('SettingsDrawer grid drafts', () => {
     const props = setup({ profile, initialSection: 'layout' })
     fireEvent.change(screen.getByRole('textbox', { name: 'Area grid' }), { target: { value: 'newarea' } })
     expect(props.onProfileChange).not.toHaveBeenCalled()
+    // The draft area is offered where widgets are placed: in each widget's card.
+    fireEvent.mouseDown(screen.getByRole('tab', { name: 'Widgets' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Widgets' }))
     fireEvent.click(screen.getAllByRole('combobox', { name: 'Widget area' })[0])
     expect(screen.getByRole('option', { name: 'newarea' })).toBeInTheDocument()
   })
@@ -571,5 +574,37 @@ describe('SettingsDrawer restore defaults', () => {
     await waitFor(() => expect(props.onReset).toHaveBeenCalledTimes(1))
     expect(native).not.toHaveBeenCalled()
     native.mockRestore()
+  })
+})
+
+describe('SettingsDrawer widget placement', () => {
+  const card = (id: string) => within(document.querySelector<HTMLElement>(`[data-widget-card="${id}"]`)!)
+  const en = (key: Parameters<typeof translate>[1]) => translate('en', key)
+
+  it('places each widget from its own card, with order buttons disabled at the ends', () => {
+    setup({ initialSection: 'widgets' })
+    const overview = base.widgets.filter(widget => widget.area === base.widgets.find(item => item.type === 'clock')!.area).sort((a, b) => a.order - b.order)
+    const first = overview[0], last = overview.at(-1)!
+    const id = (widget: ProfileV2['widgets'][number]) => widget.type === 'clock' ? 'widget-clock' : widget.type === 'date' ? 'widget-date' : widget.type === 'search' ? 'showSearch' : `widget-${widget.type}`
+    expect(card(id(first)).getByRole('button', { name: en('settings.widgetMoveUp') })).toBeDisabled()
+    expect(card(id(last)).getByRole('button', { name: en('settings.widgetMoveDown') })).toBeDisabled()
+  })
+
+  it('moves a widget to the end of another area', () => {
+    const props = setup({ initialSection: 'widgets' })
+    fireEvent.click(card('widget-clock').getByRole('combobox', { name: 'Widget area' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Websites' }))
+    const next = lastUpdate(props).next
+    const clock = next.widgets.find(widget => widget.type === 'clock')!
+    const others = next.widgets.filter(widget => widget.area === 'bookmarks' && widget.id !== clock.id)
+    expect(clock.area).toBe('bookmarks')
+    expect(clock.order).toBe(Math.max(-1, ...others.map(widget => widget.order)) + 1)
+  })
+
+  it('finds placement rows under Widgets, not Areas & grid', () => {
+    setup()
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search settings' }), { target: { value: 'widget area' } })
+    expect(screen.getByRole('heading', { name: 'Widgets' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Areas & grid' })).toBeNull()
   })
 })

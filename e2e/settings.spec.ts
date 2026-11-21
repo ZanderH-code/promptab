@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { seedExistingUser } from './helpers'
+import { openWidgetCard, seedExistingUser } from './helpers'
 
 const MARKER = '.mnt-clock { color: rgb(1, 2, 3); }'
 
@@ -756,10 +756,14 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Websites', 'top', 'side'])
 
   // Put a widget in the area, so the rename has to carry it across.
-  const clockItem = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Clock' }) }).first()
+  // Placement lives in the widget's own card under Widgets.
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  const clockItem = await openWidgetCard(page, 'widget-clock')
   await clockItem.getByRole('combobox', { name: 'Widget area' }).click()
   await page.getByRole('option', { name: 'side', exact: true }).click()
   await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await page.locator('.sd-advanced summary').click()
 
   await preview.locator('[data-area="side"]').click()
   const field = page.getByRole('textbox', { name: 'Rename area' })
@@ -774,9 +778,12 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   await expect(narrowAreas).toHaveValue('overview\nbookmarks\naside')
   await expect(preview.locator('[data-area="side"]')).toHaveCount(0)
   await expect(preview.locator('[data-area="aside"]')).toHaveText('aside')
-  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('aside')
   await expect(page.locator('.mnt-layout .mnt-area[data-area="aside"] .clock')).toBeVisible()
   await expect(page.locator('.mnt-layout')).toHaveAttribute('style', /aside/)
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('aside')
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await page.locator('.sd-advanced summary').click()
 
   // The whole rename is one undo step.
   await page.keyboard.press('Control+z')
@@ -785,7 +792,6 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   await expect(areas).toHaveValue('overview bookmarks\ntop side')
   await expect(narrowAreas).toHaveValue('overview\nbookmarks\nside')
   await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
-  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('side')
 
   // A duplicate name shows the alert and commits nothing.
   await preview.locator('[data-area="side"]').click()
@@ -1326,19 +1332,11 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
     await expect(card.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
     await expect(card.locator('summary')).toHaveAttribute('aria-expanded', 'false')
   }
-  // Websites only has a header switch: no summary and no chevron.
+  // Websites carries its placement rows now, so it is a closed disclosure like the others.
   const shortcutsCard = page.locator('[data-widget-card="widget-shortcuts"]')
-  for (const card of [shortcutsCard]) {
-    await expect(card).toHaveClass(/sd-widget-card-plain/)
-    await expect(card.locator('input[type=checkbox]')).toHaveCount(1)
-    await expect(card.locator('summary')).toHaveCount(0)
-    await expect(card.locator('svg')).toHaveCount(0)
-  }
+  await expect(shortcutsCard.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
+  await expect(shortcutsCard.locator('summary')).toHaveAttribute('aria-expanded', 'false')
   await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
-  // Tab moves straight from a plain switch out of its card.
-  await shortcutsCard.locator('input[type=checkbox]').focus()
-  await page.keyboard.press('Tab')
-  expect(await page.evaluate(() => document.activeElement?.closest('[data-widget-card]')?.getAttribute('data-widget-card') ?? null)).not.toBe('widget-shortcuts')
 
   // One click opens the clock card; its header switch hides the clock and the card stays open.
   const clockCard = page.locator('[data-widget-card="widget-clock"]')
@@ -1665,8 +1663,7 @@ test('shortcut, search and widget rows show a dot and reset to their defaults', 
   await expect(separatorRow.locator('.sd-dot')).toHaveCount(0)
 
   // The clock widget's size has a common schema default and resets on its own.
-  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
-  const clock = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Clock' }) }).first()
+  const clock = page.locator('[data-widget-card="widget-clock"]')
   const sizeRow = clock.locator('.sd-row').filter({ has: page.getByText('Widget size', { exact: true }) }).first()
   const size = clock.getByRole('spinbutton', { name: 'Widget size value', exact: true })
   await size.fill('1.5')

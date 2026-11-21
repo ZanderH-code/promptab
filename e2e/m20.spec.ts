@@ -24,7 +24,6 @@ test('greeting transition is optional and follows the UI language', async ({ pag
   await page.locator('.settings-button').click()
   await openTab(page, 'widgets')
   await page.getByRole('button', { name: 'Add greeting' }).click()
-  await openTab(page, 'layout')
   const transition = page.getByLabel('Show time-of-day line')
   await expect(transition).not.toBeChecked()
   await transition.click()

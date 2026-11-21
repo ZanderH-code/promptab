@@ -121,3 +121,11 @@ export async function expectLocalizedSurface(page: Page) {
   const unexpected = [...new Set(words.map(word => word.toLocaleLowerCase()).filter(word => word.length > 1 && !ZH_ENGLISH_WORD_WHITELIST.has(word)))]
   expect(unexpected).toEqual([])
 }
+
+/** Opens a widget's settings card on the Widgets tab (leaves it open if it already is) and returns it. */
+export async function openWidgetCard(page: Page, id: string) {
+  const card = page.locator(`[data-widget-card="${id}"]`)
+  if (await card.locator('details').getAttribute('open') === null) await card.locator('summary').click()
+  await expect(card.locator('details')).toHaveAttribute('open', '')
+  return card
+}

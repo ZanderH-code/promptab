@@ -3,14 +3,13 @@ import { ChevronDown } from 'lucide-react'
 import type { Settings } from '../../../core/model'
 import { defaultWeekStart, formatClock, formatDate } from '../../../core/layout/formats'
 import type { MessageKey } from '../../../i18n'
-import { areaNames } from '../../../core/layout/grid'
 import { createProductivityWidget, type ProductivityWidgetType } from '../../../core/widgets/defaults'
-import { RANGES } from '../../../core/schema/defaults'
 import { DraftText } from '../../../ui/DraftText'
 import { RangeField, Row, Toggle } from '../controls'
 import { widgetDefaults } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 import { WeatherSettings } from './WeatherSettings'
+import { PLACEMENT_KEYS, WidgetPlacement } from './WidgetPlacement'
 import { weatherText } from '../../../core/weatherMessages'
 import '../../../i18n/lazy'
 
@@ -77,16 +76,6 @@ export function widgetsItems(ctx: Ctx): Item[] {
   const clock = ctx.profile.widgets.find(widget => widget.type === 'clock')
   const date = ctx.profile.widgets.find(widget => widget.type === 'date')
   const shortcuts = ctx.profile.widgets.find(widget => widget.type === 'bookmarks')
-  const moveWidget = (id: string, direction: -1 | 1) => change(profile => {
-    const widget = profile.widgets.find(item => item.id === id)
-    if (!widget) return profile
-    const siblings = profile.widgets.filter(item => item.area === widget.area).sort((a, b) => a.order - b.order)
-    const from = siblings.findIndex(item => item.id === id), to = from + direction
-    if (to < 0 || to >= siblings.length) return profile
-    ;[siblings[from], siblings[to]] = [siblings[to], siblings[from]]
-    const order = new Map(siblings.map((item, index) => [item.id, index]))
-    return touch({ ...profile, widgets: profile.widgets.map(item => order.has(item.id) ? { ...item, order: order.get(item.id)! } : item) })
-  })
   const setHidden = (id: string, visible: boolean) => change(profile => touch({ ...profile, widgets: profile.widgets.map(widget => widget.id === id ? { ...widget, hidden: !visible } : widget) }))
   const clockRows: Item[] = []
   if (clock) {
@@ -138,15 +127,16 @@ export function widgetsItems(ctx: Ctx): Item[] {
     node: <WidgetCard id={id} title={title} checked={checked} onChange={onChange} defaultOpen={defaultOpen} ctx={ctx}>{children}</WidgetCard>,
   })
   const items: Item[] = []
-  if (clock) items.push(card('widget-clock', t('settings.showClock'), !clock.hidden, visible => setHidden(clock.id, visible), clockChanged, ['settings.showClock', ...clockRows.flatMap(row => row.keys)], rows(clockRows)))
-  if (date) items.push(card('widget-date', t('settings.showDate'), !date.hidden, visible => setHidden(date.id, visible), dateChanged, ['settings.showDate', ...dateRows.flatMap(row => row.keys)], rows(dateRows)))
+  if (clock) items.push(card('widget-clock', t('settings.showClock'), !clock.hidden, visible => setHidden(clock.id, visible), clockChanged, ['settings.showClock', ...clockRows.flatMap(row => row.keys), ...PLACEMENT_KEYS, 'settings.widgetEyebrow'], <>{rows(clockRows)}<WidgetPlacement ctx={ctx} widget={clock} /></>))
+  if (date) items.push(card('widget-date', t('settings.showDate'), !date.hidden, visible => setHidden(date.id, visible), dateChanged, ['settings.showDate', ...dateRows.flatMap(row => row.keys), ...PLACEMENT_KEYS], <>{rows(dateRows)}<WidgetPlacement ctx={ctx} widget={date} /></>))
   const search = ctx.profile.widgets.find(widget => widget.type === 'search')
   const patchSearch = (updates: Record<string, unknown>) => search && change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === search.id ? { ...item, props: { ...item.props, ...updates } } : item) as typeof profile.widgets }))
-  items.push(card('showSearch', t('settings.showSearch'), s.showSearch, visible => patch({ showSearch: visible }), false, ['settings.showSearch', ...(search ? ['settings.searchEngineName', 'settings.searchFindBookmarks'] as const : [])], search ? <>
+  items.push(card('showSearch', t('settings.showSearch'), s.showSearch, visible => patch({ showSearch: visible }), false, ['settings.showSearch', ...(search ? ['settings.searchEngineName', 'settings.searchFindBookmarks', ...PLACEMENT_KEYS] as const : [])], search ? <>
     <Toggle label={t('settings.searchEngineName')} checked={!!search.props.namePlaceholder} onChange={on => patchSearch({ namePlaceholder: on || undefined })} />
     <Toggle label={t('settings.searchFindBookmarks')} checked={!!search.props.findBookmarks} onChange={on => patchSearch({ findBookmarks: on || undefined })} />
+    <WidgetPlacement ctx={ctx} widget={search} />
   </> : null))
-  if (shortcuts) items.push(card('widget-shortcuts', t('settings.shortcuts'), !shortcuts.hidden, visible => setHidden(shortcuts.id, visible), false, ['settings.shortcuts'], null))
+  if (shortcuts) items.push(card('widget-shortcuts', t('settings.shortcuts'), !shortcuts.hidden, visible => setHidden(shortcuts.id, visible), false, ['settings.shortcuts', ...PLACEMENT_KEYS], <WidgetPlacement ctx={ctx} widget={shortcuts} />))
   for (const widget of ctx.profile.widgets) {
     if (widget.type !== 'toolbar') continue
     const patchToolbar = (updates: PropsPatch<typeof widget.props>) => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, props: { ...item.props, ...resolvePatch(updates, item.props) } } : item) as typeof profile.widgets }))
@@ -157,12 +147,13 @@ export function widgetsItems(ctx: Ctx): Item[] {
       return { actions: (['accent', 'add', 'edit', 'settings'] as const).filter(item => item === action ? on : current.includes(item)) }
     })
     const cornerOptions = [['', 'settings.toolbarInArea'], ['top-left', 'settings.posTopLeft'], ['top-right', 'settings.posTopRight'], ['bottom-left', 'settings.posBottomLeft'], ['bottom-right', 'settings.posBottomRight']] as const
-    items.push(card(`widget-toolbar-${widget.id}`, t('widgets.toolbar'), !widget.hidden, visible => setHidden(widget.id, visible), false, ['widgets.toolbar', 'settings.toolbarStyle', 'settings.toolbarPlace', 'settings.toolbarAccent'], <>
+    items.push(card(`widget-toolbar-${widget.id}`, t('widgets.toolbar'), !widget.hidden, visible => setHidden(widget.id, visible), false, ['widgets.toolbar', 'settings.toolbarStyle', 'settings.toolbarPlace', 'settings.toolbarAccent', ...PLACEMENT_KEYS], <>
       <Row label={t('settings.toolbarStyle')}><Select ctx={ctx} label={t('settings.toolbarStyle')} value={widget.props.style ?? 'icons'} options={([['icons', 'settings.toolbarIcons'], ['buttons', 'settings.toolbarButtons']] as const).map(([value, key]) => ({ value, label: t(key) }))} onChange={style => patchToolbar({ style: style === 'buttons' ? 'buttons' : undefined })} /></Row>
       <Row label={t('settings.toolbarPlace')}><Select ctx={ctx} label={t('settings.toolbarPlace')} value={widget.props.corner ?? ''} options={cornerOptions.map(([value, key]) => ({ value, label: t(key) }))} onChange={corner => patchToolbar({ corner: corner || undefined })} /></Row>
       <Toggle label={t('settings.toolbarAccent')} checked={actions.includes('accent')} onChange={on => toggleAction('accent', on)} />
       <Toggle label={t('shortcuts.add')} checked={actions.includes('add')} onChange={on => toggleAction('add', on)} />
       <Toggle label={t('edit.enter')} checked={actions.includes('edit')} onChange={on => toggleAction('edit', on)} />
+      <WidgetPlacement ctx={ctx} widget={widget} />
     </>))
   }
   const productTypes: ProductivityWidgetType[] = ['todo', 'note', 'countdown', 'weather']
@@ -214,17 +205,11 @@ export function widgetsItems(ctx: Ctx): Item[] {
       </>; break
     }
     const titled = widget.type === 'todo' || widget.type === 'note' || widget.type === 'countdown'
-    const keys: MessageKey[] = [widget.type === 'greeting' ? 'settings.widgetGreeting' : widget.type === 'text' ? 'settings.widgetText' : widget.type === 'spacer' ? 'settings.widgetSpacer' : widget.type === 'weather' ? 'settings.widgets' : productLabel[widget.type], 'settings.widgetTitle', 'settings.widgetArea', 'settings.widgetOrder', 'settings.widgetSize', 'settings.widgetAlign', 'settings.removeWidget']
+    const keys: MessageKey[] = [widget.type === 'greeting' ? 'settings.widgetGreeting' : widget.type === 'text' ? 'settings.widgetText' : widget.type === 'spacer' ? 'settings.widgetSpacer' : widget.type === 'weather' ? 'settings.widgets' : productLabel[widget.type], 'settings.widgetTitle', ...(widget.type === 'spacer' ? PLACEMENT_KEYS.slice(0, 2) : PLACEMENT_KEYS), 'settings.removeWidget']
     items.push(card(`productivity-${widget.id}`, named, !widget.hidden, visible => setHidden(widget.id, visible), true, keys, <>
       {titled && <Row label={t('settings.widgetTitle')}><DraftText className="sd-input" maxLength={120} value={widget.props.title ?? ''} placeholder={label} aria-label={t('settings.widgetTitle')} onCommit={title => patchWidget({ title })} /></Row>}
       {controls}
-      <Row label={t('settings.widgetArea')}><Select ctx={ctx} label={t('settings.widgetArea')} value={widget.area} options={areaNames(ctx.profile.layout.areas).map(area => ({ value: area, label: area === 'overview' ? t('settings.areaOverview') : area }))} onChange={area => change(profile => touch({ ...profile, widgets: profile.widgets.map(item => item.id === widget.id ? { ...item, area, order: Math.max(-1, ...profile.widgets.filter(other => other.area === area).map(other => other.order)) + 1 } : item) }))} /></Row>
-      <Row label={t('settings.widgetOrder')}>
-        <button className="sd-button" type="button" aria-label={t('settings.widgetMoveUp')} title={t('settings.widgetMoveUp')} onClick={() => moveWidget(widget.id, -1)}>↑</button>
-        <button className="sd-button" type="button" aria-label={t('settings.widgetMoveDown')} title={t('settings.widgetMoveDown')} onClick={() => moveWidget(widget.id, 1)}>↓</button>
-      </Row>
-      {widget.type !== 'spacer' && <RangeField t={t} label={t('settings.widgetSize')} value={widget.props.size ?? 1} min={RANGES.widgetSize.min} max={RANGES.widgetSize.max} step={0.1} onChange={size => patchWidget({ size })} />}
-      {widget.type !== 'spacer' && <Row label={t('settings.widgetAlign')}><Select ctx={ctx} label={t('settings.widgetAlign')} value={widget.props.align ?? 'center'} options={[['left', 'settings.alignLeft'], ['center', 'settings.alignCenter'], ['right', 'settings.alignRight']].map(([value, key]) => ({ value, label: t(key as MessageKey) }))} onChange={align => patchWidget({ align })} /></Row>}
+      <WidgetPlacement ctx={ctx} widget={widget} />
       <button className="sd-button" type="button" onClick={() => change(profile => touch({ ...profile, widgets: profile.widgets.filter(item => item.id !== widget.id) }))}>{t('settings.removeWidget')}</button>
     </>))
   }
