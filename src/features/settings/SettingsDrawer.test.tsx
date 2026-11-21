@@ -608,3 +608,41 @@ describe('SettingsDrawer widget placement', () => {
     expect(screen.queryByRole('heading', { name: 'Areas & grid' })).toBeNull()
   })
 })
+
+describe('SettingsDrawer area style disclosures', () => {
+  const block = (area: string) => document.querySelector<HTMLDetailsElement>(`[data-area-style="${area}"]`)!
+  const styled = () => {
+    const profile = structuredClone(base)
+    profile.layout.areaStyles = { overview: { blur: 4 } }
+    return profile
+  }
+
+  it('starts open only for areas with custom styles, and labels each area', () => {
+    setup({ profile: styled(), initialSection: 'layout' })
+    expect(block('overview').open).toBe(true)
+    expect(block('bookmarks').open).toBe(false)
+    expect(block('overview').querySelector('summary')).toHaveTextContent('Overview · Area style')
+    expect(block('overview').querySelector('[data-user-content]')).toBeNull()
+  })
+
+  it('stays open when its last custom style is reset, and starts over for another profile', () => {
+    const props = setup({ profile: styled(), initialSection: 'layout' })
+    const reset = structuredClone(props.profile)
+    reset.layout.areaStyles = undefined
+    props.rerender(reset)
+    expect(block('overview').open).toBe(true)
+    const other = structuredClone(reset)
+    other.meta.id = 'another'
+    props.rerender(other)
+    expect(block('overview').open).toBe(false)
+  })
+
+  it('opens while a search matches and folds again when it is cleared', () => {
+    setup({ initialSection: 'layout' })
+    const box = screen.getByRole('searchbox', { name: 'Search settings' })
+    fireEvent.change(box, { target: { value: 'area blur' } })
+    expect(block('overview').open).toBe(true)
+    fireEvent.change(box, { target: { value: '' } })
+    expect(block('overview').open).toBe(false)
+  })
+})

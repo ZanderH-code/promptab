@@ -1977,3 +1977,22 @@ test('AI steps guide from a description to a reviewed reply', async ({ page }) =
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
 })
+
+test('Tab wraps around folded area styles without leaving the drawer', async ({ page }) => {
+  await launch(page)
+  await openDrawer(page)
+  await openLayout(page, false)
+  const last = page.locator('[data-area-style="bookmarks"] summary')
+  await expect(page.locator('[data-area-style="bookmarks"]')).not.toHaveAttribute('open', '')
+  await last.focus()
+  // Tab from the last folded summary wraps to the drawer's first control, not into hidden rows or the page.
+  await page.keyboard.press('Tab')
+  const first = await page.evaluate(() => {
+    const active = document.activeElement
+    return { inDrawer: !!active?.closest('.sd'), inArea: !!active?.closest('[data-area-style]') }
+  })
+  expect(first).toEqual({ inDrawer: true, inArea: false })
+  // Shift+Tab from there comes back to the last summary.
+  await page.keyboard.press('Shift+Tab')
+  await expect(last).toBeFocused()
+})

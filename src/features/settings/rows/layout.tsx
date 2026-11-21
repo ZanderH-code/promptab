@@ -11,6 +11,7 @@ import { AreaGridPreview } from '../AreaGridPreview'
 import { layoutDefaults, maxColumnsDefault } from '../rowDefaults'
 import { Select, touch, type Ctx, type Item } from './shared'
 import { widgetAreas } from './WidgetPlacement'
+import { Highlighted } from '../searchHighlight'
 import '../../../i18n/lazy'
 
 function AreaBleedToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) {
@@ -158,7 +159,7 @@ export function layoutItems(ctx: Ctx): Item[] {
       return touch({ ...p, layout: { ...p.layout, areaStyles: Object.keys(styles).length ? styles : undefined } })
     })
     const mark = (label: MessageKey, changed: boolean, clear: () => void): RowState => ({ changed, onReset: changed ? clear : undefined, resetLabel: resetLabel(label) })
-    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding', 'settings.areaBackground', 'settings.areaOpacity', 'settings.areaBleed', 'settings.areaAlign', 'settings.areaBorderTop', 'settings.areaBorderRight', 'settings.areaBorderBottom', 'settings.areaBorderLeft'], node: <AreaStyleDisclosure area={area} initialOpen={Object.keys(style).length > 0} searching={!!ctx.searching} summary={<><span data-user-content>{areaLabel(area)}</span><span className="sd-muted"> · {t('settings.areaStyle')}</span></>}>
+    return { id: `area-style-${area}`, keys: ['settings.areaStyle', 'settings.areaBlur', 'settings.areaPadding', 'settings.areaBackground', 'settings.areaOpacity', 'settings.areaBleed', 'settings.areaAlign', 'settings.areaBorderTop', 'settings.areaBorderRight', 'settings.areaBorderBottom', 'settings.areaBorderLeft'], node: <AreaStyleDisclosure key={profile.meta.id} area={area} initialOpen={Object.keys(style).length > 0} searching={!!ctx.searching} summary={<><span data-user-content={area !== 'overview' && area !== 'bookmarks' ? '' : undefined}>{areaLabel(area)}</span><span className="sd-muted"> · <Highlighted text={t('settings.areaStyle')} /></span></>}>
       <Row label={t('settings.areaBackground')}><Select ctx={ctx} label={t('settings.areaBackground')} value={style.background ?? 'surface'} options={[{ value: 'surface', label: t('settings.colorSurface') }, { value: 'accent', label: t('settings.accent') }, { value: 'bg', label: t('settings.background') }, { value: '#102932', label: t('common.custom') }]} onChange={background => setStyle({ background })} /></Row>
       {style.background && style.background.startsWith('#') && <ColorField t={t} label={t('settings.areaBackground')} value={style.background} onChange={background => setStyle({ background })} />}
       <RangeField t={t} label={t('settings.areaOpacity')} hint={t('settings.hint.areaOpacity')} value={style.opacity ?? DEFAULT_AREA_STYLE.opacity} min={0} max={100} unit="%" {...mark('settings.areaOpacity', style.opacity !== undefined && style.opacity !== DEFAULT_AREA_STYLE.opacity, () => clearStyle('opacity'))} onChange={opacity => setStyle({ opacity })} />
