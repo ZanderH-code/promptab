@@ -1212,6 +1212,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
     const row = page.locator('.sd-row').filter({ has: page.getByText(name, { exact: true }) }).first()
     const small = row.locator('.sd-range-hint')
     await expect(small, `${name} hint`).toHaveCount(1)
+    await expect(small, `${name} hint is rendered`).not.toHaveText(/^\s*$/, { useInnerText: true })
     const text = (await small.innerText()).trim()
     expect(text, `${name} hint is not empty`).not.toBe('')
     expect(text, `${name} hint is not the label`).not.toBe(name)

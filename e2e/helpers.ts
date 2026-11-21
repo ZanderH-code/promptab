@@ -135,5 +135,7 @@ export async function openAreaStyle(page: Page, area: string) {
   const block = page.locator(`[data-area-style="${area}"]`)
   if (await block.getAttribute('open') === null) await block.locator('summary').click()
   await expect(block).toHaveAttribute('open', '')
+  // The disclosure fades its rows in; wait until they are rendered before reading their text.
+  await expect(block.locator('.sd-row').first()).toBeVisible()
   return block
 }
