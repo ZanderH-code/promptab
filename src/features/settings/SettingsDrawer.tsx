@@ -92,7 +92,15 @@ export function matches(haystack: string, query: string): boolean {
   return terms.every(term => text.includes(term))
 }
 
-const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled):not([type=hidden]), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+const FOCUSABLE = 'a[href], button:not(:disabled), input:not(:disabled):not([type=hidden]), select:not(:disabled), textarea:not(:disabled), details > summary:first-of-type, [tabindex]:not([tabindex="-1"])'
+
+/** A control inside a closed disclosure is not reachable by Tab; only the disclosure's own summary is. */
+const inClosedDisclosure = (element: HTMLElement) => {
+  const closed = element.closest('details:not([open])')
+  if (!closed) return false
+  if (element.tagName === 'SUMMARY' && element.parentElement === closed) return !!closed.parentElement?.closest('details:not([open])')
+  return true
+}
 
 export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProfileChange, onClose, onWallpaperFile, onWallpaperFiles, onWallpaperVideoFile, onWallpaperRemove, onReset, onError, wallpaperUrl, initialSection, safeMode = false, onApplyPreview = () => {}, onEnterEditMode = () => {} }: Props) {
   const [tab, setTab] = useState<TabId>(() => initialTab(initialSection))
@@ -255,7 +263,7 @@ export function SettingsDrawer({ store, settings: s, profile, t, onPatch, onProf
       return
     }
     if (event.key !== 'Tab') return
-    const focusable = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(element => element.offsetParent !== null || element === document.activeElement)
+    const focusable = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(element => (element.offsetParent !== null && !inClosedDisclosure(element)) || element === document.activeElement)
     if (!focusable.length) return
     const first = focusable[0], last = focusable[focusable.length - 1]
     if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }

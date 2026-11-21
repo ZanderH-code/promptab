@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { seedExistingUser } from './helpers'
+import { openAreaStyle, openWidgetCard, seedExistingUser } from './helpers'
 
 const MARKER = '.mnt-clock { color: rgb(1, 2, 3); }'
 
@@ -756,10 +756,14 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   await expect.poll(async () => preview.locator('.sd-grid-block').allTextContents()).toEqual(['Overview', 'Websites', 'top', 'side'])
 
   // Put a widget in the area, so the rename has to carry it across.
-  const clockItem = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Clock' }) }).first()
+  // Placement lives in the widget's own card under Widgets.
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  const clockItem = await openWidgetCard(page, 'widget-clock')
   await clockItem.getByRole('combobox', { name: 'Widget area' }).click()
   await page.getByRole('option', { name: 'side', exact: true }).click()
   await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await page.locator('.sd-advanced summary').click()
 
   await preview.locator('[data-area="side"]').click()
   const field = page.getByRole('textbox', { name: 'Rename area' })
@@ -774,9 +778,12 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   await expect(narrowAreas).toHaveValue('overview\nbookmarks\naside')
   await expect(preview.locator('[data-area="side"]')).toHaveCount(0)
   await expect(preview.locator('[data-area="aside"]')).toHaveText('aside')
-  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('aside')
   await expect(page.locator('.mnt-layout .mnt-area[data-area="aside"] .clock')).toBeVisible()
   await expect(page.locator('.mnt-layout')).toHaveAttribute('style', /aside/)
+  await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
+  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('aside')
+  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await page.locator('.sd-advanced summary').click()
 
   // The whole rename is one undo step.
   await page.keyboard.press('Control+z')
@@ -785,7 +792,6 @@ test('a custom area can be renamed from the layout diagram', async ({ page }) =>
   await expect(areas).toHaveValue('overview bookmarks\ntop side')
   await expect(narrowAreas).toHaveValue('overview\nbookmarks\nside')
   await expect(page.locator('.mnt-layout .mnt-area[data-area="side"] .clock')).toBeVisible()
-  await expect(clockItem.getByRole('combobox', { name: 'Widget area' })).toContainText('side')
 
   // A duplicate name shows the alert and commits nothing.
   await preview.locator('[data-area="side"]').click()
@@ -1206,6 +1212,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
     const row = page.locator('.sd-row').filter({ has: page.getByText(name, { exact: true }) }).first()
     const small = row.locator('.sd-range-hint')
     await expect(small, `${name} hint`).toHaveCount(1)
+    await expect(small, `${name} hint is rendered`).not.toHaveText(/^\s*$/, { useInnerText: true })
     const text = (await small.innerText()).trim()
     expect(text, `${name} hint is not empty`).not.toBe('')
     expect(text, `${name} hint is not the label`).not.toBe(name)
@@ -1217,6 +1224,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
   expect(await overflow(), 'background panel').toBe(true)
 
   await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   for (const label of ['Area opacity', 'Area blur', 'Area padding', 'Top accent divider', 'Right accent divider', 'Bottom accent divider', 'Left accent divider', 'Max columns']) await hint(label)
   expect(await overflow(), 'layout panel at 1400').toBe(true)
   await page.setViewportSize({ width: 420, height: 800 })
@@ -1232,6 +1240,7 @@ test('background and layout controls explain their effect', async ({ page }) => 
   await page.getByRole('tab', { name: '背景', exact: true }).click()
   for (const label of ['遮罩浓度', '晕影', '灰度', '图片缩放']) await hint(label)
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   for (const label of ['区域透明度', '区域模糊', '区域内边距', '上边强调线', '右边强调线', '下边强调线', '左边强调线', '每行最多列数']) await hint(label)
   expect(await overflow(), 'zh layout panel').toBe(true)
 
@@ -1278,6 +1287,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await expect(page.getByRole('spinbutton', { name: 'Blur value', exact: true }).first()).toHaveAccessibleDescription('')
 
   await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   await describe('Area opacity', 'Fades this area’s background behind its widgets.')
   await describe('Area blur', 'Blurs what shows through this area.')
   await describe('Area padding', 'Adds space between the area edge and its widgets.')
@@ -1298,6 +1308,7 @@ test('range hints describe their sliders for screen readers', async ({ page }) =
   await describe('遮罩浓度', '加深内容后方的页面底色。')
   await expect(page.getByRole('spinbutton', { name: '遮罩浓度的数值', exact: true }).first()).toHaveAccessibleDescription('加深内容后方的页面底色。')
   await page.getByRole('tab', { name: '区域与网格', exact: true }).click()
+  await openAreaStyle(page, 'overview')
   await describe('区域透明度', '调整区域背景在其组件后方的透明度。')
   await describe('每行最多列数', '设置每行最多显示的网站数量。')
 
@@ -1326,19 +1337,11 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
     await expect(card.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
     await expect(card.locator('summary')).toHaveAttribute('aria-expanded', 'false')
   }
-  // Websites only has a header switch: no summary and no chevron.
+  // Websites carries its placement rows now, so it is a closed disclosure like the others.
   const shortcutsCard = page.locator('[data-widget-card="widget-shortcuts"]')
-  for (const card of [shortcutsCard]) {
-    await expect(card).toHaveClass(/sd-widget-card-plain/)
-    await expect(card.locator('input[type=checkbox]')).toHaveCount(1)
-    await expect(card.locator('summary')).toHaveCount(0)
-    await expect(card.locator('svg')).toHaveCount(0)
-  }
+  await expect(shortcutsCard.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
+  await expect(shortcutsCard.locator('summary')).toHaveAttribute('aria-expanded', 'false')
   await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
-  // Tab moves straight from a plain switch out of its card.
-  await shortcutsCard.locator('input[type=checkbox]').focus()
-  await page.keyboard.press('Tab')
-  expect(await page.evaluate(() => document.activeElement?.closest('[data-widget-card]')?.getAttribute('data-widget-card') ?? null)).not.toBe('widget-shortcuts')
 
   // One click opens the clock card; its header switch hides the clock and the card stays open.
   const clockCard = page.locator('[data-widget-card="widget-clock"]')
@@ -1560,7 +1563,7 @@ test('layout rows show a dot and reset to their defaults', async ({ page }) => {
   await expect(widthRow.locator('.sd-dot')).toHaveCount(1)
 
   // An area-style reset drops its key, then the whole area style when nothing else remains.
-  const area = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Overview' }) }).first()
+  const area = await openAreaStyle(page, 'overview')
   const opacityRow = area.locator('.sd-row').filter({ has: page.getByText('Area opacity', { exact: true }) }).first()
   const opacity = area.getByRole('spinbutton', { name: 'Area opacity value', exact: true })
   await opacity.fill('50')
@@ -1665,8 +1668,7 @@ test('shortcut, search and widget rows show a dot and reset to their defaults', 
   await expect(separatorRow.locator('.sd-dot')).toHaveCount(0)
 
   // The clock widget's size has a common schema default and resets on its own.
-  await page.getByRole('tab', { name: 'Areas & grid', exact: true }).click()
-  const clock = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'Clock' }) }).first()
+  const clock = page.locator('[data-widget-card="widget-clock"]')
   const sizeRow = clock.locator('.sd-row').filter({ has: page.getByText('Widget size', { exact: true }) }).first()
   const size = clock.getByRole('spinbutton', { name: 'Widget size value', exact: true })
   await size.fill('1.5')
@@ -1975,4 +1977,23 @@ test('AI steps guide from a description to a reviewed reply', async ({ page }) =
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
+})
+
+test('Tab wraps around folded area styles without leaving the drawer', async ({ page }) => {
+  await launch(page)
+  await openDrawer(page)
+  await openLayout(page, false)
+  const last = page.locator('[data-area-style="bookmarks"] summary')
+  await expect(page.locator('[data-area-style="bookmarks"]')).not.toHaveAttribute('open', '')
+  await last.focus()
+  // Tab from the last folded summary wraps to the drawer's first control, not into hidden rows or the page.
+  await page.keyboard.press('Tab')
+  const first = await page.evaluate(() => {
+    const active = document.activeElement
+    return { inDrawer: !!active?.closest('.sd'), inArea: !!active?.closest('[data-area-style]') }
+  })
+  expect(first).toEqual({ inDrawer: true, inArea: false })
+  // Shift+Tab from there comes back to the last summary.
+  await page.keyboard.press('Shift+Tab')
+  await expect(last).toBeFocused()
 })

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { openTab, seedExistingUser, seedTemplateUser } from './helpers'
+import { openAreaStyle, openTab, openWidgetCard, seedExistingUser, seedTemplateUser } from './helpers'
 
 const templates = [
   ['上下排列', '"overview" "bookmarks"'],
@@ -114,7 +114,8 @@ test('layout controls can refine icon split and banner templates', async ({ page
   await baseAreas.fill('bookmarks divider overview')
   await expectGrid(page, '"bookmarks divider overview"')
   await baseColumns.fill('minmax(0, 1fr)\n1px\nminmax(280px, 0.7fr)')
-  const bookmarksControls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '网站' }) }).first()
+  await openTab(page, 'widgets')
+  const bookmarksControls = await openWidgetCard(page, 'widget-shortcuts')
   await bookmarksControls.getByRole('combobox', { name: '组件区域' }).click()
   await page.getByRole('option', { name: '网站', exact: true }).click()
   await openTab(page, 'shortcuts')
@@ -125,12 +126,13 @@ test('layout controls can refine icon split and banner templates', async ({ page
   await expect(layout.locator('[data-area="bookmarks"] .grid')).toHaveCSS('grid-template-columns', '84px 84px 84px')
 
   await chooseTemplate(page, '顶栏横幅')
-  const bannerControls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: 'banner' }) })
+  const bannerControls = await openAreaStyle(page, 'banner')
   await bannerControls.getByRole('spinbutton', { name: '区域模糊' }).fill('18')
   await bannerControls.getByRole('spinbutton', { name: '区域透明度' }).fill('68')
   await bannerControls.getByLabel('区域通栏').check()
   await bannerControls.getByRole('spinbutton', { name: '下边强调线' }).fill('1')
-  const dateControls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '日期' }) })
+  await openTab(page, 'widgets')
+  const dateControls = await openWidgetCard(page, 'widget-date')
   await dateControls.getByRole('combobox', { name: '组件区域' }).click()
   await page.getByRole('option', { name: 'banner', exact: true }).click()
   await expect(layout.locator('[data-area="banner"]')).toHaveCSS('backdrop-filter', 'blur(18px)')
@@ -155,7 +157,7 @@ test('stacked, split and dashboard arrangements respond to viewport width', asyn
 })
 
 test('area controls update computed styles', async ({ page }) => {
-  const controls = page.locator('.sd-note').filter({ has: page.locator('strong', { hasText: '概览' }) })
+  const controls = await openAreaStyle(page, 'overview')
   const area = page.locator('.mnt-area[data-area="overview"]')
   await controls.getByRole('combobox', { name: '区域背景' }).click()
   await page.getByRole('option', { name: '强调色', exact: true }).click()
