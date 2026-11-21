@@ -1,5 +1,11 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.24.0
+
+0.24.0 is a settings flow pass: each widget is placed (area, order, size, alignment) from its own card under Widgets instead of a separate block on Areas & grid, and Areas & grid leads with the page-wide controls while each area's style rows fold into one disclosure. 0.23.1 is live in Edge Add-ons.
+
+Next settings candidates: website icon size/shape and max columns live on Areas & grid while the per-widget max columns lives under Websites; they belong together under Websites.
+
 ## Release status — 0.23.1
 
 0.23.1 fixes the Chrome Web Store rejection of 0.23.0 ("requesting but not using storage"): storage and bookmarks are now referenced as `chrome.storage.*` / `chrome.bookmarks.*`, so the store's static scan sees them. The weather widget names a current location through BigDataCloud's reverse geocoder (new optional host), and browser bookmark import is offered in Chromium again. 0.23.0 is live in Edge Add-ons.

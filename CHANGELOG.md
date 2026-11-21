@@ -4,6 +4,12 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.24.0]
+
+### Changed
+
+- Each widget is placed from its own card under Settings → Widgets: area, order, size and alignment sit next to the widget's other options. They used to be in a separate block per widget on Areas & grid, and todo, note, countdown and weather widgets had them in both places.
+- Areas & grid starts with the page-wide controls (alignment, content width, gap, columns, icon size and shape). Each area's style controls are folded into one disclosure that opens by itself when the area already has custom styles; the tab is about a quarter of its old length.
 ## [0.23.1]
 
 ### Changed
