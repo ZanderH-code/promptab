@@ -12,11 +12,9 @@
 
 ## Verification
 
-- [ ] `npx vitest run`
-- [ ] `npx tsc -b --pretty false`
-- [ ] `npm run build`
-- [ ] Relevant Playwright checks
-- [ ] `npx vite-node scripts/gallery-index.ts --check` (when gallery packs or tooling change)
+- [ ] `npm run check` (docs, gallery, ESLint, Vitest + property invariants, `eval:replay`, app + tools typecheck, builds)
+- [ ] `npm run verify:ui` (when UI or CSS changed; screenshots inspected)
+- [ ] Relevant Playwright checks (`npm run test:e2e`, `npm run test:firefox`, or startup JS budget when applicable)
 
 ## Theme contribution checklist
 
