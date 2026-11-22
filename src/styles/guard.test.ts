@@ -55,6 +55,21 @@ describe('guard layer', () => {
     for (const property of ['display', 'visibility', 'opacity', 'overflow', 'clip-path']) expect(properties).toContain(property)
   })
 
+  it('keeps banner text as a block flow container so strong labels and hints wrap naturally on mobile', () => {
+    const spanDisplays: string[] = []
+    walk(parse(read('guard.css')), {
+      visit: 'Rule',
+      enter(rule) {
+        const selectors = rule.prelude.type === 'SelectorList' ? rule.prelude.children.toArray().map(child => generate(child)) : [generate(rule.prelude)]
+        if (!selectors.includes('.mnt-banner span')) return
+        rule.block.children.forEach((child: CssNode) => {
+          if (child.type === 'Declaration' && child.property === 'display') spanDisplays.push(generate(child.value).trim())
+        })
+      },
+    })
+    expect(spanDisplays).toEqual(['block'])
+  })
+
   it('is the only stylesheet that uses !important', () => {
     const files = [here('../style.css'), ...readdirSync(here('.')).filter(name => name.endsWith('.css') && name !== 'guard.css').map(here)]
     for (const file of files) expect({ file, important: /!\s*important/i.test(readFileSync(file, 'utf8')) }).toEqual({ file, important: false })
