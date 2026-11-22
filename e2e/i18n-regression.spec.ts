@@ -12,7 +12,6 @@ const BAD_PACK = {
   theme: { mode: 'dark', radius: 12, color: { bg: '#10141b', text: '#ffffff', accent: 'teal' } },
   unknownField: true,
 }
-const BAD_REPLY = `\n\`\`\`json\n${JSON.stringify(BAD_PACK)}\n\`\`\``
 
 async function open(page: Page) {
   await seedExistingUser(page)

@@ -1,4 +1,4 @@
-import { extensionApi, isFirefoxExtension, type ExtensionApi } from '../platform/extension'
+import { extensionApi, isFirefoxExtension } from '../platform/extension'
 
 export function normalizeUrl(input: string): string | null {
   const text = input.trim()

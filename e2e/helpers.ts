@@ -21,7 +21,7 @@ export async function seedTemplateUser(page: Page, language: 'zh-CN' | 'en' = 'z
 }
 
 export async function seedExistingUser(page: Page, settings: Record<string, unknown> = {}) {
-  const legacy = {
+  const legacy: Record<string, unknown> = {
     schemaVersion: 1, language: 'zh-CN', theme: 'dark', accent: '#90d5cd', background: '#102932',
     showClock: true, showDate: true, showSearch: true, hour12: false,
     searchTemplate: 'https://www.google.com/search?q={query}',

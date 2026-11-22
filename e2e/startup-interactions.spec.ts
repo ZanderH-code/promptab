@@ -29,7 +29,6 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
     errors.length = 0
     expect(scripts.some(url => /EditingShortcutGrid|ShortcutEditor/.test(url))).toBe(false)
     const one = page.locator('.shortcut-wrap').filter({ hasText: 'One' })
-    const before = (await one.boundingBox())!
     const linkBefore = (await one.locator('.shortcut').boundingBox())!
 
     // Hold the first edit download: the normal grid must remain usable while it loads.
@@ -41,8 +40,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 375, height: 812 
       await ready
       await route.continue()
     })
-    let pending = before
-    let pendingClockY = 0
+    let pending!: typeof linkBefore
+    let pendingClockY!: number
     try {
       await page.keyboard.press('e')
       await expect.poll(() => requested).toBe(true)

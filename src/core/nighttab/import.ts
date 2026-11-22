@@ -395,7 +395,7 @@ function importTheme(theme: AnyRecord, profile: ProfileV2, warnings: string[]) {
       grayscale: clamp(number(media.grayscale) ?? 0, RANGES.grayscale.min, RANGES.grayscale.max), scale: clamp(round((number(media.scale) ?? 100) / 100), RANGES.scale.min, RANGES.scale.max),
       vignette: clamp(number(record(media.vignette).opacity) ?? 0, RANGES.vignette.min, RANGES.vignette.max),
     }
-    const { scale, ...videoLook } = look
+    const { scale: _scale, ...videoLook } = look
     if (type === 'image' && image) image = { ...image, ...look }
     else if (type === 'video' && video) video = { ...video, ...videoLook }
     else nextLook = look

@@ -80,7 +80,7 @@ export function WeatherSettings({ ctx, widget, patch }: Props) {
     setStatus({ key: 'citySaved', city: name })
   }
 
-  const useCurrentLocation = async () => {
+  const pickCurrentLocation = async () => {
     if (!navigator.geolocation) { setStatus({ key: 'locationUnavailable' }); return }
     // Ask for Open-Meteo and place-name access in the same click so nothing needs a second prompt.
     const granted = await requestWeatherPermission('location')
@@ -148,7 +148,7 @@ export function WeatherSettings({ ctx, widget, patch }: Props) {
         </ul>}
       </div>
       <div className="sd-widget-actions">
-        <button className="sd-button" type="button" disabled={busy === 'locate'} onClick={() => void useCurrentLocation()}>{busy === 'locate' ? message('locating') : message('useLocation')}</button>
+        <button className="sd-button" type="button" disabled={busy === 'locate'} onClick={() => void pickCurrentLocation()}>{busy === 'locate' ? message('locating') : message('useLocation')}</button>
       </div>
     </Row>
     <Row label={message('unit')}>

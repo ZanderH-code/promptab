@@ -33,7 +33,9 @@ for (let attempt = 0; attempt < 60; attempt++) {
       previewReady = true
       break
     }
-  } catch {}
+  } catch {
+    // Preview server is still starting.
+  }
   await new Promise(r => setTimeout(r, 250))
 }
 if (!previewReady) {

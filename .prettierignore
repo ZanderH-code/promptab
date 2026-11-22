@@ -1,0 +1,11 @@
+dist/
+dist-firefox/
+dist-web/
+docs/
+evals/
+licenses/
+node_modules/
+package-lock.json
+playwright-report/
+store/
+test-results/

@@ -18,7 +18,7 @@ test('an existing profile loads at most 480 KB of JavaScript before interaction'
   expect(profile.bookmarks.groups.some((group: { items: unknown[] }) => group.items.length > 0)).toBe(true)
   // Wait for the idle-loaded chunk explicitly: networkidle can elapse before its 1.5s idle callback.
   await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry =>
-    /faviconQuality-/i.test(entry.name) && entry.responseEnd > 0,
+    /faviconQuality-/i.test(entry.name) && (entry as PerformanceResourceTiming).responseEnd > 0,
   ))
   await page.waitForLoadState('networkidle')
 

@@ -5,8 +5,8 @@ import { siYoutube, siReddit, siGmail, siGithub, siGoogledrive, siGooglecalendar
 import { seedExistingUser, openTab } from '../e2e/helpers'
 
 const brands = [['youtube', 'YouTube', 'https://youtube.com', siYoutube], ['reddit', 'Reddit', 'https://reddit.com', siReddit], ['gmail', 'Gmail', 'https://mail.google.com', siGmail], ['github', 'GitHub', 'https://github.com', siGithub], ['drive', 'Google Drive', 'https://drive.google.com', siGoogledrive], ['calendar', 'Calendar', 'https://calendar.google.com', siGooglecalendar]] as const
-const shortcuts = brands.map(([id, name, url, brand]) => ({ id, name, url, color: `#${brand.hex}`, icon: name[0], iconMode: 'brand', iconName: brand.slug, brand: { slug: brand.slug, title: brand.title, path: brand.path, hex: brand.hex } }))
-shortcuts.splice(5, 0, { id: 'code', name: 'Code', url: 'https://example.com/code', color: '#3a5a80', icon: 'C', iconMode: 'lucide', iconName: 'code', brand: undefined as never })
+const shortcuts: Array<Record<string, unknown>> = brands.map(([id, name, url, brand]) => ({ id, name, url, color: `#${brand.hex}`, icon: name[0], iconMode: 'brand', iconName: brand.slug, brand: { slug: brand.slug, title: brand.title, path: brand.path, hex: brand.hex } }))
+shortcuts.splice(5, 0, { id: 'code', name: 'Code', url: 'https://example.com/code', color: '#3a5a80', icon: 'C', iconMode: 'lucide', iconName: 'code' })
 
 test('capture original gallery previews', async ({ browser }) => {
   const root = resolve('docs/gallery')

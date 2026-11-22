@@ -6,7 +6,7 @@ import { createReadStream } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { chromium, firefox, type Browser, type BrowserContext, type Page } from 'playwright'
-import { type ExtensionApi } from '../src/core/favicon'
+import { type ExtensionApi } from '../src/platform/extension'
 import { chooseBestIcon, faviconCandidates } from '../src/core/faviconQuality'
 import { STARTER_SITES } from '../src/core/starter-sites'
 
@@ -181,13 +181,13 @@ async function probeCandidate(page: Page, source: string, network: Map<string, N
   else if (!result.loaded && response.requestFailure) failureReason = response.requestFailure
   else if (!result.loaded && status) failureReason = `image-decode-or-policy-error-http-${status}`
   else if (!result.loaded && Date.now() - started >= TIMEOUT_MS) failureReason = 'timeout'
-  else if (!result.loaded && http?.error) failureReason = `http-probe-failed:${http.error}`
+  else if (!result.loaded && http && 'error' in http && http.error) failureReason = `http-probe-failed:${http.error}`
   else if (!result.loaded) failureReason = 'image-load-failed'
   else if (result.width === 1 && result.height === 1) failureReason = 'one-by-one-image'
   else if (result.transparent) failureReason = 'transparent-image'
   else if (contentType && !contentType.startsWith('image/')) failureReason = `content-type-${contentType}`
   const valid = result.loaded && !failureReason && result.width > 1 && result.height > 1
-  const svg = source.toLowerCase().endsWith('.svg') || contentType?.includes('image/svg+xml')
+  const svg = Boolean(source.toLowerCase().endsWith('.svg') || contentType?.includes('image/svg+xml'))
   return {
     url: source,
     sourceType: sourceType(source, contentType),
@@ -258,7 +258,8 @@ function summarizeSite(entry: MatrixEntry, checked: CandidateResult[]) {
   const usable = checked.filter(candidate => candidate.loaded && !candidate.failureReason && candidate.naturalWidth > 1 && candidate.naturalHeight > 1)
   const selected = chooseBestIcon(usable.map(candidate => ({
     url: candidate.url, sourceType: candidate.sourceType, naturalWidth: candidate.naturalWidth,
-    naturalHeight: candidate.naturalHeight, clarity: candidate.clarity === 'clear' ? 'clear' as const : 'blurry' as const, svg: candidate.svg,
+    naturalHeight: candidate.naturalHeight, effectiveWidth: candidate.naturalWidth,
+    clarity: candidate.clarity === 'clear' ? 'clear' as const : 'blurry' as const, svg: candidate.svg,
   })))
   const final = selected ? checked.find(candidate => candidate.url === selected.url) : undefined
   return {
@@ -375,7 +376,7 @@ async function main() {
         const checked = await probeCandidates(page, candidates, network, placeholderFingerprints)
         return summarizeSite(entry, checked)
       })
-      platforms.push({ id: 'chromium-extension', browserVersion: chromiumBrowser.version(), results })
+      platforms.push({ id: 'chromium-extension', browserVersion: chromiumBrowser?.version() ?? 'unknown', results })
     } catch (error) {
       platforms.push({ id: 'chromium-extension', error: String(error), results: [] })
     }

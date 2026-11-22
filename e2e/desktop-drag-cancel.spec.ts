@@ -105,7 +105,7 @@ test('handles one-item and empty-folder boundaries', async () => {
       { id: 'folder-empty', name: 'Empty', items: [] },
     ])
     const page = session.page
-    let before = await readState(page)
+    const before = await readState(page)
     await loadDragLayer(page, 'a')
     const spot = await center(tile(page, 'a'))
     await dragMouse(page, spot, { x: spot.x + 20, y: spot.y }, { release: false })

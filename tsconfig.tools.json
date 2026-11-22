@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node", "vite/client"]
+  },
+  "include": [
+    "src/env.d.ts",
+    "src/core/css/css-tree-subpaths.d.ts",
+    "scripts/**/*.ts",
+    "scripts/**/*.mts",
+    "e2e/**/*.ts",
+    "playwright*.ts",
+    "vite*.ts"
+  ]
+}

@@ -78,7 +78,7 @@ export function createBackupV2Service(deps: {
       const read = await readBackup(json)
       const format = read.format
       let collection: ImportCollection
-      let assetCount = 0
+      let assetCount: number
       if (read.format === 1) {
         assetCount = read.backup.wallpaper ? 1 : 0
         const active = committed.profiles[committed.activeProfileId]
