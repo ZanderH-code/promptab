@@ -145,8 +145,8 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
   }, [activeId])
-  const suppressClickAfterDrag = () => {
-    if (!movedRef.current) return
+  const suppressClickAfterDrag = (force = false) => {
+    if (!force && !movedRef.current) return
     movedRef.current = false
     // Only the click left over from this drag may be swallowed; a fresh press starts clean.
     const block = (event: MouseEvent) => { event.preventDefault(); event.stopPropagation(); cleanup() }
@@ -281,7 +281,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
       const fromFolder = sourceId && sourceId !== desktopId
       if (activeItem) animateDrop('slot', activeItem.id)
       resetDrag()
-      suppressClickAfterDrag()
+      suppressClickAfterDrag(true)
       if (fromFolder) focusAfterDrop(`[data-folder="${CSS.escape(sourceId)}"]`)
     }}
     onDragEnd={dragEnd}
@@ -333,7 +333,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
         frame; otherwise the frame's own offset is added to every position. The lift lives on the
         inner element so the scale can never shift the position dnd-kit computes. */}
     {createPortal(<DragOverlay dropAnimation={null}>
-      {activeItem ? <div className="shortcut-wrap mnt-drag-overlay" aria-hidden="true" data-lifted={reducedMotion ? undefined : 'true'} style={reducedMotion ? undefined : { transform: `scale(${LIFT})`, transformOrigin: grabRef.current ? `${grabRef.current.x}px ${grabRef.current.y}px` : 'center' }}><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
+      {activeItem ? <div className="shortcut-wrap mnt-drag-overlay" aria-hidden="true" data-lifted={reducedMotion ? undefined : 'true'} style={reducedMotion ? { pointerEvents: 'none' } : { pointerEvents: 'none', transform: `scale(${LIFT})`, transformOrigin: grabRef.current ? `${grabRef.current.x}px ${grabRef.current.y}px` : 'center' }}><ShortcutLink item={activeItem} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={false} t={t} onContextMenu={onContextMenu} /></div> : null}
     </DragOverlay>, document.body)}
   </DndContext>
 }

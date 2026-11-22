@@ -37,6 +37,22 @@ const APP_IMPORT_RATCHET_ALLOWLIST = [
   'src/features/settings/themeApi.ts',
 ]
 
+// Reviewed contract/guard tests that legitimately inspect files on disk (CSS layers, manifest
+// disclosures, generated AI docs, bundle import graphs, design token discipline).
+// New unit tests under src/ should test runtime behavior instead of reading source files.
+const TEST_FS_ALLOWLIST = [
+  'src/core/ai/docs.test.ts',
+  'src/core/ai/public-docs.test.ts',
+  'src/core/css/api.test.ts',
+  'src/core/schema/defaults.test.ts',
+  'src/core/themes/staticImports.test.ts',
+  'src/i18n/index.test.ts',
+  'src/i18n/localized-copy.test.ts',
+  'src/platform/manifestPermissions.test.ts',
+  'src/styles/colors.test.js',
+  'src/styles/guard.test.ts',
+]
+
 const CORE_FORBIDDEN_LAYERS = [
   {
     group: [
@@ -197,6 +213,40 @@ export default tseslint.config(
         chrome: 'readonly',
         browser: 'readonly',
       },
+    },
+  },
+  // Prevent new change-detector tests from reading source files directly via fs
+  {
+    files: ['src/**/*.test.{ts,tsx,js}'],
+    ignores: TEST_FS_ALLOWLIST,
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'node:fs',
+              message:
+                'Avoid reading source files in unit tests (change detectors). Assert runtime behavior instead, or document a reviewed contract check in TEST_FS_ALLOWLIST in eslint.config.mjs.',
+            },
+            {
+              name: 'fs',
+              message:
+                'Avoid reading source files in unit tests (change detectors). Assert runtime behavior instead, or document a reviewed contract check in TEST_FS_ALLOWLIST in eslint.config.mjs.',
+            },
+            {
+              name: 'node:fs/promises',
+              message:
+                'Avoid reading source files in unit tests (change detectors). Assert runtime behavior instead, or document a reviewed contract check in TEST_FS_ALLOWLIST in eslint.config.mjs.',
+            },
+            {
+              name: 'fs/promises',
+              message:
+                'Avoid reading source files in unit tests (change detectors). Assert runtime behavior instead, or document a reviewed contract check in TEST_FS_ALLOWLIST in eslint.config.mjs.',
+            },
+          ],
+        },
+      ],
     },
   },
   // Tests and scripts may use relaxed any rules where fixtures/Playwright mocks require it

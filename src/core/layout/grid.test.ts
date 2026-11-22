@@ -45,6 +45,7 @@ describe('layout grids', () => {
     expect(a.theme.mode).toBe('light')
     expect(a.layout.areas).toEqual(['bookmarks divider overview'])
     expect(a.layout.columns?.[1]).toBe('1px')
+    expect(a.layout.areaStyles?.divider).toEqual({ background: 'accent' })
     expect(a.widgets.find(item => item.type === 'bookmarks')?.props).toMatchObject({ style: 'icon-only', maxColumns: 3, showGroupTitles: false, showAdd: false, iconColor: 'accent' })
     expect(a.widgets.find(item => item.type === 'toolbar')).toMatchObject({ area: 'overview', props: { actions: ['add', 'edit', 'settings'] } })
     const b = applyTemplate(profile, 'banner')
@@ -52,10 +53,19 @@ describe('layout grids', () => {
     expect(b.layout.areaStyles?.banner).toMatchObject({ opacity: 68, blur: 18, bleed: true, border: { bottom: 2 } })
     expect(b.theme.color.accent).toBe('#2fd6e0')
     expect(b.widgets.find(item => item.type === 'bookmarks')).toMatchObject({ hidden: true, props: { showAdd: false } })
+    expect(b.widgets.find(item => item.type === 'search')).toMatchObject({ hidden: true, area: 'banner' })
     expect(templateGrid('banner').breakpoints?.narrow?.areas).toEqual(['banner', 'websites'])
     expect(b.theme.font.display).toBe('barlow-condensed')
     expect(profileV2Schema.safeParse(a).success).toBe(true)
     expect(profileV2Schema.safeParse(b).success).toBe(true)
+
+    // Switching back to a template without explicit columns or rows must clear stale track arrays.
+    const fromIconSplit = applyTemplate(a, 'stacked')
+    expect(fromIconSplit.layout.columns).toBeUndefined()
+    const fromBanner = applyTemplate(b, 'stacked')
+    expect(fromBanner.layout.rows).toBeUndefined()
+    expect(profileV2Schema.safeParse(fromIconSplit).success).toBe(true)
+    expect(profileV2Schema.safeParse(fromBanner).success).toBe(true)
   })
 
   it('keeps the date with the clock when switching to dashboard', async () => {

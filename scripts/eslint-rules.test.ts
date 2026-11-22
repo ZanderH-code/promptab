@@ -63,6 +63,16 @@ describe('ESLint architectural and safety guardrails', () => {
     )
   })
 
+  it('forbids new src unit tests from reading source files via node:fs', async () => {
+    const errors = await lintSnippet(
+      "import { readFileSync } from 'node:fs'\nexport const raw = readFileSync('src/app/App.tsx', 'utf8')\n",
+      'src/features/settings/ChangeDetector.test.ts',
+    )
+    expect(
+      errors.some(error => error.ruleId === 'no-restricted-imports' && error.message.includes('change detectors')),
+    ).toBe(true)
+  })
+
   it('accepts clean product code that obeys boundaries', async () => {
     const errors = await lintSnippet(
       "import { extensionStorage } from '../platform/extension'\nexport const readLocal = () => extensionStorage()?.local\n",

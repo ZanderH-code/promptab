@@ -77,7 +77,10 @@ function checkReferences(profiles: ProfileV2[], assetMimes: Map<string, string>)
     expectMime(profile.background.video?.asset, 'video')
     expectMime(profile.background.video?.poster, 'image')
     profile.background.rotation?.images.forEach(reference => expectMime(reference, 'image'))
-    profile.bookmarks.groups.forEach(group => group.items.forEach(item => expectMime(item.image, 'image')))
+    profile.bookmarks.groups.forEach(group => group.items.forEach(item => {
+      expectMime(item.image, 'image')
+      expectMime(item.tile?.image, 'image')
+    }))
   })
 }
 

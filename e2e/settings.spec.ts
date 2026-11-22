@@ -91,7 +91,6 @@ test('an unapplied custom CSS draft survives navigation', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
-const SHOTS = '/tmp/magpie-claude-work-1001/settingsprobe/shots'
 
 type Rgb = { r: number; g: number; b: number; a: number }
 
@@ -179,20 +178,17 @@ test('the custom CSS editor follows the active theme', async ({ page }) => {
   await openStyle(page)
   await typeDraft(page, MARKER)
   await expectEditorReadable(page)
-  await page.screenshot({ path: `${SHOTS}/style-dark.png` })
 
   // A light preset stores the light palette; the default profile has no separate light colours.
   await page.getByRole('tab', { name: 'Theme', exact: true }).click()
   await page.getByRole('button', { name: 'Paper', exact: true }).click()
   await openStyle(page)
   await expectEditorReadable(page)
-  await page.screenshot({ path: `${SHOTS}/style-light.png` })
 
   await page.getByRole('tab', { name: 'Theme', exact: true }).click()
   await page.getByRole('button', { name: 'Contrast', exact: true }).click()
   await openStyle(page)
   await expectEditorReadable(page)
-  await page.screenshot({ path: `${SHOTS}/style-contrast.png` })
 
   expect(errors).toEqual([])
 })
@@ -456,7 +452,6 @@ test('the settings rail groups sections and navigates with the keyboard', async 
   await page.getByRole('tab', { name: 'Theme' }).click()
   await page.getByRole('button', { name: 'Paper' }).click()
   expect(await violations()).toEqual([])
-  await page.screenshot({ path: `${SHOTS}/rail.png` })
 
   expect(errors).toEqual([])
 })
@@ -512,14 +507,12 @@ test('the page stays bright while editing and the panel can peek away', async ({
   await openDrawer(page)
   expect(await page.evaluate(() => document.querySelector('.sd')?.contains(document.activeElement))).toBe(true)
   await page.getByRole('tab', { name: 'Widgets', exact: true }).click()
-  await page.screenshot({ path: `${SHOTS}/preview-full.png` })
   await page.getByRole('button', { name: 'Peek', exact: true }).click()
   const handle = page.getByRole('button', { name: 'Show settings', exact: true })
   await expect(handle).toBeVisible()
   await expect(handle).toBeFocused()
   await expect.poll(async () => (await page.locator('.sd').boundingBox())!.x).toBeGreaterThanOrEqual(1400)
   expect(await centreIsScrim(page)).toBe(true)
-  await page.screenshot({ path: `${SHOTS}/preview-peeked.png` })
 
   // The handle restores the panel at the same section.
   await handle.click()
@@ -618,7 +611,6 @@ test('the section header stays in view with the reset action', async ({ page }) 
   // Only the header owns the reset; the old panel footer is gone.
   await expect(page.getByRole('button', { name: 'Restore section defaults', exact: true })).toHaveCount(1)
   await expect(page.locator('.sd-restore')).toHaveCount(0)
-  await page.screenshot({ path: `${SHOTS}/header-top.png` })
 
   const panelBox = (await panel.boundingBox())!
   const before = (await header.boundingBox())!
@@ -632,7 +624,6 @@ test('the section header stays in view with the reset action', async ({ page }) 
   expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(1)
   await expect(header.getByRole('heading', { name: 'Areas & grid', exact: true })).toBeVisible()
   await expect(header.getByRole('button', { name: 'Restore section defaults', exact: true })).toBeInViewport()
-  await page.screenshot({ path: `${SHOTS}/header-scrolled.png` })
 
   expect(errors).toEqual([])
 })
@@ -677,7 +668,6 @@ test('the layout diagram previews the committed area grid', async ({ page }) => 
   // Stacked: the diagram mirrors the page's rows.
   await expect.poll(async () => (await geometry()).page.areas).toBe('"overview" "bookmarks"')
   await expect.poll(async () => (await geometry()).preview.areas).toBe('"overview" "bookmarks"')
-  await page.screenshot({ path: `${SHOTS}/grid-preview.png` })
 
   // Side by side: the page and the diagram keep the same column proportions.
   await page.getByRole('combobox', { name: 'Layout', exact: true }).click()
@@ -833,7 +823,6 @@ test('the preview explains which areas can be renamed', async ({ page }) => {
   const colors = await page.evaluate(() => ['.sd-hint', '.sd-section-desc'].map(selector => getComputedStyle(document.querySelector(selector)!).color))
   expect(colors[0]).toBe(colors[1])
   await expect(page.locator('.sd-section-desc')).not.toHaveText(/custom area to rename/)
-  await page.screenshot({ path: `${SHOTS}/layout-hint.png` })
 
   // The hint is translated with the rest of the drawer.
   await page.getByRole('tab', { name: 'About', exact: true }).click()
@@ -868,7 +857,6 @@ test('the raw layout DSL sits behind an advanced disclosure', async ({ page }) =
   // The visual path — template, preview, hint — plus the Advanced entry fit above the fold.
   const summaryBox = (await summary.boundingBox())!
   expect(summaryBox.y + summaryBox.height).toBeLessThanOrEqual(900)
-  await page.screenshot({ path: `${SHOTS}/layout-collapsed.png` })
 
   await summary.click()
   expect(await advanced.evaluate(element => (element as HTMLDetailsElement).open)).toBe(true)
@@ -879,7 +867,6 @@ test('the raw layout DSL sits behind an advanced disclosure', async ({ page }) =
     'overview bookmarks\ntop side', '1fr 240px minmax(0, 1fr)', 'auto 1fr',
     'overview bookmarks\ntop side', '1fr 240px minmax(0, 1fr)', 'auto 1fr',
   ])
-  await page.screenshot({ path: `${SHOTS}/layout-expanded.png` })
 
   // A custom area gives the preview a rename control; it precedes Advanced in the tab order.
   await fields.nth(0).fill('overview bookmarks\nside side')
@@ -975,7 +962,6 @@ test('the gradient editor previews the rendered background', async ({ page }) =>
       bottomRight: await page.screenshot({ clip: { x: rect.x + rect.width - 5, y: rect.y + rect.height - 5, width: 1, height: 1 } }),
     }
   }
-  await page.screenshot({ path: `${SHOTS}/gradient-135.png` })
   const before = await corners()
   expect(before.topLeft.equals(before.bottomRight)).toBe(false)
 
@@ -988,7 +974,6 @@ test('the gradient editor previews the rendered background', async ({ page }) =>
   // Rotating from 135° to 45° swaps the colour at each corner.
   expect(after.topLeft.equals(before.topLeft)).toBe(false)
   expect(after.bottomRight.equals(before.bottomRight)).toBe(false)
-  await page.screenshot({ path: `${SHOTS}/gradient-45.png` })
 
   // The border separates the strip from the panel in both modes.
   const contrast = () => page.evaluate(() => {
@@ -1079,7 +1064,6 @@ test('the focal point preview shares the stored position', async ({ page }) => {
   expect(Math.abs(clicked.x - 25)).toBeLessThanOrEqual(2)
   expect(Math.abs(clicked.y - 75)).toBeLessThanOrEqual(2)
   await expect(page.getByRole('radiogroup', { name: 'Focal point' }).getByRole('radio', { checked: true })).toHaveCount(0)
-  await page.screenshot({ path: `${SHOTS}/focal.png` })
 
   // Dragging keeps the same source of truth.
   await page.mouse.move(box.x + box.width * .6, box.y + box.height * .4)
@@ -1142,7 +1126,6 @@ test('the wallpaper pickers are styled, labelled controls', async ({ page }) => 
     await expect(input).toHaveAttribute('tabindex', '-1')
   }
   await expect(page.getByText('No file chosen', { exact: true })).toHaveCount(1)
-  await page.screenshot({ path: `${SHOTS}/upload.png` })
 
   // Picking a file still runs the wallpaper flow and shows the chosen name.
   await inputs.first().setInputFiles('e2e/fixtures/upscaled-32-to-128.png')
@@ -1176,7 +1159,6 @@ test('the wallpaper pickers are styled, labelled controls', async ({ page }) => 
   await page.getByRole('tab', { name: '背景', exact: true }).click()
   await expect(page.getByRole('button', { name: '上传本地图片（PNG、JPEG、WebP，每张最大 5 MB）', exact: true })).toBeVisible()
   await expect(page.getByText('未选择文件', { exact: true })).toHaveCount(1)
-  await page.screenshot({ path: `${SHOTS}/upload-zh.png` })
 
   scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
@@ -1341,7 +1323,6 @@ test('widget settings are grouped into collapsible cards', async ({ page }) => {
   const shortcutsCard = page.locator('[data-widget-card="widget-shortcuts"]')
   await expect(shortcutsCard.locator('.sd-widget-switch input[type=checkbox]')).toHaveCount(1)
   await expect(shortcutsCard.locator('summary')).toHaveAttribute('aria-expanded', 'false')
-  await page.screenshot({ path: `${SHOTS}/widgets-cards.png` })
 
   // One click opens the clock card; its header switch hides the clock and the card stays open.
   const clockCard = page.locator('[data-widget-card="widget-clock"]')
@@ -1718,7 +1699,6 @@ test('settings resets use one accessible confirmation dialog', async ({ page }) 
   await expect(dialog).toBeVisible()
   await expect(dialog.getByText('Restores Areas & grid to its defaults. Other sections, websites and uploaded media stay.', { exact: true })).toBeVisible()
   await expect(dialog.getByRole('button', { name: 'Cancel', exact: true })).toBeFocused()
-  await page.screenshot({ path: `${SHOTS}/reset-dialog.png` })
   const openScan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(openScan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   await page.keyboard.press('Escape')
@@ -1972,7 +1952,6 @@ test('AI steps guide from a description to a reviewed reply', async ({ page }) =
   await expect(page.locator('.sd-ai-card')).toContainText('Fold test')
   await expect(page.locator('.sd-ai-ok')).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Want any changes?', exact: true })).toBeVisible()
-  await page.screenshot({ path: `${SHOTS}/ai-steps.png` })
 
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
