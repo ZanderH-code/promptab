@@ -40,6 +40,7 @@ test('release metadata, documentation, builds and archives use the same version'
   const firefox = await json('dist-firefox/manifest.json')
   const changelog = await readFile('CHANGELOG.md', 'utf8')
   const workflow = await readFile('.github/workflows/publish-edge.yml', 'utf8')
+  const chromeWorkflow = await readFile('.github/workflows/publish-chrome.yml', 'utf8')
   const version = source.version
   assert.match(version, /^\d+\.\d+\.\d+$/)
   assert.equal(packageJson.version, version, 'package.json version')
@@ -49,6 +50,7 @@ test('release metadata, documentation, builds and archives use the same version'
   assert.equal(firefox.version, version, 'Firefox build version')
   assert.ok(changelog.includes(`## [${version}]`), 'changelog must describe the current release')
   assert.equal(workflow.match(/^\s*EDGE_ADDONS_VERSION:\s*(\S+)\s*$/m)?.[1], version, 'Edge workflow version')
+  assert.equal(chromeWorkflow.match(/^\s*CHROME_WEB_STORE_VERSION:\s*(\S+)\s*$/m)?.[1], version, 'Chrome workflow version')
   for (const name of [`store/promptab-${version}.zip`, `store/promptab-firefox-${version}.zip`]) {
     assert.equal((await archiveManifest(name)).version, version, `${name} manifest version`)
   }

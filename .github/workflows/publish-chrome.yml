@@ -1,0 +1,57 @@
+name: Publish Chrome Web Store Extension
+
+on:
+  workflow_dispatch:
+    inputs:
+      item_id:
+        description: Chrome Web Store Extension ID
+        required: true
+        default: aeiigkihjpgggiohlfcglacilnllmboi
+        type: string
+      publish_type:
+        description: Publish immediately after approval or stage for manual release
+        required: true
+        default: DEFAULT_PUBLISH
+        type: choice
+        options:
+          - DEFAULT_PUBLISH
+          - STAGED_PUBLISH
+      deploy_percentage:
+        description: Optional staged rollout percentage (1-100; leave empty for dashboard default)
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chrome-web-store-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node scripts/package-extension.mjs
+      - run: node scripts/verify-package.mjs
+      - name: Upload and submit to Chrome Web Store
+        run: node scripts/publish-chrome.mjs
+        env:
+          CHROME_WEB_STORE_PUBLISHER_ID: ${{ secrets.CHROME_WEB_STORE_PUBLISHER_ID }}
+          CHROME_WEB_STORE_SERVICE_ACCOUNT_JSON: ${{ secrets.CHROME_WEB_STORE_SERVICE_ACCOUNT_JSON }}
+          CHROME_WEB_STORE_CLIENT_ID: ${{ secrets.CHROME_WEB_STORE_CLIENT_ID }}
+          CHROME_WEB_STORE_CLIENT_SECRET: ${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}
+          CHROME_WEB_STORE_REFRESH_TOKEN: ${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}
+          CHROME_WEB_STORE_ITEM_ID: ${{ inputs.item_id }}
+          CHROME_WEB_STORE_VERSION: 0.24.0
+          CHROME_WEB_STORE_PUBLISH_TYPE: ${{ inputs.publish_type }}
+          CHROME_WEB_STORE_DEPLOY_PERCENTAGE: ${{ inputs.deploy_percentage }}

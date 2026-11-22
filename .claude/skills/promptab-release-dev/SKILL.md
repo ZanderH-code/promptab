@@ -12,7 +12,7 @@ Repo: /home/ubuntu/codeproject/promptab. Start with `git fetch`, branch from ori
 - Verify behaviour in a real Chromium with the built extension loaded for anything user-visible (icons, new tab, settings). Mocks are not evidence of real-site behaviour; say which you used.
 - Add tests for the bug or feature, generic ones, no per-site hardcoding unless it is an explicit brand table entry.
 - **Startup JS budget 480,000 bytes**: measure with `npx playwright test e2e/startup-performance.spec.ts -g "480 KB"`. Windows CI counts about 22 bytes more than Linux; never raise the budget. If you add code, remove code first and report the final byte count.
-- Do not touch version numbers, CHANGELOG release entries or `EDGE_ADDONS_VERSION`; the planner does that, unless the ticket explicitly asks you for the `chore: release <ver>` commit. Do update `store/listing.md` / privacy text if data use or permissions change, and never add a browser permission without telling the planner.
+- Do not touch version numbers, CHANGELOG release entries, `EDGE_ADDONS_VERSION`, or `CHROME_WEB_STORE_VERSION`; the planner does that, unless the ticket explicitly asks you for the `chore: release <ver>` commit. Do update `store/listing.md` / privacy text if data use or permissions change, and never add a browser permission without telling the planner.
 - Known server-only flake: paint-timing/startup-speed test fails on this host on main as well. Report numbers for branch vs main instead of ignoring it.
 
 ## Handoff report
