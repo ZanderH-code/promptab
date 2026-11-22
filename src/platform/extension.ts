@@ -5,7 +5,7 @@ export type ExtensionStorageArea = {
   getKeys?(): Promise<string[]>
 }
 export type ExtensionPermissions = {
-  request(details: { permissions?: string[]; origins?: string[]; data_collection?: Array<'authenticationInfo' | 'personalCommunications' | 'locationInfo'> }): Promise<boolean>
+  request(details: { permissions?: string[]; origins?: string[]; data_collection?: Array<'authenticationInfo' | 'personalCommunications' | 'locationInfo' | 'bookmarksInfo'> }): Promise<boolean>
   contains?(details: { permissions?: string[]; origins?: string[] }): Promise<boolean>
 }
 export type ExtensionApi = {

@@ -11,6 +11,8 @@ export default defineConfig({
     url: 'http://127.0.0.1:4173',
     // Never silently reuse a leftover preview server from another branch/worktree; opt in explicitly if needed.
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
+    // A placeholder client ID turns on the Google Drive sync UI; e2e/gdrive-sync.spec.ts fakes Google itself.
+    env: { VITE_GOOGLE_DRIVE_CLIENT_ID: process.env.VITE_GOOGLE_DRIVE_CLIENT_ID || 'e2e-test-client.apps.googleusercontent.com' },
   },
   use: { baseURL: 'http://127.0.0.1:4173', timezoneId: 'UTC', locale: 'en-US', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   snapshotPathTemplate: '{testDir}/baselines/{arg}{ext}',

@@ -41,6 +41,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+        env:
+          # Public Google OAuth client ID (a repository variable, not a secret). Unset: the package ships without Google Drive sync.
+          VITE_GOOGLE_DRIVE_CLIENT_ID: ${{ vars.GOOGLE_DRIVE_CLIENT_ID }}
       - run: node scripts/package-extension.mjs
       - run: node scripts/verify-package.mjs
       - name: Upload and submit to Chrome Web Store

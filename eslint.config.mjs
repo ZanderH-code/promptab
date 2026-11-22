@@ -8,6 +8,7 @@ const FETCH_ALLOWLIST = [
   'src/core/weather.ts',
   'src/core/brandShards.ts',
   'src/core/brandIndex.ts',
+  'src/core/gdrive.ts',
   'src/features/settings/Gallery.tsx',
   'src/app/useSettings.ts',
 ]
@@ -148,9 +149,9 @@ export default tseslint.config(
         'error',
         {
           selector:
-            'MemberExpression[object.type="CallExpression"][object.callee.name="extensionApi"][property.name=/^(storage|bookmarks)$/]',
+            'MemberExpression[object.type="CallExpression"][object.callee.name="extensionApi"][property.name=/^(storage|bookmarks|identity)$/]',
           message:
-            'Use extensionStorage() or extensionBookmarks() from src/platform/extension.ts instead of extensionApi().storage/.bookmarks so store static scans see literal chrome.storage / chrome.bookmarks.',
+            'Use extensionStorage(), extensionBookmarks() or extensionIdentity() instead of extensionApi().storage/.bookmarks/.identity so store static scans see literal chrome.storage / chrome.bookmarks / chrome.identity.',
         },
       ],
     },

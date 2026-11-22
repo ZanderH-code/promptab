@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { DRIVE_OPTIONAL_HOSTS, DRIVE_PERMISSIONS, withGoogleDrive } from './driveManifest'
 
 const root = resolve(import.meta.dirname, '../..')
 const read = (relativePath: string) => readFileSync(resolve(root, relativePath), 'utf8')
@@ -52,6 +53,19 @@ describe('manifest permissions and privacy disclosures', () => {
       expect(policy, `store/privacy-policy.md must mention ${permission}`).toContain(permission)
       expect(englishHtml, `docs/privacy/index.html (en) must mention ${permission}`).toContain(permission)
       expect(chineseHtml, `docs/privacy/index.html (zh-CN) must mention ${permission}`).toContain(permission)
+    }
+  })
+
+  it('adds the reviewed Google Drive entries only through withGoogleDrive, and discloses them', () => {
+    // Builds without a Google OAuth client ID ship public/manifest.json unchanged (see vite.config.ts).
+    expect(DRIVE_PERMISSIONS).toEqual(['identity'])
+    expect(DRIVE_OPTIONAL_HOSTS).toEqual(['https://www.googleapis.com/*'])
+    const drive = withGoogleDrive(manifest)
+    expect(drive.permissions).toEqual([...REVIEWED_PERMISSIONS, 'identity'])
+    expect(drive.optional_host_permissions).toEqual([...REVIEWED_OPTIONAL_HOSTS, 'https://www.googleapis.com/*'])
+    const [englishHtml, chineseHtml] = read('docs/privacy/index.html').split('<section id="chinese"')
+    for (const [name, text] of [['store/listing.md', read('store/listing.md')], ['store/privacy-policy.md', read('store/privacy-policy.md')], ['privacy (en)', englishHtml], ['privacy (zh-CN)', chineseHtml]] as const) {
+      for (const term of ['identity', 'www.googleapis.com', 'bookmarksInfo']) expect(text, `${name} must mention ${term}`).toContain(term)
     }
   })
 

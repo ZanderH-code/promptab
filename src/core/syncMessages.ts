@@ -1,6 +1,8 @@
 import type { Language } from '../i18n'
 
+export type SyncProvider = 'browser' | 'gdrive'
 export type SyncMessage = 'title' | 'hint' | 'enable' | 'extensionOnly' | 'conflict' | 'keepLocal' | 'pullCloud' | 'undo' | 'saved' | 'disabled' | 'pulled' | 'undone' | 'quota' | 'error' | 'deleteCloud' | 'deleteConfirm' | 'deleted' | 'missing' | 'undoUnavailable' | 'dismiss' | 'cancel'
+  | 'titleAny' | 'provider' | 'providerBrowser' | 'providerDrive' | 'reauth' | 'signIn' | 'driveScope'
 
 export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
   en: {
@@ -25,6 +27,13 @@ export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
     missing: 'The browser sync copy is missing. Your local profile was kept.',
     undoUnavailable: 'Undo is no longer available because the profile has changed.',
     dismiss: 'Dismiss',
+    titleAny: 'Sync',
+    provider: 'Sync with',
+    providerBrowser: 'Browser account (same browser only)',
+    providerDrive: 'Google Drive (Chrome, Edge and Firefox)',
+    reauth: 'Google Drive sync is paused until you sign in to Google again.',
+    signIn: 'Sign in to Google',
+    driveScope: 'Google Drive access was not granted. Sign in again and allow Promptab to use its app folder.',
   },
   'zh-CN': {
     title: '浏览器同步',
@@ -48,7 +57,47 @@ export const syncMessages: Record<Language, Record<SyncMessage, string>> = {
     missing: '浏览器同步副本不存在。本地配置已保留。',
     undoUnavailable: '配置已更改，无法撤销拉取。',
     dismiss: '关闭',
+    titleAny: '同步',
+    provider: '同步方式',
+    providerBrowser: '浏览器账号（仅限同一浏览器）',
+    providerDrive: 'Google 云端硬盘（Chrome、Edge 和 Firefox）',
+    reauth: '需要重新登录 Google，Google 云端硬盘同步已暂停。',
+    signIn: '登录 Google',
+    driveScope: '未授予 Google 云端硬盘访问权限。请重新登录，并允许 Promptab 使用其应用文件夹。',
   },
 }
 
-export const syncText = (language: Language, key: SyncMessage) => syncMessages[language][key]
+// Google Drive sync shares the flow but must never call itself browser sync.
+const driveMessages: Record<Language, Partial<Record<SyncMessage, string>>> = {
+  en: {
+    hint: 'Google Drive sync stores shortcuts, groups, theme settings and layout as one file in a hidden Promptab folder in your own Google Drive, so Chrome, Edge and Firefox can share them. Only Promptab can see that folder. Wallpaper, uploaded fonts and bookmark images stay on this device.',
+    conflict: 'This device and Google Drive have different profiles. Choose which copy to use.',
+    keepLocal: 'Replace the Google Drive copy with this device',
+    pullCloud: 'Use the Google Drive copy on this device',
+    disabled: 'Google Drive sync is off on this device.',
+    pulled: 'Google Drive setup applied. You can undo this change.',
+    quota: 'This profile is too large for Google Drive sync. Use Export backup to move the full profile.',
+    error: 'Could not read or write the Google Drive sync copy.',
+    deleteCloud: 'Delete Google Drive sync data',
+    deleteConfirm: 'Delete the synced profile from your Google Drive and turn sync off on this device?',
+    deleted: 'Google Drive sync data deleted; sync is off on this device.',
+    missing: 'The Google Drive sync copy is missing. Your local profile was kept.',
+  },
+  'zh-CN': {
+    hint: 'Google 云端硬盘同步会把网站、分组、主题设置和布局保存为你自己 Google 云端硬盘中隐藏的 Promptab 文件夹里的一个文件，供 Chrome、Edge 和 Firefox 共用。只有 Promptab 能看到该文件夹。壁纸、上传的字体和书签图片仍保存在此设备。',
+    conflict: '此设备与 Google 云端硬盘中的配置不同，请选择使用哪一份。',
+    keepLocal: '用此设备替换 Google 云端硬盘中的副本',
+    pullCloud: '在此设备使用 Google 云端硬盘中的副本',
+    disabled: '此设备上的 Google 云端硬盘同步已关闭。',
+    pulled: '已应用 Google 云端硬盘中的配置，可撤销此更改。',
+    quota: '配置过大，无法通过 Google 云端硬盘同步。请使用“导出备份”迁移完整配置。',
+    error: '无法读取或写入 Google 云端硬盘中的同步副本。',
+    deleteCloud: '删除 Google 云端硬盘同步数据',
+    deleteConfirm: '确定删除 Google 云端硬盘中的同步配置，并关闭此设备上的同步吗？',
+    deleted: 'Google 云端硬盘同步数据已删除，此设备上的同步已关闭。',
+    missing: 'Google 云端硬盘中的同步副本不存在。本地配置已保留。',
+  },
+}
+
+export const syncText = (language: Language, key: SyncMessage, provider: SyncProvider = 'browser') =>
+  (provider === 'gdrive' ? driveMessages[language][key] : undefined) ?? syncMessages[language][key]
