@@ -119,7 +119,8 @@ export function createGoogleAuth(identity: Identity, session: SessionArea | unde
     },
     async invalidate(token) { if ((await cached())?.token === token) await save(null) },
     async signIn() { await launch(true) },
-    async signOut() { await save(null) },
+    // Turning Drive sync off forgets the account too; turning it on again always shows Google's account picker.
+    async signOut() { await save(null); await local?.remove(ACCOUNT_KEY) },
   }
 }
 

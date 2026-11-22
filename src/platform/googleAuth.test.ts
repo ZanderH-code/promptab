@@ -69,10 +69,12 @@ describe('Google token cache', () => {
     const auth = createGoogleAuth(identity(['user-1', 'user-2']), area(), { clientId: 'client', lock, firefox: false, local, onAccountChange })
     await auth.signIn()
     expect(onAccountChange).not.toHaveBeenCalled()
-    await auth.signOut()
+    await auth.invalidate('t1')
     await auth.token()
     expect(onAccountChange).toHaveBeenCalledTimes(1)
     expect(local.data['mnt.gdrive.account']).toBe('user-2')
+    await auth.signOut()
+    expect(local.data['mnt.gdrive.account']).toBeUndefined()
   })
 
   it('passes no Chromium-only options to Firefox and maps a failed silent renewal to sign-in required', async () => {

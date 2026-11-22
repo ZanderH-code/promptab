@@ -151,8 +151,8 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
     enable: (value: boolean) => { set({ requested: value }); return (value ? connect() : Promise.resolve(true)).then(ok => { if (ok) return run(async () => {
       if (!value) {
         await api.local.set({ [ENABLED]: false }); conflict = null; undoProfile = null
-        await api.cloud.disconnect?.()
-        set({ enabled: false, conflict: false, canUndo: false, status: 'disabled' }); return
+        set({ enabled: false, conflict: false, canUndo: false, status: 'disabled' })
+        await api.cloud.disconnect?.(); return
       }
       // Inspect the cloud before enabling; existing data always requires a choice.
       const cloud = await api.cloud.read()
