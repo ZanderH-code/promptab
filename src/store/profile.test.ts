@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createProfileStore, type Committed } from './profile'
+import { createProfileStore, validateStored, type Committed } from './profile'
 import type { ProfileV2 } from '../core/schema/profile'
 
 const profile = (id = 'a'): ProfileV2 => ({
@@ -243,6 +243,21 @@ describe('profile store', () => {
     await expect(store.getState().importBackupCollection({ activeProfileId: 'a', profiles: [profile('a'), profile('a')] }, undefined, null)).rejects.toThrow()
     expect(Object.keys(store.getState().profiles)).toEqual(['a'])
     expect(store.getState().revision).toBeNull()
+  })
+
+  it('rejects orphan history entries in validateStored and clears builtinName on rename', async () => {
+    const p = { ...profile('a'), meta: { ...profile('a').meta, builtinName: 'default-profile' as const } }
+    expect(() => validateStored(
+      { activeProfileId: 'a', profiles: { a: p } },
+      { profiles: { ghost: { snapshots: [], lastEditAt: null } } },
+    )).toThrow('Invalid history entry')
+
+    const { persistence } = setup()
+    const store = createProfileStore({ persistence, initialProfile: p })
+    await store.getState().initialize()
+    await store.getState().renameProfile('a', 'Work')
+    expect(store.getState().profiles.a.meta.name).toBe('Work')
+    expect(store.getState().profiles.a.meta.builtinName).toBeUndefined()
   })
 
   it('reports every persisted change to the paint cache with the stored revision', async () => {

@@ -77,6 +77,17 @@ describe('v2 backups', () => {
     const wrongPosterMime = { ...value, assets: value.assets.map((item: { id: string }) => item.id === id ? { ...item, mime: 'video/webm' } : item) }
     await expect(parseBackupV2(JSON.stringify(wrongVideoMime))).rejects.toThrow()
     await expect(parseBackupV2(JSON.stringify(wrongPosterMime))).rejects.toThrow()
+
+    // Wallpaper rotation images and bookmark tile backdrop images must also reject video MIME types.
+    const rotationInput = await fixture()
+    rotationInput.profiles[0].background = { type: 'image', dim: 20, rotation: { images: [`mnt-asset:${id}`, `mnt-asset:${videoId}`], interval: 'open' } }
+    rotationInput.assets.push({ id: videoId, blob: new Blob([bytes], { type: 'video/webm' }) })
+    await expect(serializeBackupV2(rotationInput)).rejects.toThrow('Invalid image asset MIME')
+
+    const tileInput = await fixture()
+    tileInput.profiles[0].bookmarks.groups[0].items[0].tile = { image: `mnt-asset:${videoId}` }
+    tileInput.assets.push({ id: videoId, blob: new Blob([bytes], { type: 'video/webm' }) })
+    await expect(serializeBackupV2(tileInput)).rejects.toThrow('Invalid image asset MIME')
   })
 
   it('distinguishes malformed JSON from invalid backup structure', async () => {
@@ -86,12 +97,15 @@ describe('v2 backups', () => {
 
   it('rejects corrupted files, unknown fields and versions', async () => {
     const value = JSON.parse(await serializeBackupV2(await fixture()))
-    for (const bad of ['{', JSON.stringify({ ...value, backupVersion: 3 }), JSON.stringify({ ...value, history: [] }), JSON.stringify({ ...value, kind: 'other' }), JSON.stringify({ ...value, exportedAt: 'no' })]) await expect(parseBackupV2(bad)).rejects.toThrow()
+    const withUnknownProfileField = structuredClone(value)
+    withUnknownProfileField.profiles[0].meta.unexpected = true
+    for (const bad of ['{', JSON.stringify({ ...value, backupVersion: 3 }), JSON.stringify({ ...value, history: [] }), JSON.stringify({ ...value, kind: 'other' }), JSON.stringify({ ...value, exportedAt: 'no' }), JSON.stringify(withUnknownProfileField)]) await expect(parseBackupV2(bad)).rejects.toThrow()
   })
 
   it('rejects malformed base64, unsupported mime, and wrong hashes', async () => {
     const value = JSON.parse(await serializeBackupV2(await fixture()))
-    for (const asset of [{ ...value.assets[0], base64: 'YR==' }, { ...value.assets[0], base64: '%%%%' }, { ...value.assets[0], mime: 'image/gif' }, { ...value.assets[0], base64: 'd29ybGQ=' }, { ...value.assets[0], extra: 1 }]) await expect(parseBackupV2(JSON.stringify({ ...value, assets: [asset] }))).rejects.toThrow()
+    // 'aGVsbG9=' decodes via atob() to 'hello' (same SHA-256) with non-zero trailing pad bits; canonical encoding is 'aGVsbG8='.
+    for (const asset of [{ ...value.assets[0], base64: 'aGVsbG9=' }, { ...value.assets[0], base64: 'YR==' }, { ...value.assets[0], base64: '%%%%' }, { ...value.assets[0], mime: 'image/gif' }, { ...value.assets[0], base64: 'd29ybGQ=' }, { ...value.assets[0], extra: 1 }]) await expect(parseBackupV2(JSON.stringify({ ...value, assets: [asset] }))).rejects.toThrow()
   })
 
   it('rejects missing and duplicate references', async () => {

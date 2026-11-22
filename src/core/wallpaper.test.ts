@@ -7,13 +7,57 @@ describe('wallpaper rotation', () => {
   it('allocates concurrent openings under a lock', async () => {
     localStorage.clear()
     let previous = Promise.resolve()
-    const locks = { request: (_name: string, callback: () => number) => {
+    const locks = { request: (_name: string, callback: () => number | Promise<number>) => {
       const result = previous.then(callback)
       previous = result.then(() => undefined)
       return result
     } }
     const values = await Promise.all(Array.from({ length: 20 }, () => allocateOpenSequence(locks)))
     expect(values).toEqual(Array.from({ length: 20 }, (_, index) => index))
+  })
+
+  it('uses an IndexedDB readwrite transaction when indexedDB is available instead of stale localStorage', async () => {
+    localStorage.setItem('mnt:wallpaper:open-sequence:v1', '99')
+    const storeMap = new Map<string, unknown>()
+    const fakeIdb = {
+      open: () => {
+        const req: Record<string, any> = {}
+        const db = {
+          objectStoreNames: { contains: () => true },
+          close: () => {},
+          transaction: () => {
+            const tx: Record<string, any> = {
+              objectStore: () => ({
+                get: (k: string) => {
+                  const g: Record<string, any> = { result: storeMap.get(k) }
+                  queueMicrotask(() => { g.onsuccess?.(); queueMicrotask(() => tx.oncomplete?.()) })
+                  return g
+                },
+                put: (v: unknown, k: string) => { storeMap.set(k, v) },
+              }),
+            }
+            return tx
+          },
+        }
+        queueMicrotask(() => { req.result = db; req.onsuccess?.() })
+        return req
+      },
+    }
+    const prevIdb = globalThis.indexedDB
+    Object.defineProperty(globalThis, 'indexedDB', { value: fakeIdb, configurable: true })
+    try {
+      let previous = Promise.resolve()
+      const locks = { request: (_name: string, callback: () => number | Promise<number>) => {
+        const result = previous.then(callback)
+        previous = result.then(() => undefined)
+        return result
+      } }
+      const values = await Promise.all(Array.from({ length: 5 }, () => allocateOpenSequence(locks)))
+      expect(values).toEqual([0, 1, 2, 3, 4])
+      expect(localStorage.getItem('mnt:wallpaper:open-sequence:v1')).toBe('99')
+    } finally {
+      Object.defineProperty(globalThis, 'indexedDB', { value: prevIdb, configurable: true })
+    }
   })
 
   it('does not update shared storage without a working lock', async () => {

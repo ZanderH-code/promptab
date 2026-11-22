@@ -61,13 +61,15 @@ async function expectAllTabsFit(page: Page) {
 }
 
 for (const language of ['zh-CN', 'en'] as const) {
-  for (const viewport of viewports) {
-    test(`all settings tabs fit in ${viewport.width}x${viewport.height} (${language})`, async ({ page }) => {
-      await openSettings(page, language)
+  test(`all settings tabs fit across desktop and mobile viewports (${language})`, async ({ page }) => {
+    await openSettings(page, language)
+    const aiTab = page.getByRole('tab', { name: language === 'en' ? 'AI assistant' : 'AI 助手', exact: true })
+    const themeTab = page.getByRole('tab', { name: language === 'en' ? 'Theme' : '主题', exact: true })
+    for (const viewport of viewports) {
       await page.setViewportSize(viewport)
+      await themeTab.click()
       await expectAllTabsFit(page)
 
-      const aiTab = page.getByRole('tab', { name: language === 'en' ? 'AI assistant' : 'AI 助手', exact: true })
       await aiTab.click()
       await expect(aiTab).toHaveAttribute('aria-selected', 'true')
       await expect(page.getByRole('tabpanel')).toBeVisible()
@@ -77,8 +79,8 @@ for (const language of ['zh-CN', 'en'] as const) {
         const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
         expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
       }
-    })
-  }
+    }
+  })
 }
 
 test('settings tab keyboard navigation and AI search are preserved', async ({ page }) => {

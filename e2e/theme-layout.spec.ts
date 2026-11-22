@@ -104,8 +104,8 @@ for (const item of gallery.packs) {
   })
 }
 
-for (const preset of presets) {
-  test(`preset ${preset.id} layout at desktop sizes`, async ({ page }) => {
+test('all built-in presets fit desktop sizes', async ({ page }) => {
+  for (const preset of presets) {
     await page.locator('.mnt-settings-entry').first().click()
     await openTab(page, 'appearance')
     const button = page.getByRole('button', { name: preset.name.en, exact: true })
@@ -117,5 +117,5 @@ for (const preset of presets) {
       await page.evaluate(() => window.scrollTo(0, 0))
       await checkLayout(page)
     }
-  })
-}
+  }
+})

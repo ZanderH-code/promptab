@@ -221,6 +221,12 @@ describe('theme pack variables', () => {
     expect(aiPackSchema.parse(JSON.parse(json)).background?.type).toBe('theme')
   })
 
+  it('preserves solid background color when exporting a color-background profile', () => {
+    const source: ProfileV2 = { ...profile, background: { type: 'color', color: '#1b2838', dim: 15 } }
+    const pack = aiPackSchema.parse(JSON.parse(JSON.stringify(exportThemePack(source))))
+    expect(pack.background).toEqual({ type: 'color', color: '#1b2838', dim: 15 })
+  })
+
   it('round-trips portable theme appearance through the workbench pack', () => {
     const source: ProfileV2 = {
       ...profile,

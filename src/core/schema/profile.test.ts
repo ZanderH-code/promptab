@@ -183,7 +183,7 @@ describe('profile v2 schema', () => {
     for (const track of valid) {
       expect(profileIssues(mutate(d => { d.layout.columns = [track, '1fr']; d.layout.rows = [track] })), track).toEqual([])
     }
-    const invalid = ['', '1fr; color:red', 'url(https://example.com)', 'var(--x)', 'calc(1px + 2px)', '-1fr', '12', '1fr 2fr', 'minmax(1fr)', 'minmax(1fr, 2fr, 3fr)', 'repeat(0, 1fr)', 'repeat(101, 1fr)', 'repeat(2.5, 1fr)', 'repeat(2,)', 'minmax(minmax(minmax(minmax(minmax(0, 1fr), 1fr), 1fr), 1fr), 1fr)']
+    const invalid = ['', '1fr; color:red', 'url(https://example.com)', 'var(--x)', 'calc(1px + 2px)', '-1fr', '12', '1fr 2fr', 'minmax(1fr)', 'minmax(1fr, 2fr, 3fr)', 'repeat(0, 1fr)', 'repeat(101, 1fr)', 'repeat(2.5, 1fr)', 'repeat(2,)', 'minmax(minmax(minmax(minmax(minmax(0, 1fr), 1fr), 1fr), 1fr), 1fr)', `${' '.repeat(511)}1fr`]
     for (const track of invalid) {
       const candidate = mutate(d => { d.layout.columns = [track, '1fr']; d.layout.breakpoints = { narrow: { areas: ['clock', 'links'], rows: [track] } } })
       const issues = profileIssues(candidate, 'zh-CN')
@@ -192,6 +192,12 @@ describe('profile v2 schema', () => {
         expect.objectContaining({ path: 'layout.breakpoints.narrow.rows.0', expected: '有效的网格轨道尺寸', value: track }),
       ]))
     }
+  })
+
+  it('rejects mismatched column counts and areaStyles for areas absent from layout.areas', () => {
+    expect(bad(d => { d.layout.columns = ['1fr'] })[0]).toMatchObject({ path: 'layout.columns', expected: 'one column size per area column' })
+    expect(bad(d => { d.layout.breakpoints = { narrow: { areas: ['clock', 'links'], columns: ['1fr', '1fr'] } } })[0]).toMatchObject({ path: 'layout.breakpoints.narrow.columns' })
+    expect(bad(d => { d.layout.areaStyles = { nonexistent: { padding: 8 } } })[0]).toMatchObject({ path: 'layout.areaStyles.nonexistent', expected: 'area listed in layout.areas' })
   })
 
   it('localizes validation expectations while preserving issue details', () => {

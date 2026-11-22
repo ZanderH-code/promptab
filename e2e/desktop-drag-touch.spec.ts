@@ -48,6 +48,8 @@ test('touch: hold and move reorders, hold opens the menu, swipe scrolls, tap nav
     await touch('touchEnd', [])
     await page.keyboard.press('Escape')
     await expect(page.getByRole('menu')).toHaveCount(0)
+    // Releasing a long-press that opened the menu must never trigger navigation on the underlying link.
+    expect(page.url()).toContain('chrome-extension://')
     // The menu cancels the drag it interrupted; let that settle before the next touch sequence.
     await expect(page.locator('[data-dragging]')).toHaveCount(0)
 
