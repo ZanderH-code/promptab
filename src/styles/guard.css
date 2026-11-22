@@ -104,8 +104,14 @@
     overflow: visible !important;
   }
 
-  .mnt-banner :is(button, span) {
+  .mnt-banner button {
     display: inline-flex !important;
+    position: static !important;
+  }
+
+  /* Keep banner text a block container so <strong> and the hint text wrap naturally on narrow viewports instead of splitting into flex columns. */
+  .mnt-banner span {
+    display: block !important;
     position: static !important;
   }
 }
@@ -123,7 +129,7 @@
   }
 
   .mnt-banner[data-kind=safe], .mnt-banner[data-kind=preview] { border-bottom-color: var(--mnt-accent); }
-  .mnt-banner .mnt-banner-text { flex: 1 1 16ch; min-width: 0; }
+  .mnt-banner .mnt-banner-text { flex: 1 1 28ch; min-width: 0; }
   .mnt-banner .mnt-banner-text strong { color: var(--mnt-accent-text); }
 
   .mnt-banner button {
