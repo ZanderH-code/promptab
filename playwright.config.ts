@@ -9,7 +9,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npx vite preview --host 127.0.0.1 --port 4173 --strictPort',
     url: 'http://127.0.0.1:4173',
-    reuseExistingServer: !process.env.CI,
+    // Never silently reuse a leftover preview server from another branch/worktree; opt in explicitly if needed.
+    reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
   },
   use: { baseURL: 'http://127.0.0.1:4173', timezoneId: 'UTC', locale: 'en-US', trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   snapshotPathTemplate: '{testDir}/baselines/{arg}{ext}',

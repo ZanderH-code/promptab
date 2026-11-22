@@ -38,7 +38,8 @@ async function videoPoster(file: File): Promise<Blob> {
 }
 
 export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (error: MessageRef) => void) {
-  const initialAsset = profile?.background.type === 'image' ? profile.background.image?.asset : undefined
+  const initialRotation = profile?.background.type === 'image' ? profile.background.rotation : undefined
+  const initialAsset = profile?.background.type === 'image' && initialRotation?.interval !== 'open' ? profile.background.image?.asset : undefined
   const [url, setUrl] = useState(() => initialAsset ? readWallpaperPreview(initialAsset) ?? '' : '')
   const [videoUrl, setVideoUrl] = useState('')
   const [posterUrl, setPosterUrl] = useState('')
@@ -69,9 +70,12 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
     schedule()
     return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', onVisibility) }
   }, [rotation?.interval])
-  const rotatedReference = rotation && (rotation.interval !== 'open' || openSequence !== null)
+  const waitingOpenSequence = rotation?.interval === 'open' && openSequence === null
+  const rotatedReference = rotation && !waitingOpenSequence
     ? rotation.images[wallpaperRotationIndex(rotation, Date.now(), openSequence ?? 0)] : undefined
-  const imageReference = background?.type === 'image' ? rotatedReference ?? background.image?.asset : undefined
+  const imageReference = background?.type === 'image'
+    ? waitingOpenSequence ? undefined : rotatedReference ?? background.image?.asset
+    : undefined
   const videoReference = background?.type === 'video' ? background.video?.asset : undefined
   const posterReference = background?.type === 'video' ? background.video?.poster : undefined
 
