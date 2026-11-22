@@ -1,6 +1,6 @@
 # Promptab Privacy Policy
 
-**Effective date: 2026-11-02**
+**Effective date: 2026-11-22**
 
 Promptab is a browser new-tab extension. It is designed to keep user data in the browser and does not include an account system, advertising SDK, analytics, telemetry, or a remote application server.
 
