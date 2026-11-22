@@ -14,7 +14,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, write
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import {
-  firstPrompt, fixPrompt, parseCases, resolveStart, scoreRecord, summarize, summaryTable,
+  firstPrompt, fixPrompt, gateFailures, parseCases, resolveStart, scoreRecord, summarize, summaryTable,
   type EvalAttempt, type EvalCase, type EvalRecord, type EvalSpan, type EvalStart, type RecordScore,
 } from '../src/core/ai/evalScore'
 import { buildPromptPack, buildRefinePrompt } from '../src/core/ai/prompt'
@@ -198,7 +198,11 @@ async function replay() {
       failed = true
       for (const score of changed) console.error(`${name}: score changed for ${score.model} ${score.caseId}; run npm run eval:replay -- --update if intended`)
     } else console.log(`${name}: ${scores.length} records unchanged${run.promptHash === promptHash ? '' : ' (recorded with an older prompt)'}`)
-    console.log(summaryTable(summarize(run.records, scores)))
+    const summaries = summarize(run.records, scores)
+    const gateErrors = gateFailures(summaries)
+    for (const message of gateErrors) console.error(`${name}: release gate failed: ${message}`)
+    if (gateErrors.length) failed = true
+    console.log(summaryTable(summaries))
   }
   if (failed) process.exitCode = 1
 }
