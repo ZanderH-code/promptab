@@ -12,6 +12,7 @@ store/gallery-list.png
 .local-review/
 test-results/
 playwright-report/
+.artifacts/
 evals/runs/
 .env
 .env.*

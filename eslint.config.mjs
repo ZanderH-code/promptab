@@ -68,6 +68,7 @@ const CORE_FORBIDDEN_IO = [
 export default tseslint.config(
   {
     ignores: [
+      '.artifacts/**',
       'dist/**',
       'dist-firefox/**',
       'dist-web/**',
