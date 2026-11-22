@@ -363,13 +363,13 @@ async function markColors(page: Page) {
     const color = toRgb(getComputedStyle(mark).color)
     const tint = toRgb(getComputedStyle(mark).backgroundColor)
     let element = mark.parentElement
-    let surface = { r: 255, g: 255, b: 255 }
+    let surface = { r: 255, g: 255, b: 255, a: 1 }
     while (element) {
       const background = toRgb(getComputedStyle(element).backgroundColor)
       if (background.a === 1) { surface = background; break }
       element = element.parentElement
     }
-    return { color, background: { r: tint.r * tint.a + surface.r * (1 - tint.a), g: tint.g * tint.a + surface.g * (1 - tint.a), b: tint.b * tint.a + surface.b * (1 - tint.a) } }
+    return { color, background: { r: tint.r * tint.a + surface.r * (1 - tint.a), g: tint.g * tint.a + surface.g * (1 - tint.a), b: tint.b * tint.a + surface.b * (1 - tint.a), a: 1 } }
   })
 }
 

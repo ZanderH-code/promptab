@@ -244,6 +244,7 @@ describe('synchronous cache and discovery', () => {
     return new Promise<{ candidate: FaviconCandidate | null; complete: boolean; published: Array<FaviconCandidate | null> }>(resolve => {
       const published: Array<FaviconCandidate | null> = []
       let unsubscribe: (() => void) | undefined
+      // eslint-disable-next-line prefer-const -- callback may fire synchronously before loadBestFavicon returns
       unsubscribe = loadBestFavicon(input, 64, (candidate, complete) => {
         published.push(candidate)
         if (complete) { unsubscribe?.(); resolve({ candidate, complete, published }) }

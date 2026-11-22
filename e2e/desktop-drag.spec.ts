@@ -1,8 +1,8 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
-  center, dialogItem, dragMouse, expectIntegrity, folderTile, idsOf, itemIds, launchExtension,
-  loadDragLayer, openApp, readGroups, readState, seedGroups, seedSettings, tile, waitForDomOrder, waitForOrders,
-  type ExtensionSession, type SeedGroup, type StoredGroup,
+  center, dialogItem, dragMouse, expectIntegrity, folderTile, idsOf, launchExtension,
+  loadDragLayer, openApp, readGroups, readState, seedGroups, seedSettings, tile, waitForOrders,
+  type ExtensionSession, type SeedGroup,
 } from './extension-fixture'
 
 const item = (id: string) => ({ id, name: id.toUpperCase() })

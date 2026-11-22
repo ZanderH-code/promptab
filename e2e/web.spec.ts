@@ -119,7 +119,7 @@ test('theme export can be copied or imported on the web and undone', async ({ pa
   expect(copied.match(/```/g)).toHaveLength(2)
   const submissionLink = page.getByRole('link', { name: 'Submit to gallery' })
   await expect(submissionLink).toBeVisible()
-  const submission = new URL(await submissionLink.getAttribute('href')!)
+  const submission = new URL((await submissionLink.getAttribute('href'))!)
   expect(submission.searchParams.get('template')).toBe('theme_submission.yml')
   expect(submission.searchParams.get('title')).toContain('Exported theme')
   expect(await submissionLink.getAttribute('href')).not.toContain('mnt.theme-pack')

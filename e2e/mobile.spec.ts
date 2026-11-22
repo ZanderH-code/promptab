@@ -206,8 +206,8 @@ test('touch controls meet the 44 pixel target size', async ({ page }) => {
   for (const target of await settingsTargets.all()) {
     if (!(await target.isVisible())) continue
     const box = await target.boundingBox()
-    expect(box!.width, await target.getAttribute('aria-label')).toBeGreaterThanOrEqual(44)
-    expect(box!.height, await target.textContent()).toBeGreaterThanOrEqual(44)
+    expect(box!.width, (await target.getAttribute('aria-label')) ?? undefined).toBeGreaterThanOrEqual(44)
+    expect(box!.height, (await target.textContent()) ?? undefined).toBeGreaterThanOrEqual(44)
   }
   await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'Edit desktop' }).click()
   await page.mouse.move(0, 0)

@@ -18,7 +18,8 @@ const MAX_LINKS = 2000
 const MAX_NAME = 160
 const MAX_URL = 32_768
 const FALLBACK_COLOR = '#90d5cd'
-const controls = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠⁦-⁩﻿]/g
+// eslint-disable-next-line no-control-regex -- intentionally strips ASCII control and invisible bidi/zero-width characters from imported backups
+const controls = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060\u2066-\u2069\ufeff]/g
 const token = '__INFINITY_QUERY__'
 
 type RecordValue = Record<string, unknown>

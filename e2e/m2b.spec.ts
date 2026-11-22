@@ -110,7 +110,7 @@ test('exported theme files round-trip through preview, apply, undo and AI reply'
   expect(copied.match(/```/g)).toHaveLength(2)
   const submissionLink = page.getByRole('link', { name: /^(提交到画廊|Submit to gallery)$/ })
   await expect(submissionLink).toBeVisible()
-  const submission = new URL(await submissionLink.getAttribute('href')!)
+  const submission = new URL((await submissionLink.getAttribute('href'))!)
   expect(submission.searchParams.get('template')).toBe('theme_submission.yml')
   expect(submission.searchParams.get('title')).toContain('Exported theme')
   expect(await submissionLink.getAttribute('href')).not.toContain('mnt.theme-pack')

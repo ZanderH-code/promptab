@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { openTab, seedExistingUser } from './helpers'
+import { seedExistingUser } from './helpers'
 
 const viewports = [
   { width: 1920, height: 1080 },

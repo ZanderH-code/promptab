@@ -272,7 +272,7 @@ describe('theme pack variables', () => {
         { id: 'weather', type: 'weather' as const, area: 'clock', order: 1, props: { city: secret, latitude: 12.3, longitude: 45.6, unit: 'celsius' as const } },
         { id: 'note', type: 'note' as const, area: 'clock', order: 2, props: { title: secret, content: secret } },
       ],
-      custom: { ...profile.custom, css: `.mnt-clock { background-image: url(\"data:image/png;base64,${secret}\"); }` },
+      custom: { ...profile.custom, css: `.mnt-clock { background-image: url("data:image/png;base64,${secret}"); }` },
       sync: { manifest: secret },
       apiKey: secret,
     } as unknown as ProfileV2

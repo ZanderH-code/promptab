@@ -10,7 +10,6 @@ import type { OnboardingAction } from '../widgets/OnboardingCard'
 import { ProfileWidgets } from '../widgets/ProfileWidgets'
 import type { ContextMenuEvent } from '../widgets/ShortcutGridContent'
 import { extensionStorage } from '../platform/extension'
-import { detectTemplate } from '../core/layout/profile'
 import { moveBookmarks } from '../widgets/bookmarkGroups'
 import { Banners, PreviewBanner, SafeModeBanner } from '../features/banners/Banners'
 import { useSafeMode } from './safeMode'
@@ -357,7 +356,7 @@ export default function App() {
       {videoBackground && wallpaper.videoUrl && wallpaper.posterUrl && (
         <div className="wallpaper" aria-hidden="true">
           <div className="wallpaper-media" style={{ opacity: (videoBackground.opacity ?? 100) / 100 }}>
-            <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url(\"${wallpaper.posterUrl}\")` }} />}>
+            <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url("${wallpaper.posterUrl}")` }} />}>
               <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} reduceMotion={profile!.prefs.reduceMotion} />
             </Suspense>
           </div>

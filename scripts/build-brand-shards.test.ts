@@ -12,7 +12,7 @@ describe('brand shard builder', () => {
   })
 
   it('keeps every shard under 120 KB', () => {
-    const buckets = Array.from({ length: SHARD_COUNT }, () => ({}))
+    const buckets = Array.from({ length: SHARD_COUNT }, (): Record<string, unknown> => ({}))
     for (const icon of icons) buckets[shardForSlug(icon.slug)][icon.slug] = { slug: icon.slug, title: icon.title, hex: icon.hex, path: icon.path }
     const sizes = buckets.map(bucket => Buffer.byteLength(`${JSON.stringify(bucket)}\n`))
     expect(Math.max(...sizes)).toBeLessThanOrEqual(MAX_SHARD_BYTES)
