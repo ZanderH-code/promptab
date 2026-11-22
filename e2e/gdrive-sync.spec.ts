@@ -93,11 +93,11 @@ test('Google Drive sync carries a profile from one browser to another', async ({
   await expect(a.getByText(/hidden Promptab folder in your own Google Drive/)).toBeVisible()
   await a.getByRole('checkbox', { name: 'Sync this profile across devices' }).check()
   await expect(a.getByRole('status').filter({ hasText: 'Profile synced.' })).toBeVisible()
-  // The click asked for the Drive host, then opened Google's sign-in for the app folder only.
+  // The click asked for the Drive host, then opened Google's sign-in for the account ID and the app folder only.
   expect(await a.evaluate(() => (window as unknown as { __permissionRequests: unknown[] }).__permissionRequests)).toEqual([{ origins: ['https://www.googleapis.com/*'] }])
   const [launch] = await a.evaluate(() => (window as unknown as { __launches: { url: string; interactive: boolean }[] }).__launches)
   expect(launch.interactive).toBe(true)
-  expect(new URL(launch.url).searchParams.get('scope')).toBe('https://www.googleapis.com/auth/drive.appdata')
+  expect(new URL(launch.url).searchParams.get('scope')).toBe('openid https://www.googleapis.com/auth/drive.appdata')
   expect(drive.files).toHaveLength(1)
   const uploaded = JSON.parse(drive.files[0].body)
   expect(uploaded.kind).toBe('mnt.profile-sync')
