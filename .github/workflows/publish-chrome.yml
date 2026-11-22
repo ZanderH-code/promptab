@@ -55,6 +55,6 @@ jobs:
           CHROME_WEB_STORE_CLIENT_SECRET: ${{ secrets.CHROME_WEB_STORE_CLIENT_SECRET }}
           CHROME_WEB_STORE_REFRESH_TOKEN: ${{ secrets.CHROME_WEB_STORE_REFRESH_TOKEN }}
           CHROME_WEB_STORE_ITEM_ID: ${{ inputs.item_id }}
-          CHROME_WEB_STORE_VERSION: 0.24.0
+          CHROME_WEB_STORE_VERSION: 0.24.1
           CHROME_WEB_STORE_PUBLISH_TYPE: ${{ inputs.publish_type }}
           CHROME_WEB_STORE_DEPLOY_PERCENTAGE: ${{ inputs.deploy_percentage }}

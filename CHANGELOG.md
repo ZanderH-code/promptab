@@ -4,6 +4,19 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.24.1]
+
+### Changed
+
+- The AI assistant's prompt now describes every widget option, area style and alignment, and explains how to fix a repeated grid row. In tests with three AI providers, 94–98% of generated themes were valid on the first try and all of them after one fix round.
+- Google Drive sync (Chrome, Edge and Firefox sharing one profile through a hidden app folder in your own Google Drive) is built in, but switched off in builds without a Google sign-in client. This release does not include it, and its permissions are unchanged.
+
+### Fixed
+
+- With "change wallpaper on every new tab", several tabs opened at once no longer show the same image, and a new tab no longer shows the first image of the set for a moment before switching.
+- Restoring a backup also checks that shortcut tile images are images.
+- The safe-mode and AI-preview banners wrap cleanly on narrow phones instead of squeezing their text into thin columns.
+
 ## [0.24.0]
 
 ### Changed

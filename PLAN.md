@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.24.1
+
+0.24.1 is a maintenance release: a better-tuned AI prompt (every widget option documented, a repeated-grid-row fix hint), wallpaper rotation that gives each newly opened tab its own image without a flash of the previous one, a stricter check on shortcut tile images when restoring backups, and banners that wrap on narrow phones. Google Drive sync is merged but stays off until a Google OAuth client ID is configured (`store/google-drive-sync.md`); permissions are unchanged. 0.24.0 is live in Edge Add-ons and the Chrome Web Store.
+
 ## Release status — 0.24.0
 
 0.24.0 is a settings flow pass: each widget is placed (area, order, size, alignment) from its own card under Widgets instead of a separate block on Areas & grid, and Areas & grid leads with the page-wide controls while each area's style rows fold into one disclosure. 0.23.1 is live in Edge Add-ons.
