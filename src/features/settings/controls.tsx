@@ -29,7 +29,13 @@ function associate(children: ReactNode, id: string): { node: ReactNode; linked: 
   let linked = false
   const visit = (node: ReactNode): ReactNode => {
     if (linked) return node
-    if (Array.isArray(node)) return node.map(visit)
+    if (Array.isArray(node)) {
+      const mapped = node.map((child, index) => {
+        const next = visit(child)
+        return isValidElement(next) && next.key == null ? cloneElement(next, { key: index }) : next
+      })
+      return linked ? mapped : node
+    }
     if (!isValidElement<{ id?: string }>(node)) return node
     if (node.type === 'input' || node.type === 'textarea' || node.type === Select || node.type === DraftText) {
       linked = true

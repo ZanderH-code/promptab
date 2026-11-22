@@ -6,6 +6,8 @@ test('two devices resolve opt-in, sync edits, undo pulls and disable locally', a
   const cloud: Record<string, unknown> = {}
   const pages: Page[] = []
   const contexts: Awaited<ReturnType<Browser['newContext']>>[] = []
+  const timers = new Set<ReturnType<typeof setTimeout>>()
+  let closed = false
   const device = async (accent: string) => {
     const context = await browser.newContext({ baseURL: 'http://127.0.0.1:4173', locale: 'en-US' })
     contexts.push(context)
@@ -27,11 +29,16 @@ test('two devices resolve opt-in, sync edits, undo pulls and disable locally', a
           if (typeof key === 'string' && Object.hasOwn(cloud, key)) { changes[key] = { oldValue: cloud[key] }; delete cloud[key] }
         }
       }
-      if (Object.keys(changes).length) setTimeout(() => {
-        for (const target of pages) if (!target.isClosed()) void target.evaluate(value => {
-          ;(window as unknown as { __notifySync: (changes: unknown) => void }).__notifySync(value)
-        }, changes).catch(() => {})
-      }, 0)
+      if (Object.keys(changes).length && !closed) {
+        const timer = setTimeout(() => {
+          timers.delete(timer)
+          if (closed) return
+          for (const target of pages) if (!target.isClosed()) void target.evaluate(value => {
+            ;(window as unknown as { __notifySync: (changes: unknown) => void }).__notifySync(value)
+          }, changes).catch(() => {})
+        }, 0)
+        timers.add(timer)
+      }
     })
     await page.addInitScript(initialAccent => {
       const local: Record<string, unknown> = { settings: { schemaVersion: 1, language: 'en', theme: 'dark', accent: initialAccent, background: '#102932', showClock: true, showDate: true, showSearch: true, hour12: false, searchTemplate: 'https://www.google.com/search?q={query}', shortcuts: [{ id: 'example', name: 'Example', url: 'https://example.com', color: '#90d5cd', icon: 'E' }], columns: 6, iconSize: 72, iconShape: 'circle', alignment: 'center', layout: 'stacked', reverse: false, overlay: 35 } }
@@ -117,6 +124,9 @@ test('two devices resolve opt-in, sync edits, undo pulls and disable locally', a
     await openTab(b, 'appearance')
     await expect(b.getByLabel('Accent color', { exact: true })).toHaveValue('#112233')
   } finally {
-    for (const context of contexts) void context.close().catch(() => {})
+    closed = true
+    for (const timer of timers) clearTimeout(timer)
+    timers.clear()
+    await Promise.allSettled(contexts.map(context => context.close()))
   }
 })

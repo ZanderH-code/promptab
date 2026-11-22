@@ -459,14 +459,20 @@ describe('SettingsDrawer background', () => {
 
 describe('SettingsDrawer grid drafts', () => {
   it('preserves raw multiline input and applies edits to the latest profile', () => {
-    const props = setup({ initialSection: 'layout' })
-    const input = screen.getByRole('textbox', { name: 'Area grid' })
-    fireEvent.change(input, { target: { value: 'overview\nbookmarks\n' } })
-    expect(input).toHaveValue('overview\nbookmarks\n')
-    const newer = structuredClone(base)
-    newer.layout.areaStyles = { overview: { bleed: true } }
-    const update = props.onProfileChange.mock.calls.at(-1)![0] as (p: ProfileV2) => ProfileV2
-    expect(update(newer).layout.areaStyles?.overview.bleed).toBe(true)
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const props = setup({ initialSection: 'layout' })
+      const input = screen.getByRole('textbox', { name: 'Area grid' })
+      fireEvent.change(input, { target: { value: 'overview\nbookmarks\n' } })
+      expect(input).toHaveValue('overview\nbookmarks\n')
+      const newer = structuredClone(base)
+      newer.layout.areaStyles = { overview: { bleed: true } }
+      const update = props.onProfileChange.mock.calls.at(-1)![0] as (p: ProfileV2) => ProfileV2
+      expect(update(newer).layout.areaStyles?.overview.bleed).toBe(true)
+      expect(error).not.toHaveBeenCalled()
+    } finally {
+      error.mockRestore()
+    }
   })
   it('shows invalid track feedback on its own field', () => {
     setup({ initialSection: 'layout' })

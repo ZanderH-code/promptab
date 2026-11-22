@@ -8,7 +8,8 @@ test.beforeEach(async ({ page }) => {
   page.on('pageerror', error => errors.push(error.message))
 })
 test.afterEach(async ({ page }) => {
-  expect(runtimeErrors.get(page)).toEqual([])
+  const errors = runtimeErrors.get(page)
+  if (errors) expect(errors).toEqual([])
 })
 
 const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jA1sAAAAASUVORK5CYII='
