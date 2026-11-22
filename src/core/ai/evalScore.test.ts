@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { defaultProfile } from '../../features/settings/sectionDefaults'
 import { EXAMPLES } from './examples'
-import { firstPrompt, fixPrompt, parseCases, remoteRefs, scoreRecord, scoreReply, summarize, type EvalCase, type EvalRecord, type EvalSpan } from './evalScore'
+import { firstPrompt, fixPrompt, gateFailures, parseCases, remoteRefs, scoreRecord, scoreReply, summarize, type EvalCase, type EvalRecord, type EvalSpan, type ModelSummary } from './evalScore'
 
 const item: EvalCase = { id: 'colors-test', category: 'colors', language: 'en', scheme: 'dark', start: 'default', request: 'calm dark theme', expect: { mode: 'dark', parts: ['theme'], noRemote: true } }
 const fenced = (value: unknown) => '```json\n' + JSON.stringify(value, null, 2) + '\n```'
@@ -95,6 +95,19 @@ describe('eval scoring', () => {
     const prompt = fixPrompt(item, s, fenced({ meta: { name: 'x' }, theme: { radius: 'round' } }))!
     expect(prompt).toContain(item.request)
     expect(prompt).not.toContain('no specific request')
+  })
+
+  it('enforces the three-provider, 80% first-pass, 95% after-fix, and zero-remote release gate', () => {
+    const ok = (model: string, overrides: Partial<ModelSummary> = {}): ModelSummary => ({
+      model, cases: 50, extracted: 100, firstPassValid: 90, validAfterFix: 98, expectPassed: 100,
+      advicePerValidPack: 0, remoteAttempted: 0, remoteApplied: 0, callErrors: 0,
+      latencyP50Ms: 1000, latencyP95Ms: 2000, inputTokens: 100, outputTokens: 50, ...overrides,
+    })
+    expect(gateFailures([ok('a/m1'), ok('b/m2'), ok('c/m3')])).toEqual([])
+    expect(gateFailures([ok('a/m1'), ok('a/m2')])).toEqual([expect.stringContaining('at least 3 providers')])
+    expect(gateFailures([ok('a/m1', { firstPassValid: 78 }), ok('b/m2'), ok('c/m3')])).toEqual([expect.stringContaining('first-pass valid 78% < 80%')])
+    expect(gateFailures([ok('a/m1', { validAfterFix: 94 }), ok('b/m2'), ok('c/m3')])).toEqual([expect.stringContaining('valid after fix 94% < 95%')])
+    expect(gateFailures([ok('a/m1', { remoteApplied: 1 }), ok('b/m2'), ok('c/m3')])).toEqual([expect.stringContaining('remote references reached the page')])
   })
 })
 

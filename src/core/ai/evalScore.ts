@@ -289,3 +289,30 @@ export function summaryTable(summaries: readonly ModelSummary[]): string {
   const rows = summaries.map(s => `| ${s.model} | ${s.cases} | ${s.extracted}% | ${s.firstPassValid}% | ${s.validAfterFix}% | ${s.expectPassed}% | ${s.advicePerValidPack} | ${s.remoteAttempted} / ${s.remoteApplied} | ${s.callErrors} | ${(s.latencyP50Ms / 1000).toFixed(1)}s / ${(s.latencyP95Ms / 1000).toFixed(1)}s | ${s.inputTokens} / ${s.outputTokens} |`)
   return [head, '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |', ...rows].join('\n')
 }
+
+/** Release gate from PLAN.md: at least 3 providers, >= 80% first pass, >= 95% after one fix round, 0 remote leaks. */
+export const EVAL_RELEASE_GATE = {
+  minProviders: 3,
+  minFirstPass: 80,
+  minAfterFix: 95,
+} as const
+
+export function gateFailures(summaries: readonly ModelSummary[], gate = EVAL_RELEASE_GATE): string[] {
+  const failures: string[] = []
+  const providers = new Set(summaries.map(summary => summary.model.includes('/') ? summary.model.split('/')[0] : summary.model))
+  if (providers.size < gate.minProviders) {
+    failures.push(`need at least ${gate.minProviders} providers, got ${providers.size}`)
+  }
+  for (const summary of summaries) {
+    if (summary.firstPassValid < gate.minFirstPass) {
+      failures.push(`${summary.model}: first-pass valid ${summary.firstPassValid}% < ${gate.minFirstPass}%`)
+    }
+    if (summary.validAfterFix < gate.minAfterFix) {
+      failures.push(`${summary.model}: valid after fix ${summary.validAfterFix}% < ${gate.minAfterFix}%`)
+    }
+    if (summary.remoteApplied > 0) {
+      failures.push(`${summary.model}: remote references reached the page (${summary.remoteApplied})`)
+    }
+  }
+  return failures
+}
