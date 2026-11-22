@@ -13,3 +13,8 @@ store/gallery-list.png
 test-results/
 playwright-report/
 evals/runs/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
