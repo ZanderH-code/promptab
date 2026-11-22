@@ -36,7 +36,7 @@ function fakeDrive() {
   return { files, requests, handle }
 }
 
-/** An extension-like page: storage areas, permissions and identity, without storage.sync (another browser vendor). */
+/** An extension-like page: storage areas (including storage.sync, so both providers are offered), permissions and identity. */
 async function installExtensionMock(page: Page) {
   await page.addInitScript(() => {
     const area = (data: Record<string, unknown>) => ({
@@ -61,7 +61,8 @@ async function installExtensionMock(page: Page) {
         async launchWebAuthFlow(details: { url: string; interactive: boolean }) {
           launches.push(details)
           const url = new URL(details.url)
-          const fragment = new URLSearchParams({ access_token: 'drive-token', expires_in: '3600', token_type: 'Bearer', scope: url.searchParams.get('scope')!, state: url.searchParams.get('state')! })
+          const claims = btoa(JSON.stringify({ iss: 'https://accounts.google.com', aud: url.searchParams.get('client_id'), sub: 'google-user-1', nonce: url.searchParams.get('nonce') })).replace(/=+$/, '')
+          const fragment = new URLSearchParams({ access_token: 'drive-token', expires_in: '3600', token_type: 'Bearer', scope: url.searchParams.get('scope')!, state: url.searchParams.get('state')!, id_token: `e30.${claims}.sig` })
           return `https://fake-extension-id.chromiumapp.org/#${fragment}`
         },
       },

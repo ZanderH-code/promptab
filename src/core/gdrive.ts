@@ -20,6 +20,7 @@ type Options = {
   fetch?: Fetch
   /** Runs the browser sign-in; must start inside the click that enables sync. */
   connect?: () => Promise<boolean>
+  disconnect?: () => Promise<void>
   /** Where to listen for "the person came back to this tab" and "the network is back". */
   events?: { document?: Events; window?: Events }
   now?: () => number
@@ -46,7 +47,7 @@ export function googleDriveBackend(auth: DriveAuth, options: Options = {}): Clou
   }
   /** Every copy, oldest first. Two devices that both created the file before seeing each other settle on the oldest. */
   const list = async (): Promise<string[]> => {
-    const query = new URLSearchParams({ spaces: 'appDataFolder', q: `name = '${FILE_NAME}' and trashed = false`, orderBy: 'createdTime', fields: 'files(id)', pageSize: '10' })
+    const query = new URLSearchParams({ spaces: 'appDataFolder', q: `name = '${FILE_NAME}' and trashed = false`, orderBy: 'createdTime', fields: 'files(id)', pageSize: '100' })
     const response = await call(`${DRIVE_ORIGIN}/drive/v3/files?${query}`)
     if (!response.ok) throw new Error(`Google Drive request failed (${response.status})`)
     const { files } = await response.json() as { files?: { id?: unknown }[] }
@@ -59,6 +60,7 @@ export function googleDriveBackend(auth: DriveAuth, options: Options = {}): Clou
       for (const id of await list()) {
         const response = await call(`${fileUrl(id)}?alt=media`)
         if (response.status === 404) continue
+        if (Number(response.headers.get('Content-Length')) > MAX_BYTES) throw new Error('Sync quota exceeded')
         const text = await response.text()
         if (new TextEncoder().encode(text).length > MAX_BYTES) throw new Error('Sync quota exceeded')
         return parseSyncPayload(text)
@@ -88,6 +90,7 @@ export function googleDriveBackend(auth: DriveAuth, options: Options = {}): Clou
       for (const id of await list()) await call(fileUrl(id), { method: 'DELETE' })
     },
     connect: options.connect,
+    disconnect: options.disconnect,
   }
   const { document: doc, window: win } = options.events ?? {}
   if (doc || win) {

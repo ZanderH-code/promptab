@@ -187,5 +187,49 @@ describe('sync runtime', () => {
       expect(cloud.writes).toBe(0)
       second.stop()
     })
+
+    it('answers a click that timed out, but stays quiet when a background check times out', async () => {
+      const w = await world()
+      w.local['mnt.sync.enabled'] = false
+      const status = renderHook(() => useSyncStatus())
+      const { cloud, backend } = memoryCloud()
+      cloud.fail = Object.assign(new Error('timed out'), { name: 'TimeoutError' })
+      const controller = createSyncController(await w.store(), { local: area(w.local), cloud: backend, provider: 'gdrive' }, w.lock)
+      await act(async () => { await controller.enable(true) })
+      expect(status.result.current).toMatchObject({ enabled: false, status: 'error' })
+      controller.stop()
+
+      w.local['mnt.sync.enabled'] = true
+      w.local['mnt.sync.provider'] = 'gdrive'
+      act(() => { syncActionsDismiss() })
+      const background = createSyncController(await w.store(), { local: area(w.local), cloud: backend, provider: 'gdrive' }, w.lock)
+      await act(async () => { await background.keepLocal() })
+      expect(status.result.current.status).toBeNull()
+      background.stop()
+    })
+
+    it('asks for a choice when renewing the sign-in revealed another Google account', async () => {
+      const w = await world()
+      w.local['mnt.sync.provider'] = 'gdrive'
+      const status = renderHook(() => useSyncStatus())
+      const { cloud, backend } = memoryCloud()
+      const local = toSyncPayload(w.profile)
+      const revision = (payload: SyncPayload) => { const { id: _a, createdAt: _b, name: _c, builtinName: _d, updatedAt: _e, ...meta } = payload.profile.meta; return JSON.stringify({ ...payload.profile, meta }) }
+      w.local['mnt.sync.base.gdrive'] = { local: revision(local), cloud: 'account-a' }
+      const other = structuredClone(w.profile)
+      other.theme.color.accent = '#00ff00'
+      cloud.copy = toSyncPayload(other)
+      // What the Drive backend's auth does on an account change: drop the base while the cloud is being read.
+      const read = backend.read.bind(backend)
+      backend.read = async () => { delete w.local['mnt.sync.base.gdrive']; return read() }
+      const store = await w.store()
+      const controller = createSyncController(store, { local: area(w.local), cloud: backend, provider: 'gdrive' }, w.lock)
+      // undo() has nothing to undo; it only waits for the start-up check, without resolving the conflict.
+      await act(async () => { await controller.undo() })
+      expect(status.result.current.conflict).toBe(true)
+      expect(store.getState().profiles.main.theme.color.accent).toBe(w.profile.theme.color.accent)
+      expect(cloud.writes).toBe(0)
+      controller.stop()
+    })
   })
 })

@@ -77,16 +77,17 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
     }
     set({ status: 'reauth' })
   }
-  const fail = async (error: unknown) => {
+  const fail = async (error: unknown, background = false) => {
     const name = error instanceof Error ? error.name : ''
     if (name === 'DriveAuthError') return needSignIn()
     if (name === 'DriveScopeError') return set({ status: 'driveScope' })
-    // Offline or a slow network: the next tab visit or local edit tries again.
-    if (name === 'TimeoutError' || (name === 'TypeError' && typeof navigator !== 'undefined' && navigator.onLine === false)) return
+    // Offline or a slow network during a background check: the next tab visit or local edit tries again.
+    // A click always gets an answer, so only background checks stay quiet.
+    if (background && (name === 'TimeoutError' || (name === 'TypeError' && typeof navigator !== 'undefined' && navigator.onLine === false))) return
     set({ status: String(error).toLowerCase().includes('quota') ? 'quota' : 'error' })
   }
-  const run = (task: () => Promise<void>) => {
-    queue = queue.then(() => lock(async () => { if (stopped) return; set({ busy: true }); try { await task() } catch (error) { if (!stopped) await fail(error) } finally { if (!stopped) set({ busy: false }) } }))
+  const run = (task: () => Promise<void>, background = false) => {
+    queue = queue.then(() => lock(async () => { if (stopped) return; set({ busy: true }); try { await task() } catch (error) { if (!stopped) await fail(error, background) } finally { if (!stopped) set({ busy: false }) } }))
     return queue
   }
   // Click-time sign-in and permission prompts run outside the cross-tab lock so other tabs are never held up by a dialog.
@@ -117,8 +118,9 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
     if (!active) return
     // Adopt what other tabs committed so this tab never pushes or pulls on top of an old profile.
     await store.getState().refresh()
-    await readBase()
+    // Read the cloud first: renewing the Google sign-in on the way may reveal another account and clear the base.
     const cloud = await api.cloud.read()
+    await readBase()
     const localRev = revision(toSyncPayload(current()))
     if (!cloud) {
       // A missing cloud after a previous successful sync may be an intentional deletion.
@@ -135,7 +137,7 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
     if (decision === 'pull') await pull(cloud)
     else await publish()
   }
-  const timer = debounceSync(() => { void run(reconcile) })
+  const timer = debounceSync(() => { void run(reconcile, true) })
   const schedule = timer.schedule
   const unsubscribe = store.subscribe((state, previous) => {
     if (state.profiles[state.activeProfileId] !== previous.profiles[previous.activeProfileId] || state.activeProfileId !== previous.activeProfileId) schedule()
@@ -144,11 +146,12 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
   void run(async () => {
     set({ available: true, ready: true })
     await reconcile()
-  })
+  }, true)
   return {
     enable: (value: boolean) => { set({ requested: value }); return (value ? connect() : Promise.resolve(true)).then(ok => { if (ok) return run(async () => {
       if (!value) {
         await api.local.set({ [ENABLED]: false }); conflict = null; undoProfile = null
+        await api.cloud.disconnect?.()
         set({ enabled: false, conflict: false, canUndo: false, status: 'disabled' }); return
       }
       // Inspect the cloud before enabling; existing data always requires a choice.
@@ -185,6 +188,7 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
     }),
     deleteCloud: () => run(async () => {
       await api.cloud.remove()
+      await api.cloud.disconnect?.()
       await api.local.set({ [ENABLED]: false })
       await api.local.remove(BASE)
       base = null; conflict = null; undoProfile = null
@@ -195,8 +199,9 @@ export function createSyncController(store: StoreApi<ProfileStore>, api: Storage
 }
 
 function driveBackend(): CloudBackend {
-  const auth = createGoogleAuth(extensionIdentity()!, extensionSession())
-  return googleDriveBackend(auth, { connect: () => connectGoogleDrive(auth), events: { document, window } })
+  const local = extensionStorage()?.local as LocalArea
+  const auth = createGoogleAuth(extensionIdentity()!, extensionSession(), { local, onAccountChange: () => local.remove(BASES.gdrive) })
+  return googleDriveBackend(auth, { connect: () => connectGoogleDrive(auth), disconnect: () => auth.signOut(), events: { document, window } })
 }
 
 export function SyncRuntime({ store }: { store: StoreApi<ProfileStore> }) {

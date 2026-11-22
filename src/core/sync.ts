@@ -188,6 +188,8 @@ export type CloudBackend = {
   watch?(onChange: () => void): () => void
   /** Sign-in or permission prompt needed before use. Call it straight from the click; false means the person declined. */
   connect?(): Promise<boolean>
+  /** Forget this device's credentials when sync is turned off or the cloud copy is deleted. */
+  disconnect?(): Promise<void>
 }
 
 type ChangeEvents = {
