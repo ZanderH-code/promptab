@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run local visual breakage verification before pushing whenever UI files changed since origin/main.
+changed="$(git diff --name-only origin/main...HEAD 2>/dev/null || true)"
+if printf '%s\n' "$changed" | grep -qE '^(index\.html|public/|src/(app|features|presets|styles|ui|widgets)/)'; then
+  echo "pre-push: UI changes detected; building dist/ and running npm run verify:ui..."
+  npm run build
+  npm run verify:ui
+fi

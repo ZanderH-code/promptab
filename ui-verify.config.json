@@ -1,0 +1,18 @@
+{
+  "serve": "npx vite preview --host 127.0.0.1 --port 4480 --strictPort",
+  "baseUrl": "http://127.0.0.1:4480",
+  "base": "origin/main",
+  "outDir": ".artifacts/ui-verify",
+  "always": ["/"],
+  "routes": [
+    {
+      "files": ["index.html", "public/**", "src/styles/**", "src/app/**", "src/presets/**"],
+      "paths": ["/", "/#safe"]
+    },
+    {
+      "files": ["src/features/**", "src/widgets/**", "src/ui/**"],
+      "paths": ["/"]
+    }
+  ],
+  "ignoreConsole": []
+}
