@@ -15,7 +15,8 @@ const firefoxManifest = {
       strict_min_version: '140.0',
       data_collection_permissions: {
         required: ['none'],
-        optional: ['authenticationInfo', 'personalCommunications', 'locationInfo'],
+        // Google Drive sync sends the synced shortcuts and an OAuth token to Google, only in builds that include it.
+        optional: ['authenticationInfo', 'personalCommunications', 'locationInfo', ...(chromiumManifest.permissions.includes('identity') ? ['bookmarksInfo'] : [])],
       },
     },
   },

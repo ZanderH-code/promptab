@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 const STATIC_SCAN_APIS = {
   storage: 'storage',
   bookmarks: 'bookmarks',
+  identity: 'identity',
 }
 
 function readEntryUtf8(zip, entry) {
@@ -59,7 +60,7 @@ export function verifyPackage(path, options = {}) {
             if (!jsSources.some(source => source.includes(literal))) {
               throw new Error(
                 `Packaged JS does not contain literal "${literal}" required by store static scans for the "${permission}" permission. `
-                + 'Reference it directly through src/platform/extension.ts (extensionStorage / extensionBookmarks), not via extensionApi().',
+                + 'Reference it directly through src/platform/extension.ts (extensionStorage / extensionBookmarks / extensionIdentity), not via extensionApi().',
               )
             }
           }

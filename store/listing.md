@@ -19,6 +19,7 @@ A customizable new tab for themes, bookmarks, search, and daily tools.
 - Choose where links open, use keyboard shortcuts, and set an accent color on open or cycle through the accent palette.
 - Keep separate profiles, undo changes, and restore selected backup sections with one undo action.
 - Optionally sync profile preferences, themes, layouts, and shortcuts using your browser's sync service. Wallpapers, videos, fonts, uploaded shortcut images, and saved themes remain on the device and are not synced.
+- Optionally sync the same data across Chrome, Edge and Firefox through a hidden Promptab app folder in your own Google Drive (only Promptab's folder is accessible, never your other files).
 - Choose from eleven search presets or enter a custom search template.
 - Import Infinity New Tab backups locally, preview supported content, then add or replace sections with one-step undo. Remote Infinity images are skipped.
 - Start with eight editable sites on a fresh install, with embedded icons; unchanged starter sites can be removed from Settings.
@@ -26,7 +27,7 @@ A customizable new tab for themes, bookmarks, search, and daily tools.
 - Choose automatic website icons, brand or Lucide icons, text, emoji, or your own images. Automatic icons use browser-provided, site-origin, or bundled known official sources and a separate expiring cache.
 - Use English or Simplified Chinese. A separate desktop Firefox build is available.
 
-Promptab stores data in browser-managed extension storage. It has no Promptab account, advertising SDK, analytics, or developer-operated application server. Opening the gallery fetches its index and selected theme packs from zanderh-code.github.io. If you use direct AI, the selected provider receives your prompt, model, and API key. Open-Meteo receives the city or coordinates used for weather; if you use your current location, BigDataCloud receives those coordinates once to name the place. Your browser's sync service handles data you choose to sync. Search engines and shortcut destinations receive requests when you use them. Automatic icon discovery runs in the background and can request the browser's favicon service, standard icon paths (`/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png`, `/favicon.svg`, `/favicon-32x32.png`, `/favicon.ico`) from the shortcut site's own origin, and, for a small bundled list of known sites, their official icon URLs on the same origin or a CDN (for example Google gstatic, Microsoft onecdn, TradingView static, CoinMarketCap static); those sites or CDNs can observe the access. Before any request, Promptab checks a bundled domain index built from the Simple Icons catalogue; matching sites show a packaged brand mark with no network request. Best results and brand results are cached per site for 7 days (a stale success may be shown while it is revalidated for up to 30 days); failures retry after 1 hour, 6 hours, then 24 hours; this is a separate local cache, not in profiles, backups, or sync; sites with a product path such as Google Maps keep a separate entry. Wallpaper and shortcut image files are stored locally; Promptab does not fetch remote wallpaper or shortcut-image URLs.
+Promptab stores data in browser-managed extension storage. It has no Promptab account, advertising SDK, analytics, or developer-operated application server. Opening the gallery fetches its index and selected theme packs from zanderh-code.github.io. If you use direct AI, the selected provider receives your prompt, model, and API key. Open-Meteo receives the city or coordinates used for weather; if you use your current location, BigDataCloud receives those coordinates once to name the place. Your browser's sync service handles data you choose to sync; if you choose Google Drive sync instead, Google stores it in Promptab's hidden app folder in your Google Drive. Search engines and shortcut destinations receive requests when you use them. Automatic icon discovery runs in the background and can request the browser's favicon service, standard icon paths (`/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png`, `/favicon.svg`, `/favicon-32x32.png`, `/favicon.ico`) from the shortcut site's own origin, and, for a small bundled list of known sites, their official icon URLs on the same origin or a CDN (for example Google gstatic, Microsoft onecdn, TradingView static, CoinMarketCap static); those sites or CDNs can observe the access. Before any request, Promptab checks a bundled domain index built from the Simple Icons catalogue; matching sites show a packaged brand mark with no network request. Best results and brand results are cached per site for 7 days (a stale success may be shown while it is revalidated for up to 30 days); failures retry after 1 hour, 6 hours, then 24 hours; this is a separate local cache, not in profiles, backups, or sync; sites with a product path such as Google Maps keep a separate entry. Wallpaper and shortcut image files are stored locally; Promptab does not fetch remote wallpaper or shortcut-image URLs.
 
 ### Permissions
 
@@ -35,6 +36,7 @@ Promptab stores data in browser-managed extension storage. It has no Promptab ac
 - **Bookmarks (optional):** Requested when you start browser bookmark import; only selected folders are copied.
 - **AI provider hosts (optional):** Requested when you send a direct request to the selected Anthropic or OpenAI provider.
 - **Open-Meteo hosts (optional):** Requested the first time you search for a weather city or use your location; afterwards the chosen place's forecast loads when a new tab opens.
+- **Identity (Google Drive builds) and Google Drive host (optional):** `identity` opens Google's sign-in page when you turn on Google Drive sync; access to `https://www.googleapis.com/*` is requested in the same click and used only to read and write Promptab's own app folder.
 - **BigDataCloud host (optional):** Requested only when you use your current location for weather, to show the place name instead of "Current location".
 
 ### Firefox Add-ons (AMO)
@@ -43,7 +45,7 @@ Promptab stores data in browser-managed extension storage. It has no Promptab ac
 
 **Category:** Productivity
 
-**Data-collection notes:** The Firefox package declares no required data-collection categories. Optional `authenticationInfo` and `personalCommunications` apply when you choose direct AI: the selected provider receives your API key and prompt. Optional `locationInfo` applies only to weather; Open-Meteo receives a city name or selected coordinates, and BigDataCloud receives current-location coordinates once to name the place. A current-location request happens only when you choose it. Firefox asks for the relevant optional data permission alongside the provider host permission. Browser Sync is separately opt-in and handled by the browser's sync service.
+**Data-collection notes:** The Firefox package declares no required data-collection categories. Optional `authenticationInfo` and `personalCommunications` apply when you choose direct AI: the selected provider receives your API key and prompt. Optional `locationInfo` applies only to weather; Open-Meteo receives a city name or selected coordinates, and BigDataCloud receives current-location coordinates once to name the place. A current-location request happens only when you choose it. Firefox asks for the relevant optional data permission alongside the provider host permission. Browser Sync is separately opt-in and handled by the browser's sync service. Optional `bookmarksInfo` and `authenticationInfo` apply to Google Drive sync: Google receives the synced shortcuts and profile plus the OAuth token, and Firefox asks for them when you turn it on.
 
 **Keywords:** new tab, dashboard, bookmarks, themes, widgets, weather, productivity, profiles, wallpapers, CSS
 
@@ -66,6 +68,7 @@ Promptab stores data in browser-managed extension storage. It has no Promptab ac
 - 设置链接打开方式、使用键盘快捷键，并设置打开时的强调色或循环调色板。
 - 管理多个配置档、撤销更改，并选择恢复备份内容；整次恢复可一步撤销。
 - 可选择通过浏览器同步服务同步配置偏好、主题、布局和快捷方式；壁纸、视频、字体、上传的快捷方式图片和已保存主题保留在本地，不会同步。
+- 也可以通过你自己 Google 云端硬盘中隐藏的 Promptab 应用文件夹，在 Chrome、Edge 和 Firefox 之间同步同样的数据（只能访问 Promptab 自己的文件夹，无法访问你的其他文件）。
 - 从 11 种搜索预设中选择，或填写自定义搜索模板。
 - 在本地导入 Infinity 新标签页备份，预览支持的内容后追加或替换，并可一步撤销；跳过 Infinity 远程图片。
 - 全新安装提供八个可编辑网站及内置图标；未修改的初始网站可在设置中移除。
@@ -73,7 +76,7 @@ Promptab stores data in browser-managed extension storage. It has no Promptab ac
 - 选择自动网站图标、品牌图标、Lucide 图标、文字、表情或自己的图片。自动图标使用浏览器、网站自身或内置的已知官方来源，并保存在独立的限时缓存中。
 - 支持简体中文和英文界面，并提供独立的桌面 Firefox 构建。
 
-Promptab 将数据保存在浏览器管理的扩展存储中，不提供 Promptab 账号、广告 SDK、分析或由开发者运营的应用服务器。打开画廊时会从 zanderh-code.github.io 获取索引和选中的主题包。使用直接 AI 功能时，所选服务商会收到提示、模型和 API 密钥；Open-Meteo 会收到天气查询所需的城市或坐标；使用当前位置时，BigDataCloud 会收到一次该坐标，用来显示地名；浏览器同步服务会处理你选择同步的数据。搜索服务和快捷方式网站会在你使用时收到相应请求。自动图标会在后台探测，并可能通过浏览器 favicon 服务请求图标，也会从快捷方式网站自身的 origin 请求标准图标路径（`/apple-touch-icon.png`、`/apple-touch-icon-precomposed.png`、`/favicon.svg`、`/favicon-32x32.png`、`/favicon.ico`）；对于内置清单中的少量已知网站，还可能请求其官方图标网址，这些网址可能位于网站自身 origin 或 CDN（例如 Google gstatic、Microsoft onecdn、TradingView static、CoinMarketCap static），相应网站或 CDN 可观察到这些访问。部分已知网站直接使用内置品牌图标，不会发出请求。图标结果按网站写入独立本地缓存：最佳结果和品牌结果保留 7 天，失败保留 1 小时；不进入配置文件、备份或同步；带产品路径的网站（如 Google Maps）使用单独条目。壁纸和快捷方式图片文件保存在本地；Promptab 不会获取远程壁纸或快捷方式图片网址。
+Promptab 将数据保存在浏览器管理的扩展存储中，不提供 Promptab 账号、广告 SDK、分析或由开发者运营的应用服务器。打开画廊时会从 zanderh-code.github.io 获取索引和选中的主题包。使用直接 AI 功能时，所选服务商会收到提示、模型和 API 密钥；Open-Meteo 会收到天气查询所需的城市或坐标；使用当前位置时，BigDataCloud 会收到一次该坐标，用来显示地名；浏览器同步服务会处理你选择同步的数据；如果改用 Google 云端硬盘同步，则由 Google 将其保存在你 Google 云端硬盘中 Promptab 的隐藏应用文件夹里。搜索服务和快捷方式网站会在你使用时收到相应请求。自动图标会在后台探测，并可能通过浏览器 favicon 服务请求图标，也会从快捷方式网站自身的 origin 请求标准图标路径（`/apple-touch-icon.png`、`/apple-touch-icon-precomposed.png`、`/favicon.svg`、`/favicon-32x32.png`、`/favicon.ico`）；对于内置清单中的少量已知网站，还可能请求其官方图标网址，这些网址可能位于网站自身 origin 或 CDN（例如 Google gstatic、Microsoft onecdn、TradingView static、CoinMarketCap static），相应网站或 CDN 可观察到这些访问。部分已知网站直接使用内置品牌图标，不会发出请求。图标结果按网站写入独立本地缓存：最佳结果和品牌结果保留 7 天，失败保留 1 小时；不进入配置文件、备份或同步；带产品路径的网站（如 Google Maps）使用单独条目。壁纸和快捷方式图片文件保存在本地；Promptab 不会获取远程壁纸或快捷方式图片网址。
 
 ## Support and privacy
 

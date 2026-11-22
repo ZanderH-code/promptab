@@ -134,7 +134,7 @@ export function chunkSyncPayload(payload: string): string[] {
 const SYNC_MANIFEST_KEY = 'mnt.sync.manifest'
 const SYNC_CHUNK_PREFIX = 'mnt.sync.chunk.'
 
-type SyncStorage = {
+export type SyncStorage = {
   get(keys: string[] | null): Promise<Record<string, unknown>>
   set(items: Record<string, string>): Promise<void>
   remove(keys: string[]): Promise<void>
@@ -177,4 +177,40 @@ export async function writeSyncStorage(storage: SyncStorage, profile: ProfileV2)
   if (nextSize > 100_000) throw new Error('Sync total quota exceeded')
   await storage.set({ ...changed, [SYNC_MANIFEST_KEY]: JSON.stringify(manifest) })
   if (stale.length) await storage.remove(stale)
+}
+
+/** Where a synced profile lives. The controller decides; a backend only reads, writes and deletes the cloud copy. */
+export type CloudBackend = {
+  read(): Promise<SyncPayload | null>
+  write(profile: ProfileV2): Promise<void>
+  remove(): Promise<void>
+  /** Calls back when the cloud copy may have changed; returns an unsubscribe function. */
+  watch?(onChange: () => void): () => void
+  /** Sign-in or permission prompt needed before use. Call it straight from the click; false means the person declined. */
+  connect?(): Promise<boolean>
+  /** Forget this device's credentials when sync is turned off or the cloud copy is deleted. */
+  disconnect?(): Promise<void>
+}
+
+type ChangeEvents = {
+  addListener(fn: (changes: Record<string, unknown>, area: string) => void): void
+  removeListener(fn: (changes: Record<string, unknown>, area: string) => void): void
+}
+
+/** The browser's own sync storage (`storage.sync`): syncs between devices signed in to the same browser account. */
+export function browserSyncBackend(storage: SyncStorage, onChanged?: ChangeEvents): CloudBackend {
+  return {
+    read: () => readSyncStorage(storage),
+    write: profile => writeSyncStorage(storage, profile),
+    remove: async () => {
+      const values = await storage.get(null)
+      const keys = Object.keys(values).filter(key => key === SYNC_MANIFEST_KEY || key.startsWith(SYNC_CHUNK_PREFIX))
+      if (keys.length) await storage.remove(keys)
+    },
+    watch: onChanged && (onChange => {
+      const listener = (changes: Record<string, unknown>, area: string) => { if (area === 'sync' && Object.hasOwn(changes, SYNC_MANIFEST_KEY)) onChange() }
+      onChanged.addListener(listener)
+      return () => onChanged.removeListener(listener)
+    }),
+  }
 }
