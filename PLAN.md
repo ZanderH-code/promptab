@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.25.0
+
+0.25.0 switches on Google Drive sync: the store builds include the Google sign-in client (repository variable `GOOGLE_DRIVE_CLIENT_ID`), so Chrome, Edge and Firefox can share one profile through a hidden app folder in the user's own Drive. It adds the `identity` permission; `https://www.googleapis.com/*` stays optional. Google accepts all three store redirect URIs (checked with a signed-out `prompt=none` request), but a real sign-in and Drive round trip has not been tested yet. If users report problems, check silent renewal after a browser restart first. 0.24.1 is live in Edge Add-ons and the Chrome Web Store.
+
 ## Release status — 0.24.1
 
 0.24.1 is a maintenance release: a better-tuned AI prompt (every widget option documented, a repeated-grid-row fix hint), wallpaper rotation that gives each newly opened tab its own image without a flash of the previous one, a stricter check on shortcut tile images when restoring backups, and banners that wrap on narrow phones. Google Drive sync is merged but stays off until a Google OAuth client ID is configured (`store/google-drive-sync.md`); permissions are unchanged. 0.24.0 is live in Edge Add-ons and the Chrome Web Store.

@@ -4,6 +4,13 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.25.0]
+
+### Added
+
+- Google Drive sync is switched on. Under Settings → Sync, choose Google Drive and sign in with your Google account to share one profile between Chrome, Edge and Firefox. Promptab keeps the data in a hidden app folder in your own Google Drive and can't see your other files. Sign-in renews silently; if the browser's Google session ends, sync pauses and Settings shows a **Sign in to Google** button.
+- New `identity` permission, used only to open Google's sign-in page. Access to `https://www.googleapis.com/*` is an optional permission asked for when you turn on Google Drive sync.
+
 ## [0.24.1]
 
 ### Changed
