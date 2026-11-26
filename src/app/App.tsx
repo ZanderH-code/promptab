@@ -256,13 +256,13 @@ export default function App() {
     setMoving(null)
   }
 
-  function saveShortcut(event: FormEvent<HTMLFormElement>) {
+  function saveShortcut(event: FormEvent<HTMLFormElement>, groupId?: string) {
     event.preventDefault()
     if (!editing) return
     const shortcut = finishShortcut(editing)
     if (!shortcut) { setError({ key: 'error.shortcutInvalid' }); return }
     const exists = s.shortcuts.some(item => item.id === editing.id)
-    patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] }, !exists ? addGroupId.current : undefined)
+    patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] }, !exists ? groupId : undefined)
     addGroupId.current = undefined
     if (onboardingStep.current === 'add') dismissOnboarding()
     setEditing(null)
@@ -423,7 +423,18 @@ export default function App() {
           wallpaperUrl={wallpaper.url}
         />
       )}
-      {editing && <ShortcutEditor key={editing.id} shortcut={editing} isNew={!s.shortcuts.some(item => item.id === editing.id)} t={t} onChange={setEditing} onClose={() => { if (onboardingStep.current === 'add') onboardingStep.current = null; setEditing(null) }} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
+      {editing && <ShortcutEditor
+        key={editing.id}
+        shortcut={editing}
+        isNew={!s.shortcuts.some(item => item.id === editing.id)}
+        profile={profile}
+        t={t}
+        onChange={setEditing}
+        onClose={() => { addGroupId.current = undefined; if (onboardingStep.current === 'add') onboardingStep.current = null; setEditing(null) }}
+        onSave={saveShortcut}
+        onError={key => setError({ key })}
+        initialGroupId={addGroupId.current}
+      />}</Suspense>
     </main>
     </>
   )

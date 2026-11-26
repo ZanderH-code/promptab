@@ -1,0 +1,64 @@
+@layer widgets {
+  /* Live tile preview: sticky under the dialog heading, drawn with the page's own grid and tile CSS. */
+  .editor-preview {
+    position: sticky;
+    top: -32px;
+    z-index: 2;
+    margin: 0 -32px 4px;
+    padding: 8px 32px 14px;
+    background: var(--mnt-surface);
+  }
+
+  .editor-preview-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--mnt-text-muted);
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  .editor-preview-stage {
+    display: grid;
+    place-items: center;
+    min-height: 88px;
+    padding: 16px 12px;
+    overflow: hidden;
+    border: 1px solid var(--mnt-border);
+    border-radius: 10px;
+    background: var(--mnt-bg, var(--mnt-scheme-bg, var(--mnt-surface)));
+    pointer-events: none;
+  }
+
+  .editor-preview-stage .bookmarks { width: 100%; margin: 0; }
+  .editor-preview-stage .grid { --mnt-item-count: 1; --mnt-columns: 1; --mnt-grid-max-width: 192px; margin-inline: auto; }
+  .editor-preview-stage .mnt-link { cursor: default; }
+  /* The group picker is a form control, not a native system menu: match the bordered selects in Tile look. */
+  .shortcut-editor .editor-fields select {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--mnt-border-strong);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--mnt-text);
+  }
+  /* Width and height in a list are the row itself; two-column spans have no meaning there. */
+  .editor-preview:is(.mnt-bookmark-list, .mnt-bookmark-minimal) .shortcut-wrap { grid-column: auto; grid-row: auto; }
+
+  @media (min-width: 900px) {
+    /* Same breakpoint as the page: wide and tall spans only exist once the grid has room for them. */
+    .editor-preview:is([data-preview-span="wide"], [data-preview-span="large"]) .grid { --mnt-item-count: 2; --mnt-columns: 2; }
+    .editor-preview:is([data-preview-span="wide"], [data-preview-span="large"]) .mnt-bookmark-card .grid { --mnt-grid-max-width: 372px; }
+    .editor-preview:is([data-preview-span="tall"], [data-preview-span="large"]):is(.mnt-bookmark-tile, .mnt-bookmark-card, .mnt-bookmark-icon-only) .grid {
+      grid-auto-rows: minmax(var(--mnt-cell-width), auto);
+    }
+  }
+
+  @media (max-width: 500px) {
+    .editor-preview {
+      top: -24px;
+      margin-inline: -24px;
+      padding-inline: 24px;
+    }
+  }
+}
