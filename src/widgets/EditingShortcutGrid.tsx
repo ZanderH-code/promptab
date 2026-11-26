@@ -1,4 +1,4 @@
-import { ArrowRight, Pencil, Plus, X } from 'lucide-react'
+import { ArrowDown, ArrowDownAZ, ArrowRight, ArrowUp, Pencil, Plus, X } from 'lucide-react'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { DndContext, KeyboardSensor, MouseSensor, TouchSensor, closestCorners, pointerWithin, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent, type DragMoveEvent } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
@@ -7,6 +7,7 @@ import { SortableShortcut } from './SortableShortcut'
 import { GroupMenuTrigger, ShortcutLink } from './ShortcutGridContent'
 import { OnboardingCard } from './OnboardingCard'
 import { moveBookmarks } from './bookmarkGroups'
+import { reorderGroup, sortItemsByName } from './groupOrder'
 import { FormDialog } from '../ui/FormDialog'
 import '../i18n/lazy'
 
@@ -21,7 +22,7 @@ function DropGroup({ id, children }: { id: string; children: React.ReactNode }) 
   return <div ref={setNodeRef} data-drop-group={id}>{children}</div>
 }
 /** Only mounted in edit mode (see ShortcutGrid), so every edit control is always on here. */
-export function EditingShortcutGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, onGroups, onEdit, onRemove, onMove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: Props) {
+export function EditingShortcutGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onEdit, onRemove, onMove, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover }: Props) {
   const [picked, setSelected] = useState<string[]>([])
   // Websites can disappear by other routes (single delete, undo, import): only count what is still there.
   const present = new Set(groups.flatMap(group => group.items.map(item => item.id)))
@@ -64,37 +65,40 @@ export function EditingShortcutGrid({ groups, shortcuts, onboarding, onOnboardin
     const activeId = String(active.id)
     const pointerTarget = dragTarget.current?.id === activeId ? dragTarget.current : undefined
     dragTarget.current = null
+    if (!over || activeId === String(over.id)) return
     const sourceGroup = groups.find(candidate => candidate.items.some(item => item.id === activeId))
-    if (!over) return
-    if (activeId === over.id) return
     const target = String(over.id)
-    const overGroup = target.startsWith('group:')
+    const targetGroup = target.startsWith('group:')
       ? groups.find(group => `group:${group.id}` === target)
       : groups.find(group => group.items.some(item => item.id === target))
     const pointerGroupId = pointerTarget && document.elementFromPoint(pointerTarget.x, pointerTarget.y)?.closest<HTMLElement>('[data-drop-group]')?.dataset.dropGroup
-    const targetGroup = overGroup ?? groups.find(group => group.id === pointerGroupId)
-    if (sourceGroup && targetGroup && sourceGroup.id !== targetGroup.id) {
-      move(selected.includes(activeId) ? selected : [activeId], targetGroup.id)
+    const destination = targetGroup ?? groups.find(group => group.id === pointerGroupId)
+    if (!sourceGroup || !destination) return
+    const ids = selected.includes(activeId) ? selected : [activeId]
+    if (sourceGroup.id !== destination.id) {
+      // A drop on a tile in another group lands before that tile; a drop on the group area appends.
+      move(ids, destination.id, !target.startsWith('group:') && !ids.includes(target) ? target : undefined)
       return
     }
-    const currentGroup = sourceGroup
-    if (!targetGroup) return
-    if (target.startsWith('group:') && targetGroup.id === currentGroup?.id) return
-    if (!target.startsWith('group:') && targetGroup.id === currentGroup?.id) {
-      // Reorder the saved group, not this render's copy: an earlier save may still be on its way.
-      update(current => current.map(group => {
-        if (group.id !== targetGroup.id) return group
-        const from = group.items.findIndex(item => item.id === activeId), to = group.items.findIndex(item => item.id === target)
-        if (from < 0 || to < 0) return group
-        const items = [...group.items]
-        items.splice(to, 0, ...items.splice(from, 1))
-        return { ...group, items }
-      }))
-      return
-    }
-    move(selected.includes(activeId) ? selected : [activeId], targetGroup.id, target.startsWith('group:') ? undefined : target)
+    if (target.startsWith('group:')) return
+    // Reorder the saved group, not this render's copy: an earlier save may still be on its way.
+    update(current => current.map(group => {
+      if (group.id !== destination.id) return group
+      const from = group.items.findIndex(item => item.id === activeId), to = group.items.findIndex(item => item.id === target)
+      if (from < 0 || to < 0) return group
+      const items = [...group.items]
+      items.splice(to, 0, ...items.splice(from, 1))
+      return { ...group, items }
+    }))
   }
   const groupName = (group: Group) => group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name
+  const itemName = (item: Group['items'][number]) => {
+    const live = names.get(item.id) ?? item
+    return live.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : live.name
+  }
+  const reorder = (id: string, delta: -1 | 1) => update(current => reorderGroup(current, id, delta))
+  const groupIndex = (id: string) => groups.findIndex(group => group.id === id)
+  const sortGroup = (group: Group) => update(current => current.map(candidate => candidate.id === group.id ? { ...candidate, items: sortItemsByName(candidate.items, itemName, language) } : candidate))
   const hasItems = visibleGroups.some(group => group.items.length > 0)
   return <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
     {onboarding && !hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
@@ -111,7 +115,12 @@ export function EditingShortcutGrid({ groups, shortcuts, onboarding, onOnboardin
       {visibleGroups.map(group => <DropGroup key={group.id} id={group.id}>
         {!(onboarding && group.items.length === 0) && <GroupMenuTrigger group={group} className={`shortcuts-heading mnt-group-title ${showGroupTitles ? '' : 'mnt-group-title-hidden'}`} ariaLabel={t('groups.menuLabel', { name: groupName(group) })} onGroupContextMenu={onGroupContextMenu}>
           <button type="button" aria-expanded={!group.collapsed} aria-label={t(group.collapsed ? 'groups.expand' : 'groups.collapse', { name: groupName(group) })} onClick={() => update(current => current.map(g => g.id === group.id ? { ...g, collapsed: !g.collapsed } : g))}>{group.collapsed ? '▸' : '▾'}</button>
-          <span className="mnt-group-name">{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>          <div className="group-actions"><button type="button" aria-label={t('groups.rename')} onClick={() => setDialog({ kind: 'name', id: group.id, value: groupName(group) })}><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} onClick={() => setDialog({ kind: 'delete-group', id: group.id })}><X size={15} aria-hidden="true" /></button></div>
+          <span className="mnt-group-name">{groupName(group)}</span><span className="line" /><span className="count">{String(group.items.length).padStart(2, '0')}</span>          <div className="group-actions">
+            <button type="button" aria-label={t('groups.moveUpNamed', { name: groupName(group) })} disabled={groupIndex(group.id) <= 0} onClick={() => reorder(group.id, -1)}><ArrowUp size={15} aria-hidden="true" /></button>
+            <button type="button" aria-label={t('groups.moveDownNamed', { name: groupName(group) })} disabled={groupIndex(group.id) >= groups.length - 1} onClick={() => reorder(group.id, 1)}><ArrowDown size={15} aria-hidden="true" /></button>
+            <button type="button" aria-label={t('groups.sortAZNamed', { name: groupName(group) })} disabled={group.items.length < 2} onClick={() => sortGroup(group)}><ArrowDownAZ size={15} aria-hidden="true" /></button>
+            <button type="button" aria-label={t('groups.rename')} onClick={() => setDialog({ kind: 'name', id: group.id, value: groupName(group) })}><Pencil size={15} aria-hidden="true" /></button><button type="button" aria-label={t('groups.delete')} onClick={() => setDialog({ kind: 'delete-group', id: group.id })}><X size={15} aria-hidden="true" /></button>
+          </div>
         </GroupMenuTrigger>}
         {!group.collapsed && <div className="grid" style={{ '--mnt-item-count': group.items.length + (showAdd && group === visibleGroups[0] ? 1 : 0), '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties}>
           {group.items.map(stored => { const item = names.get(stored.id) ?? stored; const name = item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name

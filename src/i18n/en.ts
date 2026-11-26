@@ -19,6 +19,8 @@ export const en: Record<BaseMessageKey, string> = {
   'search.placeholderFind': 'Find bookmarks or search the web',
   'search.placeholderFindEngine': 'Find bookmarks or search {engine}',
   'search.submit': 'Submit search',
+  'search.findNone': 'No websites match “{query}”',
+  'search.findClear': 'Clear',
 
   'edit.enter': 'Edit desktop',
   'edit.toolbar': 'Desktop editing tools',

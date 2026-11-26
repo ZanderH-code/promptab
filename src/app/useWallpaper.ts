@@ -134,10 +134,9 @@ export function useWallpaper(profile: ProfileV2 | null, run: Run, onError: (erro
       const [asset, poster] = await Promise.all([assets.add(file, MAX_WALLPAPER_VIDEO_BYTES), videoPoster(file)])
       const posterAsset = await assets.add(poster)
       run((store, id) => store.getState().updateProfile(id, p => {
-        // A look waiting for the next wallpaper (set by an import) applies to this video; videos have no zoom.
+        // A look waiting for the next wallpaper (set by an import) applies to this video too.
         const { nextLook, ...background } = p.background
-        const { scale: _scale, ...look } = nextLook ?? {}
-        return { ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: { ...background, type: 'video', video: { asset, poster: posterAsset, blur: 0, grayscale: 0, ...look } } }
+        return { ...p, meta: { ...p.meta, updatedAt: new Date().toISOString() }, background: { ...background, type: 'video', video: { asset, poster: posterAsset, blur: 0, grayscale: 0, scale: 1, ...nextLook } } }
       }))
     } catch (error) { console.error(error); onError(toMessageRef(error, 'error.saveWallpaper')) }
   }, [onError, run])

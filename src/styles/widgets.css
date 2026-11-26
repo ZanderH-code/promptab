@@ -199,8 +199,10 @@
   .shortcuts-heading {
     margin: 58px 0 22px;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 14px;
+    row-gap: 8px;
     font-size: 12px;
     color: var(--mnt-text-muted);
     letter-spacing: .1em;
@@ -238,7 +240,7 @@
     display: grid;
     place-items: center;
     background: color-mix(in oklch,var(--tile) 20%,transparent);
-    color: var(--tile);
+    color: var(--mnt-tile-ink, var(--tile));
     font-size: 22px;
     transition: transform .2s;
   }
@@ -260,6 +262,29 @@
   .add-shortcut span {
     border: 1px dashed var(--mnt-border-strong);
     font-size: 24px;
+  }
+
+  /* A find query with no matches: say so where the website tiles would be. */
+  .mnt-find-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    margin: 12px 0 0;
+    color: var(--mnt-text-muted);
+    font-size: var(--mnt-text-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .mnt-find-empty button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--mnt-text);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
   }
 
   .shortcut-actions {
@@ -1135,8 +1160,9 @@
   }
   .mnt-group-title > button, .mnt-group-title .group-actions button { padding: 0; }
   .mnt-group-title .group-actions { display: inline-flex; gap: 2px; }
+  .mnt-group-title .group-actions button:disabled { opacity: .3; cursor: default; }
   .bookmark-edit-tools button, .bookmark-edit-tools select { border-color: var(--mnt-border-strong); color: var(--mnt-text); }
-  .mnt-group-title > button:hover, .mnt-group-title .group-actions button:hover, .bookmark-edit-tools button:hover,
+  .mnt-group-title > button:hover:not(:disabled), .mnt-group-title .group-actions button:hover:not(:disabled), .bookmark-edit-tools button:hover,
   .mnt-group-title > button:focus-visible, .mnt-group-title .group-actions button:focus-visible, .bookmark-edit-tools button:focus-visible { background: var(--mnt-accent-soft); color: var(--mnt-text); }
   .bookmark-edit-tools { justify-content: center; font-size: 12px; color: var(--mnt-text-muted); }
 }

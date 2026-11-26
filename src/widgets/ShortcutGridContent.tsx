@@ -86,12 +86,26 @@ export function textOn(hex: string): '#000000' | '#ffffff' {
   return (0.2721 * r + 0.7152 * g + 0.1255 * b) / 255 < 0.55 ? '#ffffff' : '#000000'
 }
 
+/** From this plate opacity up, the website's own colour, not the page, decides what text reads on it. */
+const PLATE_TEXT_MIN_OPACITY = 50
+
 /** Inline custom properties and data attributes for one website's tile look. */
 export function tileProps(tile: TileLook | undefined) {
   if (!tile) return { style: {} as CSSProperties, data: {} }
   const style: Record<string, string | number> = {}
   if (tile.accent) { style['--mnt-accent'] = tile.accent; style['--mnt-on-accent'] = textOn(tile.accent); style['--mnt-accent-soft'] = `color-mix(in oklch, ${tile.accent} 20%, transparent)` }
-  if (tile.background) style['--mnt-tile-bg'] = tile.background
+  if (tile.background) {
+    style['--mnt-tile-bg'] = tile.background
+    // An opaque plate is the surface the label sits on, so the theme text (checked against the page, not
+    // the plate) can be unreadable. Below half opacity the page still supplies most of the composite, and a
+    // visible tile image paints arbitrary pixels over the plate: both keep the theme text, which is right.
+    if ((!tile.image || (tile.imageOpacity ?? 100) === 0) && (tile.opacity ?? 100) >= PLATE_TEXT_MIN_OPACITY) {
+      const ink = textOn(tile.background)
+      style['--mnt-text'] = ink
+      // The icon mark keeps its site colour by default; on a plate it falls back to the same readable ink.
+      style['--mnt-tile-ink'] = ink
+    }
+  }
   if (tile.opacity !== undefined) style['--mnt-tile-opacity'] = tile.opacity / 100
   if (tile.border !== undefined) style['--mnt-tile-border'] = `${tile.border}px`
   if (tile.iconScale !== undefined) style['--mnt-tile-icon-scale'] = tile.iconScale

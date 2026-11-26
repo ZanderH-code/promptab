@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { useState, type FormEvent } from 'react'
 import { afterEach, expect, it, vi } from 'vitest'
+import type { ProfileV2 } from '../../core/schema/profile'
 import { translate } from '../../i18n'
 import { ShortcutEditor } from './ShortcutEditor'
 
@@ -149,4 +151,62 @@ it('keeps the tile section open when its last setting is removed', () => {
   expect(onChange.mock.lastCall?.[0]).toEqual(withoutTile)
   view.rerender(<ShortcutEditor shortcut={withoutTile} t={t} onChange={onChange} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
   expect(details.open).toBe(true)
+})
+
+it('previews the draft live with the real tile renderer, inert and hidden from assistive tech', () => {
+  const draft = { id: '1', name: 'Example', url: 'https://example.com', color: '#123456', icon: 'E' }
+  const profile = { bookmarks: { groups: [] }, widgets: [{ type: 'bookmarks', props: { style: 'block', showUrl: true } }] } as unknown as ProfileV2
+  function Harness() {
+    const [value, setValue] = useState(draft)
+    return <ShortcutEditor shortcut={value} profile={profile} t={t} onChange={setValue} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />
+  }
+  const view = render(<Harness />)
+  const preview = view.container.querySelector('.editor-preview')!
+  const stage = preview.querySelector('.editor-preview-stage')!
+  expect(preview).toHaveClass('mnt-bookmark-block')
+  expect(preview).toHaveAttribute('data-show-url', '')
+  expect(stage).toHaveAttribute('inert')
+  expect(stage).toHaveAttribute('aria-hidden', 'true')
+  const link = () => preview.querySelector('.mnt-link')
+  expect(link()).toHaveTextContent('Example')
+  expect(link()).toHaveAttribute('title', 'Example')
+
+  fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Renamed' } })
+  expect(link()).toHaveTextContent('Renamed')
+  fireEvent.change(screen.getByLabelText('Content position'), { target: { value: 'top-left' } })
+  expect(link()).toHaveAttribute('data-tile-align', 'top-left')
+  fireEvent.click(screen.getByLabelText('Hide name'))
+  expect(link()).toHaveAttribute('data-tile-hide-name', '')
+  fireEvent.click(screen.getByLabelText('Own plate colour'))
+  expect(link()?.getAttribute('style')).toContain('--mnt-tile-bg: #123456')
+})
+
+it('saves a new website into the group chosen in the editor, starting from the group it was added from', () => {
+  const groups = [{ id: 'g1', name: 'Work', collapsed: false, items: [] }, { id: 'g2', name: 'Reading', collapsed: false, items: [], builtinName: 'quick-links' as const }]
+  const profile = { bookmarks: { groups }, widgets: [{ type: 'bookmarks', props: {} }] } as unknown as ProfileV2
+  const draft = { id: 'new', name: 'Example', url: 'https://example.com', color: '#123456', icon: 'E' }
+  let saved: string | undefined
+  function Harness() {
+    const [value, setValue] = useState(draft)
+    const onSave = (event: FormEvent<HTMLFormElement>, chosen?: string) => { event.preventDefault(); saved = chosen }
+    return <ShortcutEditor shortcut={value} isNew profile={profile} t={t} onChange={setValue} onClose={() => {}} onSave={onSave} onError={() => {}} initialGroupId="g2" />
+  }
+  render(<Harness />)
+  const select = screen.getByLabelText('Group')
+  expect(select).toHaveValue('g2')
+  expect(screen.getByRole('option', { name: 'Quick links' })).toBeInTheDocument()
+  fireEvent.change(select, { target: { value: 'g1' } })
+  fireEvent.submit(screen.getByRole('dialog'))
+  expect(saved).toBe('g1')
+})
+
+it('defaults the group picker to the first group and shows it only when adding', () => {
+  const groups = [{ id: 'g1', name: 'Work', collapsed: false, items: [] }, { id: 'g2', name: 'Reading', collapsed: false, items: [] }]
+  const profile = { bookmarks: { groups }, widgets: [{ type: 'bookmarks', props: {} }] } as unknown as ProfileV2
+  const draft = { id: 'new', name: 'Example', url: 'https://example.com', color: '#123456', icon: 'E' }
+  const view = render(<ShortcutEditor shortcut={draft} isNew profile={profile} t={t} onChange={() => {}} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} initialGroupId="gone" />)
+  expect(screen.getByLabelText('Group')).toHaveValue('g1')
+  view.unmount()
+  render(<ShortcutEditor shortcut={{ ...draft, id: '1' }} profile={profile} t={t} onChange={() => {}} onClose={() => {}} onSave={event => event.preventDefault()} onError={() => {}} />)
+  expect(screen.queryByLabelText('Group')).toBeNull()
 })

@@ -2,21 +2,29 @@ import { Plus, X } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from 'react'
 import { validateImage } from '../../core/image'
 import type { Shortcut, TileLook } from '../../core/model'
+import type { ProfileV2 } from '../../core/schema/profile'
 import { firstChar } from '../../core/text'
 import { toMessageRef, type MessageKey, type Translate } from '../../i18n'
+import { ShortcutLink } from '../../widgets/ShortcutGridContent'
 import { WebsiteIcon } from '../../widgets/WebsiteIcon'
 import { emojis, genericIcons, loadBrands, type BrandIcon } from '../../widgets/iconCatalog'
 import '../../i18n/lazy'
+import './editor.css'
 
 type Props = {
   shortcut: Shortcut
   /** True when the shortcut is not saved yet, so the dialog reads "Add website" instead of "Edit website". */
   isNew?: boolean
+  /** The active profile: its bookmark groups are the add target, and its websites widget sets the preview look. */
+  profile?: ProfileV2 | null
   t: Translate
   onChange: (shortcut: Shortcut) => void
   onClose: () => void
-  onSave: (event: FormEvent<HTMLFormElement>) => void
+  /** The chosen group is handed to the save so a new website lands where the editor says without a move step. */
+  onSave: (event: FormEvent<HTMLFormElement>, groupId?: string) => void
   onError: (key: MessageKey) => void
+  /** The group the add button was clicked in; an unknown or missing id falls back to the first group. */
+  initialGroupId?: string
 }
 
 const MAX_ICON_BYTES = 512 * 1024
@@ -42,7 +50,12 @@ const TILE_FLAGS = [['nameFirst', 'editor.tileNameFirst'], ['hideName', 'editor.
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]):not(.visually-hidden), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, onSave, onError }: Props) {
+export function ShortcutEditor({ shortcut, isNew = false, profile, t, onChange, onClose, onSave, onError, initialGroupId }: Props) {
+  const groups = profile?.bookmarks.groups ?? []
+  const bookmarksWidget = profile?.widgets.find(widget => widget.type === 'bookmarks')
+  const bookmarkStyle = bookmarksWidget?.type === 'bookmarks' ? bookmarksWidget.props.style ?? 'tile' : 'tile'
+  const showUrl = bookmarksWidget?.type === 'bookmarks' && !!bookmarksWidget.props.showUrl
+  const iconColor = bookmarksWidget?.type === 'bookmarks' ? bookmarksWidget.props.iconColor ?? 'per-site' : 'per-site'
   const fileInput = useRef<HTMLInputElement>(null)
   const tileInput = useRef<HTMLInputElement>(null)
   const form = useRef<HTMLFormElement>(null)
@@ -91,6 +104,8 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
   const [searchActive, setSearchActive] = useState(false)
   // Opened for a shortcut that already has a tile look; after that only the person opens or closes it.
   const [tileOpen, setTileOpen] = useState(() => !!shortcut.tile)
+  // Where a new website is saved: the group its add button belongs to, or the first group.
+  const [groupId, setGroupId] = useState(() => groups.some(group => group.id === initialGroupId) ? initialGroupId : groups[0]?.id)
   const selected = shortcut.image ? 'upload' : shortcut.iconMode || 'auto'
   useEffect(() => {
     let active = true
@@ -174,7 +189,7 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
       event.preventDefault()
       onClose()
     } else if (event.key === 'Tab') {
-      const focusable = Array.from(form.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(element => element.offsetParent !== null || element === document.activeElement)
+      const focusable = Array.from(form.current?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? []).filter(element => !element.closest('[inert]') && (element.offsetParent !== null || element === document.activeElement))
       if (!focusable.length) return
       if (event.shiftKey && document.activeElement === focusable[0]) { event.preventDefault(); focusable.at(-1)?.focus() }
       else if (!event.shiftKey && document.activeElement === focusable.at(-1)) { event.preventDefault(); focusable[0].focus() }
@@ -189,15 +204,32 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
       ? t('editor.textHint')
       : t(status === 'found' ? 'editor.autoFound' : status === 'loading' ? 'editor.autoLoading' : 'editor.autoMissing')
 
+  // Choosing the brand mode alone stores a slug; the preview shows the automatic icon until a brand is
+  // actually picked, so opening the mode never downloads a brand shard (the catalog stays on search focus).
+  const previewItem: Shortcut = shortcut.iconMode === 'brand' && !shortcut.brand ? { ...shortcut, iconMode: undefined } : shortcut
+
   return (
     <div className="modal-backdrop">
-      <form ref={form} className="modal shortcut-editor" role="dialog" aria-modal="true" aria-labelledby={titleId} onSubmit={onSave} onKeyDown={onKeyDown}>
+      <form ref={form} className="modal shortcut-editor" role="dialog" aria-modal="true" aria-labelledby={titleId} onSubmit={event => onSave(event, isNew ? groupId : undefined)} onKeyDown={onKeyDown}>
         <div className="editor-heading">
           <div>
             <span className="editor-kicker">{t('editor.kicker')}</span>
             <h2 id={titleId}>{t(isNew ? 'shortcuts.add' : 'shortcuts.edit')}</h2>
           </div>
           <button type="button" className="editor-close" onClick={onClose} aria-label={t('common.close')}><X size={20} strokeWidth={1.5} aria-hidden="true" /></button>
+        </div>
+        <div className={`editor-preview mnt-bookmark-${bookmarkStyle}`} data-show-url={showUrl ? '' : undefined} data-preview-span={shortcut.tile?.span}>
+          <span className="editor-preview-label">{t('editor.preview')}</span>
+          {/* The real tile renderer, kept out of the tab order and out of the page's navigation. */}
+          <div className="editor-preview-stage" inert aria-hidden="true">
+            <div className="bookmarks mnt-group">
+              <div className="grid">
+                <div className="shortcut-wrap">
+                  <ShortcutLink item={previewItem} iconColor={iconColor} openInNewTab={false} liftOnHover={false} t={t} onContextMenu={() => {}} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="editor-fields">
           <label className="stack">
@@ -208,6 +240,14 @@ export function ShortcutEditor({ shortcut, isNew = false, t, onChange, onClose, 
             {t('editor.name')}
             <input required value={shortcut.name} placeholder={t('editor.namePlaceholder')} onChange={event => changeName(event.target.value)} />
           </label>
+          {isNew && groups.length > 0 && (
+            <label className="stack">
+              {t('editor.group')}
+              <select value={groupId ?? groups[0]?.id ?? ''} onChange={event => setGroupId(event.target.value)}>
+                {groups.map(group => <option key={group.id} value={group.id}>{group.builtinName === 'quick-links' ? t('builtin.quickLinks') : group.name}</option>)}
+              </select>
+            </label>
+          )}
         </div>
         <fieldset className="icon-choices">
           <legend>{t('editor.chooseIcon')}</legend>

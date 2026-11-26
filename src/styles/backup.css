@@ -1,4 +1,33 @@
 @layer widgets {
+  .backup-section[data-dragover="true"] {
+    outline: 2px dashed var(--mnt-accent);
+    outline-offset: 4px;
+  }
+
+  .backup-drop {
+    margin: var(--mnt-space-3) 0;
+    padding: var(--mnt-space-3);
+    border: 1px dashed var(--mnt-border);
+    border-radius: 8px;
+    color: var(--mnt-text-muted);
+    font-size: var(--mnt-text-sm);
+  }
+
+  .backup-drop p {
+    margin: 0;
+  }
+
+  .backup-drop[data-dragover="true"] {
+    border-color: var(--mnt-accent);
+    background: var(--mnt-accent-soft);
+    color: var(--mnt-text);
+  }
+
+  .backup-drop:focus-visible {
+    outline: 2px solid var(--mnt-accent);
+    outline-offset: 2px;
+  }
+
   .backup-actions {
     display: flex;
     flex-wrap: wrap;

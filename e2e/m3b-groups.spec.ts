@@ -1,27 +1,38 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedExistingUser } from './helpers'
 
-async function setup(page: Page) {
+type SeedGroup = { id: string; name: string; items: Array<{ id: string; name: string }> }
+
+const defaultGroups: SeedGroup[] = [
+  { id: 'a', name: 'First', items: [{ id: 'one', name: 'One' }, { id: 'two', name: 'Two' }] },
+  { id: 'b', name: 'Second', items: [{ id: 'three', name: 'Three' }] },
+]
+
+async function enterEditMode(page: Page) {
+  await page.locator('.app').click({ button: 'right', position: { x: 10, y: 10 } })
+  await page.getByRole('menuitem', { name: /Manage groups|管理分组/ }).click()
+  await expect(page.locator('.drag-handle').first()).toBeEnabled()
+}
+
+async function setup(page: Page, groups: SeedGroup[] = defaultGroups) {
   await seedExistingUser(page)
   await page.goto('/')
   await expect(page.locator('.clock')).toBeVisible()
-  await page.evaluate(() => {
+  await page.evaluate(groups => {
     const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
     const key = 'profiles:v2:generation:' + index.generation
     const snapshot = JSON.parse(localStorage.getItem(key)!)
     const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
     const item = profile.bookmarks.groups[0].items[0]
-    profile.bookmarks.groups = [
-      { id: 'a', name: 'First', collapsed: false, items: [{ ...item, id: 'one', name: 'One', builtinName: undefined, builtinGroup: undefined }, { ...item, id: 'two', name: 'Two', builtinName: undefined, builtinGroup: undefined }] },
-      { id: 'b', name: 'Second', collapsed: false, items: [{ ...item, id: 'three', name: 'Three', builtinName: undefined, builtinGroup: undefined }] },
-    ]
+    profile.bookmarks.groups = groups.map(group => ({
+      id: group.id, name: group.name, collapsed: false,
+      items: group.items.map(entry => ({ ...item, id: entry.id, name: entry.name, builtinName: undefined, builtinGroup: undefined })),
+    }))
     localStorage.setItem(key, JSON.stringify(snapshot))
-  })
+  }, groups)
   await page.reload()
-  await expect(page.getByText('First', { exact: true })).toBeVisible()
-  await page.locator('.app').click({ button: 'right', position: { x: 10, y: 10 } })
-  await page.getByRole('menuitem', { name: /Manage groups|管理分组/ }).click()
-  await expect(page.locator('.drag-handle').first()).toBeEnabled()
+  await expect(page.getByText(groups[0].name, { exact: true })).toBeVisible()
+  await enterEditMode(page)
 }
 
 test('mouse drags a bookmark to another group', async ({ page }) => {
@@ -36,6 +47,86 @@ test('mouse drags a bookmark to another group', async ({ page }) => {
   await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
   await page.mouse.up()
   await expect(page.locator('.bookmarks > div').filter({ hasText: 'Second' }).locator('.shortcut').filter({ hasText: 'One' })).toBeVisible()
+})
+
+test('dropping a bookmark onto a tile in another group inserts before it', async ({ page }) => {
+  await setup(page)
+  const source = page.locator('.shortcut-wrap').filter({ hasText: 'Two' }).locator('.drag-handle')
+  const target = page.locator('[data-drop-group="b"] .shortcut-wrap').filter({ hasText: 'Three' })
+  await source.scrollIntoViewIfNeeded()
+  await target.scrollIntoViewIfNeeded()
+  const from = (await source.boundingBox())!, to = (await target.boundingBox())!
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 })
+  await page.mouse.up()
+  const second = page.locator('[data-drop-group="b"]')
+  await expect.poll(() => second.locator('[data-sortable-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-sortable-id')))).toEqual(['two', 'three'])
+})
+
+test('dropping on a group area appends after its last tile', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 })
+  await setup(page)
+  const source = page.locator('.shortcut-wrap').filter({ hasText: 'One' }).locator('.drag-handle')
+  const group = page.locator('[data-drop-group="b"]')
+  await source.scrollIntoViewIfNeeded()
+  const from = (await source.boundingBox())!, header = (await group.locator('.mnt-group-title').boundingBox())!
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  await page.mouse.down()
+  // The header is the group's own drop area, not a tile, so the drop appends.
+  await page.mouse.move(header.x + header.width / 2, header.y + header.height / 2, { steps: 20 })
+  await page.mouse.up()
+  await expect.poll(() => group.locator('[data-sortable-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-sortable-id')))).toEqual(['three', 'one'])
+})
+
+test('reorders groups with the header buttons, disables the ends and persists', async ({ page }) => {
+  await setup(page)
+  const order = () => page.locator('.bookmarks [data-drop-group]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-drop-group')))
+  const moveFirstUp = page.getByRole('button', { name: /Move First up|上移 First/ })
+  const moveFirstDown = page.getByRole('button', { name: /Move First down|下移 First/ })
+  const moveSecondUp = page.getByRole('button', { name: /Move Second up|上移 Second/ })
+  const moveSecondDown = page.getByRole('button', { name: /Move Second down|下移 Second/ })
+  await expect(moveFirstUp).toBeDisabled()
+  await expect(moveSecondDown).toBeDisabled()
+  await expect(moveFirstDown).toBeEnabled()
+  await expect(moveSecondUp).toBeEnabled()
+  await moveSecondUp.click()
+  await expect.poll(order).toEqual(['b', 'a'])
+  await expect(moveSecondUp).toBeDisabled()
+  await expect(moveSecondDown).toBeEnabled()
+  await page.keyboard.press('Control+z')
+  await expect.poll(order).toEqual(['a', 'b'])
+  await moveSecondUp.click()
+  await expect.poll(order).toEqual(['b', 'a'])
+  // The reorder is saved asynchronously; reload only once it is in storage.
+  await expect.poll(() => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem('profiles:v2:generation:' + index.generation)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].bookmarks.groups.map((group: { id: string }) => group.id)
+  })).toEqual(['b', 'a'])
+  await page.reload()
+  await expect(page.locator('.clock')).toBeVisible()
+  await enterEditMode(page)
+  await expect.poll(order).toEqual(['b', 'a'])
+  await moveSecondDown.click()
+  await expect.poll(order).toEqual(['a', 'b'])
+})
+
+test('sorts a group A–Z from the header and supports undo', async ({ page }) => {
+  await setup(page, [
+    { id: 'a', name: 'First', items: [{ id: 'z', name: 'Zebra' }, { id: 'a', name: 'apple' }, { id: 'm', name: 'Banana' }] },
+    { id: 'b', name: 'Second', items: [{ id: 'three', name: 'Three' }] },
+  ])
+  const first = page.locator('[data-drop-group="a"]')
+  const ids = () => first.locator('[data-sortable-id]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-sortable-id')))
+  await expect.poll(ids).toEqual(['z', 'a', 'm'])
+  const sortFirst = page.getByRole('button', { name: /Sort First A–Z|将 First 按 A–Z 排序/ })
+  await expect(sortFirst).toBeEnabled()
+  await expect(page.getByRole('button', { name: /Sort Second A–Z|将 Second 按 A–Z 排序/ })).toBeDisabled()
+  await sortFirst.click()
+  await expect.poll(ids).toEqual(['a', 'm', 'z'])
+  await page.keyboard.press('Control+z')
+  await expect.poll(ids).toEqual(['z', 'a', 'm'])
 })
 
 test('keyboard reorders a bookmark within its group', async ({ page }) => {

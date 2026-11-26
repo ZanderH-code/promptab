@@ -261,6 +261,7 @@ test('partial theme restore preserves bookmarks', async ({ page }) => {
   await page.getByLabel('已保存的主题', { exact: true }).uncheck()
   await page.locator('fieldset').getByLabel('设置', { exact: true }).uncheck()
   await page.locator('section[aria-labelledby="data-settings"]').getByRole('button', { name: '恢复备份', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: '继续', exact: true }).click()
   await expect.poll(async () => (await activeProfile(page)).theme.color.accent).toBe('#112233')
   expect((await activeProfile(page)).bookmarks).toEqual(before.bookmarks)
   await page.getByRole('button', { name: '撤销', exact: true }).click()

@@ -38,7 +38,7 @@ export function resetSection(profile: ProfileV2, fresh: ProfileV2, tab: Resettab
     case 'background': {
       // Uploaded media stays available; "Remove wallpaper" is the explicit way to drop it.
       const image = profile.background.image && { ...profile.background.image, blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' }
-      const video = profile.background.video && { ...profile.background.video, blur: 0, grayscale: 0 }
+      const video = profile.background.video && { ...profile.background.video, blur: 0, grayscale: 0, scale: 1 }
       next.background = { ...fresh.background, ...(image ? { image } : {}), ...(video ? { video } : {}), ...(profile.background.rotation ? { rotation: profile.background.rotation } : {}) }
       break
     }

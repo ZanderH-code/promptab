@@ -1,4 +1,4 @@
-import { mergeBackupProfile, parseBackupV2Data, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_JSON_CHARS, MAX_BACKUP_VIDEO_BYTES, type BackupProfileSelection, type BackupV2Asset, type ParsedBackupV2 } from '../core/backup-v2'
+import { appendBackupBookmarks, mergeBackupProfile, parseBackupV2Data, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_JSON_CHARS, MAX_BACKUP_VIDEO_BYTES, type BackupProfileSelection, type BackupV2Asset, type BookmarkAppendSummary, type BookmarkMergeMode, type ParsedBackupV2 } from '../core/backup-v2'
 import { parseBackupValue, type ParsedBackup } from '../core/backup'
 import { migrateV1 } from '../core/migrate/v1'
 import { MessageError } from '../i18n'
@@ -22,6 +22,8 @@ export type ImportAnalysis = {
   /** Archived profiles the backup brings back to life. */
   restored: string[]
   assetCount: number
+  /** Adding the backup's active-profile websites after the current ones; null when there is no current profile to append to. */
+  bookmarkAppend: BookmarkAppendSummary | null
 }
 
 const empty = (): Committed => ({ profiles: {}, activeProfileId: '', history: { profiles: {} }, archived: {} })
@@ -89,6 +91,13 @@ export function createBackupV2Service(deps: {
       }
       const ids = new Set(collection.profiles.map(profile => profile.meta.id))
       const live = Object.keys(committed.profiles)
+      const current = committed.profiles[committed.activeProfileId]
+      // Appending needs the current profile's websites and the backup's; the generated ids are only thrown away.
+      const bookmarkAppend = current
+        ? read.format === 1
+          ? appendBackupBookmarks(current.bookmarks, { groups: [{ id: 'default', items: read.backup.settings.shortcuts }] }, options.createId).summary
+          : appendBackupBookmarks(current.bookmarks, { groups: read.backup.profiles.find(profile => profile.meta.id === read.backup.activeProfileId)!.bookmarks.groups }, options.createId).summary
+        : null
       return {
         format,
         activeProfileId: collection.activeProfileId,
@@ -97,6 +106,7 @@ export function createBackupV2Service(deps: {
         archived: live.filter(id => !ids.has(id)),
         restored: [...ids].filter(id => Object.hasOwn(committed.archived, id)),
         assetCount,
+        bookmarkAppend,
       }
     },
 
@@ -141,7 +151,7 @@ export function createBackupV2Service(deps: {
     },
 
     /** Restore selected parts of the backup's active profile into the current active profile. */
-    async importPartial(json: string, expectedRevision: number | null, selection: BackupProfileSelection & { savedThemes: boolean }, store: { getState(): ProfileStore }) {
+    async importPartial(json: string, expectedRevision: number | null, selection: BackupProfileSelection & { savedThemes: boolean }, store: { getState(): ProfileStore }, merge: { bookmarks?: BookmarkMergeMode } = {}) {
       if (!Object.values(selection).some(Boolean)) throw new Error('Nothing selected')
       const state = store.getState()
       if (state.revision !== expectedRevision) throw new Error('Profile revision conflict')
@@ -158,7 +168,7 @@ export function createBackupV2Service(deps: {
         themes = backup.themes
         await storeAssets(backup.assets)
       }
-      const profile = mergeBackupProfile(state.profiles[id], incoming, selection)
+      const profile = mergeBackupProfile(state.profiles[id], incoming, selection, { bookmarks: merge.bookmarks, createId: options.createId })
       const library = selection.savedThemes && themes && deps.themes ? { ...deps.themes, incoming: themes } : undefined
       await store.getState().importPartial(id, profile, library, expectedRevision)
     },

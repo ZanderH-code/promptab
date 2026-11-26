@@ -71,14 +71,23 @@ export default function App() {
       if (!settings) return
       const target = event.target as HTMLElement | null
       const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
-      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog')) return
+      // A dialog owns every key, undo included: Ctrl+Z in a dialog must not reach into the page behind
+      // it. Help counts as a dialog even before its portal renders. The settings drawer edits this
+      // page, so undo still works there; only single-letter keys stop.
+      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog, .modal-backdrop')) return
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) {
         event.preventDefault()
         undo()
         return
       }
-      // Settings or a dialog is in front: single-letter keys belong to it, not to the page behind.
-      if (document.querySelector('.drawer.sd, .modal-backdrop')) return
+      if (document.querySelector('.drawer.sd')) return
+      // Esc leaves edit mode when no layer above owns it. The context menu closes itself on the
+      // same key, and safe mode's own 3×Esc listener is separate, so this does not swallow the
+      // presses it counts.
+      if (event.key === 'Escape' && !typing && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && !document.querySelector('.context-menu')) {
+        setEditMode(false)
+        return
+      }
       if (!profile?.prefs.keyboardShortcuts || typing || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.shiftKey && event.key !== '?')) return
       const key = event.key.toLowerCase()
       if (key === '/') { event.preventDefault(); document.querySelector<HTMLInputElement>('#search')?.focus() }
@@ -256,13 +265,13 @@ export default function App() {
     setMoving(null)
   }
 
-  function saveShortcut(event: FormEvent<HTMLFormElement>) {
+  function saveShortcut(event: FormEvent<HTMLFormElement>, groupId?: string) {
     event.preventDefault()
     if (!editing) return
     const shortcut = finishShortcut(editing)
     if (!shortcut) { setError({ key: 'error.shortcutInvalid' }); return }
     const exists = s.shortcuts.some(item => item.id === editing.id)
-    patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] }, !exists ? addGroupId.current : undefined)
+    patch({ shortcuts: exists ? s.shortcuts.map(item => (item.id === editing.id ? shortcut : item)) : [...s.shortcuts, shortcut] }, !exists ? groupId : undefined)
     addGroupId.current = undefined
     if (onboardingStep.current === 'add') dismissOnboarding()
     setEditing(null)
@@ -357,7 +366,7 @@ export default function App() {
         <div className="wallpaper" aria-hidden="true">
           <div className="wallpaper-media" style={{ opacity: (videoBackground.opacity ?? 100) / 100 }}>
             <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url("${wallpaper.posterUrl}")` }} />}>
-              <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} reduceMotion={profile!.prefs.reduceMotion} />
+              <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} scale={videoBackground.scale ?? 1} reduceMotion={profile!.prefs.reduceMotion} />
             </Suspense>
           </div>
           {!!profile!.background.tint && <div className="wallpaper-tint" style={{ '--mnt-wallpaper-tint': `${profile!.background.tint}%` } as CSSProperties} />}
@@ -423,7 +432,18 @@ export default function App() {
           wallpaperUrl={wallpaper.url}
         />
       )}
-      {editing && <ShortcutEditor key={editing.id} shortcut={editing} isNew={!s.shortcuts.some(item => item.id === editing.id)} t={t} onChange={setEditing} onClose={() => { if (onboardingStep.current === 'add') onboardingStep.current = null; setEditing(null) }} onSave={saveShortcut} onError={key => setError({ key })} />}</Suspense>
+      {editing && <ShortcutEditor
+        key={editing.id}
+        shortcut={editing}
+        isNew={!s.shortcuts.some(item => item.id === editing.id)}
+        profile={profile}
+        t={t}
+        onChange={setEditing}
+        onClose={() => { addGroupId.current = undefined; if (onboardingStep.current === 'add') onboardingStep.current = null; setEditing(null) }}
+        onSave={saveShortcut}
+        onError={key => setError({ key })}
+        initialGroupId={addGroupId.current}
+      />}</Suspense>
     </main>
     </>
   )

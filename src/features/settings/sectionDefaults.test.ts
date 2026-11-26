@@ -50,10 +50,10 @@ describe('resetSection', () => {
 
   it('resets video settings but keeps the video and poster assets', () => {
     const profile = customized()
-    profile.background = { type: 'video', dim: 55, video: { asset: ASSET, poster: `mnt-asset:${'c'.repeat(64)}`, blur: 12, grayscale: 40 } }
+    profile.background = { type: 'video', dim: 55, video: { asset: ASSET, poster: `mnt-asset:${'c'.repeat(64)}`, blur: 12, grayscale: 40, scale: 1.7 } }
     const next = resetSection(parseProfileV2(profile), fresh, 'background')
     expect(next.background.type).toBe('theme')
-    expect(next.background.video).toEqual({ asset: ASSET, poster: `mnt-asset:${'c'.repeat(64)}`, blur: 0, grayscale: 0 })
+    expect(next.background.video).toEqual({ asset: ASSET, poster: `mnt-asset:${'c'.repeat(64)}`, blur: 0, grayscale: 0, scale: 1 })
     expect(parseProfileV2(next)).toBeTruthy()
   })
 

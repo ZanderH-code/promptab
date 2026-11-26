@@ -27,7 +27,7 @@ describe('row defaults', () => {
       dim: 35,
       gradientAngle: 135,
       image: { blur: 0, grayscale: 0, scale: 1, vignette: 0, position: 'center' },
-      video: { blur: 0, grayscale: 0 },
+      video: { blur: 0, grayscale: 0, scale: 1 },
     })
   })
 

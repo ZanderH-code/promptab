@@ -34,7 +34,7 @@ export function backgroundDefaults(profile: ProfileV2) {
     dim: profile.background.dim,
     gradientAngle: DEFAULT_GRADIENT_ANGLE,
     image: DEFAULT_MEDIA,
-    video: { blur: DEFAULT_MEDIA.blur, grayscale: DEFAULT_MEDIA.grayscale },
+    video: { blur: DEFAULT_MEDIA.blur, grayscale: DEFAULT_MEDIA.grayscale, scale: DEFAULT_MEDIA.scale },
   }
 }
 

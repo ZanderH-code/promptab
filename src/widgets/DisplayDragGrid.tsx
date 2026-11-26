@@ -1,8 +1,8 @@
 import { Plus } from 'lucide-react'
-import { Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { DndContext, DragOverlay, PointerSensor, TouchSensor, closestCenter, pointerWithin, useDndMonitor, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, rectSortingStrategy, useSortable } from '@dnd-kit/sortable'
+import { DndContext, DragOverlay, KeyboardCode, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, pointerWithin, useDndMonitor, useDroppable, useSensor, useSensors, type CollisionDetection, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, rectSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable'
 import { CSS as DndCSS } from '@dnd-kit/utilities'
 import type { Shortcut } from '../core/model'
 import type { Translate } from '../i18n'
@@ -14,7 +14,7 @@ import { useReducedMotion } from '../ui/useReducedMotion'
 
 import { BookmarkFolder } from './lazyWidgets'
 
-type Props = ShortcutGridProps
+type Props = ShortcutGridProps & { /** Tile that had keyboard focus in the static grid this layer replaced. */ focusId?: string }
 type Strings = { pickedUp: (name: string) => string; overPosition: (position: number) => string; overFolder: (name: string) => string; dropped: (name: string) => string; cancelled: string; instructions: string }
 const LIFT = 1.06 // keep in step with the overlay's inline lift; the drop ghost scales it back out
 const strings: Record<'en' | 'zh-CN', Strings> = {
@@ -40,14 +40,18 @@ const strings: Record<'en' | 'zh-CN', Strings> = {
 // While a folder dialog is open only its own items are targets; anything else means "drag out".
 // Inside the dialog the nearest item wins, because sortable neighbours shift away from the pointer.
 const displayCollision: CollisionDetection = args => {
-  const hits = pointerWithin(args)
+  // The keyboard sensor moves the collision rect, not a pointer, so there is nothing to point at.
+  const keyboard = !args.pointerCoordinates
+  const hits = keyboard ? [] : pointerWithin(args)
   const dialog = typeof document === 'undefined' ? null : document.querySelector<HTMLElement>('.mnt-folder-dialog')
   if (dialog) {
     const ids = new Set(Array.from(dialog.querySelectorAll<HTMLElement>('[data-sortable-id]')).map(node => node.dataset.sortableId))
+    if (keyboard) return closestCenter({ ...args, droppableContainers: args.droppableContainers.filter(container => ids.has(String(container.id))) })
     const inside = hits.filter(hit => ids.has(String(hit.id)))
     if (inside.length) return inside
     return closestCenter({ ...args, droppableContainers: args.droppableContainers.filter(container => ids.has(String(container.id))) })
   }
+  if (keyboard) return closestCenter(args)
   const folder = hits.find(hit => String(hit.id).startsWith('folder:'))
   if (folder) return [folder]
   if (hits.length) return hits
@@ -65,11 +69,23 @@ const mouseOnly = (listeners: ReturnType<typeof useSortable>['listeners']) => (e
 }
 
 function SortableItem({ id, className, reduceMotion, children }: { id: string; className: string; reduceMotion: boolean; children: ReactNode }) {
-  const { listeners, setNodeRef, transform, isDragging } = useSortable({ id })
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useSortable({ id })
+  const node = useRef<HTMLDivElement>(null)
+  // The tile's link is the only tab stop and the keyboard drag handle: Space bubbles from the
+  // focused link to the sensor listeners on this wrapper, while Enter keeps its native link
+  // behaviour. The wrapper itself must not become a second tab stop or a button around a link,
+  // so only the parts of dnd-kit's attributes that describe the drag go on the link.
+  useEffect(() => {
+    const link = node.current?.querySelector('a')
+    if (!link) return
+    link.setAttribute('aria-roledescription', attributes['aria-roledescription'])
+    link.setAttribute('aria-describedby', attributes['aria-describedby'])
+    return () => { link.removeAttribute('aria-roledescription'); link.removeAttribute('aria-describedby') }
+  }, [attributes])
   // The item is only a placeholder: the overlay under the pointer is the dragged visual, so the
   // placeholder may still take the sorting transform without competing with the cursor.
   return <div
-    ref={setNodeRef}
+    ref={element => { node.current = element; setNodeRef(element) }}
     className={className}
     data-sortable-id={id}
     data-dragging={isDragging ? 'true' : undefined}
@@ -115,7 +131,7 @@ function DroppableFolder({ folder, name, shortcuts, style, iconColor, openInNewT
     renderItems={(items, close) => <DialogItemList group={folder} items={items} close={close} reduceMotion={reducedMotion} iconColor={iconColor} openInNewTab={openInNewTab} liftOnHover={liftOnHover} t={t} onContextMenu={onShortcutContextMenu} />} />
 }
 
-export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', groupDisplay, openAll, onOpenAll }: Props) {
+export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAction, t, language, onGroups, onAdd, onContextMenu, onGroupContextMenu, style, source, showGroupTitles, maxColumns, showAdd, iconColor, openInNewTab, liftOnHover, reduceMotion = 'system', reduceTransparency = 'system', groupDisplay, openAll, onOpenAll, focusId }: Props) {
   const visibleGroups = source === 'all' ? groups : groups.filter(group => group.id === source)
   const hasItems = visibleGroups.some(group => group.items.length > 0)
   const folderMode = source === 'all' && visibleGroups.length >= 2 && groupDisplay !== 'sections'
@@ -128,9 +144,21 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
   const sourceRef = useRef<string | null>(null)
   const grabRef = useRef<{ x: number; y: number } | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  // Mounting replaced the focused static tile; hand focus to the same tile unless it already moved on.
+  useLayoutEffect(() => {
+    const active = document.activeElement
+    if (!focusId || (active && active !== document.body && active.isConnected)) return
+    rootRef.current?.querySelector<HTMLElement>(`[data-sortable-id="${CSS.escape(focusId)}"] a`)?.focus({ preventScroll: true })
+  }, [focusId])
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 350, tolerance: 8 } }),
+    // Enter is deliberately not an activation key: the tile is a link and Enter must open it.
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+      keyboardCodes: { start: [KeyboardCode.Space], cancel: [KeyboardCode.Esc], end: [KeyboardCode.Space, KeyboardCode.Tab] },
+    }),
   )
   const copy = strings[language]
   const nameOf = (id: string) => { for (const group of groups) { const item = group.items.find(candidate => candidate.id === id); if (item) return item.builtinName === 'sample-website' ? t('builtin.sampleWebsite') : item.name } return id }
@@ -305,7 +333,7 @@ export function DisplayDragGrid({ groups, shortcuts, onboarding, onOnboardingAct
       screenReaderInstructions: { draggable: copy.instructions },
     }}
   >
-    <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} data-reduce-motion={reducedMotion || undefined} data-display-drag>
+    <div className={`bookmarks mnt-group mnt-bookmark-${style}`} style={{ '--mnt-columns': maxColumns, '--mnt-grid-max-width': `${maxColumns * 192 - 12}px` } as CSSProperties} data-reduce-motion={reducedMotion || undefined} data-display-drag ref={rootRef}>
       {/* Same place as the static grid it replaces on first hover, so nothing jumps under the pointer. */}
       {onboarding && !hasItems && <OnboardingCard t={t} onAction={onOnboardingAction} />}
       <SortableContext items={renderedGroups.flatMap(group => group.items.map(item => item.id))} strategy={rectSortingStrategy}>
