@@ -144,7 +144,12 @@ const backgroundImage = z.object({
   /** How much of the image shows over the page colour (100 = fully). */
   opacity: percent.optional(),
 })
-const backgroundVideo = z.object({ asset, poster: asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale), opacity: percent.optional(), vignette: ranged(RANGES.vignette).optional() })
+const backgroundVideo = z.object({
+  asset, poster: asset, blur: ranged(RANGES.blur), grayscale: ranged(RANGES.grayscale),
+  /** Zoom inside the frame, like an image wallpaper. */
+  scale: ranged(RANGES.scale).optional(),
+  opacity: percent.optional(), vignette: ranged(RANGES.vignette).optional(),
+})
 const wallpaperRotation = z.object({ images: z.array(asset).min(2).max(20), interval: z.enum(['open', 'hour', 'day']) }).superRefine((rotation, ctx) => {
   if (new Set(rotation.images).size !== rotation.images.length) ctx.addIssue({ code: 'custom', path: ['images'], message: 'unique wallpaper assets' })
 })

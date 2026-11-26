@@ -8,6 +8,8 @@ import { own } from '../own'
 import { clipText, firstChar } from '../text'
 import { nightTabLook } from './look'
 import { FONT_AWESOME } from './fontAwesome'
+import { upgradeNightTabBackup } from './legacy'
+import { domainSiteName, suggestSiteName } from '../siteName'
 
 export type NightTabResult = { profile: ProfileV2; warnings: string[]; count: number }
 type AnyRecord = Record<string, unknown>
@@ -149,21 +151,29 @@ function tileOf(item: AnyRecord, warnings: string[], name: string): Tile | undef
 function importBookmarks(root: AnyRecord, profile: ProfileV2, warnings: string[]): number {
   const groups = groupsOf(root)
   if (!groups.length) warnings.push('No bookmark groups were found')
-  const seen = new Set(profile.bookmarks.groups.flatMap(group => group.items.map(item => item.url)))
+  // Only URLs already in this profile are skipped. nightTab allows the same URL in several groups (or twice with
+  // different names), and the schema only requires unique link ids, so those are all kept. Starter sites are not
+  // counted: the empty sample group is dropped below, so the imported website must still arrive.
+  const existing = new Set(profile.bookmarks.groups.flatMap(group => group.items.filter(item => !item.builtinName).map(item => item.url)))
+  const skipped: string[] = []
+  let invalid = 0
   const imported = groups.flatMap((group, groupIndex): Group[] => {
     const items = bookmarkItems(group).flatMap((item, index): Link[] => {
       const url = bookmarkUrl(item)
+      if (!url) { invalid += 1; return [] }
       const display = record(item.display)
-      const name = text(first(record(display.name).text, item.name, item.title, item.label))
-      if (!url || !name || seen.has(url)) return []
-      seen.add(url)
+      // Empty names make icon-only tiles in nightTab; keep the look and store a usable name for search and the editor.
+      const named = text(first(record(display.name).text, item.name, item.title, item.label))
+      const name = named || suggestSiteName(url) || domainSiteName(url)
+      if (existing.has(url)) { skipped.push(name); return [] }
       const visual = displayVisual(item)
-      const tile = tileOf(item, warnings, name)
+      const tile: Tile = tileOf(item, warnings, name) ?? {}
+      if (!named) tile.hideName = true
       const color = customColor(item.color) ?? customColor(item.accent) ?? colorOf(first(record(item.style).color)) ?? profile.theme.color.accent
       if (visual?.mode === 'auto' && visual.image) warnings.push(`Website "${name}" uses the icon image ${visual.image}. Save that file, then choose it in the website's editor under Icon → Image.`)
       const letter = (visual?.mode === 'text' ? visual.icon : '') || text(first(item.letter, typeof item.icon === 'string' ? item.icon : undefined, item.text)) || firstChar(name).toUpperCase()
       const id = `nighttab-${groupIndex}-${index}-${crypto.randomUUID()}`
-      const base = { id, name, url, color, icon: clipText(letter, 8), ...(tile ? { tile } : {}) }
+      const base = { id, name, url, color, icon: clipText(letter, 8), ...(Object.keys(tile).length ? { tile } : {}) }
       if (visual?.mode === 'fa') return [{ ...base, iconMode: 'brand', iconName: `fa-${visual.name}`, iconColorMode: 'accent', brand: { slug: `fa-${visual.name}`, title: visual.title, path: visual.path, hex: '000000', viewBox: `0 0 ${visual.width} 512` } }]
       if (visual?.mode === 'lucide') return [{ ...base, iconMode: 'lucide', iconName: visual.iconName }]
       if (visual?.mode === 'auto') return [{ ...base, iconMode: 'auto' }]
@@ -179,6 +189,8 @@ function importBookmarks(root: AnyRecord, profile: ProfileV2, warnings: string[]
       ...(typeof openAll === 'boolean' ? { openAll } : {}),
     }]
   })
+  if (skipped.length) warnings.push(`Not added because already in this profile: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? ` and ${skipped.length - 5} more` : ''}`)
+  if (invalid) warnings.push(`Skipped ${invalid} nightTab website${invalid === 1 ? '' : 's'} without a valid http(s) address`)
   // An empty or sample-only group would show as an extra heading above the imported websites.
   const kept = profile.bookmarks.groups.filter(group => group.items.some(item => !item.builtinName))
   profile.bookmarks.groups = [...imported, ...kept]
@@ -395,9 +407,8 @@ function importTheme(theme: AnyRecord, profile: ProfileV2, warnings: string[]) {
       grayscale: clamp(number(media.grayscale) ?? 0, RANGES.grayscale.min, RANGES.grayscale.max), scale: clamp(round((number(media.scale) ?? 100) / 100), RANGES.scale.min, RANGES.scale.max),
       vignette: clamp(number(record(media.vignette).opacity) ?? 0, RANGES.vignette.min, RANGES.vignette.max),
     }
-    const { scale: _scale, ...videoLook } = look
     if (type === 'image' && image) image = { ...image, ...look }
-    else if (type === 'video' && video) video = { ...video, ...videoLook }
+    else if (type === 'video' && video) video = { ...video, ...look }
     else nextLook = look
   }
   if ((type === 'image' && image) || (type === 'video' && video)) background.type = type
@@ -412,8 +423,10 @@ export function parseNightTabBackup(json: string, current: ProfileV2): NightTabR
   if (typeof json !== 'string' || json.length > MAX_BACKUP_JSON_CHARS) throw new Error('Invalid nightTab backup size')
   let raw: unknown
   try { raw = JSON.parse(json) } catch { throw new Error('Invalid JSON') }
-  const root = record(raw)
+  const upgraded = upgradeNightTabBackup(record(raw))
+  const root = upgraded.backup
   const warnings: string[] = []
+  if (upgraded.legacy) warnings.push('This nightTab backup is from before version 7; it was converted to the version 7 format. nightTab\'s padding, scrollbars, panel colours and saved custom themes are not imported')
   const profile = structuredClone(current)
   if (root.nightTab !== true && Array.isArray(root.bookmark)) warnings.push('Backup is missing the nightTab format marker; imported recognized fields only')
   const count = importBookmarks(root, profile, warnings)

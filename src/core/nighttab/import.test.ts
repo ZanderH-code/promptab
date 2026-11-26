@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { migrateV1 } from '../migrate/v1'
 import { defaults } from '../model'
 import { parseNightTabBackup } from './import'
+import { primaryRamp } from './palette'
 import { MAX_BACKUP_JSON_CHARS } from '../backup-v2'
 import { isSafeFontRef } from '../css/safeValue'
 import { parseProfileV2 } from '../schema/profile'
@@ -212,5 +213,155 @@ describe('nightTab 7 backup', () => {
     const { profile } = parseNightTabBackup(JSON.stringify(backup), current)
     expect(profile.background).toMatchObject({ type: 'image', dim: 0, image: { asset: 'mnt-asset:wall', opacity: 70, grayscale: 100, vignette: 40, scale: 1, position: 'center' } })
     expect(profile.background.nextLook).toBeUndefined()
+  })
+
+  it('keeps a video wallpaper\'s zoom as well as its other adjustments', async () => {
+    const current = await baseProfile()
+    current.background = { type: 'video', dim: 10, video: { asset: `mnt-asset:${'a'.repeat(64)}`, poster: `mnt-asset:${'b'.repeat(64)}`, blur: 0, grayscale: 0, scale: 1 } }
+    const backup = structuredClone(fullBackup) as unknown as { state: { theme: { background: unknown } } }
+    backup.state.theme.background = { type: 'video', video: { url: 'https://video.example/clip.mp4', blur: 3, grayscale: 25, scale: 150, opacity: 80, vignette: { opacity: 20, start: 90, end: 70 } } }
+    const { profile, warnings } = parseNightTabBackup(JSON.stringify(backup), current)
+    expect(profile.background).toMatchObject({ type: 'video', dim: 0, video: { asset: `mnt-asset:${'a'.repeat(64)}`, poster: `mnt-asset:${'b'.repeat(64)}`, blur: 3, grayscale: 25, scale: 1.5, opacity: 80, vignette: 20 } })
+    expect(warnings).toEqual(expect.arrayContaining([expect.stringContaining('Background video: download https://video.example/clip.mp4')]))
+    expect(() => parseProfileV2(profile)).not.toThrow()
+  })
+})
+
+describe('nightTab bookmarks', () => {
+  it('imports a bookmark without a name as an icon-only tile named after its site', async () => {
+    const backup = structuredClone(fullBackup)
+    const unnamed = item('https://www.github.com/', '', { type: 'letter', letter: { text: '' } })
+    unnamed.display.name = { ...unnamed.display.name, show: true, text: '' }
+    backup.bookmark[0].items = [unnamed]
+    const { profile, count } = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    const link = profile.bookmarks.groups.at(-1)!.items[0]
+    expect(count).toBe(1)
+    expect(link).toMatchObject({ name: 'GitHub', url: 'https://www.github.com/', icon: 'G', iconMode: 'text', tile: { hideName: true } })
+    expect(() => parseProfileV2(profile)).not.toThrow()
+  })
+
+  it('keeps duplicate URLs in different groups instead of dropping one silently', async () => {
+    const backup = structuredClone(fullBackup)
+    backup.bookmark.push({ ...structuredClone(fullBackup.bookmark[0]), name: { show: true, text: 'More' }, items: [item('https://github.com/', 'GitHub again', { type: 'letter', letter: { text: 'G' } })] })
+    const { profile, count, warnings } = parseNightTabBackup(JSON.stringify(backup), await baseProfile())
+    const imported = profile.bookmarks.groups.filter(group => group.name === 'Daily' || group.name === 'More')
+    expect(count).toBe(6)
+    expect(imported.map(group => group.items.map(link => link.url))).toEqual([
+      ['https://github.com/', 'https://mail.example/', 'https://rare.example/', 'https://news.example/', 'https://art.example/'],
+      ['https://github.com/'],
+    ])
+    expect(new Set(imported.flatMap(group => group.items.map(link => link.id))).size).toBe(6)
+    expect(warnings).not.toEqual(expect.arrayContaining([expect.stringContaining('already in this profile')]))
+    expect(() => parseProfileV2(profile)).not.toThrow()
+  })
+
+  it('skips a website already in the profile with a warning naming it', async () => {
+    const current = await baseProfile()
+    current.bookmarks.groups.push({ id: 'mine', name: 'Mine', collapsed: false, items: [{ id: 'mine-github', name: 'GitHub', url: 'https://github.com/', color: '#000000', icon: 'G' }] })
+    const { count, warnings } = parseNightTabBackup(JSON.stringify(fullBackup), current)
+    expect(count).toBe(4)
+    expect(warnings).toContain('Not added because already in this profile: GitHub')
+  })
+
+  it('imports a website that only matches a starter site, because the starter group is dropped', async () => {
+    const current = await baseProfile()
+    current.bookmarks.groups.push({ id: 'starter', name: 'Starter', collapsed: false, items: [{ id: 'starter-youtube', name: 'YouTube', url: 'https://www.youtube.com/', color: '#ff0000', icon: 'Y', builtinName: 'sample-website' }] })
+    const backup = structuredClone(fullBackup)
+    backup.bookmark[0].items = [item('https://www.youtube.com/', 'YouTube', { type: 'letter', letter: { text: 'Y' } })]
+    const { profile, count, warnings } = parseNightTabBackup(JSON.stringify(backup), current)
+    expect(count).toBe(1)
+    expect(profile.bookmarks.groups.flatMap(group => group.items).filter(link => link.url === 'https://www.youtube.com/')).toHaveLength(1)
+    expect(warnings).not.toEqual(expect.arrayContaining([expect.stringContaining('already in this profile')]))
+  })
+})
+
+/** A nightTab 6 export: pre-7 units and field names, with the wallpaper visual block and `state.link`. */
+const legacyBackup = {
+  nighttab: true,
+  version: '6.9.0',
+  state: {
+    layout: { alignment: 'topleft', order: 'headerLink', direction: 'vertical', size: 1.2, width: 80, title: 'Old desk' },
+    header: {
+      order: ['greeting', 'transitional', 'clock', 'date', 'search', 'editAdd', 'colorAccent', 'menu'],
+      greeting: { show: false, type: 'good', name: '', size: 1 },
+      transitional: { show: false, type: 'timeanddate', size: 1 },
+      clock: { hours: { show: true, display: 'number' }, minutes: { show: true, display: 'number' }, seconds: { show: false, display: 'number' }, separator: { show: true, text: '.' }, meridiem: { show: false }, hour24: { show: false }, size: 1.5 },
+      date: { day: { show: true, display: 'word', weekStart: 'sunday', length: 'short' }, date: { show: true, display: 'number', ordinal: true }, month: { show: true, display: 'word', length: 'long' }, year: { show: false, display: 'number' }, separator: { show: true, text: '/' }, format: 'monthdate', size: 1 },
+      search: { show: true, engine: { selected: 'google', custom: { name: '', url: '', queryName: '' } }, size: 1, newTab: false },
+      editAdd: { show: false },
+      colorAccent: { show: true },
+      menu: { show: true, size: 1, style: 'box' },
+    },
+    link: { show: true, item: { size: 1.1, url: { show: false }, newTab: true, border: 2 } },
+    theme: {
+      style: 'dark', radius: 0.2, shadow: 1,
+      color: { hsl: { h: 210, s: 20, l: 50 }, rgb: { r: 64, g: 96, b: 128 }, contrast: { dark: 4, light: 4 } },
+      accent: { hsl: { h: 210, s: 80, l: 50 }, rgb: { r: 26, g: 102, b: 230 }, random: { active: false }, cycle: { active: false } },
+      font: { display: { name: 'Oswald', weight: 400, style: 'normal' }, ui: { name: 'System', weight: 400, style: 'normal' } },
+      custom: { all: [] },
+    },
+    background: {
+      color: { by: 'theme', rgb: { r: 20, g: 30, b: 40 }, hsl: { h: 0, s: 0, l: 0 } },
+      visual: { show: true, type: 'image', image: { url: 'https://wall.example/a.jpg' }, video: { url: '' }, blur: 4, scale: 1.5, opacity: 0.8, grayscale: 0.5, accent: 0.25, vignette: { opacity: 30, start: 90, end: 70 } },
+    },
+  },
+  bookmarks: [{
+    name: { show: true, text: 'Old' }, collapse: false, openAll: { show: true },
+    items: [{
+      url: 'https://example.org', timeStamp: 1, wide: true, tall: false,
+      display: {
+        alignment: 'centercenter', direction: 'vertical', order: 'namevisual', rotate: 0, translate: { x: 0, y: 0 }, gutter: 5,
+        name: { show: true, text: 'Example', size: 1.4 },
+        visual: { show: true, type: 'letter', letter: { text: 'E', size: 2.5 }, icon: { name: '', prefix: '', label: '', size: 2.5 }, image: { url: '', size: 2.5 }, shadow: { size: 0 } },
+      },
+      accent: { by: 'theme', rgb: { r: 0, g: 0, b: 0 } },
+      color: { by: 'theme', rgb: { r: 0, g: 0, b: 0 }, opacity: 0.5 },
+      background: { show: false, type: 'image', opacity: 0.25, image: { url: '' }, video: { url: '' } },
+    }],
+  }],
+}
+
+describe('nightTab 6 backup', () => {
+  it('converts pre-7 field names, units and the wallpaper visual block', async () => {
+    const { profile, count, warnings } = parseNightTabBackup(JSON.stringify(legacyBackup), await baseProfile())
+    const widget = <T extends string>(type: T) => profile.widgets.find(entry => entry.type === type)!
+    expect(count).toBe(1)
+    expect(warnings).toEqual(expect.arrayContaining([
+      expect.stringContaining('This nightTab backup is from before version 7'),
+      expect.stringContaining('Background image: download https://wall.example/a.jpg'),
+    ]))
+    expect(profile.bookmarks.groups.at(-1)).toMatchObject({
+      name: 'Old', openAll: true,
+      items: [{
+        name: 'Example', url: 'https://example.org', icon: 'E',
+        tile: { span: 'wide', opacity: 50, border: 8, nameFirst: true, gap: 1.25, nameScale: 2 },
+      }],
+    })
+    expect(widget('clock')).toMatchObject({ hidden: false, props: { hours: true, minutes: true, seconds: false, hour12: true, separator: '.', size: 1.5 } })
+    expect(widget('date')).toMatchObject({ hidden: false, props: { format: 'custom', weekday: true, day: true, month: true, year: false, weekdayStyle: 'short', monthStyle: 'long', ordinal: true, weekStart: 'sunday', order: ['weekday', 'month', 'day', 'year'], separator: '/' } })
+    // The old accent/add buttons and menu become the version 7 toolbar.
+    expect(widget('toolbar')).toMatchObject({ hidden: false, props: { actions: ['accent', 'edit', 'settings'] } })
+    expect(widget('bookmarks')).toMatchObject({ props: { showUrl: false, size: 1.1 } })
+    expect(profile.prefs).toMatchObject({ openShortcutsInNewTab: true, pageTitle: 'Old desk' })
+    expect(profile.layout.align).toBe('top-left')
+    expect(profile.theme).toMatchObject({ scale: 1.2, radius: 3.2, shadow: 25, color: { accent: '#1a66e6' } })
+    // The old HSL colour and contrast steps become the shade ramp version 7 uses.
+    const ramp = primaryRamp(210, 20, 10, 90, 14, false)
+    expect(profile.theme.color).toMatchObject({ bg: ramp.shade(1), surface: ramp.shade(2), text: ramp.text(1) })
+    expect(profile.theme.font.display).toBe('"Oswald", "Fjalla One", sans-serif')
+    // 0-1 fractions become percentages; no local wallpaper is chosen yet, so the look waits in nextLook.
+    expect(profile.background).toMatchObject({ type: 'theme', nextLook: { opacity: 80, blur: 4, grayscale: 50, scale: 1.5, vignette: 30 } })
+    expect(() => parseProfileV2(profile)).not.toThrow()
+  })
+
+  it('applies a pre-7 video look, zoom included, to a video the person already chose', async () => {
+    const current = await baseProfile()
+    current.background = { type: 'video', dim: 0, video: { asset: `mnt-asset:${'a'.repeat(64)}`, poster: `mnt-asset:${'b'.repeat(64)}`, blur: 0, grayscale: 0, scale: 1 } }
+    const backup = structuredClone(legacyBackup)
+    backup.state.background.visual = { show: true, type: 'video', image: { url: '' }, video: { url: 'https://video.example/clip.mp4' }, blur: 2, scale: 1.6, opacity: 0.7, grayscale: 0.2, accent: 0, vignette: { opacity: 10, start: 90, end: 70 } }
+    const { profile, warnings } = parseNightTabBackup(JSON.stringify(backup), current)
+    expect(profile.background).toMatchObject({ type: 'video', video: { asset: `mnt-asset:${'a'.repeat(64)}`, poster: `mnt-asset:${'b'.repeat(64)}`, blur: 2, grayscale: 20, scale: 1.6, opacity: 70, vignette: 10 } })
+    expect(warnings).toEqual(expect.arrayContaining([expect.stringContaining('Background video: download https://video.example/clip.mp4')]))
+    expect(() => parseProfileV2(profile)).not.toThrow()
   })
 })

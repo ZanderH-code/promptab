@@ -62,6 +62,9 @@ test('Template B plays a local video after its poster is visible', async ({ page
   await expect(video).toHaveJSProperty('playsInline', true)
   await expect(video).toHaveAttribute('data-first-frame-ms', /\d+/)
   await expect.poll(() => video.evaluate(element => getComputedStyle(element).opacity)).toBe('1')
+  await page.getByRole('slider', { name: 'Video zoom', exact: true }).fill('1.5')
+  await expect(video).toHaveCSS('transform', 'matrix(1.5, 0, 0, 1.5, 0, 0)')
+  await expect(page.locator('.wallpaper-video-poster')).toHaveCSS('transform', 'matrix(1.5, 0, 0, 1.5, 0, 0)')
   const colors = await video.evaluate(async element => {
     const player = element as HTMLVideoElement
     const canvas = document.createElement('canvas')

@@ -169,6 +169,7 @@ export function backgroundItems(ctx: Ctx): Item[] {
     items.push(
       imageRange('video-blur', 'settings.blur', video.blur, RANGES.blur, blur => setVideo({ blur }), { unit: 'px' }, fallback?.video.blur),
       imageRange('video-grayscale', 'settings.grayscale', video.grayscale, RANGES.grayscale, grayscale => setVideo({ grayscale }), { unit: '%', hint: 'settings.hint.grayscale' }, fallback?.video.grayscale),
+      imageRange('video-scale', 'settings.videoScale', video.scale ?? 1, RANGES.scale, scale => setVideo({ scale }), { step: 0.05, unit: '×', hint: 'settings.hint.videoScale' }, fallback?.video.scale),
       imageRange('video-opacity', 'settings.mediaOpacity', video.opacity ?? 100, { min: 0, max: 100 }, opacity => setVideo({ opacity: opacity === 100 ? undefined : opacity }), { unit: '%' }, 100),
       imageRange('video-vignette', 'settings.vignette', video.vignette ?? 0, RANGES.vignette, vignette => setVideo({ vignette: vignette || undefined }), { unit: '%', hint: 'settings.hint.vignette' }, 0),
       imageRange('video-tint', 'settings.wallpaperTint', bg.tint ?? 0, { min: 0, max: 100 }, tint => setBackground(b => ({ ...b, tint: tint || undefined })), { unit: '%', hint: 'settings.hint.wallpaperTint' }, 0),
