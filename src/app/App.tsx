@@ -71,14 +71,21 @@ export default function App() {
       if (!settings) return
       const target = event.target as HTMLElement | null
       const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
-      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog')) return
+      // Anything layered over the page owns every key, undo included: Ctrl+Z in a dialog must not
+      // reach into the page behind it. Help counts as a dialog even before its portal renders.
+      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog, .drawer.sd, .modal-backdrop')) return
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) {
         event.preventDefault()
         undo()
         return
       }
-      // Settings or a dialog is in front: single-letter keys belong to it, not to the page behind.
-      if (document.querySelector('.drawer.sd, .modal-backdrop')) return
+      // Esc leaves edit mode when no layer above owns it. The context menu closes itself on the
+      // same key, and safe mode's own 3×Esc listener is separate, so this does not swallow the
+      // presses it counts.
+      if (event.key === 'Escape' && !typing && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && !document.querySelector('.context-menu')) {
+        setEditMode(false)
+        return
+      }
       if (!profile?.prefs.keyboardShortcuts || typing || event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.shiftKey && event.key !== '?')) return
       const key = event.key.toLowerCase()
       if (key === '/') { event.preventDefault(); document.querySelector<HTMLInputElement>('#search')?.focus() }

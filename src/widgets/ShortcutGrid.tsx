@@ -34,8 +34,34 @@ export function ShortcutGrid(props: ShortcutGridProps) {
   const beginDrag = (mode: 0 | 1 | 2 | 3 | 4) => {
     if (mode === 1) return swap()
     if (mode !== 0) clearTimeout(swapTimer)
-    if (mode === 3) swapTimer = setTimeout(swap, 600)
-    else void import('./DisplayDragGrid')
+    if (mode === 3) { swapTimer = setTimeout(swap, 600); return }
+    void import('./DisplayDragGrid').then(() => {
+      if (mode !== 0) return
+      // Tab focus never produces the hover that swaps in the drag layer, so a keyboard user would
+      // stay on the static grid and never reach the keyboard drag it advertises. Swap once the
+      // layer is loaded, but only for real keyboard focus: mouse and touch focus keep their path.
+      const active = document.activeElement
+      if (!(active instanceof HTMLElement) || !active.matches(':focus-visible')) return
+      const focused = active.closest<HTMLElement>('[data-sortable-id]')
+      if (!focused) return
+      const id = focused.dataset.sortableId
+      setDragReady(true)
+      if (!id) return
+      // The swap replaces the focused node; put focus back on the same tile once it exists.
+      const restore = (tries: number) => {
+        const anchor = document.querySelector<HTMLElement>(`.bookmarks[data-display-drag] [data-sortable-id="${CSS.escape(id)}"] a`)
+        if (anchor) {
+          if (document.activeElement !== anchor) anchor.focus({ preventScroll: true })
+          return
+        }
+        // Still waiting for the swap. Only give up if focus moved to another live element; the
+        // old tile and the body both mean the focused node was (or is about to be) replaced.
+        const current = document.activeElement
+        if (current instanceof HTMLElement && current !== document.body && current !== active && current.isConnected) return
+        if (tries < 100) window.setTimeout(() => restore(tries + 1), 50)
+      }
+      window.setTimeout(() => restore(0), 0)
+    })
   }
   const display = <DisplayShortcutGrid {...props} onDragIntent={props.editing || dragReady ? undefined : beginDrag} />
   return props.editing ? <Suspense fallback={display}><EditingShortcutGrid {...props} /></Suspense>
