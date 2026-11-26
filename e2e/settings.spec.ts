@@ -1953,6 +1953,8 @@ test('AI steps guide from a description to a reviewed reply', async ({ page }) =
   await expect(page.locator('.sd-ai-ok')).toBeVisible()
   await expect(page.getByRole('textbox', { name: 'Want any changes?', exact: true })).toBeVisible()
 
+  // The review cards rise in with an opacity animation; a contrast scan mid-fade measures blended colours.
+  await page.waitForFunction(() => document.getAnimations().every(animation => animation.playState !== 'running'))
   const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze()
   expect(scan.violations.filter(issue => issue.impact === 'critical' || issue.impact === 'serious' || (issue.impact === 'moderate' && issue.id !== 'heading-order'))).toEqual([])
   expect(errors).toEqual([])
