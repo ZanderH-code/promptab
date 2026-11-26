@@ -18,6 +18,8 @@ test('the cached first paint matches the page a light profile renders', async ({
   })
   await page.reload()
   await expect(page.locator('.clock')).toBeVisible()
+  // The cache is rewritten once the loaded profile renders; the old code settled on the dark colour.
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('mnt:theme-cache:v1') ?? '{}').background)).toBe('#eeeae4')
   const paint = await page.evaluate(() => {
     const cache = JSON.parse(localStorage.getItem('mnt:theme-cache:v1')!)
     // What theme-bootstrap.js does with the cache before React runs.
