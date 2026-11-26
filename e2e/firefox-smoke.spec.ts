@@ -35,6 +35,8 @@ test('backup files can be dropped and backup JSON pasted in Firefox', async ({ p
   await expect(page.locator('.clock')).toBeVisible()
   await page.locator('.mnt-settings-entry').click()
   await openTab(page, 'data')
+  // The backup section is a lazy chunk; dispatching before it renders finds nothing.
+  await expect(page.locator('.backup-section .backup-drop')).toBeVisible()
   const profile = await page.evaluate(() => {
     const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
     const snapshot = JSON.parse(localStorage.getItem('profiles:v2:generation:' + index.generation)!)
