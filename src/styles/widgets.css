@@ -264,6 +264,29 @@
     font-size: 24px;
   }
 
+  /* A find query with no matches: say so where the website tiles would be. */
+  .mnt-find-empty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    margin: 12px 0 0;
+    color: var(--mnt-text-muted);
+    font-size: var(--mnt-text-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .mnt-find-empty button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--mnt-text);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+
   .shortcut-actions {
     display: flex;
     justify-content: center;

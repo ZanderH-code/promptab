@@ -202,3 +202,49 @@ test('group menu opens from the focused title and returns focus on Escape', asyn
   await page.getByRole('menuitem', { name: 'Open all' }).click()
   expect(confirmation).toContain('9')
 })
+
+test('finding websites says when nothing matches, and Clear, Escape and edit mode agree', async ({ page }) => {
+  await openApp(page)
+  await page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const key = `profiles:v2:generation:${index.generation}`
+    const snapshot = JSON.parse(localStorage.getItem(key)!)
+    const profile = snapshot.profiles.profiles[snapshot.profiles.activeProfileId]
+    profile.widgets.find((widget: { type: string }) => widget.type === 'search').props.findBookmarks = true
+    localStorage.setItem(key, JSON.stringify(snapshot))
+  })
+  await page.reload()
+  const search = page.locator('#search')
+  const website = page.getByRole('link', { name: 'Example website' })
+  const findNone = page.locator('.mnt-find-empty')
+  await expect(website).toBeVisible()
+
+  await search.fill('zzz')
+  await expect(website).toHaveCount(0)
+  await expect(findNone.locator('[role="status"]')).toHaveText('No websites match “zzz”')
+  await page.getByRole('button', { name: 'Clear' }).click()
+  await expect(search).toHaveValue('')
+  await expect(search).toBeFocused()
+  await expect(findNone).toHaveCount(0)
+  await expect(website).toBeVisible()
+
+  await search.fill('zzz')
+  await expect(findNone).toBeVisible()
+  await search.press('Escape')
+  await expect(search).toHaveValue('')
+  await expect(findNone).toHaveCount(0)
+  await expect(website).toBeVisible()
+
+  await search.fill('zzz')
+  await expect(findNone).toBeVisible()
+  await page.locator('.settings-button').focus()
+  await page.keyboard.press('e')
+  await expect(page.locator('.edit-toolbar')).toBeVisible()
+  await expect(search).toHaveValue('')
+  await expect(search).toHaveAttribute('placeholder', 'Search the web')
+  await page.getByRole('button', { name: 'Done' }).click()
+  await expect(page.locator('.edit-toolbar')).toHaveCount(0)
+  await expect(search).toHaveValue('')
+  await expect(search).toHaveAttribute('placeholder', 'Find bookmarks or search the web')
+  await expect(website).toBeVisible()
+})
