@@ -364,7 +364,7 @@ export default function App() {
         <div className="wallpaper" aria-hidden="true">
           <div className="wallpaper-media" style={{ opacity: (videoBackground.opacity ?? 100) / 100 }}>
             <Suspense fallback={<div className="wallpaper-image wallpaper-video-poster" style={{ backgroundImage: `url("${wallpaper.posterUrl}")` }} />}>
-              <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} reduceMotion={profile!.prefs.reduceMotion} />
+              <WallpaperVideo src={wallpaper.videoUrl} poster={wallpaper.posterUrl} blur={videoBackground.blur} grayscale={videoBackground.grayscale} scale={videoBackground.scale ?? 1} reduceMotion={profile!.prefs.reduceMotion} />
             </Suspense>
           </div>
           {!!profile!.background.tint && <div className="wallpaper-tint" style={{ '--mnt-wallpaper-tint': `${profile!.background.tint}%` } as CSSProperties} />}

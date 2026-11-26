@@ -2,9 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '../../ui/useReducedMotion'
 
 type Battery = { charging: boolean; level: number; addEventListener(type: 'levelchange' | 'chargingchange', listener: () => void): void; removeEventListener(type: 'levelchange' | 'chargingchange', listener: () => void): void }
-type Props = { src: string; poster: string; blur: number; grayscale: number; reduceMotion: 'system' | 'on' | 'off' }
+type Props = { src: string; poster: string; blur: number; grayscale: number; scale: number; reduceMotion: 'system' | 'on' | 'off' }
 
-export function WallpaperVideo({ src, poster, blur, grayscale, reduceMotion }: Props) {
+export function WallpaperVideo({ src, poster, blur, grayscale, scale, reduceMotion }: Props) {
   const video = useRef<HTMLVideoElement>(null)
   const [visible, setVisible] = useState(() => !document.hidden)
   const reduced = useReducedMotion(reduceMotion)
@@ -60,13 +60,14 @@ export function WallpaperVideo({ src, poster, blur, grayscale, reduceMotion }: P
     else markFirstFrame()
   }
 
+  const transform = `scale(${scale * (1 + blur / 200)})`
   return <>
-    <div className="wallpaper-image wallpaper-video-poster" aria-hidden="true" style={{ backgroundImage: `url("${poster}")`, opacity: playing ? 0 : 1, filter: `blur(${blur}px) grayscale(${grayscale}%)`, transform: `scale(${1 + blur / 200})` }} />
+    <div className="wallpaper-image wallpaper-video-poster" aria-hidden="true" style={{ backgroundImage: `url("${poster}")`, opacity: playing ? 0 : 1, filter: `blur(${blur}px) grayscale(${grayscale}%)`, transform }} />
     <video
       ref={video} className="wallpaper-video-element" aria-hidden="true" muted loop playsInline
       src={allowed ? src : undefined} poster={poster} preload={allowed ? 'auto' : 'none'}
       onPlaying={onPlaying} onPause={() => setPlaying(false)} data-first-frame-ms={firstFrameMs ?? undefined}
-      style={{ opacity: playing ? 1 : 0, filter: `blur(${blur}px) grayscale(${grayscale}%)`, transform: `scale(${1 + blur / 200})` }}
+      style={{ opacity: playing ? 1 : 0, filter: `blur(${blur}px) grayscale(${grayscale}%)`, transform }}
     />
   </>
 }
