@@ -71,14 +71,16 @@ export default function App() {
       if (!settings) return
       const target = event.target as HTMLElement | null
       const typing = !!target?.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])')
-      // Anything layered over the page owns every key, undo included: Ctrl+Z in a dialog must not
-      // reach into the page behind it. Help counts as a dialog even before its portal renders.
-      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog, .drawer.sd, .modal-backdrop')) return
+      // A dialog owns every key, undo included: Ctrl+Z in a dialog must not reach into the page behind
+      // it. Help counts as a dialog even before its portal renders. The settings drawer edits this
+      // page, so undo still works there; only single-letter keys stop.
+      if (keyboardHelpOpen || document.querySelector('[role="dialog"].mnt-folder-dialog, .modal-backdrop')) return
       if ((event.ctrlKey || event.metaKey) && !event.shiftKey && event.key.toLowerCase() === 'z' && !typing) {
         event.preventDefault()
         undo()
         return
       }
+      if (document.querySelector('.drawer.sd')) return
       // Esc leaves edit mode when no layer above owns it. The context menu closes itself on the
       // same key, and safe mode's own 3×Esc listener is separate, so this does not swallow the
       // presses it counts.

@@ -50,6 +50,13 @@ describe('App while settings load', () => {
 })
 
 describe('App undo guard', () => {
+  it('still undoes while the settings drawer is open, because the drawer edits the page', () => {
+    renderLoaded()
+    document.body.insertAdjacentHTML('beforeend', '<div class="drawer sd"></div>')
+    press({ key: 'z', ctrlKey: true })
+    expect(app.undo).toHaveBeenCalledTimes(1)
+  })
+
   it('undoes with Ctrl/Cmd+Z on the page itself', () => {
     renderLoaded()
     press({ key: 'z', ctrlKey: true })
@@ -60,7 +67,6 @@ describe('App undo guard', () => {
 
   it.each([
     ['a modal dialog', '<div class="modal-backdrop"></div>'],
-    ['the settings drawer', '<div class="drawer sd"></div>'],
     ['a folder dialog', '<div class="mnt-folder-dialog" role="dialog"></div>'],
   ])('does not undo the page behind %s', (_name, html) => {
     renderLoaded()

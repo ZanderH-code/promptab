@@ -97,6 +97,13 @@ test('reorders groups with the header buttons, disables the ends and persists', 
   await page.keyboard.press('Control+z')
   await expect.poll(order).toEqual(['a', 'b'])
   await moveSecondUp.click()
+  await expect.poll(order).toEqual(['b', 'a'])
+  // The reorder is saved asynchronously; reload only once it is in storage.
+  await expect.poll(() => page.evaluate(() => {
+    const index = JSON.parse(localStorage.getItem('profiles:v2:index')!)
+    const snapshot = JSON.parse(localStorage.getItem('profiles:v2:generation:' + index.generation)!)
+    return snapshot.profiles.profiles[snapshot.profiles.activeProfileId].bookmarks.groups.map((group: { id: string }) => group.id)
+  })).toEqual(['b', 'a'])
   await page.reload()
   await expect(page.locator('.clock')).toBeVisible()
   await enterEditMode(page)
