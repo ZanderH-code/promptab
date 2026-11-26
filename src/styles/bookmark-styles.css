@@ -78,7 +78,7 @@
   .mnt-bookmark-block :where(.shortcut) { justify-content: center; }
   .mnt-bookmark-block .shortcut:is(:hover, :focus-visible) { background: color-mix(in srgb, var(--mnt-tile-bg, var(--mnt-block-plate-hover, var(--mnt-surface-hover))) calc(var(--mnt-tile-opacity, var(--mnt-block-opacity, 1)) * 100%), transparent); }
   .mnt-bookmark-block .mnt-link-backdrop { background: none; }
-  .mnt-bookmark-block .shortcut-icon { width: auto; height: auto; border-radius: 0; background: none; color: var(--mnt-accent); font-family: var(--mnt-font-display); font-size: calc(2.5em * var(--mnt-tile-icon-scale, 1)); line-height: 1; transform: none; }
+  .mnt-bookmark-block .shortcut-icon { width: auto; height: auto; border-radius: 0; background: none; color: var(--mnt-tile-ink, var(--mnt-accent)); font-family: var(--mnt-font-display); font-size: calc(2.5em * var(--mnt-tile-icon-scale, 1)); line-height: 1; transform: none; }
   .mnt-bookmark-block .shortcut-icon :is(svg, img) { width: 1em; height: 1em; }
   .mnt-bookmark-block .shortcut:hover .shortcut-icon { transform: none; }
   .mnt-bookmark-block .shortcut > .mnt-link-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(.7em * var(--mnt-tile-name-scale, 1)); }

@@ -238,7 +238,7 @@
     display: grid;
     place-items: center;
     background: color-mix(in oklch,var(--tile) 20%,transparent);
-    color: var(--tile);
+    color: var(--mnt-tile-ink, var(--tile));
     font-size: 22px;
     transition: transform .2s;
   }

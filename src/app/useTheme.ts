@@ -70,12 +70,9 @@ export function useThemeTokens(latest: ProfileV2 | null, mode: ThemeMode | undef
     if (!profile || !mode) return
     const root = document.documentElement
     const properties = themeProperties(profile, mode)
-    const accentVariants = profile.prefs.accentOnOpen === 'off' ? [] : accentPalette(profile.theme, mode).map(accent => ({ accent, properties: themeProperties(profile, mode, accent) }))
-    const background = profile.background.type === 'color' && profile.background.color
-      ? profile.background.color
-      : profile.background.type === 'gradient' && mode === 'dark' && profile.background.gradient
-        ? `linear-gradient(${profile.background.gradient.angle}deg, ${profile.background.gradient.stops.join(', ')})`
-        : undefined
+    const accentVariants = profile.prefs.accentOnOpen === 'off' ? [] : accentPalette(profile.theme, mode).map(accent => ({ accent, properties: themeProperties(profile, mode, accent), background: pageBackground(profile, mode, accent) }))
+    // Same helper as the inline page background, so the first painted frame cannot disagree with React.
+    const background = pageBackground(profile, mode)
     root.dataset.theme = mode
     root.dataset.glass = profile.theme.glass > 0 ? 'on' : 'off'
     // CSS and ui/motion read the in-app motion setting from here; `system` defers to the OS preference.
@@ -91,19 +88,27 @@ export function useThemeTokens(latest: ProfileV2 | null, mode: ThemeMode | undef
   }, [profile, mode, cache])
 }
 
-/** Inline styles for the page background (colour, gradient or accent wash); images use <Wallpaper>. */
-export function backgroundStyle(profile: ProfileV2, mode: ThemeMode): CSSProperties {
+/**
+ * The page background as a CSS `background` value: the one place the first-paint cache and the inline
+ * page style both read it. `undefined` means the page keeps the theme background (`--mnt-scheme-bg`).
+ */
+function pageBackground(profile: ProfileV2, mode: ThemeMode, accent = selectedAccent(profile, mode)): string | undefined {
   const { background } = profile
-  const accent = selectedAccent(profile, mode)
   const colors = { ...themeColorsFor(profile.theme, mode), ...(accent ? { accent } : {}) }
   switch (background.type) {
-    case 'color': return { background: mode === 'dark' || !profile.theme.colorLight ? background.color ?? colors.bg : colors.bg }
+    case 'color': return mode === 'dark' || !profile.theme.colorLight ? background.color ?? colors.bg : colors.bg
     // One gradient serves both modes, so light falls back to the plain background to stay readable.
     case 'gradient': return background.gradient && mode === 'dark'
-      ? { background: `linear-gradient(${background.gradient.angle}deg, ${background.gradient.stops.join(', ')})` } : {}
-    case 'accent': return { background: mixOklch(colors.bg, colors.accent, 0.18) }
-    default: return {}
+      ? `linear-gradient(${background.gradient.angle}deg, ${background.gradient.stops.join(', ')})` : undefined
+    case 'accent': return mixOklch(colors.bg, colors.accent, 0.18)
+    default: return undefined
   }
+}
+
+/** Inline styles for the page background (colour, gradient or accent wash); images use <Wallpaper>. */
+export function backgroundStyle(profile: ProfileV2, mode: ThemeMode): CSSProperties {
+  const background = pageBackground(profile, mode)
+  return background ? { background } : {}
 }
 
 export function wallpaperStyle(profile: ProfileV2, url: string): CSSProperties | null {
