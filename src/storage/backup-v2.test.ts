@@ -106,6 +106,60 @@ describe('backup storage service', () => {
     expect(store.getState().profiles.old.bookmarks).toEqual(original.bookmarks)
   })
 
+  it('appends the backup websites after the current ones, keeps their asset referenced and undoes cleanly', async () => {
+    const s = await setup()
+    const original = (s.initial.profiles as ProfileCollection).profiles.old
+    const existingLink = original.bookmarks.groups[0].items[0]
+    const bytes = new TextEncoder().encode('tile image')
+    const digest = await crypto.subtle.digest('SHA-256', bytes)
+    const tileId = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
+    const incoming = structuredClone(original)
+    incoming.bookmarks.groups = [{
+      ...original.bookmarks.groups[0],
+      name: 'Appended',
+      items: [
+        { ...existingLink, id: existingLink.id, url: 'https://added.example' },
+        { ...existingLink, id: 'tile-link', name: 'Tile', url: 'https://tile.example', image: `mnt-asset:${tileId}` },
+        { ...existingLink, id: 'duplicate-link', url: existingLink.url },
+      ],
+    }]
+    const json = await serializeBackupV2({
+      activeProfileId: 'old', profiles: [incoming],
+      assets: [{ id: s.oldRef.slice(10), blob: (await s.assets.get(s.oldRef))! }, { id: tileId, blob: new Blob([bytes], { type: 'image/png' }) }],
+    })
+    expect(await s.assets.get(`mnt-asset:${tileId}`)).toBeUndefined()
+    expect(await s.service.analyzeBackup(json, 1)).toMatchObject({ bookmarkAppend: { groups: 1, links: 2, duplicates: 1 } })
+    const store = createProfileStore({ persistence: s.profiles as never, initialProfile: original })
+    await store.getState().initialize()
+    await s.service.importPartial(json, 1, { bookmarks: true, appearance: false, layout: false, savedThemes: false, settings: false }, store, { bookmarks: 'append' })
+    const merged = store.getState().profiles.old
+    expect(merged.bookmarks.groups).toHaveLength(2)
+    expect(merged.bookmarks.groups[0]).toEqual(original.bookmarks.groups[0])
+    expect(merged.bookmarks.groups[1]).toMatchObject({ name: 'Appended' })
+    expect(merged.bookmarks.groups[1].id).not.toBe(original.bookmarks.groups[0].id)
+    expect(merged.bookmarks.groups[1].items.map(item => item.url)).toEqual(['https://added.example', 'https://tile.example'])
+    expect(merged.bookmarks.groups[1].items[0].id).not.toBe(existingLink.id)
+    expect(merged.bookmarks.groups[1].items[1].image).toBe(`mnt-asset:${tileId}`)
+    // The committed profile is what the asset sweep counts references from, so the imported tile stays alive.
+    expect(await s.assets.get(`mnt-asset:${tileId}`)).toBeDefined()
+    expect(JSON.stringify((await s.profiles.read())?.profiles)).toContain(`mnt-asset:${tileId}`)
+    expect(store.getState().history.profiles.old.snapshots[0]).toMatchObject({ kind: 'import', profile: original })
+    await store.getState().undo('old')
+    expect(store.getState().profiles.old.bookmarks).toEqual(original.bookmarks)
+  })
+
+  it('summarizes appending a v1 backup against the current profile', async () => {
+    const s = await setup()
+    const v1 = JSON.stringify({
+      kind: 'mnt.backup', backupVersion: 1, exportedAt: '2026-01-01T00:00:00Z',
+      settings: { ...defaults, shortcuts: [
+        { id: 'example', name: '示例网站', url: 'https://example.com', color: '#90d5cd', icon: '例' },
+        { id: 'new', name: 'New', url: 'https://new.example', color: '#112233', icon: 'N' },
+      ] },
+    })
+    expect(await s.service.analyzeBackup(v1, 1)).toMatchObject({ format: 1, bookmarkAppend: { groups: 1, links: 1, duplicates: 1 } })
+  })
+
   it('restores appearance without touching bookmarks and undoes saved themes with the profile', async () => {
     const s = await setup()
     const original = (s.initial.profiles as ProfileCollection).profiles.old

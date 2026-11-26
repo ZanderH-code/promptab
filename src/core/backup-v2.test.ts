@@ -1,8 +1,9 @@
 // @vitest-environment node
+import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { defaults } from './model'
 import { migrateV1 } from './migrate/v1'
-import { mergeBackupProfile, parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_TOTAL_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from './backup-v2'
+import { appendBackupBookmarks, mergeBackupProfile, parseBackupV2, serializeBackupV2, MAX_BACKUP_ASSET_BYTES, MAX_BACKUP_TOTAL_ASSET_BYTES, MAX_BACKUP_VIDEO_BYTES } from './backup-v2'
 
 const id = '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824'
 const profile = () => migrateV1(defaults, { id: () => 'main', now: () => '2026-01-01T00:00:00Z', add: async () => { throw new Error('unexpected') } })
@@ -121,5 +122,95 @@ describe('v2 backups', () => {
     const full = 'A'.repeat(MAX_BACKUP_ASSET_BYTES / 3 * 4 + 4 - (MAX_BACKUP_ASSET_BYTES / 3 * 4 + 4) % 4)
     const many = Array.from({ length: Math.floor(MAX_BACKUP_TOTAL_ASSET_BYTES / MAX_BACKUP_ASSET_BYTES) + 1 }, (_, i) => ({ id: i.toString(16).padStart(64, '0'), mime: 'image/png', base64: full }))
     await expect(parseBackupV2(JSON.stringify({ ...value, assets: many }))).rejects.toMatchObject({ key: 'error.settingsInvalid' })
+  })
+})
+
+describe('appending bookmarks from a backup', () => {
+  const selection = { bookmarks: true, appearance: false, layout: false, settings: false }
+  const site = (id: string, url: string) => ({ id, name: id, url, color: '#112233', icon: 'S' })
+  const group = (id: string, name: string, items: ReturnType<typeof site>[]) => ({ id, name, collapsed: false, items })
+
+  it('adds incoming groups after the current ones and regenerates colliding ids', async () => {
+    const current = await profile()
+    const existing = current.bookmarks.groups[0]
+    const incoming = await profile()
+    incoming.bookmarks.groups = [
+      group(existing.id, 'Added first', [site(existing.items[0].id, 'https://added.example'), site('kept-link', 'https://kept.example')]),
+      group('kept-group', 'Added second', [site('second-link', 'https://second.example')]),
+    ]
+    let generated = 0
+    const { groups, summary } = appendBackupBookmarks(current.bookmarks, incoming.bookmarks, () => `generated-${++generated}`)
+    expect(summary).toEqual({ groups: 2, links: 3, duplicates: 0 })
+    expect(groups.map(item => item.id)).toEqual(['generated-2', 'kept-group'])
+    expect(groups[0].items.map(item => item.id)).toEqual(['generated-1', 'kept-link'])
+    expect(current.bookmarks.groups[0]).toEqual(existing)
+
+    const merged = mergeBackupProfile(current, incoming, selection, { bookmarks: 'append', createId: () => 'generated' })
+    expect(merged.bookmarks.groups).toHaveLength(3)
+    expect(merged.bookmarks.groups[0]).toEqual(existing)
+    expect(merged.bookmarks.groups.slice(1).map(item => item.name)).toEqual(['Added first', 'Added second'])
+    expect(new Set(merged.bookmarks.groups.map(item => item.id)).size).toBe(merged.bookmarks.groups.length)
+    const links = merged.bookmarks.groups.flatMap(item => item.items)
+    expect(new Set(links.map(item => item.id)).size).toBe(links.length)
+    expect(links.map(item => item.url)).toContain('https://added.example')
+  })
+
+  it('skips websites whose URL is already present and drops groups left with nothing to add', async () => {
+    const current = await profile()
+    const existing = current.bookmarks.groups[0].items[0]
+    const incoming = await profile()
+    incoming.bookmarks.groups = [
+      group('dupes', 'Only duplicates', [site('copy', existing.url)]),
+      group('mixed', 'Mixed', [site('same', existing.url), site('new', 'https://new.example'), site('new-again', 'https://new.example')]),
+      group('empty', 'Empty', []),
+    ]
+    const { groups, summary } = appendBackupBookmarks(current.bookmarks, incoming.bookmarks, () => 'unused')
+    expect(summary).toEqual({ groups: 2, links: 1, duplicates: 3 })
+    expect(groups.map(item => item.name)).toEqual(['Mixed', 'Empty'])
+    expect(groups[0].items.map(item => item.url)).toEqual(['https://new.example'])
+  })
+
+  it('does not add a second built-in quick-links group', async () => {
+    const current = await profile()
+    expect(current.bookmarks.groups[0].builtinName).toBe('quick-links')
+    const incoming = await profile()
+    incoming.bookmarks.groups[0].items[0].url = 'https://added.example'
+    incoming.bookmarks.groups[0].items[0].id = 'added'
+    const { groups } = appendBackupBookmarks(current.bookmarks, incoming.bookmarks, () => 'new-group-id')
+    expect(groups).toHaveLength(1)
+    expect(groups[0]).not.toHaveProperty('builtinName')
+    expect(groups[0].name).toBe(incoming.bookmarks.groups[0].name)
+  })
+
+  it('keeps ids unique and never duplicates existing URLs for arbitrary appends', async () => {
+    const base = await profile()
+    const idArb = fc.constantFrom('g1', 'g2', 'l1', 'l2', 'l3')
+    const urlArb = fc.constantFrom('https://one.example', 'https://two.example', 'https://three.example')
+    const linkArb = fc.record({ id: idArb, url: urlArb }).map(({ id: linkId, url }) => site(linkId, url))
+    const groupArb = fc.record({
+      id: idArb, name: fc.constantFrom('Alpha', 'Beta', 'Gamma'), collapsed: fc.boolean(), items: fc.array(linkArb, { maxLength: 3 }),
+    })
+    fc.assert(fc.property(
+      fc.array(groupArb, { maxLength: 3 }),
+      fc.array(groupArb, { maxLength: 3 }),
+      (currentGroups, incomingGroups) => {
+        fc.pre(new Set(currentGroups.map(item => item.id)).size === currentGroups.length)
+        const currentLinkIds = currentGroups.flatMap(item => item.items.map(link => link.id))
+        fc.pre(new Set(currentLinkIds).size === currentLinkIds.length)
+        const current = { ...structuredClone(base), bookmarks: { groups: currentGroups } }
+        const incoming = { ...structuredClone(base), bookmarks: { groups: incomingGroups } }
+        let generated = 0
+        const merged = mergeBackupProfile(current, incoming, selection, { bookmarks: 'append', createId: () => `generated-${++generated}` })
+        const groups = merged.bookmarks.groups
+        expect(groups.slice(0, currentGroups.length)).toEqual(currentGroups)
+        expect(new Set(groups.map(item => item.id)).size).toBe(groups.length)
+        const allLinks = groups.flatMap(item => item.items)
+        expect(new Set(allLinks.map(item => item.id)).size).toBe(allLinks.length)
+        const existingUrls = new Set(currentGroups.flatMap(item => item.items.map(link => link.url)))
+        const appended = allLinks.slice(currentGroups.flatMap(item => item.items).length)
+        expect(new Set(appended.map(item => item.url)).size).toBe(appended.length)
+        for (const item of appended) expect(existingUrls.has(item.url)).toBe(false)
+      },
+    ), { numRuns: 40 })
   })
 })

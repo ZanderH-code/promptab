@@ -18,12 +18,74 @@ export type ParsedBackupV2 = BackupV2Input & { exportedAt: string; themes: Saved
 type EncodedAsset = { id: string; mime: string; base64: string }
 
 export type BackupProfileSelection = { bookmarks: boolean; appearance: boolean; layout: boolean; settings: boolean }
+/** Replace swaps the current groups for the backup's; append adds the backup's groups after the current ones. */
+export type BookmarkMergeMode = 'replace' | 'append'
+/** What appending the backup's websites would add to the current profile. */
+export type BookmarkAppendSummary = { groups: number; links: number; duplicates: number }
+export type MergeBackupOptions = { bookmarks?: BookmarkMergeMode; createId?: () => string }
+
+type AppendableLink = { id: string; url: string }
+type AppendableGroup = { id: string; builtinName?: 'quick-links'; items: AppendableLink[] }
+
+/**
+ * Plans the groups to place after the current ones for a partial restore, with the summary of what that adds.
+ * Group ids and link ids stay unique across the merged profile (colliding ids are regenerated), a link whose
+ * URL already exists is skipped and counted, and a group left with no new links is dropped. Built-in names
+ * stay unique, so a second `quick-links` group from the backup is appended as a regular group instead.
+ */
+export function appendBackupBookmarks<Group extends AppendableGroup>(
+  current: { groups: AppendableGroup[] },
+  incoming: { groups: Group[] },
+  createId: () => string,
+): { groups: Group[]; summary: BookmarkAppendSummary } {
+  const urls = new Set(current.groups.flatMap(group => group.items.map(item => item.url)))
+  const groupIds = new Set(current.groups.map(group => group.id))
+  const linkIds = new Set(current.groups.flatMap(group => group.items.map(item => item.id)))
+  const builtinNames = new Set(current.groups.flatMap(group => group.builtinName ? [group.builtinName] : []))
+  const fresh = (used: Set<string>) => {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      const id = createId()
+      if (typeof id === 'string' && id.trim() && !used.has(id)) return id
+    }
+    throw new Error('Could not create a unique bookmark id')
+  }
+  const groups: Group[] = []
+  let links = 0
+  let duplicates = 0
+  for (const group of incoming.groups) {
+    const items: AppendableLink[] = []
+    for (const item of group.items) {
+      if (urls.has(item.url)) {
+        duplicates++
+        continue
+      }
+      urls.add(item.url)
+      const next = linkIds.has(item.id) ? { ...item, id: fresh(linkIds) } : item
+      linkIds.add(next.id)
+      items.push(next)
+      links++
+    }
+    // A group whose links all already exist has nothing left to add.
+    if (!items.length && group.items.length) continue
+    const id = groupIds.has(group.id) ? fresh(groupIds) : group.id
+    groupIds.add(id)
+    const { builtinName, ...rest } = group
+    const keepBuiltin = builtinName !== undefined && !builtinNames.has(builtinName)
+    if (builtinName) builtinNames.add(builtinName)
+    groups.push({ ...rest, id, ...(keepBuiltin ? { builtinName } : {}), items } as Group)
+  }
+  return { groups, summary: { groups: groups.length, links, duplicates } }
+}
 
 /** Merge selected parts of a validated backup profile into the current profile. */
-export function mergeBackupProfile(current: ProfileV2, incoming: ProfileV2, selection: BackupProfileSelection): ProfileV2 {
+export function mergeBackupProfile(current: ProfileV2, incoming: ProfileV2, selection: BackupProfileSelection, options: MergeBackupOptions = {}): ProfileV2 {
+  const bookmarks = !selection.bookmarks ? undefined
+    : options.bookmarks === 'append'
+      ? { groups: [...current.bookmarks.groups, ...appendBackupBookmarks(current.bookmarks, incoming.bookmarks, options.createId ?? (() => crypto.randomUUID())).groups] }
+      : incoming.bookmarks
   return parseProfileV2({
     ...structuredClone(current),
-    ...(selection.bookmarks ? { bookmarks: incoming.bookmarks } : {}),
+    ...(selection.bookmarks ? { bookmarks } : {}),
     ...(selection.appearance ? { theme: incoming.theme, background: incoming.background, custom: incoming.custom } : {}),
     ...(selection.layout ? { layout: incoming.layout, widgets: incoming.widgets } : {}),
     ...(selection.settings ? { prefs: incoming.prefs, search: incoming.search } : {}),
