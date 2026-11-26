@@ -118,6 +118,11 @@ function Greeting({ name, transitional, language, t }: { name?: string; transiti
   return <div>{name ? <span data-user-content>{t('greeting.withName', { greeting, name })}</span> : greeting}{transitional && <div>{formatGreetingTransition(now, language)}</div>}</div>
 }
 
+/** A find query that matches no website still says so and can be cleared from the bookmarks area. */
+function FindEmpty({ query, t, onClear }: { query: string; t: Translate; onClear: () => void }) {
+  return <p className="mnt-find-empty"><span role="status">{t('search.findNone', { query })}</span><button type="button" onClick={onClear}>{t('search.findClear')}</button></p>
+}
+
 export function ProfileWidgets(props: Props) {
   const { profile, language, shortcuts, editing, onboarding, t } = props
   const breakpoint = useBreakpoint()
@@ -127,7 +132,11 @@ export function ProfileWidgets(props: Props) {
   const searchEngine = profile.search.engines.find(e => e.id === profile.search.defaultEngineId)
   const searchTemplate = searchEngine?.template ?? 'https://www.google.com/search?q={query}'
   const [find, setFind] = useState('')
-  const query = editing ? '' : find.trim().toLowerCase()
+  // Edit mode hides the filter; clear the text too so the box and the grid agree again after editing.
+  useEffect(() => { if (editing) setFind('') }, [editing])
+  const clearFind = () => { setFind(''); document.querySelector<HTMLInputElement>('.mnt-search-input')?.focus() }
+  const findText = editing ? '' : find
+  const query = findText.trim().toLowerCase()
   const matches = (item: { name: string; url: string }) => item.name.toLowerCase().includes(query) || item.url.toLowerCase().includes(query)
   const groups = query ? profile.bookmarks.groups.map(group => ({ ...group, collapsed: false, items: group.items.filter(matches) })).filter(group => group.items.length) : profile.bookmarks.groups
   const findsBookmarks = profile.widgets.some(widget => widget.type === 'bookmarks' && !widget.hidden)
@@ -155,8 +164,17 @@ export function ProfileWidgets(props: Props) {
         switch (widget.type) {
           case 'clock': return frame(<ClockBlock widget={widget} language={language} onContextMenu={props.onContextMenu} theme={profile.theme} custom={profile.custom} t={t} />)
           case 'date': return frame(<DateBlock widget={widget} language={language} />)
-          case 'search': return frame(<Search template={searchTemplate} engineName={widget.props.namePlaceholder ? searchEngine?.name : undefined} onFind={widget.props.findBookmarks && findsBookmarks ? setFind : undefined} openInNewTab={profile.prefs.openSearchInNewTab} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
-          case 'bookmarks': return frame(<ShortcutGrid groups={groups} shortcuts={query ? shortcuts.filter(matches) : shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} showAdd={editing || (!query && widget.props.showAdd !== false)} iconColor={widget.props.iconColor ?? 'per-site'} openInNewTab={profile.prefs.openShortcutsInNewTab} liftOnHover={profile.prefs.liftOnHover} reduceMotion={profile.prefs.reduceMotion} reduceTransparency={profile.prefs.reduceTransparency} onGroups={props.onGroups} onGroupContextMenu={props.onGroupContextMenu} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} groupDisplay={widget.props.groupDisplay} openAll={widget.props.openAll} onOpenAll={props.onOpenAll} />)
+          case 'search': {
+            const finds = !!widget.props.findBookmarks && findsBookmarks && !editing
+            return frame(<Search template={searchTemplate} engineName={widget.props.namePlaceholder ? searchEngine?.name : undefined} onFind={finds ? setFind : undefined} findQuery={finds ? findText : undefined} openInNewTab={profile.prefs.openSearchInNewTab} t={t} onError={props.onError} onContextMenu={props.onContextMenu} />)
+          }
+          case 'bookmarks': {
+            const source = widget.props.source ?? 'all'
+            const empty = !!query && !groups.some(group => source === 'all' || group.id === source)
+            return frame(empty
+              ? <FindEmpty query={findText.trim()} t={t} onClear={clearFind} />
+              : <ShortcutGrid groups={groups} shortcuts={query ? shortcuts.filter(matches) : shortcuts} editing={editing} onboarding={onboarding} onOnboardingAction={props.onOnboardingAction} language={language} t={t} style={widget.props.style ?? 'tile'} source={widget.props.source ?? 'all'} showGroupTitles={widget.props.showGroupTitles !== false} maxColumns={widget.props.maxColumns ?? 6} showAdd={editing || (!query && widget.props.showAdd !== false)} iconColor={widget.props.iconColor ?? 'per-site'} openInNewTab={profile.prefs.openShortcutsInNewTab} liftOnHover={profile.prefs.liftOnHover} reduceMotion={profile.prefs.reduceMotion} reduceTransparency={profile.prefs.reduceTransparency} onGroups={props.onGroups} onGroupContextMenu={props.onGroupContextMenu} onEdit={props.onEdit} onRemove={props.onRemove} onMove={props.onMove} onAdd={props.onAdd} onContextMenu={props.onBookmarkContextMenu} groupDisplay={widget.props.groupDisplay} openAll={widget.props.openAll} onOpenAll={props.onOpenAll} />)
+          }
           case 'greeting': {
             return frame(<Greeting name={widget.props.name} transitional={widget.props.transitional} language={language} t={t} />)
           }

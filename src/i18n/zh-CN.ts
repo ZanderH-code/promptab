@@ -20,6 +20,8 @@ export const zhCN = {
   'search.placeholderFind': '查找书签，或搜索网络',
   'search.placeholderFindEngine': '查找书签，或用 {engine} 搜索',
   'search.submit': '提交搜索',
+  'search.findNone': '没有与“{query}”匹配的网站',
+  'search.findClear': '清除',
 
   'edit.enter': '编辑桌面',
   'edit.toolbar': '桌面编辑工具',
