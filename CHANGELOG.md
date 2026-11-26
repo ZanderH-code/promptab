@@ -4,6 +4,26 @@ All notable changes to Promptab are documented here. This project follows [Keep 
 
 ## [Unreleased]
 
+## [0.26.0]
+
+### Added
+
+- Edit mode: move whole groups up or down, and sort a group A–Z, from the group's header. Both can be undone with Ctrl+Z.
+- The website editor shows a live preview of the tile while you change its look, and lets you pick the group when adding a website.
+- Restoring a backup can add its websites after your current ones instead of replacing them. Websites you already have are skipped and counted. You can also drop a backup file onto Settings → Backup & import, or click the drop box and paste the backup.
+- Video wallpapers have a zoom setting, like image wallpapers.
+- A bookmark search with no matches says so and offers a Clear button.
+
+### Fixed
+
+- Dragging a website onto a tile in another group puts it at that spot instead of at the end.
+- Keyboard drag in the normal grid works as announced: Space picks a tile up, the arrow keys move it, Space drops it. Enter still opens the website.
+- Esc leaves edit mode. Ctrl+Z no longer undoes the page behind an open dialog. Small dialogs keep Tab focus inside and return focus when they close.
+- nightTab import keeps bookmarks without a name and duplicate links, warns about everything it skips, converts backups from before nightTab 7, and keeps the video wallpaper zoom.
+- No background colour flash on startup in light mode when a preset has its own light colour.
+- Names and letter icons stay readable on a tile with a custom background colour.
+- Entering edit mode clears a bookmark search so the box and the grid agree.
+
 ## [0.25.0]
 
 ### Added

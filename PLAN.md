@@ -1,5 +1,9 @@
 # Promptab：产品与实施计划 v2
 
+## Release status — 0.26.0
+
+0.26.0 closes the code-level gaps found in a comparison with nightTab: group reordering and A–Z sort in edit mode, drops into another group at the hovered slot, a working keyboard drag, Esc/Ctrl+Z/dialog focus fixes, a live preview and group picker in the website editor, append-mode backup restore with drop and paste, a nightTab importer that no longer drops bookmarks and converts pre-7 backups, video wallpaper zoom, a startup background that matches the rendered one in light mode, readable text on custom tile plates, and a no-match message for bookmark search. Permissions and data use are unchanged. Not done: "apply this tile style to all websites"; a live eval for the optional `background.video.scale` field (no eval credentials on the dev host; AI packs cannot set video backgrounds, `eval:replay` is unchanged). 0.25.0 is live in Edge Add-ons and the Chrome Web Store.
+
 ## Release status — 0.25.0
 
 0.25.0 switches on Google Drive sync: the store builds include the Google sign-in client (repository variable `GOOGLE_DRIVE_CLIENT_ID`), so Chrome, Edge and Firefox can share one profile through a hidden app folder in the user's own Drive. It adds the `identity` permission; `https://www.googleapis.com/*` stays optional. Google accepts all three store redirect URIs (checked with a signed-out `prompt=none` request), but a real sign-in and Drive round trip has not been tested yet. If users report problems, check silent renewal after a browser restart first. 0.24.1 is live in Edge Add-ons and the Chrome Web Store.
