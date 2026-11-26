@@ -416,6 +416,8 @@ const messages = {
   'editor.url': ['网址', 'URL'],
   'editor.name': ['名称', 'Name'],
   'editor.namePlaceholder': ['网站名称', 'Website name'],
+  'editor.preview': ['预览', 'Preview'],
+  'editor.group': ['分组', 'Group'],
   'editor.tile': ['方块外观', 'Tile look'],
   'editor.tileHint': ['用于“方块”样式的网站区域。', 'Used when the websites widget shows blocks.'],
   'editor.tileSize': ['大小', 'Size'],
