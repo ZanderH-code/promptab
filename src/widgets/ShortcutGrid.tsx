@@ -26,6 +26,7 @@ let swapTimer: ReturnType<typeof setTimeout> | undefined
 
 export function ShortcutGrid(props: ShortcutGridProps) {
   const [dragReady, setDragReady] = useState(false)
+  const [focusId, setFocusId] = useState<string>()
   const swap = () => { document.querySelector('.context-menu, .mnt-folder-dialog') || setDragReady(true) }
   // Touch only preloads: remounting mid-gesture would drop the pressed tile and its long-press menu.
   // The swap waits until the gesture is over and the tap's click or menu has had its say.
@@ -44,28 +45,14 @@ export function ShortcutGrid(props: ShortcutGridProps) {
       if (!(active instanceof HTMLElement) || !active.matches(':focus-visible')) return
       const focused = active.closest<HTMLElement>('[data-sortable-id]')
       if (!focused) return
-      const id = focused.dataset.sortableId
+      // The swap replaces the focused node, so the layer takes focus back on mount.
+      setFocusId(focused.dataset.sortableId)
       setDragReady(true)
-      if (!id) return
-      // The swap replaces the focused node; put focus back on the same tile once it exists.
-      const restore = (tries: number) => {
-        const anchor = document.querySelector<HTMLElement>(`.bookmarks[data-display-drag] [data-sortable-id="${CSS.escape(id)}"] a`)
-        if (anchor) {
-          if (document.activeElement !== anchor) anchor.focus({ preventScroll: true })
-          return
-        }
-        // Still waiting for the swap. Only give up if focus moved to another live element; the
-        // old tile and the body both mean the focused node was (or is about to be) replaced.
-        const current = document.activeElement
-        if (current instanceof HTMLElement && current !== document.body && current !== active && current.isConnected) return
-        if (tries < 100) window.setTimeout(() => restore(tries + 1), 50)
-      }
-      window.setTimeout(() => restore(0), 0)
     })
   }
   const display = <DisplayShortcutGrid {...props} onDragIntent={props.editing || dragReady ? undefined : beginDrag} />
   return props.editing ? <Suspense fallback={display}><EditingShortcutGrid {...props} /></Suspense>
-    : dragReady ? <Suspense fallback={display}><DisplayDragGrid {...props} /></Suspense>
+    : dragReady ? <Suspense fallback={display}><DisplayDragGrid {...props} focusId={focusId} /></Suspense>
     : display
 }
 

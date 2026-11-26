@@ -44,7 +44,11 @@ test('keyboard focus loads the drag layer and Space/arrows reorder it', async ({
 
   await page.keyboard.press('Space')
   await expect(page.locator('.mnt-drag-overlay')).toBeVisible()
+  // dnd-kit measures the drop targets after pick-up; wait for its announcements, as a screen reader user would.
+  const live = page.locator('[id^="DndLiveRegion"]')
+  await expect(live).toHaveText(/position 1|第 1 个/)
   await page.keyboard.press('ArrowRight')
+  await expect(live).toHaveText(/position 2|第 2 个/)
   await page.keyboard.press('Space')
   await expect.poll(() => ids(page)).toEqual(['b', 'a', 'c'])
   // Focus follows the tile that moved, so the next Space drags the same tile.
